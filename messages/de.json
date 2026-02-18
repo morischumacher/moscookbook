@@ -1,0 +1,12 @@
+{
+    "HomePage": {
+        "title": "Mo's Kochbuch",
+        "subtitle": "Eine Sammlung meiner Lieblingsrezepte",
+        "viewRecipe": "Rezept ansehen"
+    },
+    "Navigation": {
+        "home": "Startseite",
+        "login": "Anmelden",
+        "admin": "Verwaltung"
+    }
+}

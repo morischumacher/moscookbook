@@ -1,0 +1,61 @@
+.dashboard {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.tableWrapper {
+    background-color: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.table th {
+    background-color: var(--background);
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.viewLink {
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.deleteBtn {
+    background: none;
+    color: #ff3333;
+    font-weight: 500;
+    padding: 0;
+}
+
+.deleteBtn:hover {
+    text-decoration: underline;
+}

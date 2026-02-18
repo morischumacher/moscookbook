@@ -1,0 +1,54 @@
+.navbar {
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+}
+
+.container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.link {
+    font-weight: 500;
+    color: var(--muted);
+    transition: color 0.15s ease;
+}
+
+.link:hover {
+    color: var(--primary);
+}
+
+.langToggle {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--foreground);
+    transition: all 0.15s ease;
+}
+
+.langToggle:hover {
+    background-color: var(--background);
+    border-color: var(--muted);
+}
