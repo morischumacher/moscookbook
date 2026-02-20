@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
         }
 
-        const res = NextResponse.json({ success: true });
+        const res = NextResponse.json({ success: true, admin: user.admin });
         const session = await getIronSession<SessionData>(req, res, sessionOptions);
 
         session.user = {

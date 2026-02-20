@@ -21,10 +21,16 @@ export default function LoginPage() {
                 body: JSON.stringify({ email, password }),
             });
 
+            const data = await res.json();
+
             if (res.ok) {
-                window.location.href = window.location.pathname.replace('/login', '/admin');
+                if (data.admin) {
+                    window.location.href = window.location.pathname.replace('/login', '/admin');
+                } else {
+                    // Redirect to the locale root (home page)
+                    window.location.href = window.location.pathname.replace('/login', '');
+                }
             } else {
-                const data = await res.json();
                 setError(data.message || 'Login failed');
             }
         } catch (err) {
