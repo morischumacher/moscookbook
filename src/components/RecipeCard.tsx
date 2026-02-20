@@ -16,9 +16,11 @@ export default function RecipeCard({ title, description, imageUrl, slug, categor
     return (
         <Link href={`/recipe/${slug}`} className={styles.card}>
             <div className={styles.imageWrapper}>
-                <div className={styles.imagePlaceholder} />
-                {/* Placeholder until we have real images or use Next/Image with valid src */}
-                {imageUrl && <img src={imageUrl} alt={title} className={styles.image} />}
+                {imageUrl ? (
+                    <Image src={imageUrl} alt={title} fill style={{ objectFit: 'cover' }} className={styles.image} />
+                ) : (
+                    <div className={styles.imagePlaceholder} />
+                )}
             </div>
             <div className={styles.content}>
                 <span className={styles.category}>{category}</span>

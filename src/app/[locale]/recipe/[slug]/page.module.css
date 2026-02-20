@@ -107,7 +107,8 @@
 .amount {
     font-weight: 700;
     color: var(--primary);
-    margin-right: 1rem;
+    margin-right: 2rem;
+    min-width: 100px;
 }
 
 .instructionsSection {

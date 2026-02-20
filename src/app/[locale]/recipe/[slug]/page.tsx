@@ -98,7 +98,7 @@ export default async function RecipePage({
                 <div className={styles.imageWrapper}>
                     {/* Placeholder or real image */}
                     {recipe.imageUrl ? (
-                        <img src={recipe.imageUrl} alt={recipe.title} className={styles.image} />
+                        <Image src={recipe.imageUrl} alt={recipe.title} fill style={{ objectFit: 'cover' }} className={styles.image} />
                     ) : (
                         <div className={styles.imagePlaceholder} />
                     )}
