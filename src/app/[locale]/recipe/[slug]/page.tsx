@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { cookies } from 'next/headers';
 import ReactMarkdown from 'react-markdown';
 import Rating from '@/components/Rating';
+import RatingDisplay from '@/components/RatingDisplay';
 import FavoriteButton from '@/components/FavoriteButton';
 import ViewTracker from '@/components/ViewTracker';
 import prisma from '@/lib/prisma';
@@ -83,27 +84,16 @@ export default async function RecipePage({
                         {recipe.title}
                         <FavoriteButton recipeId={recipe.id} initialFavorited={isFavorited} disabled={!session.user} />
                     </h1>
-                    <div className={styles.info}>
-                        <span>{recipe.nationality}</span>
-                        <span>•</span>
-                        <div title={`${recipeData.ratings.length} Users rated this dish with ${recipe.rating.toFixed(1)}/5 Oysters`} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Rating value={recipe.rating} readonly={true} />
-                            <span>({recipeData.ratings.length})</span>
-                        </div>
-                        <span>•</span>
-                        <span>{recipe.views} views</span>
-                    </div>
-
-                    <div style={{ marginTop: 'var(--space-md)', padding: 'var(--space-sm)', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-                        {session.user ? (
-                            <>
-                                <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Your Rating:</span>
-                                <Rating value={userRatingValue} recipeId={recipe.id} readonly={false} />
-                            </>
-                        ) : (
-                            <span style={{ fontSize: '0.875rem', color: 'var(--color-neutral)' }}>Log in to leave a rating.</span>
-                        )}
-                    </div>
+                    <RatingDisplay
+                        recipeId={recipe.id}
+                        initialAverage={recipe.rating}
+                        initialCount={recipeData.ratings.length}
+                        initialUserRating={userRatingValue}
+                        isLoggedIn={!!session.user}
+                        views={recipe.views}
+                        nationality={recipe.nationality || ''}
+                        infoClassName={styles.info}
+                    />
                 </div>
                 <div className={styles.imageWrapper}>
                     {/* Placeholder or real image */}

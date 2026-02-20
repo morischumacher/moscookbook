@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useRouter } from '@/i18n/routing';
 import styles from './Rating.module.css';
 
 interface RatingProps {
@@ -9,12 +10,19 @@ interface RatingProps {
     max?: number;
     recipeId?: number; // If provided, the rating is interactable
     readonly?: boolean;
+    hideTitle?: boolean;
+    onChange?: (newRating: number) => void;
 }
 
-export default function Rating({ value, max = 5, recipeId, readonly = false }: RatingProps) {
+export default function Rating({ value, max = 5, recipeId, readonly = false, hideTitle = false, onChange }: RatingProps) {
     const [currentValue, setCurrentValue] = useState(value);
     const [hoverValue, setHoverValue] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const router = useRouter();
+
+    useEffect(() => {
+        setCurrentValue(value);
+    }, [value]);
 
     const isInteractive = !!recipeId && !readonly;
 
@@ -25,6 +33,7 @@ export default function Rating({ value, max = 5, recipeId, readonly = false }: R
         // Optimistic update
         const previousValue = currentValue;
         setCurrentValue(rating);
+        if (onChange) onChange(rating);
 
         try {
             const res = await fetch(`/api/recipes/${recipeId}/rate`, {
@@ -36,6 +45,7 @@ export default function Rating({ value, max = 5, recipeId, readonly = false }: R
             if (!res.ok) {
                 // Revert on failure
                 setCurrentValue(previousValue);
+                if (onChange) onChange(previousValue);
                 if (res.status === 401) {
                     alert('You must be logged in to rate recipes.');
                 } else {
@@ -43,8 +53,7 @@ export default function Rating({ value, max = 5, recipeId, readonly = false }: R
                 }
             } else {
                 const data = await res.json();
-                // Optionally update to the new server-calculated average
-                // setCurrentValue(data.average);
+                router.refresh();
             }
         } catch (error) {
             setCurrentValue(previousValue);
@@ -94,7 +103,7 @@ export default function Rating({ value, max = 5, recipeId, readonly = false }: R
     });
 
     return (
-        <div className={styles.ratingWrapper} title={`${currentValue.toFixed(1)} out of ${max}`}>
+        <div className={styles.ratingWrapper} {...(hideTitle ? {} : { title: `${currentValue.toFixed(1)} out of ${max}` })}>
             {stars}
             <span className={styles.srOnly}>{currentValue.toFixed(1)} out of {max}</span>
         </div>
