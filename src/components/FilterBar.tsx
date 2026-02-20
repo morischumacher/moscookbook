@@ -4,7 +4,7 @@ import { Link, useRouter, usePathname } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
 import styles from './FilterBar.module.css';
 
-export default function FilterBar() {
+export default function FilterBar({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -21,6 +21,16 @@ export default function FilterBar() {
             params.set(key, value);
         } else {
             params.delete(key);
+        }
+        router.replace(`${pathname}?${params.toString()}`);
+    };
+
+    const handleFavoritesToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const params = new URLSearchParams(searchParams);
+        if (e.target.checked) {
+            params.set('favorites', 'true');
+        } else {
+            params.delete('favorites');
         }
         router.replace(`${pathname}?${params.toString()}`);
     };
@@ -57,6 +67,18 @@ export default function FilterBar() {
                     <option value="Mexican">Mexican</option>
                 </select>
             </div>
+
+            {isLoggedIn && (
+                <div className={styles.group} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                        type="checkbox"
+                        id="favoritesToggle"
+                        onChange={handleFavoritesToggle}
+                        checked={searchParams.get('favorites') === 'true'}
+                    />
+                    <label htmlFor="favoritesToggle" style={{ marginBottom: 0 }}>Favorites Only</label>
+                </div>
+            )}
         </div>
     );
 }

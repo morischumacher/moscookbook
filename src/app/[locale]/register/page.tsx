@@ -2,40 +2,48 @@
 
 import { useState } from 'react';
 import { useRouter, Link } from '@/i18n/routing';
-import styles from './page.module.css';
+import styles from '../login/page.module.css';
 
-export default function LoginPage() {
+export default function RegisterPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
         try {
-            const res = await fetch('/api/auth/login', {
+            const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
 
             if (res.ok) {
-                window.location.href = window.location.pathname.replace('/login', '/admin');
+                // Success, automatically route them to the home page via hard reload to clear cache
+                window.location.href = '/';
             } else {
                 const data = await res.json();
-                setError(data.message || 'Login failed');
+                setError(data.message || 'Registration failed');
             }
         } catch (err) {
             setError('An error occurred');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
         <div className={styles.container}>
             <form onSubmit={handleSubmit} className={styles.form}>
-                <h1 className={styles.title}>Login</h1>
+                <h1 className={styles.title}>Register</h1>
+                <p style={{ marginBottom: 'var(--space-md)', color: 'var(--color-neutral)' }}>
+                    Create an account to save favorite recipes and leave ratings.
+                </p>
                 {error && <p className={styles.error}>{error}</p>}
 
                 <div className={styles.group}>
@@ -58,16 +66,17 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
+                        minLength={6}
                         className={styles.input}
                     />
                 </div>
 
-                <button type="submit" className="btn" style={{ width: '100%' }}>
-                    Login
+                <button type="submit" className="btn" style={{ width: '100%' }} disabled={isLoading}>
+                    {isLoading ? 'Creating Account...' : 'Create Account'}
                 </button>
 
                 <div style={{ marginTop: 'var(--space-md)', textAlign: 'center', fontSize: '0.875rem' }}>
-                    Need an account? <Link href="/register" style={{ textDecoration: 'underline' }}>Register</Link>
+                    Already have an account? <Link href="/login" style={{ textDecoration: 'underline' }}>Log In</Link>
                 </div>
             </form>
         </div>

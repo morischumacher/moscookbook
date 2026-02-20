@@ -1,5 +1,6 @@
 import { Link } from '@/i18n/routing';
 import Image from 'next/image';
+import Rating from './Rating';
 import styles from './RecipeCard.module.css';
 
 interface RecipeCardProps {
@@ -24,7 +25,7 @@ export default function RecipeCard({ title, description, imageUrl, slug, categor
                 <h3 className={styles.title}>{title}</h3>
                 <p className={styles.description}>{description}</p>
                 <div className={styles.footer}>
-                    <span className={styles.rating}>★ {rating.toFixed(1)}</span>
+                    <Rating value={rating} />
                 </div>
             </div>
         </Link>

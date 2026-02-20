@@ -1,7 +1,7 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
-import { sessionOptions } from '@/lib/session';
+import { sessionOptions, SessionData } from '@/lib/session';
 
 const intlMiddleware = createMiddleware({
     locales: ['en', 'de'],
@@ -14,7 +14,7 @@ export default async function middleware(req: NextRequest) {
     // Check for admin route protection
     // Note: This matches /en/admin, /de/admin, /admin
     if (req.nextUrl.pathname.match(/^\/(en|de)?\/admin/)) {
-        const session = await getIronSession(req, res, sessionOptions);
+        const session = await getIronSession<SessionData>(req, res as any, sessionOptions);
         if (!session.user?.admin) {
             // Redirect to login
             const locale = req.nextUrl.pathname.split('/')[1] || 'en';

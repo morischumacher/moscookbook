@@ -8,25 +8,29 @@ datasource db {
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  email    String   @unique
-  password String
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
+  password  String
+  admin     Boolean    @default(false)
+  ratings   Rating[]
+  favorites Favorite[]
 }
 
 model Recipe {
-  id           Int      @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   title        String
-  slug         String   @unique
+  slug         String     @unique
   description  String?
-  ingredients  String   // Stored as JSON string
-  instructions String   // Markdown content
-  views        Int      @default(0)
-  rating       Float    @default(0)
+  ingredients  String     // Stored as JSON string
+  instructions String     // Markdown content
+  views        Int        @default(0)
   nationality  String?
   category     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   images       Image[]
+  ratings      Rating[]
+  favorites    Favorite[]
 }
 
 model Image {
@@ -34,4 +38,27 @@ model Image {
   url      String
   recipeId Int
   recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  value     Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId  Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, recipeId])
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId  Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, recipeId])
 }

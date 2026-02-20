@@ -8,34 +8,43 @@ export async function POST(req: NextRequest) {
     try {
         const { email, password } = await req.json();
 
-        const user = await prisma.user.findUnique({
+        if (!email || !password || password.length < 6) {
+            return NextResponse.json({ message: 'Invalid input data' }, { status: 400 });
+        }
+
+        const existingUser = await prisma.user.findUnique({
             where: { email },
         });
 
-        if (!user) {
-            return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
+        if (existingUser) {
+            return NextResponse.json({ message: 'User already exists' }, { status: 409 });
         }
 
-        const isValid = await bcrypt.compare(password, user.password);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        if (!isValid) {
-            return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
-        }
+        const user = await prisma.user.create({
+            data: {
+                email,
+                password: hashedPassword,
+                admin: false // Default to standard user
+            },
+        });
 
+        // Automatically log them in
         const res = NextResponse.json({ success: true });
         const session = await getIronSession<SessionData>(req, res, sessionOptions);
 
         session.user = {
             id: user.id,
             email: user.email,
-            admin: user.admin, // Pulling from Prisma schema
+            admin: user.admin,
         };
 
         await session.save();
 
         return res;
     } catch (error) {
-        console.error('Login error:', error);
+        console.error('Registration error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

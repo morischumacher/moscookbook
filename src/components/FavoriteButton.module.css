@@ -1,0 +1,51 @@
+.button {
+    background: transparent;
+    border: none;
+    padding: var(--space-xs);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-neutral);
+    /* Default unliked state */
+    transition: all 0.2s ease;
+    border-radius: 50%;
+}
+
+.button:hover:not(:disabled) {
+    color: var(--color-fg);
+    background-color: var(--color-bg-hover);
+    transform: scale(1.1);
+}
+
+.button:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.button.active {
+    color: var(--color-fg);
+    /* Bright black when active */
+}
+
+.button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.icon {
+    width: 24px;
+    height: 24px;
+    stroke-width: 1.5px;
+}
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}

@@ -1,7 +1,7 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import "../globals.css";
@@ -13,11 +13,6 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
     variable: "--font-geist-mono",
-    subsets: ["latin"],
-});
-
-const playfair = Playfair_Display({
-    variable: "--font-serif",
     subsets: ["latin"],
 });
 
@@ -46,7 +41,7 @@ export default async function LocaleLayout({
 
     return (
         <html lang={locale}>
-            <body className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable}`}>
+            <body className={`${geistSans.variable} ${geistMono.variable}`}>
                 <NextIntlClientProvider messages={messages}>
                     <Navbar locale={locale} />
                     <div style={{ minHeight: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column' }}>

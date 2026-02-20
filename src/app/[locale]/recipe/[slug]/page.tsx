@@ -1,7 +1,12 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
+import { cookies } from 'next/headers';
 import ReactMarkdown from 'react-markdown';
+import Rating from '@/components/Rating';
+import FavoriteButton from '@/components/FavoriteButton';
 import prisma from '@/lib/prisma';
+import { getIronSession } from 'iron-session';
+import { sessionOptions, SessionData } from '@/lib/session';
 import styles from './page.module.css';
 
 interface Ingredient {
@@ -18,22 +23,59 @@ export default async function RecipePage({
 
     const recipeData = await prisma.recipe.findUnique({
         where: { slug },
-        include: { images: true }
+        include: { images: true, ratings: true }
     });
 
     if (!recipeData) {
         notFound();
     }
 
-    // Increment views
-    await prisma.recipe.update({
-        where: { slug },
-        data: { views: { increment: 1 } }
-    });
+    // Unique View Counting Logic
+    const cookieStore = await cookies();
+    const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
+    const viewedCookieName = `viewed_${slug}`;
+    const hasViewed = cookieStore.has(viewedCookieName);
+
+    // Increment only if not admin and hasn't viewed in this session
+    if (!session.user?.admin && !hasViewed) {
+        await prisma.recipe.update({
+            where: { slug },
+            data: { views: { increment: 1 } }
+        });
+
+        // Set a cookie that expires in 24 hours to prevent spam refreshing
+        cookieStore.set(viewedCookieName, 'true', {
+            maxAge: 60 * 60 * 24,
+            path: '/',
+            httpOnly: true,
+            sameSite: 'lax'
+        });
+
+        // Optimistically update the local object for immediate display
+        recipeData.views += 1;
+    }
+
+    const avgRating = recipeData.ratings.length > 0
+        ? recipeData.ratings.reduce((sum, r) => sum + r.value, 0) / recipeData.ratings.length
+        : 0;
+
+    let isFavorited = false;
+    if (session.user) {
+        const favorite = await prisma.favorite.findUnique({
+            where: {
+                userId_recipeId: {
+                    userId: session.user.id,
+                    recipeId: recipeData.id
+                }
+            }
+        });
+        isFavorited = !!favorite;
+    }
 
     const recipe = {
         ...recipeData,
-        imageUrl: recipeData.images[0]?.url || ''
+        imageUrl: recipeData.images[0]?.url || '',
+        rating: avgRating
     };
 
     const ingredients: Ingredient[] = JSON.parse(recipe.ingredients);
@@ -43,11 +85,16 @@ export default async function RecipePage({
             <header className={styles.header}>
                 <div className={styles.meta}>
                     <span className={styles.category}>{recipe.category}</span>
-                    <h1 className={styles.title}>{recipe.title}</h1>
+                    <h1 className={styles.title}>
+                        {recipe.title}
+                        <FavoriteButton recipeId={recipe.id} initialFavorited={isFavorited} disabled={!session.user} />
+                    </h1>
                     <div className={styles.info}>
                         <span>{recipe.nationality}</span>
                         <span>•</span>
-                        <span>★ {recipe.rating}</span>
+                        <div title={!session.user ? "Log in to rate this recipe" : "Click to rate"}>
+                            <Rating value={recipe.rating} recipeId={recipe.id} readonly={!session.user} />
+                        </div>
                         <span>•</span>
                         <span>{recipe.views} views</span>
                     </div>

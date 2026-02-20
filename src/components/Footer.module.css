@@ -1,9 +1,9 @@
 .footer {
-    background-color: var(--surface);
-    border-top: 1px solid var(--border);
-    padding: 2rem 0;
+    padding: var(--space-xl) 0;
     margin-top: auto;
-    text-align: center;
-    color: var(--muted);
+    color: var(--color-neutral);
     font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-top: 1px solid var(--color-border);
 }

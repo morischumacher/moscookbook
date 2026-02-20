@@ -1,38 +1,41 @@
 .filterBar {
     display: flex;
     flex-wrap: wrap;
-    gap: 1.5rem;
-    padding: 1rem;
-    background-color: var(--surface);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    margin-bottom: 2rem;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
     align-items: center;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-md);
 }
 
 .group {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-xs);
 }
 
 .group label {
     font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--muted);
+    font-weight: 500;
+    color: var(--color-neutral);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .group select {
-    padding: 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background-color: var(--background);
-    color: var(--foreground);
-    font-size: 0.875rem;
+    padding: var(--space-xs) 0;
+    border: none;
+    background-color: transparent;
+    color: var(--color-fg);
+    font-size: 1rem;
+    font-weight: 500;
     outline: none;
+    cursor: pointer;
+    border-bottom: 1px solid transparent;
     transition: border-color 0.15s ease;
 }
 
-.group select:focus {
-    border-color: var(--primary);
+.group select:focus,
+.group select:hover {
+    border-color: var(--color-fg);
 }

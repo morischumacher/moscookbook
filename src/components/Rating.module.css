@@ -1,0 +1,60 @@
+.ratingWrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.starContainer {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+}
+
+.interactive {
+    transition: transform 0.15s ease;
+}
+
+.interactive:hover {
+    transform: scale(1.1);
+}
+
+.emptyIcon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0.15;
+    object-fit: contain;
+    border: none;
+    outline: none;
+}
+
+.filledOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.filledIcon {
+    /* Ensure the image inside doesn't shrink when the container width changes */
+    max-width: none;
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    border: none;
+    outline: none;
+}
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}

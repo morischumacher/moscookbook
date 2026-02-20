@@ -5,15 +5,18 @@ export const sessionOptions: SessionOptions = {
     cookieName: 'mos_cookbook_session',
     cookieOptions: {
         secure: process.env.NODE_ENV === 'production',
+        path: '/',
     },
 };
 
+export interface SessionData {
+    user?: {
+        id: number;
+        email: string;
+        admin: boolean;
+    };
+}
+
 declare module 'iron-session' {
-    interface IronSessionData {
-        user?: {
-            id: number;
-            email: string;
-            admin: boolean;
-        };
-    }
+    interface IronSessionData extends SessionData { }
 }
