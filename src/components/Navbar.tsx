@@ -28,7 +28,7 @@ export default async function Navbar({ locale }: { locale: string }) {
                 <Link href="/" className={styles.logo}>
                     <Image
                         src="/logo.png"
-                        alt="Mo's Cookbook Logo"
+                        alt="mo'scookbook Logo"
                         width={240}
                         height={40}
                         className={styles.logoImage}

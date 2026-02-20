@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-    title: "Mo's Cookbook",
+    title: "mo'scookbook",
     description: "A collection of my favorite recipes",
 };
 
