@@ -49,6 +49,7 @@ export default async function RecipePage({
         : 0;
 
     let isFavorited = false;
+    let userRatingValue = 0;
     if (session.user) {
         const favorite = await prisma.favorite.findUnique({
             where: {
@@ -59,6 +60,9 @@ export default async function RecipePage({
             }
         });
         isFavorited = !!favorite;
+
+        const userRating = recipeData.ratings.find(r => r.userId === session.user?.id);
+        if (userRating) userRatingValue = userRating.value;
     }
 
     const recipe = {
@@ -82,11 +86,23 @@ export default async function RecipePage({
                     <div className={styles.info}>
                         <span>{recipe.nationality}</span>
                         <span>•</span>
-                        <div title={!session.user ? "Log in to rate this recipe" : "Click to rate"}>
-                            <Rating value={recipe.rating} recipeId={recipe.id} readonly={!session.user} />
+                        <div title="Average Rating" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Rating value={recipe.rating} readonly={true} />
+                            <span>{recipe.rating.toFixed(1)} / 5 Oysters ({recipeData.ratings.length})</span>
                         </div>
                         <span>•</span>
                         <span>{recipe.views} views</span>
+                    </div>
+
+                    <div style={{ marginTop: 'var(--space-md)', padding: 'var(--space-sm)', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+                        {session.user ? (
+                            <>
+                                <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Your Rating:</span>
+                                <Rating value={userRatingValue} recipeId={recipe.id} readonly={false} />
+                            </>
+                        ) : (
+                            <span style={{ fontSize: '0.875rem', color: 'var(--color-neutral)' }}>Log in to leave a rating.</span>
+                        )}
                     </div>
                 </div>
                 <div className={styles.imageWrapper}>
