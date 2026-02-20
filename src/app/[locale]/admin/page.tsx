@@ -35,6 +35,7 @@ export default async function AdminDashboard() {
                                 <td>
                                     <div className={styles.actions}>
                                         <Link href={`/recipe/${recipe.slug}`} className={styles.viewLink}>View</Link>
+                                        <Link href={`/admin/edit/${recipe.id}`} className={styles.viewLink} style={{ backgroundColor: 'var(--color-primary)' }}>Edit</Link>
                                         <button className={styles.deleteBtn}>Delete</button>
                                     </div>
                                 </td>
