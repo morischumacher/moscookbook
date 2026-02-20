@@ -1,5 +1,6 @@
 import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
+import DeleteRecipeButton from '@/components/DeleteRecipeButton';
 import styles from './page.module.css';
 
 export default async function AdminDashboard() {
@@ -36,7 +37,7 @@ export default async function AdminDashboard() {
                                     <div className={styles.actions}>
                                         <Link href={`/recipe/${recipe.slug}`} className={styles.viewLink}>View</Link>
                                         <Link href={`/admin/edit/${recipe.id}`} className={styles.viewLink} style={{ backgroundColor: 'var(--color-primary)' }}>Edit</Link>
-                                        <button className={styles.deleteBtn}>Delete</button>
+                                        <DeleteRecipeButton recipeId={recipe.id} />
                                     </div>
                                 </td>
                             </tr>

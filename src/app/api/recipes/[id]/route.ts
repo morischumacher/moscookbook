@@ -71,3 +71,37 @@ export async function PUT(
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }
+
+export async function DELETE(
+    req: NextRequest,
+    context: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await context.params;
+        const recipeId = parseInt(id, 10);
+
+        if (isNaN(recipeId)) {
+            return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
+        }
+
+        const res = new NextResponse();
+        const serverSession = await getIronSession<SessionData>(req, res, sessionOptions);
+
+        if (!serverSession.user?.admin) {
+            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Delete relations first to avoid foreign key constraints if cascade wasn't enabled natively
+        await prisma.image.deleteMany({ where: { recipeId } });
+        await prisma.rating.deleteMany({ where: { recipeId } });
+        await prisma.favorite.deleteMany({ where: { recipeId } });
+
+        // Finally, delete the actual recipe
+        await prisma.recipe.delete({ where: { id: recipeId } });
+
+        return NextResponse.json({ success: true }, { status: 200 });
+    } catch (error) {
+        console.error('Delete recipe error:', error);
+        return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    }
+}
