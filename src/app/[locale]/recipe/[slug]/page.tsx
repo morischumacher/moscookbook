@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import ReactMarkdown from 'react-markdown';
 import Rating from '@/components/Rating';
 import FavoriteButton from '@/components/FavoriteButton';
+import ViewTracker from '@/components/ViewTracker';
 import prisma from '@/lib/prisma';
 import { getIronSession } from 'iron-session';
 import { sessionOptions, SessionData } from '@/lib/session';
@@ -33,25 +34,13 @@ export default async function RecipePage({
     // Unique View Counting Logic
     const cookieStore = await cookies();
     const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
-    const viewedCookieName = `viewed_${slug}`;
+    const viewedCookieName = `viewed_recipe_${recipeData.id}`;
     const hasViewed = cookieStore.has(viewedCookieName);
 
-    // Increment only if not admin and hasn't viewed in this session
+    // Optimistically update the local object for immediate display.
+    // The actual database increment and cookie setting happens in the ViewTracker client component
+    // via a Route Handler, preventing Server Component cookie modification errors.
     if (!session.user?.admin && !hasViewed) {
-        await prisma.recipe.update({
-            where: { slug },
-            data: { views: { increment: 1 } }
-        });
-
-        // Set a cookie that expires in 24 hours to prevent spam refreshing
-        cookieStore.set(viewedCookieName, 'true', {
-            maxAge: 60 * 60 * 24,
-            path: '/',
-            httpOnly: true,
-            sameSite: 'lax'
-        });
-
-        // Optimistically update the local object for immediate display
         recipeData.views += 1;
     }
 
@@ -82,6 +71,7 @@ export default async function RecipePage({
 
     return (
         <article className={`container ${styles.article}`}>
+            <ViewTracker recipeId={recipe.id} />
             <header className={styles.header}>
                 <div className={styles.meta}>
                     <span className={styles.category}>{recipe.category}</span>
