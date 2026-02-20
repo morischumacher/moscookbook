@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 // @ts-ignore
 import convert from 'heic-convert';
 
@@ -35,20 +34,14 @@ export async function POST(request: Request) {
 
         const filename = Date.now() + '_' + finalFilename;
 
-        // Ensure uploads directory exists
-        const uploadDir = path.join(process.cwd(), 'public/uploads');
-        try {
-            await mkdir(uploadDir, { recursive: true });
-        } catch (e) {
-            // Ignore if exists
-        }
-
-        const filepath = path.join(uploadDir, filename);
-        await writeFile(filepath, buffer);
+        // Upload to Vercel Blob instead of local filesystem
+        const blob = await put(filename, buffer, {
+            access: 'public',
+        });
 
         return NextResponse.json({
             success: true,
-            url: `/uploads/${filename}`
+            url: blob.url
         });
 
     } catch (error) {
