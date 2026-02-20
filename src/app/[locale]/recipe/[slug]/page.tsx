@@ -86,9 +86,9 @@ export default async function RecipePage({
                     <div className={styles.info}>
                         <span>{recipe.nationality}</span>
                         <span>•</span>
-                        <div title="Average Rating" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <div title={`${recipeData.ratings.length} Users rated this dish with ${recipe.rating.toFixed(1)}/5 Oysters`} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <Rating value={recipe.rating} readonly={true} />
-                            <span>{recipe.rating.toFixed(1)} / 5 Oysters ({recipeData.ratings.length})</span>
+                            <span>({recipeData.ratings.length})</span>
                         </div>
                         <span>•</span>
                         <span>{recipe.views} views</span>
