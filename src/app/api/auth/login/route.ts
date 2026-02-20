@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
         session.user = {
             id: user.id,
             email: user.email,
+            name: user.name,
             admin: user.admin, // Pulling from Prisma schema
         };
 

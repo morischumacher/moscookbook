@@ -5,6 +5,7 @@ import { useRouter, Link } from '@/i18n/routing';
 import styles from '../login/page.module.css';
 
 export default function RegisterPage() {
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -20,7 +21,7 @@ export default function RegisterPage() {
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ name, email, password }),
             });
 
             if (res.ok) {
@@ -45,6 +46,18 @@ export default function RegisterPage() {
                     Create an account to save favorite recipes and leave ratings.
                 </p>
                 {error && <p className={styles.error}>{error}</p>}
+
+                <div className={styles.group}>
+                    <label htmlFor="name">Name</label>
+                    <input
+                        type="text"
+                        id="name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                        className={styles.input}
+                    />
+                </div>
 
                 <div className={styles.group}>
                     <label htmlFor="email">Email</label>

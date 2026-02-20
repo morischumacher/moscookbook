@@ -6,9 +6,9 @@ import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
     try {
-        const { email, password } = await req.json();
+        const { email, name, password } = await req.json();
 
-        if (!email || !password || password.length < 6) {
+        if (!email || !name || !password || password.length < 6) {
             return NextResponse.json({ message: 'Invalid input data' }, { status: 400 });
         }
 
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
         const user = await prisma.user.create({
             data: {
                 email,
+                name,
                 password: hashedPassword,
                 admin: false // Default to standard user
             },
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
         session.user = {
             id: user.id,
             email: user.email,
+            name: user.name,
             admin: user.admin,
         };
 

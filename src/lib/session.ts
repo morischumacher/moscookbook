@@ -13,6 +13,7 @@ export interface SessionData {
     user?: {
         id: number;
         email: string;
+        name: string;
         admin: boolean;
     };
 }

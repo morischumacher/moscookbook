@@ -11,6 +11,7 @@ interface SessionData {
     user?: {
         id: number;
         email: string;
+        name: string;
         admin: boolean;
     };
 }
@@ -37,17 +38,21 @@ export default async function Navbar({ locale }: { locale: string }) {
 
                 <div className={styles.links}>
                     <Link href="/" className={styles.link}>{t('home')}</Link>
-                    {!session.user?.admin && (
+                    {!session.user ? (
                         <Link href="/login" className={styles.link}>{t('login')}</Link>
-                    )}
-                    {session.user?.admin && (
-                        <>
-                            <div className={styles.adminLinks} style={{ display: 'flex', gap: 'var(--space-md)' }}>
-                                <Link href="/admin" className={styles.link}>{t('admin')}</Link>
-                                <Link href="/admin/users" className={styles.link}>Users</Link>
-                            </div>
+                    ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-primary)' }}>
+                                Hello {session.user.name}
+                            </span>
+                            {session.user.admin && (
+                                <div className={styles.adminLinks} style={{ display: 'flex', gap: 'var(--space-md)' }}>
+                                    <Link href="/admin" className={styles.link}>{t('admin')}</Link>
+                                    <Link href="/admin/users" className={styles.link}>Users</Link>
+                                </div>
+                            )}
                             <LogoutButton className={styles.link} />
-                        </>
+                        </div>
                     )}
                     <Link href="/" locale={otherLocale} className={styles.langToggle}>
                         {otherLocale.toUpperCase()}
