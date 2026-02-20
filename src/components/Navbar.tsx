@@ -42,7 +42,10 @@ export default async function Navbar({ locale }: { locale: string }) {
                     )}
                     {session.user?.admin && (
                         <>
-                            <Link href="/admin" className={styles.link}>{t('admin')}</Link>
+                            <div className={styles.adminLinks} style={{ display: 'flex', gap: 'var(--space-md)' }}>
+                                <Link href="/admin" className={styles.link}>{t('admin')}</Link>
+                                <Link href="/admin/users" className={styles.link}>Users</Link>
+                            </div>
                             <LogoutButton className={styles.link} />
                         </>
                     )}
