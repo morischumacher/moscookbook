@@ -41,9 +41,6 @@ export default function MobileNavbar({
 
                 {/* Desktop Nav */}
                 <div className="hidden md:flex items-baseline gap-8">
-                    <Link href="/" className="text-sm text-gray-900 dark:text-white hover:opacity-50 transition-opacity">
-                        {tHome}
-                    </Link>
                     {!user ? (
                         <Link href="/login" className="text-sm text-gray-900 dark:text-white hover:opacity-50 transition-opacity">
                             {tLogin}
@@ -86,9 +83,6 @@ export default function MobileNavbar({
             {/* Mobile Menu Overlay */}
             {isOpen && (
                 <div className="md:hidden absolute top-[73px] left-0 w-full bg-[#FFF8F0] dark:bg-black border-b border-gray-200 dark:border-gray-800 shadow-lg px-4 py-6 flex flex-col gap-6">
-                    <Link href="/" className="text-base font-medium text-gray-900 dark:text-white" onClick={() => setIsOpen(false)}>
-                        {tHome}
-                    </Link>
                     {!user ? (
                         <Link href="/login" className="text-base font-medium text-gray-900 dark:text-white" onClick={() => setIsOpen(false)}>
                             {tLogin}

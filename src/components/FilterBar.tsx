@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Link, useRouter, usePathname } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
 
@@ -8,14 +9,34 @@ export default function FilterBar({ isLoggedIn = false }: { isLoggedIn?: boolean
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
+    const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const params = new URLSearchParams(searchParams.toString());
+            const currentSearch = params.get('search') || '';
+
+            if (searchTerm !== currentSearch) {
+                if (searchTerm) {
+                    params.set('search', searchTerm);
+                } else {
+                    params.delete('search');
+                }
+                router.replace(`${pathname}?${params.toString()}`);
+            }
+        }, 300); // 300ms debounce
+
+        return () => clearTimeout(timer);
+    }, [searchTerm, pathname, router, searchParams]);
+
     const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const params = new URLSearchParams(searchParams);
+        const params = new URLSearchParams(searchParams.toString());
         params.set('sort', e.target.value);
         router.replace(`${pathname}?${params.toString()}`);
     };
 
     const handleFilterChange = (key: string, value: string) => {
-        const params = new URLSearchParams(searchParams);
+        const params = new URLSearchParams(searchParams.toString());
         if (value) {
             params.set(key, value);
         } else {
@@ -25,7 +46,7 @@ export default function FilterBar({ isLoggedIn = false }: { isLoggedIn?: boolean
     };
 
     const handleFavoritesToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const params = new URLSearchParams(searchParams);
+        const params = new URLSearchParams(searchParams.toString());
         if (e.target.checked) {
             params.set('favorites', 'true');
         } else {
@@ -35,7 +56,18 @@ export default function FilterBar({ isLoggedIn = false }: { isLoggedIn?: boolean
     };
 
     return (
-        <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-8 items-start sm:items-center border-b border-gray-200 dark:border-gray-800 pb-4 mb-8">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-8 items-start sm:items-center border-b border-gray-200 dark:border-gray-800 pb-3 mt-4 mb-4 w-full">
+            {/* Search Input */}
+            <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-grow">
+                <input
+                    type="text"
+                    placeholder="Search recipes..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full sm:max-w-xs py-1 border-b border-gray-300 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white placeholder-gray-500 font-serif outline-none focus:border-gray-900 dark:focus:border-white transition-colors"
+                />
+            </div>
+
             <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-gray-500 uppercase tracking-widest">Sort by:</label>
                 <select

@@ -19,11 +19,12 @@ export default async function HomePage({
     const dict = await getDictionary(locale as any);
     const t = (key: string) => (dict.HomePage as any)[key] || key;
 
-    const { sort: sortParam, category: categoryParam, nationality: nationalityParam, favorites } = await searchParams;
+    const { sort: sortParam, category: categoryParam, nationality: nationalityParam, favorites, search: searchParam } = await searchParams;
 
     const sort = (sortParam as string) || 'recent';
     const category = (categoryParam as string) || '';
     const nationality = (nationalityParam as string) || '';
+    const search = (searchParam as string) || '';
     const showFavorites = favorites === 'true';
 
     const cookieStore = await cookies();
@@ -34,6 +35,14 @@ export default async function HomePage({
     const where: any = {};
     if (category) where.category = category;
     if (nationality) where.nationality = nationality;
+
+    // Handle search text query
+    if (search) {
+        where.OR = [
+            { title: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+        ];
+    }
 
     // Filter by favorites if requested and logged in
     if (showFavorites && isLoggedIn) {
@@ -48,6 +57,14 @@ export default async function HomePage({
     let orderBy: any = { createdAt: 'desc' };
     if (sort === 'views') orderBy = { views: 'desc' };
 
+    // Build query includes
+    const includeQuery: any = { images: true, ratings: true };
+    if (isLoggedIn) {
+        includeQuery.favorites = {
+            where: { userId: session.user?.id }
+        };
+    }
+
     // When not sorting by rating, we can just fetch normally
     let recipes;
 
@@ -56,39 +73,45 @@ export default async function HomePage({
         // So we fetch all, calculate, and sort in memory (acceptable for small datasets)
         const allRecipes = await prisma.recipe.findMany({
             where,
-            include: { images: true, ratings: true }
+            include: includeQuery
         });
 
         recipes = allRecipes.map(r => {
-            const avgRating = r.ratings.length > 0
-                ? r.ratings.reduce((acc, curr) => acc + curr.value, 0) / r.ratings.length
+            const rAny = r as any;
+            const avgRating = rAny.ratings && rAny.ratings.length > 0
+                ? rAny.ratings.reduce((acc: number, curr: any) => acc + curr.value, 0) / rAny.ratings.length
                 : 0;
             return { ...r, calculatedRating: avgRating };
-        }).sort((a, b) => b.calculatedRating - a.calculatedRating);
+        }).sort((a: any, b: any) => b.calculatedRating - a.calculatedRating);
     } else {
         recipes = await prisma.recipe.findMany({
             where,
             orderBy,
-            include: { images: true, ratings: true }
+            include: includeQuery
         });
     }
 
     // Map to match RecipeCard props (image handling and rating)
     const formattedRecipes = recipes.map(r => {
+        const rAny = r as any;
         let avgRating = 0;
-        if ('calculatedRating' in r) {
-            avgRating = (r as any).calculatedRating;
-        } else if (r.ratings && r.ratings.length > 0) {
-            avgRating = r.ratings.reduce((acc, curr) => acc + curr.value, 0) / r.ratings.length;
+        if ('calculatedRating' in rAny) {
+            avgRating = rAny.calculatedRating;
+        } else if (rAny.ratings && rAny.ratings.length > 0) {
+            avgRating = rAny.ratings.reduce((acc: number, curr: any) => acc + curr.value, 0) / rAny.ratings.length;
         }
+
+        const isFavorited = rAny.favorites && rAny.favorites.length > 0;
 
         return {
             ...r,
             description: r.description || '',
             category: r.category || '',
             nationality: r.nationality || '',
-            imageUrl: r.images[0]?.url || '',
-            rating: avgRating
+            imageUrl: rAny.images[0]?.url || '',
+            rating: avgRating,
+            isFavorited,
+            isLoggedIn
         };
     });
 
@@ -99,7 +122,7 @@ export default async function HomePage({
                 <FilterBar isLoggedIn={isLoggedIn} />
             </Suspense>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pt-8">
+            <div className="flex flex-col max-w-3xl mx-auto divide-y divide-gray-200 dark:divide-gray-800 pt-8">
                 {formattedRecipes.map(recipe => (
                     <RecipeCard
                         key={recipe.id}
@@ -107,7 +130,7 @@ export default async function HomePage({
                     />
                 ))}
                 {formattedRecipes.length === 0 && (
-                    <p className="col-span-full text-gray-500 mt-8">
+                    <p className="text-gray-500 mt-8 text-center">
                         No recipes found matching your criteria.
                     </p>
                 )}
