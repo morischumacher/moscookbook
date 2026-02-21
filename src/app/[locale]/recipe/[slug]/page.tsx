@@ -107,7 +107,7 @@ export default async function RecipePage({
             </header>
 
             {/* Hero Image (Full Bleed on Mobile) */}
-            <div className="container max-w-2xl mx-auto px-0 sm:px-8 mb-32 sm:mb-48">
+            <div className="container max-w-2xl mx-auto px-0 sm:px-8">
                 <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] sm:rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 shadow-sm">
                     {recipe.imageUrl ? (
                         <Image src={recipe.imageUrl} alt={recipe.title} fill style={{ objectFit: 'cover' }} className="object-cover" priority />
@@ -122,8 +122,11 @@ export default async function RecipePage({
                 )}
             </div>
 
+            {/* Spacer to guarantee vertical separation on mobile */}
+            <div className="h-24 sm:h-32 w-full" aria-hidden="true" />
+
             {/* Content Section */}
-            <div className="container max-w-2xl mx-auto px-4 sm:px-8 pt-32 sm:pt-48 font-serif">
+            <div className="container max-w-2xl mx-auto px-4 sm:px-8 font-serif">
 
                 <section className="mb-16">
                     <h2 className="text-2xl font-sans font-bold uppercase tracking-widest text-[#111] dark:text-[#eee] mb-8 border-b-2 border-[#111] dark:border-[#eee] inline-block pb-1">Ingredients</h2>
