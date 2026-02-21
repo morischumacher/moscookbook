@@ -37,6 +37,17 @@
     overflow: hidden;
 }
 
+.averageIcon {
+    /* Ensure the image inside doesn't shrink when the container width changes */
+    max-width: none;
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    border: none;
+    outline: none;
+    opacity: 0.5;
+}
+
 .filledIcon {
     /* Ensure the image inside doesn't shrink when the container width changes */
     max-width: none;
@@ -45,6 +56,19 @@
     object-fit: contain;
     border: none;
     outline: none;
+    opacity: 1;
+}
+
+.orangeFilterIcon {
+    max-width: none;
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    border: none;
+    outline: none;
+    opacity: 1;
+    /* Apply an orange filter */
+    filter: invert(53%) sepia(85%) saturate(3029%) hue-rotate(346deg) brightness(101%) contrast(96%);
 }
 
 .srOnly {

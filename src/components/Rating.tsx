@@ -11,10 +11,11 @@ interface RatingProps {
     recipeId?: number; // If provided, the rating is interactable
     readonly?: boolean;
     hideTitle?: boolean;
+    isInputMode?: boolean; // When true, uses orange filter for filling
     onChange?: (newRating: number) => void;
 }
 
-export default function Rating({ value, max = 5, recipeId, readonly = false, hideTitle = false, onChange }: RatingProps) {
+export default function Rating({ value, max = 5, recipeId, readonly = false, hideTitle = false, isInputMode = false, onChange }: RatingProps) {
     const [currentValue, setCurrentValue] = useState(value);
     const [hoverValue, setHoverValue] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,7 +34,6 @@ export default function Rating({ value, max = 5, recipeId, readonly = false, hid
         // Optimistic update
         const previousValue = currentValue;
         setCurrentValue(rating);
-        if (onChange) onChange(rating);
 
         try {
             const res = await fetch(`/api/recipes/${recipeId}/rate`, {
@@ -45,14 +45,13 @@ export default function Rating({ value, max = 5, recipeId, readonly = false, hid
             if (!res.ok) {
                 // Revert on failure
                 setCurrentValue(previousValue);
-                if (onChange) onChange(previousValue);
                 if (res.status === 401) {
                     alert('You must be logged in to rate recipes.');
                 } else {
                     alert('Failed to submit rating.');
                 }
             } else {
-                const data = await res.json();
+                if (onChange) onChange(rating); // Signal successful submission
                 router.refresh();
             }
         } catch (error) {
@@ -62,13 +61,15 @@ export default function Rating({ value, max = 5, recipeId, readonly = false, hid
             setIsSubmitting(false);
         }
     };
+
+    // Calculate displayed value based on mode
+    const displayValue = isInputMode ? (hoverValue !== null ? hoverValue : currentValue) : value;
+
     // Generate an array of length `max`
     const stars = Array.from({ length: max }, (_, index) => {
         const starValue = index + 1;
-        const displayValue = hoverValue !== null ? hoverValue : currentValue;
 
-        // Calculate how much of the current star should be filled based on the rating value.
-        // E.g., if rating is 3.7 and index is 3 (the 4th star), fill is 0.7
+        // Calculate how much of the current star should be filled
         const fillPercentage = Math.max(0, Math.min(1, displayValue - index)) * 100;
 
         return (
@@ -82,30 +83,33 @@ export default function Rating({ value, max = 5, recipeId, readonly = false, hid
             >
                 {/* Background (Empty) Icon */}
                 <Image
-                    src="/icon.png"
+                    src="/iconv3.png"
                     alt="Empty Rating"
                     width={24}
                     height={24}
                     className={styles.emptyIcon}
                 />
+
                 {/* Foreground (Filled) Icon - clipped by CSS width */}
-                <div className={styles.filledOverlay} style={{ width: `${fillPercentage}%` }}>
-                    <Image
-                        src="/icon.png"
-                        alt="Filled Rating"
-                        width={24}
-                        height={24}
-                        className={styles.filledIcon}
-                    />
-                </div>
+                {fillPercentage > 0 && (
+                    <div className={styles.filledOverlay} style={{ width: `${fillPercentage}%`, zIndex: 1 }}>
+                        <Image
+                            src="/iconv3.png"
+                            alt={isInputMode ? "Your Rating" : "Average Rating"}
+                            width={24}
+                            height={24}
+                            className={isInputMode ? styles.orangeFilterIcon : styles.averageIcon}
+                        />
+                    </div>
+                )}
             </div>
         );
     });
 
     return (
-        <div className={styles.ratingWrapper} {...(hideTitle ? {} : { title: `${currentValue.toFixed(1)} out of ${max}` })}>
+        <div className={styles.ratingWrapper} {...(hideTitle ? {} : { title: `Average: ${value.toFixed(1)}${currentValue ? `, Yours: ${currentValue}` : ''}` })}>
             {stars}
-            <span className={styles.srOnly}>{currentValue.toFixed(1)} out of {max}</span>
+            <span className={styles.srOnly}>Average {value.toFixed(1)} out of {max}</span>
         </div>
     );
 }

@@ -1,6 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Minimal binary palette & neutral */
-  --color-bg: #FFFFFF;
+  --color-bg: #FFF8F0;
   --color-fg: #000000;
   --color-neutral: #888888;
   --color-border: #EAEAEE;
@@ -66,12 +70,24 @@ h6 {
 }
 
 h1 {
-  font-size: 4rem;
+  font-size: 2.5rem;
   letter-spacing: -0.04em;
 }
 
+@media (min-width: 768px) {
+  h1 {
+    font-size: 4rem;
+  }
+}
+
 h2 {
-  font-size: 2.5rem;
+  font-size: 1.75rem;
+}
+
+@media (min-width: 768px) {
+  h2 {
+    font-size: 2.5rem;
+  }
 }
 
 h3 {

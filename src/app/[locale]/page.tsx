@@ -93,13 +93,13 @@ export default async function HomePage({
     });
 
     return (
-        <main className="container" style={{ paddingBottom: 'var(--space-xxl)', paddingTop: 'var(--space-xl)' }}>
+        <main className="container mx-auto px-4 md:px-8 pb-32 pt-16">
 
             <Suspense fallback={<div>Loading filters...</div>}>
                 <FilterBar isLoggedIn={isLoggedIn} />
             </Suspense>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-lg)', paddingTop: 'var(--space-md)' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pt-8">
                 {formattedRecipes.map(recipe => (
                     <RecipeCard
                         key={recipe.id}
@@ -107,7 +107,7 @@ export default async function HomePage({
                     />
                 ))}
                 {formattedRecipes.length === 0 && (
-                    <p style={{ gridColumn: '1 / -1', color: 'var(--color-neutral)', marginTop: 'var(--space-lg)' }}>
+                    <p className="col-span-full text-gray-500 mt-8">
                         No recipes found matching your criteria.
                     </p>
                 )}

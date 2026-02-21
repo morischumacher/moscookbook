@@ -75,15 +75,25 @@ export default async function RecipePage({
     const ingredients: Ingredient[] = JSON.parse(recipe.ingredients);
 
     return (
-        <article className={`container ${styles.article}`}>
+        <article className="w-full pb-32 bg-[#FFF8F0] dark:bg-black min-h-screen">
             <ViewTracker recipeId={recipe.id} />
-            <header className={styles.header}>
-                <div className={styles.meta}>
-                    <span className={styles.category}>{recipe.category}</span>
-                    <h1 className={styles.title}>
-                        {recipe.title}
+
+            {/* Header Section */}
+            <header className="container max-w-2xl mx-auto px-4 sm:px-8 pt-8 sm:pt-16">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-[#111] dark:text-[#eee] tracking-tight leading-[1.1] mb-6">
+                    {recipe.title}
+                    <div className="inline-block ml-4 align-middle">
                         <FavoriteButton recipeId={recipe.id} initialFavorited={isFavorited} disabled={!session.user} />
-                    </h1>
+                    </div>
+                </h1>
+
+                <div className="flex flex-col gap-1 py-4 border-y border-gray-200 dark:border-gray-800 my-6">
+                    <span className="text-sm text-gray-500 font-medium uppercase tracking-widest">
+                        {new Date(recipe.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {recipe.category}{recipe.nationality ? ` • ${recipe.nationality}` : ''}
+                    </span>
+                </div>
+
+                <div className="mb-8">
                     <RatingDisplay
                         recipeId={recipe.id}
                         initialAverage={recipe.rating}
@@ -91,39 +101,45 @@ export default async function RecipePage({
                         initialUserRating={userRatingValue}
                         isLoggedIn={!!session.user}
                         views={recipe.views}
-                        nationality={recipe.nationality || ''}
-                        infoClassName={styles.info}
+                        infoClassName="flex items-center gap-6 text-sm font-semibold text-gray-500 py-3"
                     />
                 </div>
-                <div className={styles.imageWrapper}>
-                    {/* Placeholder or real image */}
+            </header>
+
+            {/* Hero Image (Full Bleed on Mobile) */}
+            <div className="container max-w-2xl mx-auto px-0 sm:px-8 mb-24 sm:mb-32">
+                <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] sm:rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 shadow-sm">
                     {recipe.imageUrl ? (
-                        <Image src={recipe.imageUrl} alt={recipe.title} fill style={{ objectFit: 'cover' }} className={styles.image} />
+                        <Image src={recipe.imageUrl} alt={recipe.title} fill style={{ objectFit: 'cover' }} className="object-cover" priority />
                     ) : (
-                        <div className={styles.imagePlaceholder} />
+                        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800" />
                     )}
                 </div>
                 {recipe.description && (
-                    <p className={styles.description}>{recipe.description}</p>
+                    <p className="mt-8 px-4 sm:px-0 text-xl sm:text-2xl text-[#222] dark:text-gray-300 font-serif italic text-left leading-relaxed">
+                        {recipe.description}
+                    </p>
                 )}
-            </header>
+            </div>
 
-            <div className={styles.content}>
-                <section className={styles.ingredientsSection}>
-                    <h2 className={styles.sectionTitle}>Ingredients</h2>
-                    <ul className={styles.ingredientsList}>
+            {/* Content Section */}
+            <div className="container max-w-2xl mx-auto px-4 sm:px-8 pt-8 font-serif">
+
+                <section className="mb-16">
+                    <h2 className="text-2xl font-sans font-bold uppercase tracking-widest text-[#111] dark:text-[#eee] mb-8 border-b-2 border-[#111] dark:border-[#eee] inline-block pb-1">Ingredients</h2>
+                    <ul className="flex flex-col gap-4 text-xl text-[#222] dark:text-[#ddd] leading-relaxed">
                         {ingredients.map((ing, idx) => (
-                            <li key={idx} className={styles.ingredient}>
-                                <span className={styles.amount}>{ing.amount}</span>
-                                <span className={styles.item}>{ing.item}</span>
+                            <li key={idx} className="flex items-baseline border-b border-gray-200 dark:border-gray-800 pb-4">
+                                <span className="font-sans font-bold text-[#111] dark:text-[#eee] w-24 sm:w-32 flex-shrink-0">{ing.amount}</span>
+                                <span>{ing.item}</span>
                             </li>
                         ))}
                     </ul>
                 </section>
 
-                <section className={styles.instructionsSection}>
-                    <h2 className={styles.sectionTitle}>Instructions</h2>
-                    <div className={styles.markdown}>
+                <section>
+                    <h2 className="text-2xl font-sans font-bold uppercase tracking-widest text-[#111] dark:text-[#eee] mb-8 border-b-2 border-[#111] dark:border-[#eee] inline-block pb-1">Instructions</h2>
+                    <div className={`${styles.markdown} text-xl text-[#222] dark:text-[#ddd] leading-relaxed`}>
                         <ReactMarkdown>{recipe.instructions}</ReactMarkdown>
                     </div>
                 </section>
