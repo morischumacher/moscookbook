@@ -31,23 +31,23 @@ export default async function AdminDashboard() {
 
     return (
         <main className="container mx-auto max-w-3xl px-4 pb-32 md:px-8">
-            <header className="flex flex-wrap items-baseline justify-between gap-4 border-b border-[var(--color-border)] pb-6 pt-12 sm:pt-16">
+            <header className="flex flex-wrap items-baseline justify-between gap-4 border-b border-line pb-6 pt-12 sm:pt-16">
                 <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('dashboard')}</h1>
                 <Link
                     href="/admin/create"
-                    className="rounded-full bg-[var(--color-fg)] px-4 py-2 text-sm font-medium text-[var(--color-bg)]"
+                    className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-page"
                 >
                     {t('createNew')}
                 </Link>
             </header>
 
             {recipes.length === 0 ? (
-                <p className="py-20 text-center text-gray-500">{t('noRecipes')}</p>
+                <p className="py-20 text-center text-muted">{t('noRecipes')}</p>
             ) : (
-                <ul className="divide-y divide-[var(--color-border)]">
+                <ul className="divide-y divide-line">
                     {recipes.map((recipe) => (
                         <li key={recipe.id} className="flex items-center gap-4 py-4">
-                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border border-[var(--color-border)] bg-black/[0.04] dark:bg-white/[0.06]">
+                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border border-line bg-surface">
                                 {recipe.images[0] && (
                                     <Image
                                         src={recipe.images[0].url}
@@ -66,7 +66,7 @@ export default async function AdminDashboard() {
                                 >
                                     {recipe.title}
                                 </Link>
-                                <p className="text-xs uppercase tracking-widest text-gray-500">
+                                <p className="text-xs uppercase tracking-widest text-muted">
                                     {recipe.category
                                         ? tCategory.has(recipe.category)
                                             ? tCategory(recipe.category)
@@ -80,7 +80,7 @@ export default async function AdminDashboard() {
                             <div className="flex shrink-0 items-center gap-3 text-sm">
                                 <Link
                                     href={`/admin/edit/${recipe.id}`}
-                                    className="underline underline-offset-4 hover:text-gray-500"
+                                    className="underline underline-offset-4 hover:text-muted"
                                 >
                                     {t('edit')}
                                 </Link>

@@ -168,8 +168,8 @@ export default function QuickImport({
     };
 
     return (
-        <section className="mb-10 rounded-xl border border-[var(--color-border)] bg-black/[0.02] dark:bg-white/[0.03] p-4 sm:p-6">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">
+        <section className="mb-10 rounded-xl border border-line bg-surface p-4 sm:p-6">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted mb-4">
                 {t('heading')}
             </h2>
 
@@ -185,8 +185,8 @@ export default function QuickImport({
                             reset();
                         }}
                         className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${mode === entry.id
-                            ? 'bg-black text-white dark:bg-white dark:text-black'
-                            : 'border border-[var(--color-border)] hover:border-gray-500'
+                            ? 'bg-ink text-page'
+                            : 'border border-line hover:border-ink'
                             }`}
                     >
                         {entry.label}
@@ -201,19 +201,19 @@ export default function QuickImport({
                         onChange={(event) => setText(event.target.value)}
                         rows={8}
                         placeholder={t('pastePlaceholder')}
-                        className="w-full rounded-lg border border-[var(--color-border)] bg-transparent p-3 font-mono text-sm outline-none focus:border-gray-900 dark:focus:border-white"
+                        className="w-full rounded-lg border border-line bg-transparent p-3 font-mono text-sm outline-none focus:border-ink"
                     />
                     <div className="flex flex-wrap items-center gap-3">
                         <button
                             type="button"
                             onClick={handlePaste}
                             disabled={busy}
-                            className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+                            className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-page disabled:opacity-50"
                         >
                             {busy ? t('reading') : t('apply')}
                         </button>
                         {aiEnabled && (
-                            <label className="flex items-center gap-2 text-sm text-gray-500">
+                            <label className="flex items-center gap-2 text-sm text-muted">
                                 <input
                                     type="checkbox"
                                     checked={useAiForText}
@@ -241,13 +241,13 @@ export default function QuickImport({
                             }
                         }}
                         placeholder={t('urlPlaceholder')}
-                        className="flex-1 rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 outline-none focus:border-gray-900 dark:focus:border-white"
+                        className="flex-1 rounded-lg border border-line bg-transparent px-3 py-2 outline-none focus:border-ink"
                     />
                     <button
                         type="button"
                         onClick={handleLink}
                         disabled={busy}
-                        className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+                        className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-page disabled:opacity-50"
                     >
                         {busy ? t('loading') : t('import')}
                     </button>
@@ -268,14 +268,14 @@ export default function QuickImport({
                         disabled={busy}
                         className="text-sm"
                     />
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted">
                         {t('photoHint')}
                         {busy && ` ${t('reading')}`}
                     </p>
                 </div>
             )}
 
-            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+            {error && <p className="mt-3 text-sm text-danger">{error}</p>}
             {note && !error && <p className="mt-3 text-sm text-green-700 dark:text-green-400">{note}</p>}
         </section>
     );

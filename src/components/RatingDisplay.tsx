@@ -67,7 +67,7 @@ export default function RatingDisplay({ recipeId, initialAverage, initialCount, 
                     <span>•</span>
                     <button
                         onClick={() => setIsRatingOpen(true)}
-                        className="text-sm font-semibold text-gray-900 dark:text-gray-300 underline decoration-1 underline-offset-4 hover:text-gray-500 transition-colors"
+                        className="text-sm font-semibold text-ink underline decoration-1 underline-offset-4 hover:text-muted transition-colors"
                     >
                         {userRating === 0 ? t('rate') : t('editRating')}
                     </button>

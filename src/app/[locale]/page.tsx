@@ -141,9 +141,9 @@ export default async function HomePage({
 
     return (
         <main className="container mx-auto max-w-3xl px-4 pb-32 md:px-8">
-            <header className="border-b border-[var(--color-border)] pb-8 pt-12 sm:pt-16">
+            <header className="border-b border-line pb-8 pt-12 sm:pt-16">
                 <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">{tSite('title')}</h1>
-                <p className="mt-3 font-serif text-lg italic text-gray-500 sm:text-xl">
+                <p className="mt-3 font-serif text-lg italic text-muted sm:text-xl">
                     {tSite('description')}
                 </p>
             </header>
@@ -161,18 +161,18 @@ export default async function HomePage({
 
             {formattedRecipes.length > 0 ? (
                 <>
-                    <p className="border-t border-[var(--color-border)] pt-4 text-xs uppercase tracking-widest text-gray-400">
+                    <p className="border-t border-line pt-4 text-xs uppercase tracking-widest text-faint">
                         {t('resultCount', { count: formattedRecipes.length })}
                     </p>
-                    <div className="flex flex-col divide-y divide-[var(--color-border)]">
+                    <div className="flex flex-col divide-y divide-line">
                         {formattedRecipes.map((recipe) => (
                             <RecipeCard key={recipe.id} {...recipe} />
                         ))}
                     </div>
                 </>
             ) : (
-                <div className="border-t border-[var(--color-border)] py-20 text-center">
-                    <p className="text-gray-500">{t('noResults')}</p>
+                <div className="border-t border-line py-20 text-center">
+                    <p className="text-muted">{t('noResults')}</p>
                 </div>
             )}
         </main>

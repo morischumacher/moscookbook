@@ -89,10 +89,10 @@ export default function RecipeBody({
     return (
         <div className={cookMode ? 'cook-mode' : undefined}>
             {/* Controls */}
-            <div className="print:hidden mb-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-gray-200 py-4 dark:border-gray-800">
+            <div className="print:hidden mb-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-line py-4">
                 {baseServings ? (
                     <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold uppercase tracking-widest text-gray-500">
+                        <span className="text-sm font-bold uppercase tracking-widest text-muted">
                             {t('servings')}
                         </span>
                         <div className="flex items-center gap-2">
@@ -100,7 +100,7 @@ export default function RecipeBody({
                                 type="button"
                                 onClick={() => setServings((value) => Math.max(1, value - 1))}
                                 aria-label={t('oneLess')}
-                                className="h-9 w-9 rounded-full border border-gray-300 text-lg leading-none hover:border-gray-900 dark:border-gray-700 dark:hover:border-white"
+                                className="h-9 w-9 rounded-full border border-line text-lg leading-none hover:border-ink"
                             >
                                 −
                             </button>
@@ -111,7 +111,7 @@ export default function RecipeBody({
                                 type="button"
                                 onClick={() => setServings((value) => Math.min(100, value + 1))}
                                 aria-label={t('oneMore')}
-                                className="h-9 w-9 rounded-full border border-gray-300 text-lg leading-none hover:border-gray-900 dark:border-gray-700 dark:hover:border-white"
+                                className="h-9 w-9 rounded-full border border-line text-lg leading-none hover:border-ink"
                             >
                                 +
                             </button>
@@ -122,7 +122,7 @@ export default function RecipeBody({
                                     key={value}
                                     type="button"
                                     onClick={() => setServings(value)}
-                                    className="rounded-full px-2 py-0.5 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                                    className="rounded-full px-2 py-0.5 text-sm text-muted hover:text-ink"
                                 >
                                     {value}
                                 </button>
@@ -136,8 +136,8 @@ export default function RecipeBody({
                     onClick={() => setCookMode((open) => !open)}
                     aria-pressed={cookMode}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${cookMode
-                        ? 'bg-black text-white dark:bg-white dark:text-black'
-                        : 'border border-gray-300 hover:border-gray-900 dark:border-gray-700 dark:hover:border-white'
+                        ? 'bg-ink text-page'
+                        : 'border border-line hover:border-ink  '
                         }`}
                 >
                     {cookMode ? t('cookModeExit') : t('cookMode')}
@@ -146,7 +146,7 @@ export default function RecipeBody({
                 <button
                     type="button"
                     onClick={() => window.print()}
-                    className="text-sm text-gray-500 underline underline-offset-4 hover:text-gray-900 dark:hover:text-white"
+                    className="text-sm text-muted underline underline-offset-4 hover:text-ink"
                 >
                     {t('print')}
                 </button>
@@ -155,14 +155,14 @@ export default function RecipeBody({
                     <button
                         type="button"
                         onClick={reset}
-                        className="text-sm text-gray-500 underline underline-offset-4 hover:text-gray-900 dark:hover:text-white"
+                        className="text-sm text-muted underline underline-offset-4 hover:text-ink"
                     >
                         {t('reset')}
                     </button>
                 )}
 
                 {cookMode && (
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-muted">
                         {wakeLockActive ? t('screenStaysOn') : t('tapToCheck')}
                     </span>
                 )}
@@ -170,18 +170,18 @@ export default function RecipeBody({
 
             {/* Ingredients */}
             <section className="mb-16">
-                <h2 className="mb-8 inline-block border-b-2 border-[#111] pb-1 font-sans text-2xl font-bold uppercase tracking-widest text-[#111] dark:border-[#eee] dark:text-[#eee]">
+                <h2 className="mb-8 inline-block border-b-2 border-ink pb-1 font-sans text-2xl font-bold uppercase tracking-widest text-ink">
                     {t('ingredients')}
                 </h2>
 
                 {ingredients.length === 0 ? (
-                    <p className="text-gray-500">{t('noIngredients')}</p>
+                    <p className="text-muted">{t('noIngredients')}</p>
                 ) : (
-                    <ul className={`flex flex-col gap-4 ${textSize} leading-relaxed text-[#222] dark:text-[#ddd]`}>
+                    <ul className={`flex flex-col gap-4 ${textSize} leading-relaxed text-ink`}>
                         {ingredients.map((ingredient, index) => {
                             const checked = checkedIngredients.has(index);
                             return (
-                                <li key={index} className="border-b border-gray-200 pb-4 dark:border-gray-800">
+                                <li key={index} className="border-b border-line pb-4">
                                     <label className="flex cursor-pointer items-baseline gap-3">
                                         <input
                                             type="checkbox"
@@ -189,13 +189,13 @@ export default function RecipeBody({
                                             onChange={() =>
                                                 setCheckedIngredients((set) => toggle(set, index))
                                             }
-                                            className="print:hidden mt-1 h-5 w-5 shrink-0 cursor-pointer accent-black dark:accent-white"
+                                            className="print:hidden mt-1 h-5 w-5 shrink-0 cursor-pointer accent-black"
                                         />
                                         <span
                                             className={`flex flex-1 items-baseline gap-3 transition-opacity ${checked ? 'opacity-40 line-through' : ''
                                                 }`}
                                         >
-                                            <span className="w-24 shrink-0 font-sans font-bold text-[#111] dark:text-[#eee] sm:w-32">
+                                            <span className="w-24 shrink-0 font-sans font-bold text-ink sm:w-32">
                                                 {scaleAmount(ingredient.amount, factor)}
                                             </span>
                                             <span>{ingredient.item}</span>
@@ -208,7 +208,7 @@ export default function RecipeBody({
                 )}
 
                 {baseServings && factor !== 1 && (
-                    <p className="print:hidden mt-4 text-sm text-gray-500">
+                    <p className="print:hidden mt-4 text-sm text-muted">
                         {t('scaledFrom', { base: baseServings, current: servings })}
                     </p>
                 )}
@@ -216,11 +216,11 @@ export default function RecipeBody({
 
             {/* Instructions */}
             <section>
-                <h2 className="mb-8 inline-block border-b-2 border-[#111] pb-1 font-sans text-2xl font-bold uppercase tracking-widest text-[#111] dark:border-[#eee] dark:text-[#eee]">
+                <h2 className="mb-8 inline-block border-b-2 border-ink pb-1 font-sans text-2xl font-bold uppercase tracking-widest text-ink">
                     {t('instructions')}
                 </h2>
 
-                <ol className={`flex flex-col gap-8 ${textSize} leading-relaxed text-[#222] dark:text-[#ddd]`}>
+                <ol className={`flex flex-col gap-8 ${textSize} leading-relaxed text-ink`}>
                     {steps.map((step, index) => {
                         const checked = checkedSteps.has(index);
                         return (
@@ -231,8 +231,8 @@ export default function RecipeBody({
                                     aria-pressed={checked}
                                     aria-label={t('checkStep', { number: index + 1 })}
                                     className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border font-sans text-sm font-bold transition-colors ${checked
-                                        ? 'border-transparent bg-black text-white dark:bg-white dark:text-black'
-                                        : 'border-gray-300 text-gray-500 dark:border-gray-700'
+                                        ? 'border-transparent bg-ink text-page'
+                                        : 'border-line text-muted '
                                         }`}
                                 >
                                     {checked ? '✓' : index + 1}

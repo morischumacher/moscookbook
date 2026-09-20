@@ -5,8 +5,8 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 
 const fieldClass =
-    'w-full rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 outline-none transition-colors focus:border-[var(--color-fg)]';
-const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-gray-500';
+    'w-full rounded-lg border border-line bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
+const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-muted';
 
 export default function RegisterPage() {
     const t = useTranslations('Auth');
@@ -46,11 +46,11 @@ export default function RegisterPage() {
     return (
         <main className="container mx-auto max-w-sm px-4 pb-32 pt-16 sm:pt-24">
             <h1 className="mb-3 text-3xl font-extrabold tracking-tight">{t('registerTitle')}</h1>
-            <p className="mb-8 font-serif text-gray-500">{t('registerIntro')}</p>
+            <p className="mb-8 font-serif text-muted">{t('registerIntro')}</p>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 {error && (
-                    <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40">
+                    <p className="rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
                         {error}
                     </p>
                 )}
@@ -93,18 +93,18 @@ export default function RegisterPage() {
                         required
                         className={fieldClass}
                     />
-                    <p className="mt-2 text-sm text-gray-500">{t('passwordHint')}</p>
+                    <p className="mt-2 text-sm text-muted">{t('passwordHint')}</p>
                 </div>
 
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="rounded-full bg-[var(--color-fg)] px-6 py-3 font-medium text-[var(--color-bg)] disabled:opacity-50"
+                    className="rounded-full bg-ink px-6 py-3 font-medium text-page disabled:opacity-50"
                 >
                     {isLoading ? t('creatingAccount') : t('submitRegister')}
                 </button>
 
-                <p className="text-center text-sm text-gray-500">
+                <p className="text-center text-sm text-muted">
                     {t('haveAccount')}{' '}
                     <Link href="/login" className="underline underline-offset-4">
                         {t('loginLink')}

@@ -117,11 +117,27 @@ message loses an ICU placeholder in translation, or when a value is empty.
 
 ## Look and feel
 
-One visual language across the whole app: the warm paper background, black
-extrabold headings, serif body copy and hairline rules of the public pages now
-also carry the admin area, login and registration. Colours and borders come
-from the CSS custom properties in `globals.css` rather than hard-coded greys,
-so dark mode follows automatically.
+One visual language across the whole app: the warm paper background, extrabold
+headings, serif body copy and hairline rules of the public pages also carry the
+admin area, login and registration.
+
+Colours are named by role, never by shade. The palette lives in `globals.css`
+and is mapped to Tailwind in `tailwind.config.ts`:
+
+| Class | Role |
+| --- | --- |
+| `bg-page` | page background |
+| `text-ink` | body text and headings |
+| `text-muted` | secondary — meta lines, hints, captions |
+| `text-faint` | tertiary — eyebrows, counts, placeholder icons |
+| `border-line` | hairline rules and input borders |
+| `bg-surface` | subtle fills — thumbnails, panels |
+| `text-danger`, `bg-danger-surface`, `border-danger-line` | destructive actions and alerts |
+
+This is what makes dark mode work: the components carry no `dark:` variant for
+colour at all, only the variables change. Before this there were 52 separate
+uses of `text-gray-500`, plus hard-coded hexes and `dark:` pairs that had
+already drifted apart in places.
 
 The admin tables became lists. A table of four columns on a 375px screen scrolls
 sideways and is miserable to use on the phone you are actually holding when you

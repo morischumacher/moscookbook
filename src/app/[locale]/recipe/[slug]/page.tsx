@@ -148,11 +148,11 @@ export default async function RecipePage({
     });
 
     return (
-        <article className="min-h-screen w-full bg-[#FFF8F0] pb-32 dark:bg-black">
+        <article className="min-h-screen w-full bg-page pb-32">
             <ViewTracker recipeId={recipeData.id} />
 
             <header className="container mx-auto max-w-2xl px-4 pt-8 sm:px-8 sm:pt-16">
-                <h1 className="mb-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-[#111] dark:text-[#eee] sm:text-5xl md:text-6xl">
+                <h1 className="mb-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-ink sm:text-5xl md:text-6xl">
                     {recipeData.title}
                     <span className="print:hidden ml-4 inline-block align-middle">
                         <FavoriteButton
@@ -163,8 +163,8 @@ export default async function RecipePage({
                     </span>
                 </h1>
 
-                <div className="my-6 flex flex-col gap-1 border-y border-gray-200 py-4 dark:border-gray-800">
-                    <span className="text-sm font-medium uppercase tracking-widest text-gray-500">
+                <div className="my-6 flex flex-col gap-1 border-y border-line py-4">
+                    <span className="text-sm font-medium uppercase tracking-widest text-muted">
                         {dateFormatter.format(recipeData.createdAt)}
                         {categoryLabel ? ` • ${categoryLabel}` : ''}
                         {cuisineLabel ? ` • ${cuisineLabel}` : ''}
@@ -179,13 +179,13 @@ export default async function RecipePage({
                         initialUserRating={userRatingValue}
                         isLoggedIn={Boolean(session.user)}
                         views={views}
-                        infoClassName="flex items-center gap-6 text-sm font-semibold text-gray-500 py-3"
+                        infoClassName="flex items-center gap-6 text-sm font-semibold text-muted py-3"
                     />
                 </div>
             </header>
 
             <div className="container mx-auto max-w-2xl px-0 sm:px-8">
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100 shadow-sm dark:bg-gray-900 sm:aspect-[16/9] sm:rounded-xl">
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface shadow-sm sm:aspect-[16/9] sm:rounded-xl">
                     {imageUrl ? (
                         <Image
                             src={imageUrl}
@@ -196,12 +196,12 @@ export default async function RecipePage({
                             priority
                         />
                     ) : (
-                        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800" />
+                        <div className="absolute inset-0 bg-surface" />
                     )}
                 </div>
 
                 {recipeData.description && (
-                    <p className="mt-8 px-4 text-left font-serif text-xl italic leading-relaxed text-[#222] dark:text-gray-300 sm:px-0 sm:text-2xl">
+                    <p className="mt-8 px-4 text-left font-serif text-xl italic leading-relaxed text-ink sm:px-0 sm:text-2xl">
                         {recipeData.description}
                     </p>
                 )}
@@ -210,10 +210,10 @@ export default async function RecipePage({
                     <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-4 px-4 sm:px-0">
                         {times.map((entry) => (
                             <div key={entry.label}>
-                                <dt className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                                <dt className="text-xs font-bold uppercase tracking-widest text-muted">
                                     {entry.label}
                                 </dt>
-                                <dd className="mt-1 text-lg font-semibold text-[#111] dark:text-[#eee]">
+                                <dd className="mt-1 text-lg font-semibold text-ink">
                                     {entry.value}
                                 </dd>
                             </div>

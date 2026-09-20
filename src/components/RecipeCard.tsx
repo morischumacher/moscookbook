@@ -38,10 +38,10 @@ export default function RecipeCard({ id, title, description, imageUrl, slug, cat
                 <h3 className="mb-2 text-xl font-bold leading-tight tracking-tight decoration-1 underline-offset-4 group-hover:underline sm:text-2xl">
                     {title}
                 </h3>
-                <p className="mb-4 line-clamp-2 font-serif text-base leading-relaxed text-gray-600 dark:text-gray-400">
+                <p className="mb-4 line-clamp-2 font-serif text-base leading-relaxed text-muted">
                     {description}
                 </p>
-                <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-widest text-gray-500">
+                <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-widest text-muted">
                     <span>{categoryLabel}</span>
                     {cuisineLabel && (
                         <>
@@ -60,7 +60,7 @@ export default function RecipeCard({ id, title, description, imageUrl, slug, cat
             </div>
 
             {/* Right Image Thumbnail */}
-            <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-lg border border-[var(--color-border)] bg-black/[0.04] transition-transform duration-200 group-hover:scale-[1.02] dark:bg-white/[0.06] sm:w-32">
+            <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-lg border border-line bg-black/[0.04] transition-transform duration-200 group-hover:scale-[1.02] dark:bg-white/[0.06] sm:w-32">
                 {imageUrl ? (
                     <Image
                         src={imageUrl}

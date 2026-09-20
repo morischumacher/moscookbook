@@ -74,8 +74,8 @@ export default function FilterChips({
 
     const chipClass = (active: boolean) =>
         `shrink-0 rounded-full px-3 py-1.5 text-sm transition-colors ${active
-            ? 'bg-[var(--color-fg)] text-[var(--color-bg)]'
-            : 'border border-[var(--color-border)] text-gray-600 hover:border-[var(--color-fg)] hover:text-[var(--color-fg)] dark:text-gray-400'
+            ? 'bg-ink text-page'
+            : 'border border-line text-muted hover:border-ink hover:text-ink'
         }`;
 
     const label = (
@@ -85,11 +85,11 @@ export default function FilterChips({
 
     return (
         <div className="flex flex-col gap-4">
-            <label className="flex items-center gap-3 border-b border-[var(--color-border)] pb-2">
+            <label className="flex items-center gap-3 border-b border-line pb-2">
                 <svg
                     viewBox="0 0 24 24"
                     aria-hidden="true"
-                    className="h-4 w-4 shrink-0 text-gray-400"
+                    className="h-4 w-4 shrink-0 text-faint"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
@@ -104,7 +104,7 @@ export default function FilterChips({
                     onChange={(event) => setSearchTerm(event.target.value)}
                     placeholder={t('searchPlaceholder')}
                     aria-label={t('searchPlaceholder')}
-                    className="w-full bg-transparent py-1 text-base outline-none placeholder:text-gray-400"
+                    className="w-full bg-transparent py-1 text-base outline-none placeholder:text-faint"
                 />
             </label>
 
@@ -132,7 +132,7 @@ export default function FilterChips({
             <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
                 {cuisines.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs uppercase tracking-widest text-gray-400">
+                        <span className="text-xs uppercase tracking-widest text-faint">
                             {t('nationality')}
                         </span>
                         {cuisines.map((facet) => (
@@ -143,8 +143,8 @@ export default function FilterChips({
                                     setParam('nationality', activeCuisine === facet.value ? '' : facet.value)
                                 }
                                 className={`underline-offset-4 transition-colors ${activeCuisine === facet.value
-                                    ? 'text-[var(--color-fg)] underline'
-                                    : 'text-gray-500 hover:text-[var(--color-fg)]'
+                                    ? 'text-ink underline'
+                                    : 'text-muted hover:text-ink'
                                     }`}
                             >
                                 {label(tCuisine, facet.value)}
@@ -160,20 +160,20 @@ export default function FilterChips({
                             onClick={() => setParam('favorites', favoritesOnly ? '' : 'true')}
                             aria-pressed={favoritesOnly}
                             className={`underline-offset-4 transition-colors ${favoritesOnly
-                                ? 'text-[var(--color-fg)] underline'
-                                : 'text-gray-500 hover:text-[var(--color-fg)]'
+                                ? 'text-ink underline'
+                                : 'text-muted hover:text-ink'
                                 }`}
                         >
                             {t('favoritesOnly')}
                         </button>
                     )}
 
-                    <label className="flex items-center gap-2 text-gray-500">
-                        <span className="text-xs uppercase tracking-widest text-gray-400">{t('sortBy')}</span>
+                    <label className="flex items-center gap-2 text-muted">
+                        <span className="text-xs uppercase tracking-widest text-faint">{t('sortBy')}</span>
                         <select
                             value={activeSort}
                             onChange={(event) => setParam('sort', event.target.value)}
-                            className="cursor-pointer bg-transparent text-[var(--color-fg)] outline-none"
+                            className="cursor-pointer bg-transparent text-ink outline-none"
                         >
                             <option value="recent">{t('sortRecent')}</option>
                             <option value="views">{t('sortViews')}</option>
@@ -187,7 +187,7 @@ export default function FilterChips({
                 <button
                     type="button"
                     onClick={clearAll}
-                    className="self-start text-sm text-gray-500 underline underline-offset-4 hover:text-[var(--color-fg)]"
+                    className="self-start text-sm text-muted underline underline-offset-4 hover:text-ink"
                 >
                     {t('clearFilters')}
                 </button>

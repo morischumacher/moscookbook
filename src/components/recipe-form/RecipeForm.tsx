@@ -31,8 +31,8 @@ const CATEGORIES = ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Snack', 'Drink']
 const NATIONALITIES = ['German', 'Italian', 'Asian', 'Mexican', 'French', 'Greek', 'Indian'];
 
 const fieldClass =
-    'w-full rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 outline-none focus:border-gray-900 dark:focus:border-white transition-colors';
-const labelClass = 'block text-sm font-bold uppercase tracking-widest text-gray-500 mb-2';
+    'w-full rounded-lg border border-line bg-transparent px-3 py-2 outline-none focus:border-ink transition-colors';
+const labelClass = 'block text-sm font-bold uppercase tracking-widest text-muted mb-2';
 
 /* ------------------------------------------------------------------ image */
 
@@ -107,8 +107,8 @@ function ImageField({
                 }}
                 onClick={() => inputRef.current?.click()}
                 className={`cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-colors ${dragging
-                    ? 'border-gray-900 bg-black/5 dark:border-white dark:bg-white/10'
-                    : 'border-[var(--color-border)]'
+                    ? 'border-ink bg-surface'
+                    : 'border-line'
                     }`}
             >
                 {imageUrl ? (
@@ -116,7 +116,7 @@ function ImageField({
                         <Image src={imageUrl} alt={t('imagePreview')} fill className="object-cover" sizes="400px" />
                     </div>
                 ) : (
-                    <p className="py-6 text-sm text-gray-500">
+                    <p className="py-6 text-sm text-muted">
                         {uploading
                             ? t('imageUploading')
                             : t('imageDropHint')}
@@ -138,7 +138,7 @@ function ImageField({
 
             <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
                 {/* On a phone this opens the camera directly. */}
-                <label className="cursor-pointer text-gray-500 underline underline-offset-2">
+                <label className="cursor-pointer text-muted underline underline-offset-2">
                     {t('takePhoto')}
                     <input
                         type="file"
@@ -156,12 +156,12 @@ function ImageField({
                     <button
                         type="button"
                         onClick={() => onChange('')}
-                        className="text-gray-500 underline underline-offset-2"
+                        className="text-muted underline underline-offset-2"
                     >
                         {t('removeImage')}
                     </button>
                 )}
-                {uploading && <span className="text-gray-500">{t('imageUploading')}</span>}
+                {uploading && <span className="text-muted">{t('imageUploading')}</span>}
             </div>
         </div>
     );
@@ -233,7 +233,7 @@ function IngredientEditor({
                 <button
                     type="button"
                     onClick={() => setShowBulk((open) => !open)}
-                    className="text-sm text-gray-500 underline underline-offset-2"
+                    className="text-sm text-muted underline underline-offset-2"
                 >
                     {showBulk ? t('closeList') : t('pasteList')}
                 </button>
@@ -251,7 +251,7 @@ function IngredientEditor({
                     <button
                         type="button"
                         onClick={applyBulk}
-                        className="self-start rounded-full border border-[var(--color-border)] px-4 py-1.5 text-sm hover:border-gray-500"
+                        className="self-start rounded-full border border-line px-4 py-1.5 text-sm hover:border-ink"
                     >
                         {t('appendIngredients')}
                     </button>
@@ -291,7 +291,7 @@ function IngredientEditor({
                                 type="button"
                                 onClick={() => move(index, -1)}
                                 aria-label={t('moveUp')}
-                                className="px-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                className="px-1.5 text-faint hover:text-ink"
                             >
                                 ↑
                             </button>
@@ -299,7 +299,7 @@ function IngredientEditor({
                                 type="button"
                                 onClick={() => move(index, 1)}
                                 aria-label={t('moveDown')}
-                                className="px-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                className="px-1.5 text-faint hover:text-ink"
                             >
                                 ↓
                             </button>
@@ -307,7 +307,7 @@ function IngredientEditor({
                                 type="button"
                                 onClick={() => removeRow(index)}
                                 aria-label={t('removeIngredient')}
-                                className="px-1.5 text-gray-400 hover:text-red-600"
+                                className="px-1.5 text-faint hover:text-danger"
                             >
                                 ×
                             </button>
@@ -319,11 +319,11 @@ function IngredientEditor({
             <button
                 type="button"
                 onClick={() => addRow()}
-                className="mt-3 rounded-full border border-[var(--color-border)] px-4 py-1.5 text-sm hover:border-gray-500"
+                className="mt-3 rounded-full border border-line px-4 py-1.5 text-sm hover:border-ink"
             >
                 {t('addIngredient')}
             </button>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-muted">
                 {t('enterHint')}
             </p>
         </div>
@@ -528,12 +528,12 @@ export default function RecipeForm({
             </h1>
 
             {draftFound && (
-                <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-[var(--color-border)] bg-black/[0.03] p-3 text-sm dark:bg-white/[0.05]">
+                <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-black/[0.03] p-3 text-sm dark:bg-white/[0.05]">
                     <span>{t('draftFound')}</span>
                     <button type="button" onClick={restoreDraft} className="underline underline-offset-2">
                         {t('restoreDraft')}
                     </button>
-                    <button type="button" onClick={clearDraft} className="text-gray-500 underline underline-offset-2">
+                    <button type="button" onClick={clearDraft} className="text-muted underline underline-offset-2">
                         {t('discardDraft')}
                     </button>
                 </div>
@@ -542,7 +542,7 @@ export default function RecipeForm({
             {mode === 'create' && <QuickImport aiEnabled={aiEnabled} onImport={applyImport} />}
 
             {error && (
-                <p className="mb-6 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40">
+                <p className="mb-6 rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
                     {error}
                 </p>
             )}
@@ -563,7 +563,7 @@ export default function RecipeForm({
                 <div>
                     <label htmlFor="slug" className={labelClass}>{t('slug')}</label>
                     <div className="flex items-center gap-2">
-                        <span className="shrink-0 text-sm text-gray-500">/recipe/</span>
+                        <span className="shrink-0 text-sm text-muted">/recipe/</span>
                         <input
                             id="slug"
                             type="text"
@@ -581,7 +581,7 @@ export default function RecipeForm({
                                     setSlugTouched(false);
                                     setSlug(slugify(title));
                                 }}
-                                className="shrink-0 text-sm text-gray-500 underline underline-offset-2"
+                                className="shrink-0 text-sm text-muted underline underline-offset-2"
                             >
                                 {t('slugFromTitle')}
                             </button>
@@ -650,7 +650,7 @@ export default function RecipeForm({
                             placeholder="4"
                             className={fieldClass}
                         />
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-muted">
                             Schaltet den Portionsrechner frei.
                         </p>
                     </div>
@@ -694,14 +694,14 @@ export default function RecipeForm({
                         <button
                             type="button"
                             onClick={() => setPreview((open) => !open)}
-                            className="text-sm text-gray-500 underline underline-offset-2"
+                            className="text-sm text-muted underline underline-offset-2"
                         >
                             {preview ? t('backToEdit') : t('preview')}
                         </button>
                     </div>
 
                     {preview ? (
-                        <div className="prose min-h-[12rem] max-w-none rounded-lg border border-[var(--color-border)] p-4">
+                        <div className="prose min-h-[12rem] max-w-none rounded-lg border border-line p-4">
                             <ReactMarkdown>{instructions || t('previewEmpty')}</ReactMarkdown>
                         </div>
                     ) : (
@@ -721,14 +721,14 @@ export default function RecipeForm({
                     <button
                         type="submit"
                         disabled={saving}
-                        className="rounded-full bg-black px-6 py-3 font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+                        className="rounded-full bg-ink px-6 py-3 font-medium text-page disabled:opacity-50"
                     >
                         {saving ? t('saving') : mode === 'create' ? t('create') : t('save')}
                     </button>
                     <button
                         type="button"
                         onClick={() => router.push('/admin')}
-                        className="text-sm text-gray-500 underline underline-offset-2"
+                        className="text-sm text-muted underline underline-offset-2"
                     >
                         {t('cancel')}
                     </button>

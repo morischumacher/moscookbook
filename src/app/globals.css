@@ -5,9 +5,24 @@
 :root {
   /* Minimal binary palette & neutral */
   --color-bg: #FFF8F0;
-  --color-fg: #000000;
-  --color-neutral: #888888;
+  /* Page background */
+  --color-fg: #111111;
+  /* Body text and headings */
+  --color-muted: #6B7280;
+  /* Secondary text: meta lines, hints, captions */
+  --color-faint: #9CA3AF;
+  /* Tertiary: eyebrows, counts, placeholder icons */
   --color-border: #EAEAEE;
+  /* Hairline rules and input borders */
+  --color-surface: rgba(0, 0, 0, 0.04);
+  /* Subtle fills: thumbnails, panels */
+  --color-danger: #DC2626;
+  /* Destructive actions only */
+  --color-danger-surface: #FEF2F2;
+  --color-danger-line: #FCA5A5;
+
+  --color-neutral: var(--color-muted);
+  /* Legacy alias, kept for the plain-CSS classes below */
 
   /* Typography */
   --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -29,11 +44,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Pure inversion for dark mode */
+    /* Dark mode keeps the same roles; only the values change, so no component
+       needs a dark: variant for colour. */
     --color-bg: #000000;
-    --color-fg: #FFFFFF;
-    --color-neutral: #888888;
+    --color-fg: #EEEEEE;
+    --color-muted: #9CA3AF;
+    --color-faint: #6B7280;
     --color-border: #333333;
+    --color-surface: rgba(255, 255, 255, 0.06);
+    --color-danger: #F87171;
+    --color-danger-surface: rgba(127, 29, 29, 0.35);
+    --color-danger-line: #7F1D1D;
   }
 }
 
@@ -80,18 +101,30 @@ h1 {
   }
 }
 
+/* One step between each level, so a markdown heading reads as a hierarchy.
+   Headings that carry utility classes override these. */
 h2 {
   font-size: 1.75rem;
 }
 
 @media (min-width: 768px) {
   h2 {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
   }
 }
 
 h3 {
-  font-size: 1.75rem;
+  font-size: 1.375rem;
+}
+
+@media (min-width: 768px) {
+  h3 {
+    font-size: 1.5rem;
+  }
+}
+
+h4 {
+  font-size: 1.125rem;
 }
 
 a {
