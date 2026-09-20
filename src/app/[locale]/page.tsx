@@ -145,18 +145,22 @@ export default async function HomePage({
         });
         const matchingIds = matching.map((row) => row.id);
 
-        const averages: { recipeId: number; _avg: { value: number | null } }[] =
-            matchingIds.length === 0
-                ? []
-                : await prisma.rating.groupBy({
-                    by: ['recipeId'],
-                    where: { recipeId: { in: matchingIds } },
-                    _avg: { value: true },
-                });
+        // Deliberately not annotated: Prisma infers groupBy's argument type
+        // from the expected result, so an explicit annotation here breaks the
+        // inference rather than documenting it.
+        const averageById = new Map<number, number>();
 
-        const averageById = new Map(
-            averages.map((entry) => [entry.recipeId, entry._avg.value ?? 0])
-        );
+        if (matchingIds.length > 0) {
+            const averages = await prisma.rating.groupBy({
+                by: ['recipeId'],
+                where: { recipeId: { in: matchingIds } },
+                _avg: { value: true },
+            });
+
+            for (const entry of averages) {
+                averageById.set(entry.recipeId, entry._avg.value ?? 0);
+            }
+        }
 
         const pageIds = matchingIds
             .sort((a, b) => (averageById.get(b) ?? 0) - (averageById.get(a) ?? 0) || b - a)
