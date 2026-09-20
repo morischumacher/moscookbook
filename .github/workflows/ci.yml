@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# A second push to the same branch cancels the first — no point finishing a run
+# for code that has already been replaced.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # postinstall runs `prisma generate`, which needs no database.
+      - run: npm ci
+
+      # Cheapest checks first, so an obvious mistake fails in seconds.
+      - name: Translations
+        run: npm run check:messages
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm test
+
+      - name: Types
+        run: npm run typecheck
+
+      - name: Build
+        # Placeholder values: nothing here connects to a database or serves a
+        # request, but Prisma refuses to construct a client without a URL and
+        # the session helper refuses to run in production without a secret.
+        env:
+          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/ci
+          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/ci
+          SECRET_COOKIE_PASSWORD: ci-placeholder-secret-at-least-32-characters
+          NEXT_PUBLIC_SITE_URL: https://example.com
+        run: npm run build

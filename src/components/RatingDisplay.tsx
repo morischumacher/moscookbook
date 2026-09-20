@@ -28,6 +28,7 @@ export default function RatingDisplay({ recipeId, initialAverage, initialCount, 
         const oldSum = average * count;
         const newSum = oldSum - userRating + newRating;
         setAverage(newCount === 0 ? 0 : newSum / newCount);
+        setCount(newCount);
         setUserRating(newRating);
         setIsRatingOpen(false); // Close the rating input mode
     };

@@ -7,11 +7,12 @@
     "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "create-admin": "node scripts/create-admin.js",
     "db:push": "prisma db push",
-    "check:messages": "node scripts/check-messages.mjs"
+    "check:messages": "node scripts/check-messages.mjs",
+    "test": "ts-node --project tests/tsconfig.json tests/run.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

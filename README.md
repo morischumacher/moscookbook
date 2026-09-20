@@ -102,6 +102,41 @@ message loses an ICU placeholder in translation, or when a value is empty.
 | `npm run create-admin` | Create or promote an admin user (see above) |
 | `npm run db:push` | Apply the Prisma schema to the database |
 | `npm run check:messages` | Verify the translation catalogues |
+| `npm test` | Run the logic check suites |
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push and pull request: translations,
+lint, tests, types, build — cheapest first, so an obvious mistake fails in
+seconds. The build step uses placeholder environment variables; nothing in it
+reaches a database.
+
+`npm run lint` is set to `--max-warnings 0`. If that ever gets in the way
+during a quick edit, drop the flag in `package.json` rather than leaving
+warnings to pile up.
+
+Pushing this workflow file needs a token with the **Workflows: Read and write**
+permission (fine-grained) or the `workflow` scope (classic). Without it GitHub
+rejects the push with "refusing to allow a Personal Access Token to create or
+update workflow".
+
+## Testing
+
+`npm test` runs `tests/run.ts` through ts-node — a few hundred lines of plain
+assertions over the pure logic, with no test runner to configure. It covers
+what is easy to get subtly wrong and expensive to get wrong in production:
+
+- **`amount.test.ts`** — scaling ingredient amounts, including the cases that
+  must be left alone ("etwas", "nach Geschmack") and a round trip that scales
+  up and back down to the original string
+- **`recipeParser.test.ts`** — turning pasted text into fields, German and
+  English, with and without headings
+- **`recipeFromHtml.test.ts`** — schema.org extraction across the shapes real
+  sites use, plus the URL safety check
+- **`recipeSchema.test.ts`** — payload validation, including rejecting
+  `javascript:` image URLs
+
+UI behaviour is not covered.
 
 ## Project layout
 
@@ -112,6 +147,8 @@ src/components/          Shared UI (navbar, recipe card, rating, favourite…)
 src/lib/                 Session, auth guards, rate limiting, recipe helpers
 prisma/                  Schema, migrations and seed
 messages/                Translations (en, de)
+scripts/                 Admin bootstrap, translation check
+tests/                   Logic check suites (npm test)
 ```
 
 ## Known issues

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import styles from './page.module.css';
@@ -18,11 +18,7 @@ export default function AdminUsersPage() {
     const [error, setError] = useState('');
     const router = useRouter();
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
-
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             const res = await fetch('/api/users');
             if (!res.ok) throw new Error('Failed to fetch users');
@@ -33,7 +29,11 @@ export default function AdminUsersPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [t]);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
 
     const handleToggleRole = async (userId: number, currentAdminStatus: boolean) => {
         try {

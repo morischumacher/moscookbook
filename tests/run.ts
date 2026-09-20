@@ -1,0 +1,19 @@
+/**
+ * Entry point for `npm test`.
+ *
+ * These cover the pure logic that is easy to get subtly wrong and expensive to
+ * get wrong in production: recipe parsing, link import, payload validation and
+ * amount scaling. UI behaviour is not covered here.
+ */
+import { summary } from './harness';
+import recipeSchema from './recipeSchema.test';
+import recipeParser from './recipeParser.test';
+import recipeFromHtml from './recipeFromHtml.test';
+import amount from './amount.test';
+
+recipeSchema();
+recipeParser();
+recipeFromHtml();
+amount();
+
+process.exit(summary() === 0 ? 0 : 1);

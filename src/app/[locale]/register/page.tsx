@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter, Link } from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
 import styles from '../login/page.module.css';
 
 export default function RegisterPage() {
@@ -12,7 +12,6 @@ export default function RegisterPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
