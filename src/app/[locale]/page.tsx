@@ -24,7 +24,11 @@ interface RecipeWhere {
     category?: string;
     nationality?: string;
     id?: { in: number[] };
-    OR?: Array<{ title?: TextFilter; description?: TextFilter }>;
+    OR?: Array<{
+        title?: TextFilter;
+        description?: TextFilter;
+        ingredients?: { some: { name: TextFilter } };
+    }>;
 }
 
 type RecipeOrderBy = { createdAt: 'desc' } | { views: 'desc' };
@@ -92,9 +96,13 @@ export default async function HomePage({
     if (nationality) where.nationality = nationality;
 
     if (search) {
+        // Searching by ingredient is the question people actually have: what
+        // can I cook with the aubergine in the fridge. Possible since
+        // ingredients became rows.
         where.OR = [
             { title: { contains: search, mode: 'insensitive' } },
             { description: { contains: search, mode: 'insensitive' } },
+            { ingredients: { some: { name: { contains: search, mode: 'insensitive' } } } },
         ];
     }
 

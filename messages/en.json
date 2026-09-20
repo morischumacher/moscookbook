@@ -15,7 +15,7 @@
     "toggleMenu": "Toggle menu"
   },
   "Home": {
-    "searchPlaceholder": "Search recipes…",
+    "searchPlaceholder": "Search recipes and ingredients…",
     "sortBy": "Sort by",
     "sortRecent": "Recently added",
     "sortViews": "Most viewed",

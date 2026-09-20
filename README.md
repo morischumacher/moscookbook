@@ -154,6 +154,10 @@ gives `1 1/2 TL` rather than a manipulated string.
 Rows are replaced wholesale on save rather than diffed: the list is short,
 order matters, and a rewrite keeps positions contiguous.
 
+The search box on the home page matches ingredient names as well as titles and
+descriptions, which is the question people actually have: what can I cook with
+the aubergine in the fridge.
+
 ## Look and feel
 
 One visual language across the whole app: the warm paper background, extrabold
@@ -229,13 +233,33 @@ scripts/                 Admin bootstrap, translation check
 tests/                   Logic check suites (npm test)
 ```
 
-## Known issues
+## Migrations
 
-- `prisma/migrations` still holds the original SQLite migration and a
-  `migration_lock.toml` that says `provider = "sqlite"`, while the schema has
-  long since moved to PostgreSQL. `prisma migrate` would fail against the real
-  database; schema changes are applied with `npm run db:push` instead. The
-  folder should either be rebuilt as a PostgreSQL baseline or removed.
+`prisma/migrations/0_init` is a PostgreSQL baseline matching the current
+schema. It replaces the original SQLite migration, which had been left behind
+when the project moved to PostgreSQL and made `prisma migrate` unusable
+against the real database.
+
+**On the existing database**, mark the baseline as already applied once, then
+migrate normally from there:
+
+```bash
+npx prisma migrate resolve --applied 0_init
+npx prisma migrate deploy
+```
+
+**On a fresh database**, `npx prisma migrate deploy` is enough.
+
+The baseline SQL was written by hand, so confirm it matches the schema exactly
+before relying on it — this prints nothing if they agree:
+
+```bash
+npx prisma migrate diff \
+  --from-migrations prisma/migrations \
+  --to-schema-datamodel prisma/schema.prisma \
+  --shadow-database-url "$POSTGRES_URL_NON_POOLING" \
+  --exit-code
+```
 
 ## Security notes
 
