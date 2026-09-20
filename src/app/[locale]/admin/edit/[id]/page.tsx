@@ -10,12 +10,12 @@ interface EditableRecipe {
     description: string | null;
     category: string | null;
     nationality: string | null;
-    ingredients: string;
     instructions: string;
     servings: number | null;
     prepMinutes: number | null;
     cookMinutes: number | null;
     images: { url: string }[];
+    ingredients: { raw: string; name: string }[];
 }
 
 export default async function EditRecipePage({
@@ -30,7 +30,10 @@ export default async function EditRecipePage({
 
     const recipe: EditableRecipe | null = await prisma.recipe.findUnique({
         where: { id: recipeId },
-        include: { images: { orderBy: { id: 'asc' } } },
+        include: {
+            images: { orderBy: { id: 'asc' } },
+            ingredients: { orderBy: { position: 'asc' } },
+        },
     });
 
     if (!recipe) notFound();
@@ -47,7 +50,10 @@ export default async function EditRecipePage({
                 category: recipe.category ?? '',
                 nationality: recipe.nationality ?? '',
                 instructions: recipe.instructions,
-                ingredientsJson: recipe.ingredients,
+                ingredients: recipe.ingredients.map((row) => ({
+                    amount: row.raw,
+                    item: row.name,
+                })),
                 imageUrl: recipe.images[0]?.url ?? '',
                 servings: recipe.servings,
                 prepMinutes: recipe.prepMinutes,

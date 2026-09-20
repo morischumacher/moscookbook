@@ -9,7 +9,7 @@ import ViewTracker from '@/components/ViewTracker';
 import RecipeBody from '@/components/recipe/RecipeBody';
 import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
-import { parseIngredients } from '@/lib/recipe';
+import type { StructuredIngredient } from '@/lib/ingredientParts';
 import { formatMinutes } from '@/lib/amount';
 import { getTranslations } from 'next-intl/server';
 
@@ -20,7 +20,6 @@ interface RecipeRow {
     description: string | null;
     category: string | null;
     nationality: string | null;
-    ingredients: string;
     instructions: string;
     views: number;
     servings: number | null;
@@ -29,6 +28,7 @@ interface RecipeRow {
     createdAt: Date;
     images: { url: string }[];
     ratings: { value: number; userId: number }[];
+    ingredients: StructuredIngredient[];
 }
 
 // generateMetadata and the page itself both need the recipe; cache() makes
@@ -36,7 +36,11 @@ interface RecipeRow {
 const loadRecipe = cache(async (slug: string): Promise<RecipeRow | null> => {
     return prisma.recipe.findUnique({
         where: { slug },
-        include: { images: { orderBy: { id: 'asc' } }, ratings: true },
+        include: {
+            images: { orderBy: { id: 'asc' } },
+            ratings: true,
+            ingredients: { orderBy: { position: 'asc' } },
+        },
     });
 });
 
@@ -128,7 +132,6 @@ export default async function RecipePage({
         ? (tCuisine.has(recipeData.nationality) ? tCuisine(recipeData.nationality) : recipeData.nationality)
         : '';
 
-    const ingredients = parseIngredients(recipeData.ingredients);
     const imageUrl = recipeData.images[0]?.url ?? '';
 
     const totalMinutes = (recipeData.prepMinutes ?? 0) + (recipeData.cookMinutes ?? 0);
@@ -226,7 +229,7 @@ export default async function RecipePage({
 
             <div className="container mx-auto max-w-2xl px-4 font-serif sm:px-8">
                 <RecipeBody
-                    ingredients={ingredients}
+                    ingredients={recipeData.ingredients}
                     instructions={recipeData.instructions}
                     baseServings={recipeData.servings}
                 />

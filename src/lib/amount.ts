@@ -1,19 +1,10 @@
 /**
- * Scaling of free-text ingredient amounts ("200 g", "1/2 TL", "2-3 EL").
+ * Reading and printing quantities.
  *
- * Amounts are stored as the author typed them, so scaling works on the string:
- * find the leading quantity, multiply it, and put the rest back untouched.
- * Anything that cannot be understood is returned unchanged — a recipe must
- * never show a wrong number because the parser got confused.
+ * Amounts are stored as numbers (see lib/ingredientParts), so scaling is plain
+ * arithmetic. What is left here is the conversion at the edges: text to number
+ * when a recipe is saved, number to text the way a cook would write it.
  */
-
-const NUMBER = String.raw`\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?(?:\s+\d+\s*\/\s*\d+)?`;
-const RANGE_SEPARATOR = String.raw`\s*(?:-|–|—|bis|to)\s*`;
-
-const QUANTITY_PATTERN = new RegExp(
-    `^(\\s*)(${NUMBER})(${RANGE_SEPARATOR}${NUMBER})?(.*)$`,
-    'i'
-);
 
 /** "1 1/2" -> 1.5, "3/4" -> 0.75, "1,5" -> 1.5 */
 export function parseQuantity(text: string): number | null {
@@ -67,35 +58,6 @@ export function formatQuantity(value: number): string {
     }
 
     return String(Math.round(rounded * 100) / 100).replace('.', ',');
-}
-
-/**
- * Multiplies the leading quantity of an amount string.
- * "200 g" x2 -> "400 g";  "2-3 EL" x2 -> "4-6 EL";  "etwas" x2 -> "etwas".
- */
-export function scaleAmount(amount: string, factor: number): string {
-    if (!amount || !Number.isFinite(factor) || factor <= 0) return amount;
-    if (factor === 1) return amount;
-
-    const match = QUANTITY_PATTERN.exec(amount);
-    if (!match) return amount;
-
-    const [, leading, first, rangePart, rest] = match;
-
-    const firstValue = parseQuantity(first);
-    if (firstValue === null) return amount;
-
-    let scaled = formatQuantity(firstValue * factor);
-
-    if (rangePart) {
-        const separator = /^\s*(?:-|–|—|bis|to)\s*/i.exec(rangePart)?.[0] ?? '-';
-        const secondRaw = rangePart.slice(separator.length);
-        const secondValue = parseQuantity(secondRaw);
-        if (secondValue === null) return amount;
-        scaled += separator + formatQuantity(secondValue * factor);
-    }
-
-    return `${leading}${scaled}${rest}`;
 }
 
 /** ISO 8601 duration from schema.org ("PT1H30M") to minutes. */

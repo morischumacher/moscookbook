@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
-import { serializeIngredients } from '@/lib/recipe';
+import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError } from '@/lib/recipeSchema';
 
 function parseRecipeId(raw: string): number | null {
@@ -56,6 +56,14 @@ export async function PUT(
             imageUrl !== undefined &&
             ((existingImages[0]?.url ?? '') !== imageUrl || existingImages.length > 1);
 
+        // Ingredient rows are replaced wholesale rather than diffed: the list is
+        // short, order matters, and a rewrite keeps positions contiguous.
+        const ingredientRows = toStructuredIngredients(ingredients).map((row, index) => ({
+            ...row,
+            recipeId,
+            position: index,
+        }));
+
         const [updatedRecipe] = await prisma.$transaction([
             prisma.recipe.update({
                 where: { id: recipeId },
@@ -65,13 +73,14 @@ export async function PUT(
                     description,
                     category,
                     nationality,
-                    ingredients: serializeIngredients(ingredients),
                     instructions,
                     servings: servings ?? null,
                     prepMinutes: prepMinutes ?? null,
                     cookMinutes: cookMinutes ?? null,
                 },
             }),
+            prisma.ingredient.deleteMany({ where: { recipeId } }),
+            prisma.ingredient.createMany({ data: ingredientRows }),
             ...(replaceImage ? [prisma.image.deleteMany({ where: { recipeId } })] : []),
             ...(replaceImage && imageUrl
                 ? [prisma.image.create({ data: { recipeId, url: imageUrl } })]

@@ -3,43 +3,6 @@ export interface Ingredient {
     item: string;
 }
 
-/**
- * Ingredients are stored as a JSON string on the Recipe row. Never trust that
- * string: a hand-edited or legacy row must not take a page down.
- */
-export function parseIngredients(raw: string | null | undefined): Ingredient[] {
-    if (!raw) return [];
-
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(raw);
-    } catch {
-        return [];
-    }
-
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed
-        .filter((entry): entry is Record<string, unknown> =>
-            typeof entry === 'object' && entry !== null)
-        .map((entry) => ({
-            amount: typeof entry.amount === 'string' ? entry.amount : '',
-            item: typeof entry.item === 'string' ? entry.item : '',
-        }))
-        .filter((ingredient) => ingredient.item.trim() !== '' || ingredient.amount.trim() !== '');
-}
-
-export function serializeIngredients(ingredients: Ingredient[]): string {
-    return JSON.stringify(
-        ingredients
-            .map((ingredient) => ({
-                amount: ingredient.amount.trim(),
-                item: ingredient.item.trim(),
-            }))
-            .filter((ingredient) => ingredient.item !== '')
-    );
-}
-
 const GERMAN_TRANSLITERATIONS: Record<string, string> = {
     ä: 'ae', ö: 'oe', ü: 'ue', ß: 'ss',
     à: 'a', á: 'a', â: 'a', ã: 'a', å: 'a',

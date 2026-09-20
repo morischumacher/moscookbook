@@ -11,11 +11,13 @@ import recipeParser from './recipeParser.test';
 import recipeFromHtml from './recipeFromHtml.test';
 import amount from './amount.test';
 import siteUrl from './siteUrl.test';
+import ingredientParts from './ingredientParts.test';
 
 recipeSchema();
 recipeParser();
 recipeFromHtml();
 amount();
 siteUrl();
+ingredientParts();
 
 process.exit(summary() === 0 ? 0 : 1);

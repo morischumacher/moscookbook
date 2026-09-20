@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
-import { serializeIngredients } from '@/lib/recipe';
+import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError } from '@/lib/recipeSchema';
 
 export async function POST(req: NextRequest) {
@@ -32,12 +32,17 @@ export async function POST(req: NextRequest) {
                 description,
                 category,
                 nationality,
-                ingredients: serializeIngredients(ingredients),
                 instructions,
                 servings: servings ?? null,
                 prepMinutes: prepMinutes ?? null,
                 cookMinutes: cookMinutes ?? null,
                 images: imageUrl ? { create: { url: imageUrl } } : undefined,
+                ingredients: {
+                    create: toStructuredIngredients(ingredients).map((row, index) => ({
+                        ...row,
+                        position: index,
+                    })),
+                },
             },
         });
 

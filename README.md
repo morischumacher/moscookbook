@@ -115,6 +115,26 @@ message loses an ICU placeholder in translation, or when a value is empty.
 | `npm run check:messages` | Verify the translation catalogues |
 | `npm test` | Run the logic check suites |
 
+## Ingredients
+
+Ingredients are rows in their own table, not a JSON string on the recipe. Each
+row keeps both the author's wording and the parts a program can use:
+
+| Column | Example for `2-3 EL Olivenöl` |
+| --- | --- |
+| `raw` | `2-3 EL` — exactly what was typed |
+| `quantity` / `quantityMax` | `2` / `3` |
+| `unit` | `EL` |
+| `name` | `Olivenöl` |
+
+`raw` is what you see at normal serving size, so a line the parser reads
+differently than intended still reads back exactly as written. The numbers are
+used when the amounts are scaled, which is why `1/2 TL` at triple servings now
+gives `1 1/2 TL` rather than a manipulated string.
+
+Rows are replaced wholesale on save rather than diffed: the list is short,
+order matters, and a rewrite keeps positions contiguous.
+
 ## Look and feel
 
 One visual language across the whole app: the warm paper background, extrabold

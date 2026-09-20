@@ -1,6 +1,6 @@
 /** recipeSchema + ingredient helpers */
 import { recipeInputSchema, formatZodError } from '../src/lib/recipeSchema';
-import { parseIngredients, serializeIngredients, slugify } from '../src/lib/recipe';
+import { slugify } from '../src/lib/recipe';
 import { suite, check } from './harness';
 
 export default function run() {
@@ -10,15 +10,6 @@ export default function run() {
     check('sharp s', slugify('Weiße Soße') === 'weisse-sosse', slugify('Weiße Soße'));
     check('trims dashes', slugify('  --Hello World!!  ') === 'hello-world', slugify('  --Hello World!!  '));
     check('accents', slugify('Crème Brûlée') === 'creme-brulee', slugify('Crème Brûlée'));
-
-    suite('parseIngredients');
-    check('valid json', parseIngredients('[{"amount":"200g","item":"Mehl"}]').length === 1);
-    check('garbage returns []', parseIngredients('not json').length === 0);
-    check('null returns []', parseIngredients(null).length === 0);
-    check('object not array', parseIngredients('{"a":1}').length === 0);
-    check('drops empty rows', parseIngredients('[{"amount":"","item":""},{"amount":"1","item":"Ei"}]').length === 1);
-    check('coerces wrong types', JSON.stringify(parseIngredients('[{"amount":5,"item":"Ei"}]')) === '[{"amount":"","item":"Ei"}]', parseIngredients('[{"amount":5,"item":"Ei"}]'));
-    check('roundtrip', parseIngredients(serializeIngredients([{amount:' 200g ',item:' Mehl '}]))[0].amount === '200g');
 
     suite('recipeInputSchema');
     const base = { title: 'Test', slug: 'Test Rezept', instructions: 'Kochen.' };

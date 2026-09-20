@@ -23,7 +23,6 @@ model Recipe {
   title        String
   slug         String     @unique
   description  String?
-  ingredients  String     // Stored as JSON string
   instructions String     // Markdown content
   views        Int        @default(0)
   nationality  String?
@@ -33,9 +32,35 @@ model Recipe {
   cookMinutes  Int?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  images       Image[]
-  ratings      Rating[]
-  favorites    Favorite[]
+  images         Image[]
+  ratings        Rating[]
+  favorites      Favorite[]
+  ingredients    Ingredient[]
+}
+
+/// One ingredient line, split into the parts a cook actually uses.
+///
+/// `raw` keeps exactly what the author typed, so nothing is lost when the
+/// parser reads a line differently than intended; the structured columns are
+/// what make scaling, a shopping list and searching by ingredient possible.
+model Ingredient {
+  id          Int     @id @default(autoincrement())
+  recipeId    Int
+  recipe      Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  position    Int
+  /// 200 for "200 g"; 0.5 for "1/2"; null for "Salz"
+  quantity    Float?
+  /// Upper bound of a range: "2-3 EL" is quantity 2, quantityMax 3
+  quantityMax Float?
+  /// "g", "EL", "cups" — null when the line has no unit
+  unit        String?
+  /// The ingredient itself, without quantity or unit
+  name        String
+  /// Exactly what the author typed in the amount field
+  raw         String  @default("")
+
+  @@unique([recipeId, position])
+  @@index([name])
 }
 
 model Image {

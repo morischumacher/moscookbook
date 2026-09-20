@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
-import type { Ingredient } from '@/lib/recipe';
-import { scaleAmount } from '@/lib/amount';
+import { toDisplayIngredient, type StructuredIngredient } from '@/lib/ingredientParts';
 import { splitSteps } from '@/lib/steps';
 
 const SERVING_STEPS = [1, 2, 3, 4, 6, 8, 10, 12];
@@ -14,7 +13,7 @@ export default function RecipeBody({
     instructions,
     baseServings,
 }: {
-    ingredients: Ingredient[];
+    ingredients: StructuredIngredient[];
     instructions: string;
     baseServings: number | null;
 }) {
@@ -178,8 +177,11 @@ export default function RecipeBody({
                     <p className="text-muted">{t('noIngredients')}</p>
                 ) : (
                     <ul className={`flex flex-col gap-4 ${textSize} leading-relaxed text-ink`}>
-                        {ingredients.map((ingredient, index) => {
+                        {ingredients.map((row, index) => {
                             const checked = checkedIngredients.has(index);
+                            // Scaling happens on the stored number, not on the
+                            // printed string, so "1/2 TL" x3 gives "1 1/2 TL".
+                            const ingredient = toDisplayIngredient(row, factor);
                             return (
                                 <li key={index} className="border-b border-line pb-4">
                                     <label className="flex cursor-pointer items-baseline gap-3">
@@ -196,7 +198,7 @@ export default function RecipeBody({
                                                 }`}
                                         >
                                             <span className="w-24 shrink-0 font-sans font-bold text-ink sm:w-32">
-                                                {scaleAmount(ingredient.amount, factor)}
+                                                {ingredient.amount}
                                             </span>
                                             <span>{ingredient.item}</span>
                                         </span>

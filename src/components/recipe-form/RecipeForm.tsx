@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import ReactMarkdown from 'react-markdown';
 import Image from 'next/image';
-import { slugify, parseIngredients, type Ingredient } from '@/lib/recipe';
+import { slugify, type Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
 import { compressImage } from '@/lib/imageCompression';
 import QuickImport, { type ImportedDraft } from './QuickImport';
@@ -338,16 +338,16 @@ export default function RecipeForm({
     aiEnabled,
 }: {
     mode: 'create' | 'edit';
-    initial?: Partial<RecipeFormValues> & { ingredientsJson?: string };
+    initial?: Partial<RecipeFormValues>;
     aiEnabled: boolean;
 }) {
     const t = useTranslations('RecipeForm');
     const router = useRouter();
 
     const initialIngredients = useMemo(() => {
-        const parsed = initial?.ingredients ?? parseIngredients(initial?.ingredientsJson);
-        return parsed.length > 0 ? parsed : [{ ...EMPTY_ROW }];
-    }, [initial?.ingredients, initial?.ingredientsJson]);
+        const rows = initial?.ingredients ?? [];
+        return rows.length > 0 ? rows : [{ ...EMPTY_ROW }];
+    }, [initial?.ingredients]);
 
     const [title, setTitle] = useState(initial?.title ?? '');
     const [slug, setSlug] = useState(initial?.slug ?? '');
