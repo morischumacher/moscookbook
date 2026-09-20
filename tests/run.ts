@@ -14,6 +14,7 @@ import siteUrl from './siteUrl.test';
 import ingredientParts from './ingredientParts.test';
 import shoppingList from './shoppingList.test';
 import invite from './invite.test';
+import archive from './archive.test';
 
 recipeSchema();
 recipeParser();
@@ -23,5 +24,6 @@ siteUrl();
 ingredientParts();
 shoppingList();
 invite();
+archive();
 
 process.exit(summary() === 0 ? 0 : 1);

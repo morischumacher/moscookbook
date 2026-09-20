@@ -245,5 +245,17 @@
     "expiresOn": "Expires {date}",
     "usedBy": "Used by {email}",
     "nav": "Invitations"
+  },
+  "Backup": {
+    "title": "Backup",
+    "explanation": "Download every recipe as one JSON file, or put one back.",
+    "download": "Download backup",
+    "restore": "Restore from file",
+    "restoring": "Restoring…",
+    "replaceExisting": "Overwrite recipes that already exist",
+    "result": "Done: {created} added, {replaced} replaced, {skipped} skipped.",
+    "notJson": "That file is not valid JSON.",
+    "failed": "The archive could not be imported.",
+    "offlineHint": "This file references the images by URL. For a copy that survives the image store going away, run npm run backup on your machine — it downloads the picture files too."
   }
 }

@@ -245,5 +245,17 @@
     "expiresOn": "Gültig bis {date}",
     "usedBy": "Eingelöst von {email}",
     "nav": "Einladungen"
+  },
+  "Backup": {
+    "title": "Sicherung",
+    "explanation": "Alle Rezepte als eine JSON-Datei herunterladen — oder eine zurückspielen.",
+    "download": "Sicherung herunterladen",
+    "restore": "Aus Datei wiederherstellen",
+    "restoring": "Wird eingespielt…",
+    "replaceExisting": "Vorhandene Rezepte überschreiben",
+    "result": "Fertig: {created} angelegt, {replaced} ersetzt, {skipped} übersprungen.",
+    "notJson": "Diese Datei ist kein gültiges JSON.",
+    "failed": "Das Archiv konnte nicht eingelesen werden.",
+    "offlineHint": "Diese Datei verweist auf die Bilder per URL. Für eine Kopie, die auch ohne den Bildspeicher funktioniert, führe npm run backup auf deinem Rechner aus — das lädt die Bilddateien mit herunter."
   }
 }

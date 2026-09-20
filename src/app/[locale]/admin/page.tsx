@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
 import DeleteRecipeButton from '@/components/DeleteRecipeButton';
+import BackupPanel from '@/components/admin/BackupPanel';
 
 interface AdminRecipeRow {
     id: number;
@@ -93,6 +94,8 @@ export default async function AdminDashboard() {
                     ))}
                 </ul>
             )}
+
+            <BackupPanel />
         </main>
     );
 }

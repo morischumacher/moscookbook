@@ -129,6 +129,42 @@ Sonntagsbraten" category survives a language switch untouched.
 source is missing from a catalogue, when the two catalogues drift apart, when a
 message loses an ICU placeholder in translation, or when a value is empty.
 
+## Backup and restore
+
+The cookbook exists in one hosting account. Everything else on this list is an
+annoyance if it goes wrong; this is the only part that cannot be redone.
+
+**From the browser** — Admin → Backup downloads every recipe as one JSON file.
+Fast, always works, and the file stays readable without this application. It
+references the images by URL, so it is a full restore only while the Blob store
+is alive.
+
+**From your machine** — `npm run backup` writes a folder containing the same
+archive *and the image files themselves*:
+
+```bash
+npm run backup                              # -> backup/2026-09-20/
+npm run backup -- --out ~/Dropbox/cookbook  # somewhere that syncs
+```
+
+It talks to the database directly, so there is no serverless time limit and no
+upload size to worry about. One unreachable image is reported and skipped
+rather than costing you the whole backup.
+
+**Restoring** — the browser accepts an archive file; `npm run restore --
+backup/2026-09-20` additionally re-uploads the image files, which is the case a
+backup exists for:
+
+```bash
+npm run restore -- backup/2026-09-20            # keeps what is already there
+npm run restore -- backup/2026-09-20 --replace  # overwrites matching slugs
+```
+
+Recipes that already exist are skipped unless `--replace` is given: a restore
+that silently overwrites the version you have been editing is a second
+disaster, not a recovery. Views, ratings and favourites are not imported —
+they belong to an installation, not to a recipe.
+
 ## Scripts
 
 | Command | What it does |
@@ -141,6 +177,8 @@ message loses an ICU placeholder in translation, or when a value is empty.
 | `npm run db:push` | Apply the Prisma schema to the database |
 | `npm run check:messages` | Verify the translation catalogues |
 | `npm test` | Run the logic check suites |
+| `npm run backup` | Write an offline copy, images included |
+| `npm run restore` | Put a backup folder back |
 
 ## Shopping list
 
