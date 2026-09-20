@@ -26,6 +26,7 @@ See [`.env.example`](.env.example) for the full list. The one that matters most:
 | `POSTGRES_PRISMA_URL` | yes | Pooled connection, set automatically by Vercel Postgres. |
 | `POSTGRES_URL_NON_POOLING` | yes | Direct connection, used for migrations. |
 | `BLOB_READ_WRITE_TOKEN` | yes | Set automatically by Vercel Blob. |
+| `NEXT_PUBLIC_SITE_URL` | recommended | Base URL for canonical links and OpenGraph images. Without it a hard-coded default is used, and shared links may preview with the wrong domain. |
 | `ANTHROPIC_API_KEY` | no | Enables the optional AI import (photo of a cookbook page, AI parsing of pasted text). Everything else works without it. |
 | `ANTHROPIC_MODEL` | no | Overrides the model used for AI import. Defaults to `claude-sonnet-5`. |
 
@@ -61,6 +62,21 @@ draft in the browser, generates the URL slug from the title, takes drag & drop,
 clipboard paste and the phone camera for images, and shrinks photos before
 upload.
 
+## Reading a recipe
+
+The recipe page is built for someone standing at the stove:
+
+- **Portionsrechner** — when a recipe has a serving count, the amounts scale with
+  it. Quantities are stored as the author typed them, so scaling works on the
+  string: `200 g` → `400 g`, `1/2 TL` → `1 TL`, `2-3 EL` → `4-6 EL`. Anything the
+  parser cannot read is left untouched rather than shown as a wrong number.
+- **Kochmodus** — larger type, and the screen is kept awake via the Screen Wake
+  Lock API where the browser supports it (silently skipped where it does not).
+- **Abhaken** — ingredients and steps can be ticked off while cooking.
+- **Drucken** — a print stylesheet drops the navigation and chrome.
+- **Link-Vorschauen** — each recipe page generates its own metadata and
+  OpenGraph image, so a shared link shows the dish rather than the site name.
+
 ## Scripts
 
 | Command | What it does |
@@ -70,6 +86,7 @@ upload.
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run create-admin` | Create or promote an admin user (see above) |
+| `npm run db:push` | Apply the Prisma schema to the database |
 
 ## Project layout
 
@@ -81,6 +98,14 @@ src/lib/                 Session, auth guards, rate limiting, recipe helpers
 prisma/                  Schema, migrations and seed
 messages/                Translations (en, de)
 ```
+
+## Known issues
+
+- `prisma/migrations` still holds the original SQLite migration and a
+  `migration_lock.toml` that says `provider = "sqlite"`, while the schema has
+  long since moved to PostgreSQL. `prisma migrate` would fail against the real
+  database; schema changes are applied with `npm run db:push` instead. The
+  folder should either be rebuilt as a PostgreSQL baseline or removed.
 
 ## Security notes
 

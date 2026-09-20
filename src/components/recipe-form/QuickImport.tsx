@@ -12,6 +12,9 @@ export interface ImportedDraft {
     ingredients: Ingredient[];
     instructions: string;
     imageUrl?: string;
+    servings?: number | null;
+    prepMinutes?: number | null;
+    cookMinutes?: number | null;
 }
 
 type Mode = 'paste' | 'link' | 'photo';

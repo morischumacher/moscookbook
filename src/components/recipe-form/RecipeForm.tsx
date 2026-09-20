@@ -19,6 +19,9 @@ export interface RecipeFormValues {
     instructions: string;
     ingredients: Ingredient[];
     imageUrl: string;
+    servings: number | null;
+    prepMinutes: number | null;
+    cookMinutes: number | null;
 }
 
 const EMPTY_ROW: Ingredient = { amount: '', item: '' };
@@ -351,6 +354,15 @@ export default function RecipeForm({
     const [imageUrl, setImageUrl] = useState(initial?.imageUrl ?? '');
     const [instructions, setInstructions] = useState(initial?.instructions ?? '');
     const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
+    const [servings, setServings] = useState<string>(
+        initial?.servings != null ? String(initial.servings) : ''
+    );
+    const [prepMinutes, setPrepMinutes] = useState<string>(
+        initial?.prepMinutes != null ? String(initial.prepMinutes) : ''
+    );
+    const [cookMinutes, setCookMinutes] = useState<string>(
+        initial?.cookMinutes != null ? String(initial.cookMinutes) : ''
+    );
 
     const [preview, setPreview] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -374,8 +386,14 @@ export default function RecipeForm({
     }, [draftKey]);
 
     const values = useMemo(
-        () => ({ title, slug, description, category, nationality, imageUrl, instructions, ingredients }),
-        [title, slug, description, category, nationality, imageUrl, instructions, ingredients]
+        () => ({
+            title, slug, description, category, nationality, imageUrl, instructions,
+            ingredients, servings, prepMinutes, cookMinutes,
+        }),
+        [
+            title, slug, description, category, nationality, imageUrl, instructions,
+            ingredients, servings, prepMinutes, cookMinutes,
+        ]
     );
 
     useEffect(() => {
@@ -419,6 +437,9 @@ export default function RecipeForm({
             setIngredients(
                 draft.ingredients && draft.ingredients.length > 0 ? draft.ingredients : [{ ...EMPTY_ROW }]
             );
+            setServings(draft.servings != null ? String(draft.servings) : '');
+            setPrepMinutes(draft.prepMinutes != null ? String(draft.prepMinutes) : '');
+            setCookMinutes(draft.cookMinutes != null ? String(draft.cookMinutes) : '');
         } catch {
             /* ignore */
         }
@@ -435,6 +456,17 @@ export default function RecipeForm({
         if (draft.instructions) setInstructions(draft.instructions);
         if (draft.imageUrl) setImageUrl(draft.imageUrl);
         if (draft.ingredients.length > 0) setIngredients(draft.ingredients);
+        if (draft.servings != null) setServings(String(draft.servings));
+        if (draft.prepMinutes != null) setPrepMinutes(String(draft.prepMinutes));
+        if (draft.cookMinutes != null) setCookMinutes(String(draft.cookMinutes));
+    };
+
+    /** Empty stays empty: an unanswered field must not become a wrong number. */
+    const toOptionalNumber = (value: string): number | null => {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        const parsed = Number.parseInt(trimmed, 10);
+        return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
     };
 
     const handleSubmit = async (event: React.FormEvent) => {
@@ -463,6 +495,9 @@ export default function RecipeForm({
                     imageUrl,
                     instructions,
                     ingredients: cleanedIngredients,
+                    servings: toOptionalNumber(servings),
+                    prepMinutes: toOptionalNumber(prepMinutes),
+                    cookMinutes: toOptionalNumber(cookMinutes),
                 }),
             });
 
@@ -594,6 +629,52 @@ export default function RecipeForm({
                                 <option key={entry} value={entry} />
                             ))}
                         </datalist>
+                    </div>
+                </div>
+
+                <div className="grid gap-6 sm:grid-cols-3">
+                    <div>
+                        <label htmlFor="servings" className={labelClass}>Portionen</label>
+                        <input
+                            id="servings"
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            max={100}
+                            value={servings}
+                            onChange={(event) => setServings(event.target.value)}
+                            placeholder="4"
+                            className={fieldClass}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                            Schaltet den Portionsrechner frei.
+                        </p>
+                    </div>
+                    <div>
+                        <label htmlFor="prepMinutes" className={labelClass}>Vorbereitung</label>
+                        <input
+                            id="prepMinutes"
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            value={prepMinutes}
+                            onChange={(event) => setPrepMinutes(event.target.value)}
+                            placeholder="Minuten"
+                            className={fieldClass}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="cookMinutes" className={labelClass}>Kochzeit</label>
+                        <input
+                            id="cookMinutes"
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            value={cookMinutes}
+                            onChange={(event) => setCookMinutes(event.target.value)}
+                            placeholder="Minuten"
+                            className={fieldClass}
+                        />
                     </div>
                 </div>
 

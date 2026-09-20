@@ -17,9 +17,16 @@ const geistMono = Geist_Mono({
     subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://moscookbook.vercel.app';
+
 export const metadata = {
-    title: "mo'scookbook",
-    description: "A collection of my favorite recipes",
+    // Lets page-level openGraph images use relative URLs.
+    metadataBase: new URL(siteUrl),
+    title: {
+        default: "mo'scookbook",
+        template: "%s",
+    },
+    description: 'A collection of my favorite recipes',
 };
 
 export default async function LocaleLayout({

@@ -34,8 +34,11 @@ export async function PUT(
             );
         }
 
-        const { title, slug, description, category, nationality, ingredients, instructions, imageUrl } =
-            parsed.data;
+        const {
+            title, slug, description, category, nationality,
+            ingredients, instructions, imageUrl,
+            servings, prepMinutes, cookMinutes,
+        } = parsed.data;
 
         // Only touch images when the payload actually says something about them.
         // Previously every update wiped the image, so saving an edit without
@@ -64,6 +67,9 @@ export async function PUT(
                     nationality,
                     ingredients: serializeIngredients(ingredients),
                     instructions,
+                    servings: servings ?? null,
+                    prepMinutes: prepMinutes ?? null,
+                    cookMinutes: cookMinutes ?? null,
                 },
             }),
             ...(replaceImage ? [prisma.image.deleteMany({ where: { recipeId } })] : []),

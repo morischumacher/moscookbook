@@ -56,7 +56,14 @@ export async function POST(req: NextRequest) {
         if (parsed.data.kind === 'text') {
             const fallback = parseRecipeText(parsed.data.text);
             return NextResponse.json({
-                recipe: { ...fallback, category: '', nationality: '' },
+                recipe: {
+                    ...fallback,
+                    category: '',
+                    nationality: '',
+                    servings: null,
+                    prepMinutes: null,
+                    cookMinutes: null,
+                },
                 source: 'fallback',
                 message: 'AI import was unavailable, so the text was parsed locally.',
             });

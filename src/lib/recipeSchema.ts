@@ -39,6 +39,10 @@ export const recipeInputSchema = z.object({
     nationality: z.string().trim().max(100).default(''),
     ingredients: z.array(ingredientSchema).max(200).default([]),
     instructions: z.string().trim().min(1, 'Instructions are required').max(50_000),
+    // Optional: an existing recipe without these simply does not show them.
+    servings: z.number().int().min(1).max(100).nullable().optional(),
+    prepMinutes: z.number().int().min(0).max(10_000).nullable().optional(),
+    cookMinutes: z.number().int().min(0).max(10_000).nullable().optional(),
     // Left out entirely = keep whatever image the recipe already has.
     imageUrl: imageUrlSchema.optional(),
 });

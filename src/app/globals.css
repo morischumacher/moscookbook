@@ -163,3 +163,68 @@ img {
   background-color: var(--color-border);
   margin: var(--space-xl) 0;
 }
+/* ---------------------------------------------------------------- recipe */
+
+/* Markdown inside a single cooking step: tight, since each step is its own list item. */
+.markdown-step p {
+  margin: 0 0 0.75rem;
+}
+
+.markdown-step p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-step ul,
+.markdown-step ol {
+  margin: 0.5rem 0 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.markdown-step strong {
+  font-weight: 700;
+}
+
+/* Cook mode: bigger touch targets for hands that are busy. */
+.cook-mode input[type='checkbox'] {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+/* ----------------------------------------------------------------- print */
+
+@media print {
+  nav,
+  footer,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 12pt;
+  }
+
+  article {
+    background: #fff !important;
+  }
+
+  /* A recipe should not break across pages mid-step. */
+  li,
+  section {
+    break-inside: avoid;
+  }
+
+  h1 {
+    font-size: 24pt;
+  }
+
+  h2 {
+    font-size: 14pt;
+  }
+
+  a[href]::after {
+    content: '';
+  }
+}

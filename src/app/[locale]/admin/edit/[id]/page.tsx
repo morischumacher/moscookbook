@@ -12,6 +12,9 @@ interface EditableRecipe {
     nationality: string | null;
     ingredients: string;
     instructions: string;
+    servings: number | null;
+    prepMinutes: number | null;
+    cookMinutes: number | null;
     images: { url: string }[];
 }
 
@@ -46,6 +49,9 @@ export default async function EditRecipePage({
                 instructions: recipe.instructions,
                 ingredientsJson: recipe.ingredients,
                 imageUrl: recipe.images[0]?.url ?? '',
+                servings: recipe.servings,
+                prepMinutes: recipe.prepMinutes,
+                cookMinutes: recipe.cookMinutes,
             }}
         />
     );

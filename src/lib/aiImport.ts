@@ -30,17 +30,24 @@ const aiRecipeSchema = z.object({
         )
         .default([]),
     instructions: z.string().default(''),
+    servings: z.number().int().min(1).max(100).nullable().default(null),
+    prepMinutes: z.number().int().min(0).max(10_000).nullable().default(null),
+    cookMinutes: z.number().int().min(0).max(10_000).nullable().default(null),
 });
 
 export interface AiExtractionResult extends ParsedRecipe {
     category: string;
     nationality: string;
+    servings: number | null;
+    prepMinutes: number | null;
+    cookMinutes: number | null;
 }
 
 const SYSTEM_PROMPT = `You extract recipes into structured data.
 
 Return ONLY a JSON object, no prose and no code fences, with exactly these keys:
 {"title": string, "description": string, "category": string, "nationality": string,
+ "servings": number|null, "prepMinutes": number|null, "cookMinutes": number|null,
  "ingredients": [{"amount": string, "item": string}], "instructions": string}
 
 Rules:
@@ -51,6 +58,8 @@ Rules:
 - "instructions" is markdown: one numbered list item per step, separated by blank lines.
 - "category" is a single word like Breakfast, Lunch, Dinner, Dessert — or "" if unclear.
 - "nationality" is the cuisine, e.g. Italian, German — or "" if unclear.
+- "servings", "prepMinutes" and "cookMinutes" are numbers taken from the source,
+  or null when the source does not state them. Never estimate them.
 - Never invent ingredients, quantities or steps that are not in the source.
   If something is missing, leave it empty.`;
 

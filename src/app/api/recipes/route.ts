@@ -19,8 +19,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { title, slug, description, category, nationality, ingredients, instructions, imageUrl } =
-            parsed.data;
+        const {
+            title, slug, description, category, nationality,
+            ingredients, instructions, imageUrl,
+            servings, prepMinutes, cookMinutes,
+        } = parsed.data;
 
         const recipe = await prisma.recipe.create({
             data: {
@@ -31,6 +34,9 @@ export async function POST(req: NextRequest) {
                 nationality,
                 ingredients: serializeIngredients(ingredients),
                 instructions,
+                servings: servings ?? null,
+                prepMinutes: prepMinutes ?? null,
+                cookMinutes: cookMinutes ?? null,
                 images: imageUrl ? { create: { url: imageUrl } } : undefined,
             },
         });

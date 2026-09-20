@@ -1,4 +1,5 @@
 import { parseIngredientLine } from './recipeParser';
+import { isoDurationToMinutes, parseServings } from './amount';
 import type { ParsedRecipe } from './recipeParser';
 
 /**
@@ -10,6 +11,9 @@ export interface ImportedRecipe extends ParsedRecipe {
     imageUrl: string;
     category: string;
     nationality: string;
+    servings: number | null;
+    prepMinutes: number | null;
+    cookMinutes: number | null;
     sourceUrl: string;
 }
 
@@ -21,6 +25,9 @@ const EMPTY: Omit<ImportedRecipe, 'sourceUrl'> = {
     imageUrl: '',
     category: '',
     nationality: '',
+    servings: null,
+    prepMinutes: null,
+    cookMinutes: null,
 };
 
 const HTML_ENTITIES: Record<string, string> = {
@@ -180,6 +187,11 @@ export function extractRecipeFromHtml(html: string, sourceUrl = ''): ImportedRec
             imageUrl: firstString(node.image),
             category: firstString(node.recipeCategory),
             nationality: firstString(node.recipeCuisine),
+            servings: parseServings(node.recipeYield),
+            prepMinutes: isoDurationToMinutes(node.prepTime),
+            // Fall back to totalTime when a site only publishes the sum.
+            cookMinutes:
+                isoDurationToMinutes(node.cookTime) ?? isoDurationToMinutes(node.totalTime),
             sourceUrl,
         };
     }
