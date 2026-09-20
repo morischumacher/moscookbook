@@ -115,6 +115,25 @@ message loses an ICU placeholder in translation, or when a value is empty.
 | `npm run check:messages` | Verify the translation catalogues |
 | `npm test` | Run the logic check suites |
 
+## Shopping list
+
+Add recipes from their pages, then `/shopping-list` merges their ingredients
+into one list you can tick off and print.
+
+Two lines are merged only when the name **and** the unit match. `200 g` and
+`300 g` of flour become `500 g`; `2 Zwiebeln` and `100 g Zwiebeln` stay apart,
+because adding them would produce a number that means nothing. Lines without a
+quantity are listed once, never as "2 Salz".
+
+Names are matched exactly, apart from case and spacing. An earlier version
+stripped German plural endings so `Zwiebeln` and `Zwiebel` would merge — but
+that also turns `Eis` into `Ei`, and a list that quietly adds ice cream to eggs
+is worse than one that lists onions twice. Being slightly redundant is the safe
+failure, and the tests pin that decision down.
+
+The selection lives in `localStorage` and is mirrored into the URL, so a list
+can be sent to whoever is going to the shop.
+
 ## On a phone
 
 This is mostly a phone app: recipes get read standing at the counter and

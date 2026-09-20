@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import Image from 'next/image';
 import LogoutButton from './LogoutButton';
+import { useShoppingSelection } from './shopping/useShoppingSelection';
 
 interface MobileNavbarProps {
     user: { id: number; email: string; name: string; admin: boolean } | null;
@@ -13,7 +14,20 @@ interface MobileNavbarProps {
 
 export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
     const t = useTranslations('Navigation');
+    const tShopping = useTranslations('ShoppingList');
+    const { ids, href } = useShoppingSelection();
     const [isOpen, setIsOpen] = useState(false);
+
+    // Only worth a place in the bar once something is actually on it.
+    const shoppingLink =
+        ids.length > 0 ? (
+            <Link href={href} onClick={() => setIsOpen(false)}>
+                {tShopping('nav')}
+                <span className="ml-1.5 rounded-full bg-ink px-1.5 py-0.5 text-xs text-page">
+                    {ids.length}
+                </span>
+            </Link>
+        ) : null;
 
     return (
         <nav className="bg-page border-b border-line py-4 sticky top-0 z-[100]">
@@ -53,6 +67,9 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
                             )}
                             <LogoutButton className="text-sm text-ink hover:opacity-50 transition-opacity" />
                         </div>
+                    )}
+                    {shoppingLink && (
+                        <span className="text-sm text-ink">{shoppingLink}</span>
                     )}
                     <Link href="/" locale={otherLocale} className="text-sm font-medium text-muted hover:text-ink transition-colors">
                         {otherLocale.toUpperCase()}

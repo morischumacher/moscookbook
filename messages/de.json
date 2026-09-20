@@ -208,5 +208,19 @@
     "photoFailed": "Das Foto konnte nicht gelesen werden.",
     "partial": "Die Seite hatte nur Teilangaben — bitte den Rest ergänzen.",
     "imported": "Rezept übernommen. Bitte vor dem Speichern prüfen."
+  },
+  "ShoppingList": {
+    "title": "Einkaufsliste",
+    "fromRecipes": "{count, plural, one {Aus # Rezept} other {Aus # Rezepten}}",
+    "empty": "Noch nichts auf der Liste. Öffne ein Rezept und füge es hinzu.",
+    "browseRecipes": "Rezepte ansehen",
+    "addToList": "Auf die Einkaufsliste",
+    "onList": "Auf der Einkaufsliste",
+    "removeRecipe": "{title} von der Liste nehmen",
+    "remaining": "{count, plural, =0 {Alles erledigt} one {noch # Position} other {noch # Positionen}}",
+    "fromCount": "{count, plural, other {aus # Rezepten}}",
+    "print": "Drucken",
+    "clearAll": "Liste leeren",
+    "nav": "Einkaufsliste"
   }
 }

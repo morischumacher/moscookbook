@@ -12,6 +12,7 @@ import recipeFromHtml from './recipeFromHtml.test';
 import amount from './amount.test';
 import siteUrl from './siteUrl.test';
 import ingredientParts from './ingredientParts.test';
+import shoppingList from './shoppingList.test';
 
 recipeSchema();
 recipeParser();
@@ -19,5 +20,6 @@ recipeFromHtml();
 amount();
 siteUrl();
 ingredientParts();
+shoppingList();
 
 process.exit(summary() === 0 ? 0 : 1);

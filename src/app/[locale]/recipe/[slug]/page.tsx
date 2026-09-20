@@ -7,6 +7,7 @@ import RatingDisplay from '@/components/RatingDisplay';
 import FavoriteButton from '@/components/FavoriteButton';
 import ViewTracker from '@/components/ViewTracker';
 import RecipeBody from '@/components/recipe/RecipeBody';
+import AddToListButton from '@/components/shopping/AddToListButton';
 import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
@@ -172,6 +173,10 @@ export default async function RecipePage({
                         {categoryLabel ? ` • ${categoryLabel}` : ''}
                         {cuisineLabel ? ` • ${cuisineLabel}` : ''}
                     </span>
+                </div>
+
+                <div className="print:hidden mb-6">
+                    <AddToListButton recipeId={recipeData.id} />
                 </div>
 
                 <div className="print:hidden mb-8">

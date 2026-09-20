@@ -208,5 +208,19 @@
     "photoFailed": "The photo could not be read.",
     "partial": "The page only had partial data — please fill in the rest.",
     "imported": "Recipe imported. Please check it before saving."
+  },
+  "ShoppingList": {
+    "title": "Shopping list",
+    "fromRecipes": "{count, plural, one {From # recipe} other {From # recipes}}",
+    "empty": "Nothing on the list yet. Open a recipe and add it.",
+    "browseRecipes": "Browse recipes",
+    "addToList": "Add to shopping list",
+    "onList": "On the shopping list",
+    "removeRecipe": "Remove {title} from the list",
+    "remaining": "{count, plural, =0 {All done} one {# item left} other {# items left}}",
+    "fromCount": "{count, plural, other {from # recipes}}",
+    "print": "Print",
+    "clearAll": "Empty the list",
+    "nav": "Shopping list"
   }
 }
