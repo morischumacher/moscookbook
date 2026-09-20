@@ -288,7 +288,9 @@ update workflow".
 
 ## Testing
 
-`npm test` runs `tests/run.ts` through ts-node — a few hundred lines of plain
+`npm test` runs `tests/run.ts` through ts-node in transpile-only mode — types
+are already checked by `npm run typecheck`, and checking them twice would drag
+the generated Prisma client into every test run for no benefit. It is — a few hundred lines of plain
 assertions over the pure logic, with no test runner to configure. It covers
 what is easy to get subtly wrong and expensive to get wrong in production:
 

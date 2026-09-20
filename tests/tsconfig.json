@@ -8,5 +8,8 @@
     "noEmit": false,
     "types": ["node"]
   },
-  "include": ["./**/*.ts", "../src/lib/**/*.ts"]
+  // Only the suites. Pulling all of src/lib in here would drag the generated
+  // Prisma client into every test run — megabytes of type definitions that
+  // `npm run typecheck` already covers.
+  "include": ["./**/*.ts"]
 }

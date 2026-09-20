@@ -12,7 +12,7 @@
     "create-admin": "node scripts/create-admin.js",
     "db:push": "prisma db push",
     "check:messages": "node scripts/check-messages.mjs",
-    "test": "ts-node --project tests/tsconfig.json tests/run.ts",
+    "test": "ts-node --transpile-only --project tests/tsconfig.json tests/run.ts",
     "backup": "node scripts/backup.mjs",
     "restore": "node scripts/restore.mjs"
   },
