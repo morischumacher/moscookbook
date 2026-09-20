@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
-import styles from '@/app/[locale]/admin/page.module.css';
 
 export default function DeleteRecipeButton({ recipeId }: { recipeId: number }) {
     const t = useTranslations('Admin');
@@ -15,9 +14,7 @@ export default function DeleteRecipeButton({ recipeId }: { recipeId: number }) {
 
         setIsDeleting(true);
         try {
-            const res = await fetch(`/api/recipes/${recipeId}`, {
-                method: 'DELETE',
-            });
+            const res = await fetch(`/api/recipes/${recipeId}`, { method: 'DELETE' });
 
             if (res.ok) {
                 router.refresh();
@@ -34,9 +31,10 @@ export default function DeleteRecipeButton({ recipeId }: { recipeId: number }) {
 
     return (
         <button
-            className={styles.deleteBtn}
+            type="button"
             onClick={handleDelete}
             disabled={isDeleting}
+            className="underline underline-offset-4 hover:text-red-600 disabled:opacity-50"
         >
             {isDeleting ? t('deleting') : t('delete')}
         </button>

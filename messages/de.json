@@ -103,7 +103,8 @@
     "error": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
     "registerIntro": "Erstelle ein Konto, um Rezepte zu merken und zu bewerten.",
     "registerFailed": "Registrierung fehlgeschlagen",
-    "creatingAccount": "Konto wird erstellt…"
+    "creatingAccount": "Konto wird erstellt…",
+    "passwordHint": "Mindestens 8 Zeichen."
   },
   "Admin": {
     "dashboard": "Rezepte",
@@ -131,7 +132,8 @@
     "loadingUsers": "Benutzer werden geladen…",
     "genericError": "Etwas ist schiefgelaufen.",
     "noUsers": "Keine Benutzer gefunden.",
-    "columnId": "ID"
+    "columnId": "ID",
+    "viewCount": "{count, plural, one {# Aufruf} other {# Aufrufe}}"
   },
   "RecipeForm": {
     "newRecipe": "Neues Rezept",

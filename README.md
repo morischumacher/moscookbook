@@ -115,6 +115,18 @@ message loses an ICU placeholder in translation, or when a value is empty.
 | `npm run check:messages` | Verify the translation catalogues |
 | `npm test` | Run the logic check suites |
 
+## Look and feel
+
+One visual language across the whole app: the warm paper background, black
+extrabold headings, serif body copy and hairline rules of the public pages now
+also carry the admin area, login and registration. Colours and borders come
+from the CSS custom properties in `globals.css` rather than hard-coded greys,
+so dark mode follows automatically.
+
+The admin tables became lists. A table of four columns on a 375px screen scrolls
+sideways and is miserable to use on the phone you are actually holding when you
+want to fix a typo in a recipe.
+
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every push and pull request: translations,

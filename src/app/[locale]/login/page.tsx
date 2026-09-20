@@ -3,17 +3,22 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import styles from './page.module.css';
+
+const fieldClass =
+    'w-full rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 outline-none transition-colors focus:border-[var(--color-fg)]';
+const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-gray-500';
 
 export default function LoginPage() {
     const t = useTranslations('Auth');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
         setError('');
+        setIsLoading(true);
 
         try {
             const res = await fetch('/api/auth/login', {
@@ -25,61 +30,73 @@ export default function LoginPage() {
             const data = await res.json();
 
             if (res.ok) {
-                if (data.admin) {
-                    window.location.href = window.location.pathname.replace('/login', '/admin');
-                } else {
-                    // Redirect to the locale root (home page)
-                    window.location.href = window.location.pathname.replace('/login', '');
-                }
-            } else {
-                setError(data.message || t('failed'));
+                // Full reload so every server component sees the new session.
+                window.location.href = data.admin
+                    ? window.location.pathname.replace('/login', '/admin')
+                    : window.location.pathname.replace('/login', '');
+                return;
             }
+
+            setError(data.message || t('failed'));
         } catch {
             setError(t('error'));
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className={styles.container}>
-            <form onSubmit={handleSubmit} className={styles.form}>
-                <h1 className={styles.title}>{t('loginTitle')}</h1>
-                {error && <p className={styles.error}>{error}</p>}
+        <main className="container mx-auto max-w-sm px-4 pb-32 pt-16 sm:pt-24">
+            <h1 className="mb-8 text-3xl font-extrabold tracking-tight">{t('loginTitle')}</h1>
 
-                <div className={styles.group}>
-                    <label htmlFor="email">{t('email')}</label>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                {error && (
+                    <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40">
+                        {error}
+                    </p>
+                )}
+
+                <div>
+                    <label htmlFor="email" className={labelClass}>{t('email')}</label>
                     <input
                         type="email"
                         id="email"
+                        autoComplete="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(event) => setEmail(event.target.value)}
                         required
-                        className={styles.input}
+                        className={fieldClass}
                     />
                 </div>
 
-                <div className={styles.group}>
-                    <label htmlFor="password">{t('password')}</label>
+                <div>
+                    <label htmlFor="password" className={labelClass}>{t('password')}</label>
                     <input
                         type="password"
                         id="password"
+                        autoComplete="current-password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(event) => setPassword(event.target.value)}
                         required
-                        className={styles.input}
+                        className={fieldClass}
                     />
                 </div>
 
-                <button type="submit" className="btn" style={{ width: '100%' }}>
+                <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="rounded-full bg-[var(--color-fg)] px-6 py-3 font-medium text-[var(--color-bg)] disabled:opacity-50"
+                >
                     {t('submitLogin')}
                 </button>
 
-                <div style={{ marginTop: 'var(--space-md)', textAlign: 'center', fontSize: '0.875rem' }}>
+                <p className="text-center text-sm text-gray-500">
                     {t('needAccount')}{' '}
-                    <Link href="/register" style={{ textDecoration: 'underline' }}>
+                    <Link href="/register" className="underline underline-offset-4">
                         {t('registerLink')}
                     </Link>
-                </div>
+                </p>
             </form>
-        </div>
+        </main>
     );
 }

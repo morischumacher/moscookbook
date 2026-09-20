@@ -103,7 +103,8 @@
     "error": "Something went wrong. Please try again.",
     "registerIntro": "Create an account to save favourite recipes and leave ratings.",
     "registerFailed": "Registration failed",
-    "creatingAccount": "Creating account…"
+    "creatingAccount": "Creating account…",
+    "passwordHint": "At least 8 characters."
   },
   "Admin": {
     "dashboard": "Recipes",
@@ -131,7 +132,8 @@
     "loadingUsers": "Loading users…",
     "genericError": "Something went wrong.",
     "noUsers": "No users found.",
-    "columnId": "ID"
+    "columnId": "ID",
+    "viewCount": "{count, plural, one {# view} other {# views}}"
   },
   "RecipeForm": {
     "newRecipe": "New recipe",
