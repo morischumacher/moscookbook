@@ -1,34 +1,52 @@
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
-import EditRecipeForm from '@/components/EditRecipeForm';
+import RecipeForm from '@/components/recipe-form/RecipeForm';
+import { isAiImportConfigured } from '@/lib/aiImport';
+
+interface EditableRecipe {
+    id: number;
+    title: string;
+    slug: string;
+    description: string | null;
+    category: string | null;
+    nationality: string | null;
+    ingredients: string;
+    instructions: string;
+    images: { url: string }[];
+}
 
 export default async function EditRecipePage({
-    params
+    params,
 }: {
-    params: Promise<{ id: string }>
+    params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
-    const recipeId = parseInt(id, 10);
+    const recipeId = Number.parseInt(id, 10);
 
-    if (isNaN(recipeId)) {
-        notFound();
-    }
+    if (Number.isNaN(recipeId)) notFound();
 
-    const recipe = await prisma.recipe.findUnique({
+    const recipe: EditableRecipe | null = await prisma.recipe.findUnique({
         where: { id: recipeId },
-        include: { images: true }
+        include: { images: { orderBy: { id: 'asc' } } },
     });
 
-    if (!recipe) {
-        notFound();
-    }
+    if (!recipe) notFound();
 
-    const safeRecipe = {
-        ...recipe,
-        description: recipe.description || '',
-        category: recipe.category || '',
-        nationality: recipe.nationality || ''
-    };
-
-    return <EditRecipeForm recipe={safeRecipe} />;
+    return (
+        <RecipeForm
+            mode="edit"
+            aiEnabled={isAiImportConfigured()}
+            initial={{
+                id: recipe.id,
+                title: recipe.title,
+                slug: recipe.slug,
+                description: recipe.description ?? '',
+                category: recipe.category ?? '',
+                nationality: recipe.nationality ?? '',
+                instructions: recipe.instructions,
+                ingredientsJson: recipe.ingredients,
+                imageUrl: recipe.images[0]?.url ?? '',
+            }}
+        />
+    );
 }
