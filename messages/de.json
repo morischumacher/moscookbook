@@ -26,7 +26,9 @@
     "allNationalities": "Alle Küchen",
     "favoritesOnly": "Nur Favoriten",
     "loadingFilters": "Filter werden geladen…",
-    "noResults": "Keine Rezepte gefunden."
+    "noResults": "Keine Rezepte gefunden.",
+    "resultCount": "{count, plural, one {# Rezept} other {# Rezepte}}",
+    "clearFilters": "Filter zurücksetzen"
   },
   "Categories": {
     "Breakfast": "Frühstück",

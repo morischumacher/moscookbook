@@ -29,16 +29,19 @@ export default function RecipeCard({ id, title, description, imageUrl, slug, cat
     const cuisineLabel = nationality && tCuisine.has(nationality) ? tCuisine(nationality) : nationality;
 
     return (
-        <Link href={`/recipe/${slug}`} className="flex flex-row justify-between items-start gap-4 py-8 group hover:opacity-75 transition-opacity">
+        <Link
+            href={`/recipe/${slug}`}
+            className="group flex flex-row items-start justify-between gap-5 py-7 sm:py-8"
+        >
             {/* Left Content */}
-            <div className="flex flex-col flex-1 min-w-0 pr-4">
-                <h3 className="text-2xl font-bold text-[#111] dark:text-[#eee] mb-2 leading-tight group-hover:underline decoration-1 underline-offset-4">
+            <div className="flex min-w-0 flex-1 flex-col">
+                <h3 className="mb-2 text-xl font-bold leading-tight tracking-tight decoration-1 underline-offset-4 group-hover:underline sm:text-2xl">
                     {title}
                 </h3>
-                <p className="text-base text-gray-600 dark:text-gray-400 mb-4 line-clamp-2 leading-relaxed">
+                <p className="mb-4 line-clamp-2 font-serif text-base leading-relaxed text-gray-600 dark:text-gray-400">
                     {description}
                 </p>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-gray-500 uppercase tracking-widest">
+                <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-widest text-gray-500">
                     <span>{categoryLabel}</span>
                     {cuisineLabel && (
                         <>
@@ -57,11 +60,17 @@ export default function RecipeCard({ id, title, description, imageUrl, slug, cat
             </div>
 
             {/* Right Image Thumbnail */}
-            <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800">
+            <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-lg border border-[var(--color-border)] bg-black/[0.04] transition-transform duration-200 group-hover:scale-[1.02] dark:bg-white/[0.06] sm:w-32">
                 {imageUrl ? (
-                    <Image src={imageUrl} alt={title} fill style={{ objectFit: 'cover' }} className="object-cover" />
+                    <Image
+                        src={imageUrl}
+                        alt={title}
+                        fill
+                        sizes="(min-width: 640px) 128px, 96px"
+                        className="object-cover"
+                    />
                 ) : (
-                    <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800" />
+                    <div className="absolute inset-0" />
                 )}
             </div>
         </Link>

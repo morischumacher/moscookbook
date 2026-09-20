@@ -62,6 +62,17 @@ draft in the browser, generates the URL slug from the title, takes drag & drop,
 clipboard paste and the phone camera for images, and shrinks photos before
 upload.
 
+## The home page
+
+A masthead, one search field, and the filters as chips rather than four select
+boxes. The chips are built from the data: every category and cuisine that
+actually occurs, with its count, busiest first. The old bar offered a fixed
+list, so it showed categories nobody had used and hid hand-typed ones — a
+filter could lead to an empty page.
+
+On a phone the category chips scroll sideways in one line instead of stacking
+four dropdowns down the screen.
+
 ## Reading a recipe
 
 The recipe page is built for someone standing at the stove:
