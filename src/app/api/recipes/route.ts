@@ -1,32 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getIronSession } from 'iron-session';
-import { sessionOptions } from '@/lib/session';
+import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
-
-interface SessionData {
-    user?: {
-        id: number;
-        email: string;
-        admin: boolean;
-    };
-}
+import { requireAdmin } from '@/lib/auth';
+import { serializeIngredients } from '@/lib/recipe';
+import { recipeInputSchema, formatZodError } from '@/lib/recipeSchema';
 
 export async function POST(req: NextRequest) {
+    const auth = await requireAdmin();
+    if ('response' in auth) return auth.response;
+
     try {
-        const res = new NextResponse();
-        const serverSession = await getIronSession<SessionData>(req, res, sessionOptions);
+        const parsed = recipeInputSchema.safeParse(await req.json());
 
-        if (!serverSession.user?.admin) {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        if (!parsed.success) {
+            return NextResponse.json(
+                { message: formatZodError(parsed.error) },
+                { status: 400 }
+            );
         }
 
-        const body = await req.json();
-        const { title, slug, description, category, nationality, ingredients, instructions, imageUrl } = body;
-
-        // Basic validation
-        if (!title || !slug || !instructions) {
-            return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
-        }
+        const { title, slug, description, category, nationality, ingredients, instructions, imageUrl } =
+            parsed.data;
 
         const recipe = await prisma.recipe.create({
             data: {
@@ -35,25 +29,21 @@ export async function POST(req: NextRequest) {
                 description,
                 category,
                 nationality,
-                ingredients: JSON.stringify(ingredients),
+                ingredients: serializeIngredients(ingredients),
                 instructions,
-                // Wait, my schema has Image[] relation. 
-                // Implement plan said: 
-                // model Recipe { ... images Image[] }
-                // The mock data had imageUrl on the object.
-                // I should probably add imageUrl to Recipe model for simplicity (thumbnail) or create an Image record.
-                // For MVP, I'll add imageUrl to Recipe model if I can update schema, OR create an Image record.
-                // Let's create an Image record.
-                images: imageUrl ? {
-                    create: {
-                        url: imageUrl
-                    }
-                } : undefined
-            }
+                images: imageUrl ? { create: { url: imageUrl } } : undefined,
+            },
         });
 
         return NextResponse.json(recipe, { status: 201 });
     } catch (error) {
+        if (isPrismaError(error, 'P2002')) {
+            return NextResponse.json(
+                { message: 'A recipe with this slug already exists. Please choose a different one.' },
+                { status: 409 }
+            );
+        }
+
         console.error('Create recipe error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }

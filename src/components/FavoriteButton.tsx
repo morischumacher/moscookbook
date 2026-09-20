@@ -33,7 +33,7 @@ export default function FavoriteButton({ recipeId, initialFavorited, disabled = 
                     alert('You must be logged in to favorite recipes.');
                 }
             }
-        } catch (error) {
+        } catch {
             // Revert
             setIsFavorited(previousState);
         } finally {

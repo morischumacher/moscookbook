@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '@/lib/session';
 import { cookies } from 'next/headers';
+import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function POST(
     req: NextRequest,
@@ -10,29 +10,29 @@ export async function POST(
 ) {
     try {
         const { id } = await params;
-        const recipeId = parseInt(id, 10);
+        const recipeId = Number.parseInt(id, 10);
 
-        if (isNaN(recipeId)) {
+        if (Number.isNaN(recipeId)) {
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
         }
 
-        const cookieStore = await cookies();
-        const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
+        const user = await getCurrentUser();
 
-        if (session.user?.admin) {
+        // Don't let the author inflate their own view counts.
+        if (user?.admin) {
             return NextResponse.json({ message: 'Admin view ignored' }, { status: 200 });
         }
 
+        const cookieStore = await cookies();
         const viewedCookieName = `viewed_recipe_${recipeId}`;
-        const hasViewed = cookieStore.has(viewedCookieName);
 
-        if (hasViewed) {
+        if (cookieStore.has(viewedCookieName)) {
             return NextResponse.json({ message: 'Already viewed' }, { status: 200 });
         }
 
         await prisma.recipe.update({
             where: { id: recipeId },
-            data: { views: { increment: 1 } }
+            data: { views: { increment: 1 } },
         });
 
         const res = NextResponse.json({ success: true });
@@ -41,11 +41,15 @@ export async function POST(
             maxAge: 60 * 60 * 24,
             path: '/',
             httpOnly: true,
-            sameSite: 'lax'
+            sameSite: 'lax',
         });
 
         return res;
     } catch (error) {
+        if (isPrismaError(error, 'P2025')) {
+            return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
+        }
+
         console.error('View tracking error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }

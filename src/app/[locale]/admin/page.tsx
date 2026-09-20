@@ -3,9 +3,18 @@ import prisma from '@/lib/prisma';
 import DeleteRecipeButton from '@/components/DeleteRecipeButton';
 import styles from './page.module.css';
 
+interface AdminRecipeRow {
+    id: number;
+    title: string;
+    slug: string;
+    category: string | null;
+    views: number;
+}
+
 export default async function AdminDashboard() {
-    const recipes = await prisma.recipe.findMany({
-        orderBy: { createdAt: 'desc' }
+    const recipes: AdminRecipeRow[] = await prisma.recipe.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, title: true, slug: true, category: true, views: true },
     });
 
     return (

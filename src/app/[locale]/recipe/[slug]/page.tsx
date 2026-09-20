@@ -2,19 +2,13 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { cookies } from 'next/headers';
 import ReactMarkdown from 'react-markdown';
-import Rating from '@/components/Rating';
 import RatingDisplay from '@/components/RatingDisplay';
 import FavoriteButton from '@/components/FavoriteButton';
 import ViewTracker from '@/components/ViewTracker';
 import prisma from '@/lib/prisma';
-import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '@/lib/session';
+import { getSession } from '@/lib/auth';
+import { parseIngredients } from '@/lib/recipe';
 import styles from './page.module.css';
-
-interface Ingredient {
-    item: string;
-    amount: string;
-}
 
 export default async function RecipePage({
     params
@@ -34,7 +28,7 @@ export default async function RecipePage({
 
     // Unique View Counting Logic
     const cookieStore = await cookies();
-    const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
+    const session = await getSession();
     const viewedCookieName = `viewed_recipe_${recipeData.id}`;
     const hasViewed = cookieStore.has(viewedCookieName);
 
@@ -46,7 +40,7 @@ export default async function RecipePage({
     }
 
     const avgRating = recipeData.ratings.length > 0
-        ? recipeData.ratings.reduce((sum, r) => sum + r.value, 0) / recipeData.ratings.length
+        ? recipeData.ratings.reduce((sum: number, r: { value: number }) => sum + r.value, 0) / recipeData.ratings.length
         : 0;
 
     let isFavorited = false;
@@ -62,7 +56,9 @@ export default async function RecipePage({
         });
         isFavorited = !!favorite;
 
-        const userRating = recipeData.ratings.find(r => r.userId === session.user?.id);
+        const userRating = recipeData.ratings.find(
+            (r: { userId: number; value: number }) => r.userId === session.user?.id
+        );
         if (userRating) userRatingValue = userRating.value;
     }
 
@@ -72,7 +68,7 @@ export default async function RecipePage({
         rating: avgRating
     };
 
-    const ingredients: Ingredient[] = JSON.parse(recipe.ingredients);
+    const ingredients = parseIngredients(recipe.ingredients);
 
     return (
         <article className="w-full pb-32 bg-[#FFF8F0] dark:bg-black min-h-screen">

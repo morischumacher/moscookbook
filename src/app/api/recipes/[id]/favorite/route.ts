@@ -1,34 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '@/lib/session';
-import { cookies } from 'next/headers';
+import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
+import { requireUser } from '@/lib/auth';
 
 export async function POST(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const auth = await requireUser();
+    if ('response' in auth) return auth.response;
+
     try {
         const { id } = await params;
-        const recipeId = parseInt(id, 10);
+        const recipeId = Number.parseInt(id, 10);
 
-        if (isNaN(recipeId)) return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
+        if (Number.isNaN(recipeId)) {
+            return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
+        }
 
-        const cookieStore = await cookies();
-        const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
-
-        if (!session.user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-
-        const userId = session.user.id;
-
-        // Try creating favorite (ignore if already exists due to unique constraint)
         try {
             await prisma.favorite.create({
-                data: { userId, recipeId }
+                data: { userId: auth.user.id, recipeId },
             });
-        } catch (e: any) {
-            // Prisma error P2002 means unique constraint failed (already favorited)
-            if (e.code !== 'P2002') throw e;
+        } catch (error) {
+            // Already favourited — that is the desired end state, so report success.
+            if (isPrismaError(error, 'P2002')) {
+                return NextResponse.json({ success: true, favorited: true });
+            }
+            if (isPrismaError(error, 'P2003')) {
+                return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
+            }
+            throw error;
         }
 
         return NextResponse.json({ success: true, favorited: true });
@@ -42,21 +44,19 @@ export async function DELETE(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const auth = await requireUser();
+    if ('response' in auth) return auth.response;
+
     try {
         const { id } = await params;
-        const recipeId = parseInt(id, 10);
+        const recipeId = Number.parseInt(id, 10);
 
-        if (isNaN(recipeId)) return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
-
-        const cookieStore = await cookies();
-        const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
-
-        if (!session.user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-
-        const userId = session.user.id;
+        if (Number.isNaN(recipeId)) {
+            return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
+        }
 
         await prisma.favorite.deleteMany({
-            where: { userId, recipeId }
+            where: { userId: auth.user.id, recipeId },
         });
 
         return NextResponse.json({ success: true, favorited: false });

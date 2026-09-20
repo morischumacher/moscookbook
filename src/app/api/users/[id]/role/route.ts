@@ -1,49 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '@/lib/session';
-import { cookies } from 'next/headers';
+import { z } from 'zod';
+import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth';
+
+const roleSchema = z.object({
+    admin: z.boolean(),
+});
 
 export async function PATCH(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const auth = await requireAdmin();
+    if ('response' in auth) return auth.response;
+
     try {
         const { id } = await params;
-        const userId = parseInt(id, 10);
+        const userId = Number.parseInt(id, 10);
 
-        if (isNaN(userId)) {
+        if (Number.isNaN(userId)) {
             return NextResponse.json({ message: 'Invalid user ID' }, { status: 400 });
         }
 
-        const cookieStore = await cookies();
-        const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
+        const parsed = roleSchema.safeParse(await req.json());
 
-        if (!session.user?.admin) {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-        }
-
-        const { admin } = await req.json();
-
-        if (typeof admin !== 'boolean') {
+        if (!parsed.success) {
             return NextResponse.json({ message: 'Invalid payload' }, { status: 400 });
         }
 
-        // Prevent admin from removing their own admin privileges easily
-        if (session.user.id === userId && !admin) {
-            return NextResponse.json({ message: 'Cannot revoke your own admin privileges.' }, { status: 403 });
+        const { admin } = parsed.data;
+
+        // Losing your own admin rights would lock you out of the admin area.
+        if (auth.user.id === userId && !admin) {
+            return NextResponse.json(
+                { message: 'Cannot revoke your own admin privileges.' },
+                { status: 403 }
+            );
         }
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
-            data: { admin }
+            data: { admin },
+            select: { id: true, name: true, email: true, admin: true },
         });
 
-        // Ensure we don't return the password hash
-        const { password, ...userWithoutPassword } = updatedUser;
-
-        return NextResponse.json({ success: true, user: userWithoutPassword });
+        return NextResponse.json({ success: true, user: updatedUser });
     } catch (error) {
+        if (isPrismaError(error, 'P2025')) {
+            return NextResponse.json({ message: 'User not found' }, { status: 404 });
+        }
+
         console.error('Update role error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }

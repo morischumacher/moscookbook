@@ -26,8 +26,8 @@ export default function AdminUsersPage() {
             if (!res.ok) throw new Error('Failed to fetch users');
             const data = await res.json();
             setUsers(data.users);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to fetch users');
         } finally {
             setLoading(false);
         }
@@ -47,7 +47,7 @@ export default function AdminUsersPage() {
             } else {
                 alert(data.message || 'Failed to update role');
             }
-        } catch (err) {
+        } catch {
             alert('An error occurred');
         }
     };
@@ -68,7 +68,7 @@ export default function AdminUsersPage() {
             } else {
                 alert(data.message || 'Failed to delete user');
             }
-        } catch (err) {
+        } catch {
             alert('An error occurred');
         }
     };

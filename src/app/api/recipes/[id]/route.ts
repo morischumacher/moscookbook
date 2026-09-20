@@ -1,72 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getIronSession } from 'iron-session';
-import { sessionOptions } from '@/lib/session';
+import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth';
+import { serializeIngredients } from '@/lib/recipe';
+import { recipeInputSchema, formatZodError } from '@/lib/recipeSchema';
 
-interface SessionData {
-    user?: {
-        id: number;
-        email: string;
-        admin: boolean;
-    };
+function parseRecipeId(raw: string): number | null {
+    const id = Number.parseInt(raw, 10);
+    return Number.isNaN(id) ? null : id;
 }
 
 export async function PUT(
     req: NextRequest,
-    context: { params: Promise<{ id: string }> } // In Next.js App Router, dynamic route params are Promises
+    context: { params: Promise<{ id: string }> }
 ) {
+    const auth = await requireAdmin();
+    if ('response' in auth) return auth.response;
+
     try {
         const { id } = await context.params;
-        const recipeId = parseInt(id, 10);
+        const recipeId = parseRecipeId(id);
 
-        if (isNaN(recipeId)) {
+        if (recipeId === null) {
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
         }
 
-        const res = new NextResponse();
-        const serverSession = await getIronSession<SessionData>(req, res, sessionOptions);
+        const parsed = recipeInputSchema.safeParse(await req.json());
 
-        if (!serverSession.user?.admin) {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        if (!parsed.success) {
+            return NextResponse.json(
+                { message: formatZodError(parsed.error) },
+                { status: 400 }
+            );
         }
 
-        const body = await req.json();
-        const { title, slug, description, category, nationality, ingredients, instructions, imageUrl } = body;
+        const { title, slug, description, category, nationality, ingredients, instructions, imageUrl } =
+            parsed.data;
 
-        // Basic validation
-        if (!title || !slug || !instructions) {
-            return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
-        }
+        // Only touch images when the payload actually says something about them.
+        // Previously every update wiped the image, so saving an edit without
+        // re-uploading silently lost the picture.
+        const existingImages: { url: string }[] =
+            imageUrl === undefined
+                ? []
+                : await prisma.image.findMany({
+                    where: { recipeId },
+                    orderBy: { id: 'asc' },
+                    select: { url: true },
+                });
 
-        // First, handle the image link. If the user provided an image, we can either update the existing one or create it.
-        // For simplicity, we can delete the existing relations and create the new one, or just update the first image.
+        const replaceImage =
+            imageUrl !== undefined &&
+            ((existingImages[0]?.url ?? '') !== imageUrl || existingImages.length > 1);
 
-        // Let's delete existing images attached to this recipe
-        await prisma.image.deleteMany({
-            where: { recipeId }
-        });
-
-        // Now update the main recipe record
-        const updatedRecipe = await prisma.recipe.update({
-            where: { id: recipeId },
-            data: {
-                title,
-                slug,
-                description,
-                category,
-                nationality,
-                ingredients: JSON.stringify(ingredients),
-                instructions,
-                images: imageUrl ? {
-                    create: {
-                        url: imageUrl
-                    }
-                } : undefined
-            }
-        });
+        const [updatedRecipe] = await prisma.$transaction([
+            prisma.recipe.update({
+                where: { id: recipeId },
+                data: {
+                    title,
+                    slug,
+                    description,
+                    category,
+                    nationality,
+                    ingredients: serializeIngredients(ingredients),
+                    instructions,
+                },
+            }),
+            ...(replaceImage ? [prisma.image.deleteMany({ where: { recipeId } })] : []),
+            ...(replaceImage && imageUrl
+                ? [prisma.image.create({ data: { recipeId, url: imageUrl } })]
+                : []),
+        ]);
 
         return NextResponse.json(updatedRecipe, { status: 200 });
     } catch (error) {
+        if (isPrismaError(error, 'P2002')) {
+            return NextResponse.json(
+                { message: 'A recipe with this slug already exists. Please choose a different one.' },
+                { status: 409 }
+            );
+        }
+        if (isPrismaError(error, 'P2025')) {
+            return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
+        }
+
         console.error('Update recipe error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
@@ -76,31 +93,27 @@ export async function DELETE(
     req: NextRequest,
     context: { params: Promise<{ id: string }> }
 ) {
+    const auth = await requireAdmin();
+    if ('response' in auth) return auth.response;
+
     try {
         const { id } = await context.params;
-        const recipeId = parseInt(id, 10);
+        const recipeId = parseRecipeId(id);
 
-        if (isNaN(recipeId)) {
+        if (recipeId === null) {
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
         }
 
-        const res = new NextResponse();
-        const serverSession = await getIronSession<SessionData>(req, res, sessionOptions);
-
-        if (!serverSession.user?.admin) {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-        }
-
-        // Delete relations first to avoid foreign key constraints if cascade wasn't enabled natively
-        await prisma.image.deleteMany({ where: { recipeId } });
-        await prisma.rating.deleteMany({ where: { recipeId } });
-        await prisma.favorite.deleteMany({ where: { recipeId } });
-
-        // Finally, delete the actual recipe
+        // Images, ratings and favourites all cascade on delete in the schema,
+        // so removing the recipe is enough.
         await prisma.recipe.delete({ where: { id: recipeId } });
 
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (error) {
+        if (isPrismaError(error, 'P2025')) {
+            return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
+        }
+
         console.error('Delete recipe error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }

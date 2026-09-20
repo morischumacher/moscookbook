@@ -2,25 +2,22 @@ import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { sessionOptions, SessionData } from '@/lib/session';
+import { routing } from '@/i18n/routing';
 
-const intlMiddleware = createMiddleware({
-    locales: ['en', 'de'],
-    defaultLocale: 'en'
-});
+const intlMiddleware = createMiddleware(routing);
+
+const ADMIN_PATH = /^\/(?:en|de)\/admin(?:\/|$)/;
 
 export default async function middleware(req: NextRequest) {
     const res = intlMiddleware(req);
 
-    // Check for admin route protection
-    // Note: This matches /en/admin, /de/admin, /admin
-    if (req.nextUrl.pathname.match(/^\/(en|de)?\/admin/)) {
-        const session = await getIronSession<SessionData>(req, res as any, sessionOptions);
+    if (ADMIN_PATH.test(req.nextUrl.pathname)) {
+        const session = await getIronSession<SessionData>(req, res, sessionOptions);
+
         if (!session.user?.admin) {
-            // Redirect to login
-            const locale = req.nextUrl.pathname.split('/')[1] || 'en';
-            // Basic check if first segment is locale
-            const activelocale = ['en', 'de'].includes(locale) ? locale : 'en';
-            return NextResponse.redirect(new URL(`/${activelocale}/login`, req.url));
+            const locale = req.nextUrl.pathname.split('/')[1];
+            const activeLocale = routing.locales.includes(locale as 'en' | 'de') ? locale : routing.defaultLocale;
+            return NextResponse.redirect(new URL(`/${activeLocale}/login`, req.url));
         }
     }
 
@@ -28,6 +25,5 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-    // Match only internationalized pathnames
-    matcher: ['/', '/(de|en)/:path*']
+    matcher: ['/', '/(de|en)/:path*'],
 };

@@ -1,17 +1,9 @@
 import { ReactNode } from 'react';
-import { getIronSession } from 'iron-session';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { sessionOptions } from '@/lib/session';
+import { getCurrentUser } from '@/lib/auth';
 
-interface SessionData {
-    user?: {
-        id: number;
-        email: string;
-        admin: boolean;
-    };
-}
-
+// The middleware also guards /admin, but this server-side check is the one
+// that actually protects the data: it runs no matter how the route was reached.
 export default async function AdminLayout({
     children,
     params,
@@ -20,10 +12,9 @@ export default async function AdminLayout({
     params: Promise<{ locale: string }>;
 }) {
     const { locale } = await params;
-    const cookieStore = await cookies();
-    const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
+    const user = await getCurrentUser();
 
-    if (!session.user?.admin) {
+    if (!user?.admin) {
         redirect(`/${locale}/login`);
     }
 

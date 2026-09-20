@@ -44,7 +44,7 @@ export default function CreateRecipePage() {
             } else {
                 setError('Upload failed');
             }
-        } catch (err) {
+        } catch {
             setError('Upload error');
         } finally {
             setUploading(false);
@@ -100,7 +100,7 @@ export default function CreateRecipePage() {
                 const data = await res.json();
                 setError(data.message || 'Failed to create recipe');
             }
-        } catch (err) {
+        } catch {
             setError('An error occurred');
         } finally {
             setLoading(false);

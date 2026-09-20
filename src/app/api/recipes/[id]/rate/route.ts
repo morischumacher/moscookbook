@@ -1,63 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '@/lib/session';
-import { cookies } from 'next/headers';
+import { z } from 'zod';
+import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
+import { requireUser } from '@/lib/auth';
+
+const rateSchema = z.object({
+    value: z.number().int().min(1).max(5),
+});
 
 export async function POST(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const auth = await requireUser();
+    if ('response' in auth) return auth.response;
+
     try {
         const { id } = await params;
-        const recipeId = parseInt(id, 10);
+        const recipeId = Number.parseInt(id, 10);
 
-        if (isNaN(recipeId)) {
+        if (Number.isNaN(recipeId)) {
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
         }
 
-        const { value } = await req.json();
+        const parsed = rateSchema.safeParse(await req.json());
 
-        if (typeof value !== 'number' || value < 1 || value > 5) {
-            return NextResponse.json({ message: 'Rating must be an integer between 1 and 5' }, { status: 400 });
+        if (!parsed.success) {
+            return NextResponse.json(
+                { message: 'Rating must be a whole number between 1 and 5' },
+                { status: 400 }
+            );
         }
 
-        const cookieStore = await cookies();
-        const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
+        const { value } = parsed.data;
+        const userId = auth.user.id;
 
-        if (!session.user) {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-        }
-
-        const userId = session.user.id;
-
-        // Upsert rating -> if they already rated, update it. If not, create it.
         const rating = await prisma.rating.upsert({
-            where: {
-                userId_recipeId: {
-                    userId,
-                    recipeId
-                }
-            },
-            update: {
-                value
-            },
-            create: {
-                userId,
-                recipeId,
-                value
-            }
+            where: { userId_recipeId: { userId, recipeId } },
+            update: { value },
+            create: { userId, recipeId, value },
         });
 
-        // Calculate new average
-        const allRatings = await prisma.rating.findMany({
-            where: { recipeId }
+        const aggregate = await prisma.rating.aggregate({
+            where: { recipeId },
+            _avg: { value: true },
+            _count: { value: true },
         });
 
-        const avgRating = allRatings.reduce((sum, r) => sum + r.value, 0) / allRatings.length;
-
-        return NextResponse.json({ success: true, rating: rating.value, average: avgRating, totalRatings: allRatings.length });
+        return NextResponse.json({
+            success: true,
+            rating: rating.value,
+            average: aggregate._avg.value ?? 0,
+            totalRatings: aggregate._count.value,
+        });
     } catch (error) {
+        // Foreign key violation: the recipe does not exist.
+        if (isPrismaError(error, 'P2003')) {
+            return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
+        }
+
         console.error('Rating error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }

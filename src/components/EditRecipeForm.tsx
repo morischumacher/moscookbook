@@ -3,11 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from '@/i18n/routing';
 import styles from '@/app/[locale]/admin/create/page.module.css';
-
-interface IngredientRow {
-    amount: string;
-    item: string;
-}
+import { parseIngredients, type Ingredient as IngredientRow } from '@/lib/recipe';
 
 interface EditRecipeFormProps {
     recipe: {
@@ -37,12 +33,9 @@ export default function EditRecipeForm({ recipe }: EditRecipeFormProps) {
     const [instructions, setInstructions] = useState(recipe.instructions);
     const [uploading, setUploading] = useState(false);
 
-    let initialIngredients: IngredientRow[] = [{ amount: '', item: '' }];
-    try {
-        if (recipe.ingredients) {
-            initialIngredients = JSON.parse(recipe.ingredients);
-        }
-    } catch (e) { }
+    const parsedIngredients = parseIngredients(recipe.ingredients);
+    const initialIngredients: IngredientRow[] =
+        parsedIngredients.length > 0 ? parsedIngredients : [{ amount: '', item: '' }];
 
     const [ingredients, setIngredients] = useState<IngredientRow[]>(initialIngredients);
 
@@ -65,7 +58,7 @@ export default function EditRecipeForm({ recipe }: EditRecipeFormProps) {
             } else {
                 setError('Upload failed');
             }
-        } catch (err) {
+        } catch {
             setError('Upload error');
         } finally {
             setUploading(false);
@@ -121,7 +114,7 @@ export default function EditRecipeForm({ recipe }: EditRecipeFormProps) {
                 const data = await res.json();
                 setError(data.message || 'Failed to update recipe');
             }
-        } catch (err) {
+        } catch {
             setError('An error occurred');
         } finally {
             setLoading(false);

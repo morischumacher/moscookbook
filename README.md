@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# mo'scookbook
 
-## Getting Started
+A personal recipe site: public recipe pages with ratings, favourites and view
+counts, plus an admin area for writing and editing recipes. Built with Next.js
+(App Router), Prisma on Vercel Postgres, Vercel Blob for images, iron-session
+for authentication and next-intl for English/German.
 
-First, run the development server:
+## Getting started
 
 ```bash
+npm install
+cp .env.example .env.local   # then fill in the values
+npx prisma migrate dev       # set up the database schema
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The site runs at http://localhost:3000 and redirects to `/en` or `/de`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+See [`.env.example`](.env.example) for the full list. The one that matters most:
 
-## Learn More
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `SECRET_COOKIE_PASSWORD` | **yes** | Encrypts the session cookie. Minimum 32 characters. In production the app throws on startup if it is missing — without it, anyone could forge an admin session. Generate with `openssl rand -base64 32`. |
+| `POSTGRES_PRISMA_URL` | yes | Pooled connection, set automatically by Vercel Postgres. |
+| `POSTGRES_URL_NON_POOLING` | yes | Direct connection, used for migrations. |
+| `BLOB_READ_WRITE_TOKEN` | yes | Set automatically by Vercel Blob. |
 
-To learn more about Next.js, take a look at the following resources:
+### Creating the first admin
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Users who register are always ordinary users. To create or promote an admin:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a-long-password' ADMIN_NAME='Mo' \
+  npm run create-admin
+```
 
-## Deploy on Vercel
+Afterwards, further admins can be promoted from the Users page in the admin area.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript, no emit |
+| `npm run create-admin` | Create or promote an admin user (see above) |
+
+## Project layout
+
+```
+src/app/[locale]/        Pages: home, recipe detail, login, register, admin
+src/app/api/             Route handlers: auth, recipes, users, upload
+src/components/          Shared UI (navbar, recipe card, rating, favourite…)
+src/lib/                 Session, auth guards, rate limiting, recipe helpers
+prisma/                  Schema, migrations and seed
+messages/                Translations (en, de)
+```
+
+## Security notes
+
+- Every API route that reads or writes data checks the session first; admin-only
+  routes go through `requireAdmin()` in `src/lib/auth.ts`.
+- `/api/upload` is admin-only and validates file type and size before writing to
+  Blob storage.
+- The admin area is guarded twice: in `middleware.ts` and again server-side in
+  `src/app/[locale]/admin/layout.tsx`.
+- Login and registration are rate limited per IP.

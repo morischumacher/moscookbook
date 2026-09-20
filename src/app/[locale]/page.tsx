@@ -1,42 +1,78 @@
-import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 import FilterBar from '@/components/FilterBar';
 import RecipeCard from '@/components/RecipeCard';
 import prisma from '@/lib/prisma';
-import { getDictionary } from '@/lib/getDictionary';
-import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '@/lib/session';
-import { cookies } from 'next/headers';
+import { getCurrentUser } from '@/lib/auth';
+
+interface RecipeListRow {
+    id: number;
+    title: string;
+    slug: string;
+    description: string | null;
+    category: string | null;
+    nationality: string | null;
+    views: number;
+    createdAt: Date;
+    images: { url: string }[];
+    ratings: { value: number }[];
+}
+
+type TextFilter = { contains: string; mode: 'insensitive' };
+
+interface RecipeWhere {
+    category?: string;
+    nationality?: string;
+    id?: { in: number[] };
+    OR?: Array<{ title?: TextFilter; description?: TextFilter }>;
+}
+
+type RecipeOrderBy = { createdAt: 'desc' } | { views: 'desc' };
+
+function averageRating(ratings: { value: number }[]): number {
+    if (ratings.length === 0) return 0;
+    return ratings.reduce((sum, rating) => sum + rating.value, 0) / ratings.length;
+}
 
 export default async function HomePage({
     searchParams,
-    params
 }: {
-    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
-    params: Promise<{ locale: string }>
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+    params: Promise<{ locale: string }>;
 }) {
-    const { locale } = await params;
-    const dict = await getDictionary(locale as any);
-    const t = (key: string) => (dict.HomePage as any)[key] || key;
+    const {
+        sort: sortParam,
+        category: categoryParam,
+        nationality: nationalityParam,
+        favorites,
+        search: searchParam,
+    } = await searchParams;
 
-    const { sort: sortParam, category: categoryParam, nationality: nationalityParam, favorites, search: searchParam } = await searchParams;
-
-    const sort = (sortParam as string) || 'recent';
-    const category = (categoryParam as string) || '';
-    const nationality = (nationalityParam as string) || '';
-    const search = (searchParam as string) || '';
+    const sort = typeof sortParam === 'string' ? sortParam : 'recent';
+    const category = typeof categoryParam === 'string' ? categoryParam : '';
+    const nationality = typeof nationalityParam === 'string' ? nationalityParam : '';
+    const search = typeof searchParam === 'string' ? searchParam : '';
     const showFavorites = favorites === 'true';
 
-    const cookieStore = await cookies();
-    const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
-    const isLoggedIn = !!session.user;
+    const user = await getCurrentUser();
+    const isLoggedIn = user !== null;
 
-    // Build where clause
-    const where: any = {};
+    // One lookup of the viewer's favourites powers both the "favourites only"
+    // filter and the filled-in heart on each card.
+    const favoriteRecipeIds = user
+        ? new Set<number>(
+            (
+                await prisma.favorite.findMany({
+                    where: { userId: user.id },
+                    select: { recipeId: true },
+                })
+            ).map((favorite: { recipeId: number }) => favorite.recipeId)
+        )
+        : new Set<number>();
+
+    const where: RecipeWhere = {};
     if (category) where.category = category;
     if (nationality) where.nationality = nationality;
 
-    // Handle search text query
     if (search) {
         where.OR = [
             { title: { contains: search, mode: 'insensitive' } },
@@ -44,90 +80,44 @@ export default async function HomePage({
         ];
     }
 
-    // Filter by favorites if requested and logged in
     if (showFavorites && isLoggedIn) {
-        where.favorites = {
-            some: {
-                userId: session.user?.id
-            }
-        };
+        where.id = { in: [...favoriteRecipeIds] };
     }
 
-    // Build orderBy
-    let orderBy: any = { createdAt: 'desc' };
-    if (sort === 'views') orderBy = { views: 'desc' };
+    const orderBy: RecipeOrderBy = sort === 'views' ? { views: 'desc' } : { createdAt: 'desc' };
 
-    // Build query includes
-    const includeQuery: any = { images: true, ratings: true };
-    if (isLoggedIn) {
-        includeQuery.favorites = {
-            where: { userId: session.user?.id }
-        };
-    }
+    const recipes: RecipeListRow[] = await prisma.recipe.findMany({
+        where,
+        // "Best rated" is an average across a relation, which Prisma cannot
+        // order by directly, so those are sorted below instead.
+        orderBy: sort === 'rating' ? undefined : orderBy,
+        include: { images: true, ratings: true },
+    });
 
-    // When not sorting by rating, we can just fetch normally
-    let recipes;
+    const formattedRecipes = recipes.map((recipe) => ({
+        ...recipe,
+        description: recipe.description ?? '',
+        category: recipe.category ?? '',
+        nationality: recipe.nationality ?? '',
+        imageUrl: recipe.images[0]?.url ?? '',
+        rating: averageRating(recipe.ratings),
+        isFavorited: favoriteRecipeIds.has(recipe.id),
+        isLoggedIn,
+    }));
 
     if (sort === 'rating') {
-        // Prisma doesn't support direct sorting by aggregated average rating natively in findMany yet
-        // So we fetch all, calculate, and sort in memory (acceptable for small datasets)
-        const allRecipes = await prisma.recipe.findMany({
-            where,
-            include: includeQuery
-        });
-
-        recipes = allRecipes.map(r => {
-            const rAny = r as any;
-            const avgRating = rAny.ratings && rAny.ratings.length > 0
-                ? rAny.ratings.reduce((acc: number, curr: any) => acc + curr.value, 0) / rAny.ratings.length
-                : 0;
-            return { ...r, calculatedRating: avgRating };
-        }).sort((a: any, b: any) => b.calculatedRating - a.calculatedRating);
-    } else {
-        recipes = await prisma.recipe.findMany({
-            where,
-            orderBy,
-            include: includeQuery
-        });
+        formattedRecipes.sort((a, b) => b.rating - a.rating);
     }
-
-    // Map to match RecipeCard props (image handling and rating)
-    const formattedRecipes = recipes.map(r => {
-        const rAny = r as any;
-        let avgRating = 0;
-        if ('calculatedRating' in rAny) {
-            avgRating = rAny.calculatedRating;
-        } else if (rAny.ratings && rAny.ratings.length > 0) {
-            avgRating = rAny.ratings.reduce((acc: number, curr: any) => acc + curr.value, 0) / rAny.ratings.length;
-        }
-
-        const isFavorited = rAny.favorites && rAny.favorites.length > 0;
-
-        return {
-            ...r,
-            description: r.description || '',
-            category: r.category || '',
-            nationality: r.nationality || '',
-            imageUrl: rAny.images[0]?.url || '',
-            rating: avgRating,
-            isFavorited,
-            isLoggedIn
-        };
-    });
 
     return (
         <main className="container mx-auto px-4 md:px-8 pb-32 pt-16">
-
             <Suspense fallback={<div>Loading filters...</div>}>
                 <FilterBar isLoggedIn={isLoggedIn} />
             </Suspense>
 
             <div className="flex flex-col max-w-3xl mx-auto divide-y divide-gray-200 dark:divide-gray-800 pt-8">
-                {formattedRecipes.map(recipe => (
-                    <RecipeCard
-                        key={recipe.id}
-                        {...recipe}
-                    />
+                {formattedRecipes.map((recipe) => (
+                    <RecipeCard key={recipe.id} {...recipe} />
                 ))}
                 {formattedRecipes.length === 0 && (
                     <p className="text-gray-500 mt-8 text-center">

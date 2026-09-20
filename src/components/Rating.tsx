@@ -54,7 +54,7 @@ export default function Rating({ value, max = 5, recipeId, readonly = false, hid
                 if (onChange) onChange(rating); // Signal successful submission
                 router.refresh();
             }
-        } catch (error) {
+        } catch {
             setCurrentValue(previousValue);
             alert('An error occurred while submitting your rating.');
         } finally {
