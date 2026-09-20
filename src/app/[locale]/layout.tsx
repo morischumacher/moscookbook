@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
+import { getSiteUrl } from '@/lib/siteUrl';
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -18,8 +19,6 @@ const geistMono = Geist_Mono({
     subsets: ["latin"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://moscookbook.vercel.app';
-
 export async function generateMetadata({
     params,
 }: {
@@ -30,7 +29,7 @@ export async function generateMetadata({
 
     return {
         // Lets page-level openGraph images use relative URLs.
-        metadataBase: new URL(siteUrl),
+        metadataBase: new URL(getSiteUrl()),
         title: { default: t('title'), template: '%s' },
         description: t('description'),
     };

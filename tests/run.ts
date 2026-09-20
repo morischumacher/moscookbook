@@ -10,10 +10,12 @@ import recipeSchema from './recipeSchema.test';
 import recipeParser from './recipeParser.test';
 import recipeFromHtml from './recipeFromHtml.test';
 import amount from './amount.test';
+import siteUrl from './siteUrl.test';
 
 recipeSchema();
 recipeParser();
 recipeFromHtml();
 amount();
+siteUrl();
 
 process.exit(summary() === 0 ? 0 : 1);

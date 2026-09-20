@@ -26,7 +26,7 @@ See [`.env.example`](.env.example) for the full list. The one that matters most:
 | `POSTGRES_PRISMA_URL` | yes | Pooled connection, set automatically by Vercel Postgres. |
 | `POSTGRES_URL_NON_POOLING` | yes | Direct connection, used for migrations. |
 | `BLOB_READ_WRITE_TOKEN` | yes | Set automatically by Vercel Blob. |
-| `NEXT_PUBLIC_SITE_URL` | recommended | Base URL for canonical links and OpenGraph images. Without it a hard-coded default is used, and shared links may preview with the wrong domain. |
+| `NEXT_PUBLIC_SITE_URL` | optional | Base URL for canonical links and OpenGraph images. On Vercel this is derived from `VERCEL_PROJECT_PRODUCTION_URL`, so it is only needed once you have a custom domain. |
 | `ANTHROPIC_API_KEY` | no | Enables the optional AI import (photo of a cookbook page, AI parsing of pasted text). Everything else works without it. |
 | `ANTHROPIC_MODEL` | no | Overrides the model used for AI import. Defaults to `claude-sonnet-5`. |
 
