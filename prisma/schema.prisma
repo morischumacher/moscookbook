@@ -9,13 +9,39 @@ datasource db {
 }
 
 model User {
-  id        Int        @id @default(autoincrement())
-  email     String     @unique
-  name      String
-  password  String
-  admin     Boolean    @default(false)
-  ratings   Rating[]
-  favorites Favorite[]
+  id             Int        @id @default(autoincrement())
+  email          String     @unique
+  name           String
+  password       String
+  admin          Boolean    @default(false)
+  ratings        Rating[]
+  favorites      Favorite[]
+  invitesCreated Invite[]   @relation("InviteCreatedBy")
+  invitesUsed    Invite[]   @relation("InviteUsedBy")
+}
+
+/// A single-use registration link.
+///
+/// Registration is invite-only: this is a personal cookbook, and an open
+/// sign-up form on the public internet collects nothing but spam accounts.
+///
+/// Codes are stored as written rather than hashed, so an admin can copy a link
+/// again later. They are 128 bits of randomness, single use, and expire; a
+/// database leak already exposes password hashes, so this is not the weak link.
+model Invite {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  /// Free text for the admin: who it was meant for.
+  note        String?
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  createdById Int
+  createdBy   User      @relation("InviteCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  usedAt      DateTime?
+  usedById    Int?
+  usedBy      User?     @relation("InviteUsedBy", fields: [usedById], references: [id], onDelete: SetNull)
+
+  @@index([expiresAt])
 }
 
 model Recipe {

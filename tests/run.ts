@@ -13,6 +13,7 @@ import amount from './amount.test';
 import siteUrl from './siteUrl.test';
 import ingredientParts from './ingredientParts.test';
 import shoppingList from './shoppingList.test';
+import invite from './invite.test';
 
 recipeSchema();
 recipeParser();
@@ -21,5 +22,6 @@ amount();
 siteUrl();
 ingredientParts();
 shoppingList();
+invite();
 
 process.exit(summary() === 0 ? 0 : 1);

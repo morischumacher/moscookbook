@@ -19,6 +19,9 @@ export default async function AdminDashboard() {
 
     const recipes: AdminRecipeRow[] = await prisma.recipe.findMany({
         orderBy: { createdAt: 'desc' },
+        // The dashboard is for editing, not browsing; an unbounded list would
+        // grow into a slow page for no benefit.
+        take: 100,
         select: {
             id: true,
             title: true,

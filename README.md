@@ -30,6 +30,22 @@ See [`.env.example`](.env.example) for the full list. The one that matters most:
 | `ANTHROPIC_API_KEY` | no | Enables the optional AI import (photo of a cookbook page, AI parsing of pasted text). Everything else works without it. |
 | `ANTHROPIC_MODEL` | no | Overrides the model used for AI import. Defaults to `claude-sonnet-5`. |
 
+### Registration is by invitation
+
+There is no open sign-up. An admin creates a single-use link under
+**Admin → Invitations**, sends it, and it stops working once somebody signs up
+with it or after 14 days. A used invitation is kept as a record of who joined;
+revoking one makes the link dead immediately.
+
+The claim is atomic: two people opening the same link at the same moment do not
+both get an account, because the invitation is marked used in the same
+statement that checks it is still open. If anything then fails — a duplicate
+e-mail, a database error — the invitation is released rather than burned.
+
+Codes are stored as written rather than hashed, so an admin can copy a link
+again later. They are 128 bits of randomness, single use, and expire; a
+database leak already exposes password hashes, so this is not the weak link.
+
 ### Creating the first admin
 
 Users who register are always ordinary users. To create or promote an admin:
@@ -63,6 +79,17 @@ clipboard paste and the phone camera for images, and shrinks photos before
 upload.
 
 ## The home page
+
+Twenty-four recipes per page, with older ones behind a next link that keeps the
+active filters. "Best rated" paginates too: Prisma cannot order by an average
+across a relation, so the page fetches the matching ids, ranks them against one
+aggregate query, and then reads only the recipes it is about to show — rather
+than loading the whole collection into memory to sort it, which is what it did
+before.
+
+The admin dashboard is capped at the hundred most recent recipes; it is for
+editing, not browsing.
+
 
 A masthead, one search field, and the filters as chips rather than four select
 boxes. The chips are built from the data: every category and cuisine that

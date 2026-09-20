@@ -28,7 +28,11 @@
     "loadingFilters": "Filter werden geladen…",
     "noResults": "Keine Rezepte gefunden.",
     "resultCount": "{count, plural, one {# Rezept} other {# Rezepte}}",
-    "clearFilters": "Filter zurücksetzen"
+    "clearFilters": "Filter zurücksetzen",
+    "pagination": "Seiten",
+    "previousPage": "← Neuer",
+    "nextPage": "Älter →",
+    "pageOf": "Seite {page} von {pages}"
   },
   "Categories": {
     "Breakfast": "Frühstück",
@@ -104,7 +108,8 @@
     "registerIntro": "Erstelle ein Konto, um Rezepte zu merken und zu bewerten.",
     "registerFailed": "Registrierung fehlgeschlagen",
     "creatingAccount": "Konto wird erstellt…",
-    "passwordHint": "Mindestens 8 Zeichen."
+    "passwordHint": "Mindestens 8 Zeichen.",
+    "inviteRequired": "Die Registrierung läuft über Einladungen. Frag Mo nach einem Link."
   },
   "Admin": {
     "dashboard": "Rezepte",
@@ -222,5 +227,23 @@
     "print": "Drucken",
     "clearAll": "Liste leeren",
     "nav": "Einkaufsliste"
+  },
+  "Invites": {
+    "title": "Einladungen",
+    "create": "Neue Einladung",
+    "creating": "Wird erstellt…",
+    "notePlaceholder": "Für wen? (optional)",
+    "none": "Noch keine Einladungen.",
+    "loading": "Einladungen werden geladen…",
+    "copy": "Link kopieren",
+    "copied": "Kopiert",
+    "revoke": "Zurückziehen",
+    "confirmRevoke": "Diese Einladung zurückziehen? Der Link funktioniert sofort nicht mehr.",
+    "stateValid": "Offen",
+    "stateUsed": "Eingelöst",
+    "stateExpired": "Abgelaufen",
+    "expiresOn": "Gültig bis {date}",
+    "usedBy": "Eingelöst von {email}",
+    "nav": "Einladungen"
   }
 }

@@ -28,7 +28,11 @@
     "loadingFilters": "Loading filters…",
     "noResults": "No recipes found matching your criteria.",
     "resultCount": "{count, plural, one {# recipe} other {# recipes}}",
-    "clearFilters": "Clear filters"
+    "clearFilters": "Clear filters",
+    "pagination": "Pages",
+    "previousPage": "← Newer",
+    "nextPage": "Older →",
+    "pageOf": "Page {page} of {pages}"
   },
   "Categories": {
     "Breakfast": "Breakfast",
@@ -104,7 +108,8 @@
     "registerIntro": "Create an account to save favourite recipes and leave ratings.",
     "registerFailed": "Registration failed",
     "creatingAccount": "Creating account…",
-    "passwordHint": "At least 8 characters."
+    "passwordHint": "At least 8 characters.",
+    "inviteRequired": "Registration is by invitation. Ask Mo for a link."
   },
   "Admin": {
     "dashboard": "Recipes",
@@ -222,5 +227,23 @@
     "print": "Print",
     "clearAll": "Empty the list",
     "nav": "Shopping list"
+  },
+  "Invites": {
+    "title": "Invitations",
+    "create": "New invitation",
+    "creating": "Creating…",
+    "notePlaceholder": "Who is it for? (optional)",
+    "none": "No invitations yet.",
+    "loading": "Loading invitations…",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "revoke": "Revoke",
+    "confirmRevoke": "Revoke this invitation? The link stops working immediately.",
+    "stateValid": "Open",
+    "stateUsed": "Used",
+    "stateExpired": "Expired",
+    "expiresOn": "Expires {date}",
+    "usedBy": "Used by {email}",
+    "nav": "Invitations"
   }
 }

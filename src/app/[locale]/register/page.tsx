@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 
@@ -10,6 +11,8 @@ const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-
 
 export default function RegisterPage() {
     const t = useTranslations('Auth');
+    const searchParams = useSearchParams();
+    const invite = searchParams.get('invite') ?? '';
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -25,7 +28,7 @@ export default function RegisterPage() {
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password }),
+                body: JSON.stringify({ name, email, password, invite }),
             });
 
             if (res.ok) {
@@ -48,6 +51,14 @@ export default function RegisterPage() {
             <h1 className="mb-3 text-3xl font-extrabold tracking-tight">{t('registerTitle')}</h1>
             <p className="mb-8 font-serif text-muted">{t('registerIntro')}</p>
 
+            {!invite ? (
+                <div className="rounded-lg border border-line p-4">
+                    <p className="text-muted">{t('inviteRequired')}</p>
+                    <Link href="/login" className="mt-4 inline-block text-sm underline underline-offset-4">
+                        {t('loginLink')}
+                    </Link>
+                </div>
+            ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 {error && (
                     <p className="rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
@@ -111,6 +122,7 @@ export default function RegisterPage() {
                     </Link>
                 </p>
             </form>
+            )}
         </main>
     );
 }

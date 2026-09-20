@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
+import { Link } from '@/i18n/routing';
 import FilterChips, { type FacetValue } from '@/components/home/FilterChips';
 import RecipeCard from '@/components/RecipeCard';
 import prisma from '@/lib/prisma';
@@ -32,6 +33,9 @@ interface RecipeWhere {
 }
 
 type RecipeOrderBy = { createdAt: 'desc' } | { views: 'desc' };
+
+/** One screenful. The page never loads the whole collection. */
+const PAGE_SIZE = 24;
 
 interface FacetGroup {
     category?: string | null;
@@ -67,6 +71,7 @@ export default async function HomePage({
         nationality: nationalityParam,
         favorites,
         search: searchParam,
+        page: pageParam,
     } = await searchParams;
 
     const sort = typeof sortParam === 'string' ? sortParam : 'recent';
@@ -112,25 +117,77 @@ export default async function HomePage({
 
     const orderBy: RecipeOrderBy = sort === 'views' ? { views: 'desc' } : { createdAt: 'desc' };
 
+    const requestedPage = Number.parseInt(typeof pageParam === 'string' ? pageParam : '1', 10);
+    const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const skip = (page - 1) * PAGE_SIZE;
+
+    const include = { images: { orderBy: { id: 'asc' as const } }, ratings: true };
+
     // The chips describe the whole collection rather than the current result,
     // because a chip that leads to an empty page is worse than no chip.
-    const [recipes, categoryGroups, cuisineGroups, total]: [
-        RecipeListRow[],
-        FacetGroup[],
-        FacetGroup[],
-        number,
-    ] = await Promise.all([
-        prisma.recipe.findMany({
-            where,
-            // "Best rated" averages across a relation, which Prisma cannot order
-            // by directly, so those are sorted below instead.
-            orderBy: sort === 'rating' ? undefined : orderBy,
-            include: { images: { orderBy: { id: 'asc' } }, ratings: true },
-        }),
+    const [total, categoryGroups, cuisineGroups, collectionSize] = await Promise.all([
+        prisma.recipe.count({ where }),
         prisma.recipe.groupBy({ by: ['category'], _count: { _all: true } }),
         prisma.recipe.groupBy({ by: ['nationality'], _count: { _all: true } }),
         prisma.recipe.count(),
     ]);
+
+    let recipes: RecipeListRow[];
+
+    if (sort === 'rating') {
+        // Prisma cannot order by an average across a relation. Rather than
+        // loading every recipe and sorting in memory, fetch only the ids that
+        // match, rank them against a single aggregate query, then read the one
+        // page that is actually shown.
+        const matching: { id: number }[] = await prisma.recipe.findMany({
+            where,
+            select: { id: true },
+        });
+        const matchingIds = matching.map((row) => row.id);
+
+        const averages: { recipeId: number; _avg: { value: number | null } }[] =
+            matchingIds.length === 0
+                ? []
+                : await prisma.rating.groupBy({
+                    by: ['recipeId'],
+                    where: { recipeId: { in: matchingIds } },
+                    _avg: { value: true },
+                });
+
+        const averageById = new Map(
+            averages.map((entry) => [entry.recipeId, entry._avg.value ?? 0])
+        );
+
+        const pageIds = matchingIds
+            .sort((a, b) => (averageById.get(b) ?? 0) - (averageById.get(a) ?? 0) || b - a)
+            .slice(skip, skip + PAGE_SIZE);
+
+        const unordered: RecipeListRow[] =
+            pageIds.length === 0
+                ? []
+                : await prisma.recipe.findMany({ where: { id: { in: pageIds } }, include });
+
+        recipes = pageIds
+            .map((id) => unordered.find((recipe) => recipe.id === id))
+            .filter((recipe): recipe is RecipeListRow => recipe !== undefined);
+    } else {
+        recipes = await prisma.recipe.findMany({ where, orderBy, skip, take: PAGE_SIZE, include });
+    }
+
+    const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+    /** Paging must not drop the filters the visitor set. */
+    const pageHref = (target: number) => {
+        const params = new URLSearchParams();
+        if (sort !== 'recent') params.set('sort', sort);
+        if (category) params.set('category', category);
+        if (nationality) params.set('nationality', nationality);
+        if (search) params.set('search', search);
+        if (showFavorites) params.set('favorites', 'true');
+        if (target > 1) params.set('page', String(target));
+        const query = params.toString();
+        return query ? `/?${query}` : '/';
+    };
 
     const formattedRecipes = recipes.map((recipe) => ({
         ...recipe,
@@ -142,10 +199,6 @@ export default async function HomePage({
         isFavorited: favoriteRecipeIds.has(recipe.id),
         isLoggedIn,
     }));
-
-    if (sort === 'rating') {
-        formattedRecipes.sort((a, b) => b.rating - a.rating);
-    }
 
     return (
         <main className="container mx-auto max-w-3xl px-4 pb-32 md:px-8">
@@ -162,7 +215,7 @@ export default async function HomePage({
                         categories={toFacets(categoryGroups, 'category')}
                         cuisines={toFacets(cuisineGroups, 'nationality')}
                         isLoggedIn={isLoggedIn}
-                        total={total}
+                        total={collectionSize}
                     />
                 </Suspense>
             </div>
@@ -170,13 +223,48 @@ export default async function HomePage({
             {formattedRecipes.length > 0 ? (
                 <>
                     <p className="border-t border-line pt-4 text-xs uppercase tracking-widest text-faint">
-                        {t('resultCount', { count: formattedRecipes.length })}
+                        {t('resultCount', { count: total })}
                     </p>
                     <div className="flex flex-col divide-y divide-line">
                         {formattedRecipes.map((recipe) => (
                             <RecipeCard key={recipe.id} {...recipe} />
                         ))}
                     </div>
+
+                    {pageCount > 1 && (
+                        <nav
+                            className="flex items-center justify-between border-t border-line pt-6 text-sm"
+                            aria-label={t('pagination')}
+                        >
+                            {page > 1 ? (
+                                <Link
+                                    href={pageHref(page - 1)}
+                                    rel="prev"
+                                    className="underline underline-offset-4 hover:text-muted"
+                                >
+                                    {t('previousPage')}
+                                </Link>
+                            ) : (
+                                <span />
+                            )}
+
+                            <span className="text-faint">
+                                {t('pageOf', { page, pages: pageCount })}
+                            </span>
+
+                            {page < pageCount ? (
+                                <Link
+                                    href={pageHref(page + 1)}
+                                    rel="next"
+                                    className="underline underline-offset-4 hover:text-muted"
+                                >
+                                    {t('nextPage')}
+                                </Link>
+                            ) : (
+                                <span />
+                            )}
+                        </nav>
+                    )}
                 </>
             ) : (
                 <div className="border-t border-line py-20 text-center">
