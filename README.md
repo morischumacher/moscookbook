@@ -353,7 +353,7 @@ npx prisma migrate diff \
   routes go through `requireAdmin()` in `src/lib/auth.ts`.
 - `/api/upload` is admin-only and validates file type and size before writing to
   Blob storage.
-- The admin area is guarded twice: in `middleware.ts` and again server-side in
+- The admin area is guarded twice: in `proxy.ts` and again server-side in
   `src/app/[locale]/admin/layout.tsx`.
 - Login and registration are rate limited per IP.
 - The URL importer refuses loopback and private address ranges, so it cannot be

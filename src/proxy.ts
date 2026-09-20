@@ -6,9 +6,15 @@ import { routing } from '@/i18n/routing';
 
 const intlMiddleware = createMiddleware(routing);
 
+/**
+ * Renamed from `middleware` in Next.js 16: the file convention is now `proxy`,
+ * which describes it better — it runs at a network boundary in front of the
+ * app, not as Express-style middleware inside it.
+ */
+
 const ADMIN_PATH = /^\/(?:en|de)\/admin(?:\/|$)/;
 
-export default async function middleware(req: NextRequest) {
+export default async function proxy(req: NextRequest) {
     const res = intlMiddleware(req);
 
     if (ADMIN_PATH.test(req.nextUrl.pathname)) {
