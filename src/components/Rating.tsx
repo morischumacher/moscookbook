@@ -77,7 +77,7 @@ export default function Rating({ value, max = 5, recipeId, readonly = false, hid
         return (
             <div
                 key={index}
-                className={`${styles.starContainer} ${isInteractive ? styles.interactive : ''}`}
+                className={`${styles.starContainer} ${isInteractive ? `${styles.interactive} starTouch` : ''}`}
                 onClick={() => handleRate(starValue)}
                 onMouseEnter={() => isInteractive && setHoverValue(starValue)}
                 onMouseLeave={() => isInteractive && setHoverValue(null)}

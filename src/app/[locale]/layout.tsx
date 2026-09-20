@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -17,7 +17,25 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
     variable: "--font-geist-mono",
     subsets: ["latin"],
+    // Only the admin form uses it; preloading it would cost every visitor a
+    // font fetch they never see the result of.
+    preload: false,
 });
+
+/**
+ * No maximum-scale and no user-scalable=no: pinching to zoom is how people
+ * read a recipe on a phone, and blocking it is an accessibility failure.
+ * themeColor tints the browser chrome to match the page in both schemes.
+ */
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    viewportFit: 'cover',
+    themeColor: [
+        { media: '(prefers-color-scheme: light)', color: '#FFF8F0' },
+        { media: '(prefers-color-scheme: dark)', color: '#000000' },
+    ],
+};
 
 export async function generateMetadata({
     params,

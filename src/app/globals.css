@@ -144,58 +144,35 @@ img {
   display: block;
 }
 
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 var(--space-md);
+/* ----------------------------------------------------------------- touch */
+
+/*
+ * iOS Safari zooms the page in when a focused field has a font size below
+ * 16px, and never zooms back out. Every field is therefore at least 16px on
+ * small screens, whatever utility class it carries.
+ */
+@media (max-width: 767px) {
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
 }
 
-/* Action Buttons */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem 2rem;
-  background-color: var(--color-fg);
-  color: var(--color-bg);
-  border-radius: 0;
-  font-weight: 500;
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: opacity 0.1s ease;
+/* Comfortable target around a 24px star without changing how it looks. */
+@media (pointer: coarse) {
+  .starTouch {
+    padding: 6px;
+    margin: -6px;
+  }
 }
 
-.btn:hover {
-  opacity: 0.7;
+/* Keeps the last row clear of the iPhone home indicator. */
+body {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.btn:active {
-  opacity: 0.5;
-}
-
-/* Secondary Action */
-.btn-text {
-  background: transparent;
-  color: var(--color-fg);
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  text-decoration-thickness: 1px;
-}
-
-.btn-text:hover {
-  color: var(--color-neutral);
-}
-
-/* Divider Utility */
-.divider {
-  width: 100%;
-  height: 1px;
-  background-color: var(--color-border);
-  margin: var(--space-xl) 0;
-}
 /* ---------------------------------------------------------------- recipe */
 
 /* Markdown inside a single cooking step: tight, since each step is its own list item. */

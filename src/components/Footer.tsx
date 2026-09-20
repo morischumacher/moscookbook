@@ -6,7 +6,7 @@ export default async function Footer() {
 
     return (
         <footer className={styles.footer}>
-            <div className="container">
+            <div className="container mx-auto px-4 md:px-8">
                 <p>
                     &copy; {new Date().getFullYear()} {t('title')}. {t('rightsReserved')}
                 </p>

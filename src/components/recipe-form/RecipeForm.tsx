@@ -286,12 +286,12 @@ function IngredientEditor({
                             aria-label={t('itemLabel', { number: index + 1 })}
                             className={fieldClass + ' flex-1'}
                         />
-                        <div className="flex shrink-0 items-center">
+                        <div className="flex shrink-0 items-center gap-0.5">
                             <button
                                 type="button"
                                 onClick={() => move(index, -1)}
                                 aria-label={t('moveUp')}
-                                className="px-1.5 text-faint hover:text-ink"
+                                className="flex h-10 w-8 items-center justify-center text-faint hover:text-ink"
                             >
                                 ↑
                             </button>
@@ -299,7 +299,7 @@ function IngredientEditor({
                                 type="button"
                                 onClick={() => move(index, 1)}
                                 aria-label={t('moveDown')}
-                                className="px-1.5 text-faint hover:text-ink"
+                                className="flex h-10 w-8 items-center justify-center text-faint hover:text-ink"
                             >
                                 ↓
                             </button>
@@ -307,7 +307,7 @@ function IngredientEditor({
                                 type="button"
                                 onClick={() => removeRow(index)}
                                 aria-label={t('removeIngredient')}
-                                className="px-1.5 text-faint hover:text-danger"
+                                className="flex h-10 w-8 items-center justify-center text-faint hover:text-danger"
                             >
                                 ×
                             </button>

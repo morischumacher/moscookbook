@@ -115,6 +115,25 @@ message loses an ICU placeholder in translation, or when a value is empty.
 | `npm run check:messages` | Verify the translation catalogues |
 | `npm test` | Run the logic check suites |
 
+## On a phone
+
+This is mostly a phone app: recipes get read standing at the counter and
+written with one hand. The rules the code follows:
+
+- **Never block zoom.** The viewport sets no `maximum-scale` and no
+  `user-scalable=no`.
+- **Fields are at least 16px on small screens.** Below that iOS Safari zooms
+  the page in on focus and does not zoom back out. A global rule enforces it
+  regardless of the utility class a field carries.
+- **Touch targets are 40px or more.** Chips, the ingredient row controls and
+  the rating stars (which get extra padding on coarse pointers without looking
+  any different).
+- **No sideways scrolling.** Filters are chips that scroll in their own row,
+  and the admin views are lists, not tables.
+- **Nothing is loaded that a reader will not see.** The monospace font is used
+  only by the admin form, so it is not preloaded.
+- `env(safe-area-inset-bottom)` keeps the last row clear of the home indicator.
+
 ## Ingredients
 
 Ingredients are rows in their own table, not a JSON string on the recipe. Each
