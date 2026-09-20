@@ -1,15 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import styles from '@/app/[locale]/admin/page.module.css';
 
 export default function DeleteRecipeButton({ recipeId }: { recipeId: number }) {
+    const t = useTranslations('Admin');
     const router = useRouter();
     const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDelete = async () => {
-        if (!confirm('Are you sure you want to delete this recipe?')) return;
+        if (!confirm(t('confirmDeleteRecipe'))) return;
 
         setIsDeleting(true);
         try {
@@ -20,11 +22,11 @@ export default function DeleteRecipeButton({ recipeId }: { recipeId: number }) {
             if (res.ok) {
                 router.refresh();
             } else {
-                alert('Failed to delete recipe');
+                alert(t('deleteFailed'));
             }
         } catch (error) {
             console.error(error);
-            alert('An error occurred');
+            alert(t('genericError'));
         } finally {
             setIsDeleting(false);
         }
@@ -36,7 +38,7 @@ export default function DeleteRecipeButton({ recipeId }: { recipeId: number }) {
             onClick={handleDelete}
             disabled={isDeleting}
         >
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            {isDeleting ? t('deleting') : t('delete')}
         </button>
     );
 }

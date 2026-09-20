@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import Image from 'next/image';
 import Rating from './Rating';
@@ -19,7 +20,14 @@ interface RecipeCardProps {
     isLoggedIn?: boolean;
 }
 
-export default function RecipeCard({ id, title, description, imageUrl, slug, category, rating, createdAt, nationality, isFavorited = false, isLoggedIn = false }: RecipeCardProps) {
+export default function RecipeCard({ id, title, description, imageUrl, slug, category, rating, nationality, isFavorited = false, isLoggedIn = false }: RecipeCardProps) {
+    const tCategory = useTranslations('Categories');
+    const tCuisine = useTranslations('Cuisines');
+
+    // Both fields are free text, so only the known values get translated.
+    const categoryLabel = category && tCategory.has(category) ? tCategory(category) : category;
+    const cuisineLabel = nationality && tCuisine.has(nationality) ? tCuisine(nationality) : nationality;
+
     return (
         <Link href={`/recipe/${slug}`} className="flex flex-row justify-between items-start gap-4 py-8 group hover:opacity-75 transition-opacity">
             {/* Left Content */}
@@ -31,11 +39,11 @@ export default function RecipeCard({ id, title, description, imageUrl, slug, cat
                     {description}
                 </p>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-gray-500 uppercase tracking-widest">
-                    <span>{category}</span>
-                    {nationality && (
+                    <span>{categoryLabel}</span>
+                    {cuisineLabel && (
                         <>
                             <span>•</span>
-                            <span>{nationality}</span>
+                            <span>{cuisineLabel}</span>
                         </>
                     )}
                     <span>•</span>

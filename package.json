@@ -10,7 +10,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "create-admin": "node scripts/create-admin.js",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "check:messages": "node scripts/check-messages.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

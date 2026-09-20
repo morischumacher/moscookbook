@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import type { Ingredient } from '@/lib/recipe';
 import { scaleAmount } from '@/lib/amount';
@@ -23,6 +24,8 @@ export default function RecipeBody({
     const [cookMode, setCookMode] = useState(false);
     const [wakeLockActive, setWakeLockActive] = useState(false);
     const wakeLock = useRef<WakeLockSentinel | null>(null);
+
+    const t = useTranslations('Recipe');
 
     const steps = useMemo(() => splitSteps(instructions), [instructions]);
 
@@ -90,13 +93,13 @@ export default function RecipeBody({
                 {baseServings ? (
                     <div className="flex items-center gap-3">
                         <span className="text-sm font-bold uppercase tracking-widest text-gray-500">
-                            Portionen
+                            {t('servings')}
                         </span>
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => setServings((value) => Math.max(1, value - 1))}
-                                aria-label="Eine Portion weniger"
+                                aria-label={t('oneLess')}
                                 className="h-9 w-9 rounded-full border border-gray-300 text-lg leading-none hover:border-gray-900 dark:border-gray-700 dark:hover:border-white"
                             >
                                 −
@@ -107,7 +110,7 @@ export default function RecipeBody({
                             <button
                                 type="button"
                                 onClick={() => setServings((value) => Math.min(100, value + 1))}
-                                aria-label="Eine Portion mehr"
+                                aria-label={t('oneMore')}
                                 className="h-9 w-9 rounded-full border border-gray-300 text-lg leading-none hover:border-gray-900 dark:border-gray-700 dark:hover:border-white"
                             >
                                 +
@@ -137,7 +140,7 @@ export default function RecipeBody({
                         : 'border border-gray-300 hover:border-gray-900 dark:border-gray-700 dark:hover:border-white'
                         }`}
                 >
-                    {cookMode ? 'Kochmodus beenden' : 'Kochmodus'}
+                    {cookMode ? t('cookModeExit') : t('cookMode')}
                 </button>
 
                 <button
@@ -145,7 +148,7 @@ export default function RecipeBody({
                     onClick={() => window.print()}
                     className="text-sm text-gray-500 underline underline-offset-4 hover:text-gray-900 dark:hover:text-white"
                 >
-                    Drucken
+                    {t('print')}
                 </button>
 
                 {(checkedIngredients.size > 0 || checkedSteps.size > 0) && (
@@ -154,15 +157,13 @@ export default function RecipeBody({
                         onClick={reset}
                         className="text-sm text-gray-500 underline underline-offset-4 hover:text-gray-900 dark:hover:text-white"
                     >
-                        Zurücksetzen
+                        {t('reset')}
                     </button>
                 )}
 
                 {cookMode && (
                     <span className="text-sm text-gray-500">
-                        {wakeLockActive
-                            ? 'Bildschirm bleibt an.'
-                            : 'Tippe Zutaten und Schritte an, um sie abzuhaken.'}
+                        {wakeLockActive ? t('screenStaysOn') : t('tapToCheck')}
                     </span>
                 )}
             </div>
@@ -170,11 +171,11 @@ export default function RecipeBody({
             {/* Ingredients */}
             <section className="mb-16">
                 <h2 className="mb-8 inline-block border-b-2 border-[#111] pb-1 font-sans text-2xl font-bold uppercase tracking-widest text-[#111] dark:border-[#eee] dark:text-[#eee]">
-                    Zutaten
+                    {t('ingredients')}
                 </h2>
 
                 {ingredients.length === 0 ? (
-                    <p className="text-gray-500">Für dieses Rezept sind keine Zutaten hinterlegt.</p>
+                    <p className="text-gray-500">{t('noIngredients')}</p>
                 ) : (
                     <ul className={`flex flex-col gap-4 ${textSize} leading-relaxed text-[#222] dark:text-[#ddd]`}>
                         {ingredients.map((ingredient, index) => {
@@ -208,7 +209,7 @@ export default function RecipeBody({
 
                 {baseServings && factor !== 1 && (
                     <p className="print:hidden mt-4 text-sm text-gray-500">
-                        Mengen umgerechnet von {baseServings} auf {servings} Portionen.
+                        {t('scaledFrom', { base: baseServings, current: servings })}
                     </p>
                 )}
             </section>
@@ -216,7 +217,7 @@ export default function RecipeBody({
             {/* Instructions */}
             <section>
                 <h2 className="mb-8 inline-block border-b-2 border-[#111] pb-1 font-sans text-2xl font-bold uppercase tracking-widest text-[#111] dark:border-[#eee] dark:text-[#eee]">
-                    Zubereitung
+                    {t('instructions')}
                 </h2>
 
                 <ol className={`flex flex-col gap-8 ${textSize} leading-relaxed text-[#222] dark:text-[#ddd]`}>
@@ -228,7 +229,7 @@ export default function RecipeBody({
                                     type="button"
                                     onClick={() => setCheckedSteps((set) => toggle(set, index))}
                                     aria-pressed={checked}
-                                    aria-label={`Schritt ${index + 1} abhaken`}
+                                    aria-label={t('checkStep', { number: index + 1 })}
                                     className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border font-sans text-sm font-bold transition-colors ${checked
                                         ? 'border-transparent bg-black text-white dark:bg-white dark:text-black'
                                         : 'border-gray-300 text-gray-500 dark:border-gray-700'

@@ -1,5 +1,6 @@
+import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { Geist, Geist_Mono } from "next/font/google";
@@ -19,15 +20,21 @@ const geistMono = Geist_Mono({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://moscookbook.vercel.app';
 
-export const metadata = {
-    // Lets page-level openGraph images use relative URLs.
-    metadataBase: new URL(siteUrl),
-    title: {
-        default: "mo'scookbook",
-        template: "%s",
-    },
-    description: 'A collection of my favorite recipes',
-};
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+    const { locale } = await params;
+    const t = await getTranslations({ locale, namespace: 'Site' });
+
+    return {
+        // Lets page-level openGraph images use relative URLs.
+        metadataBase: new URL(siteUrl),
+        title: { default: t('title'), template: '%s' },
+        description: t('description'),
+    };
+}
 
 export default async function LocaleLayout({
     children,

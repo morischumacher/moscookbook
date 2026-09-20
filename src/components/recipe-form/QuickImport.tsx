@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { parseRecipeText } from '@/lib/recipeParser';
 import type { Ingredient } from '@/lib/recipe';
 
@@ -19,18 +20,6 @@ export interface ImportedDraft {
 
 type Mode = 'paste' | 'link' | 'photo';
 
-const PLACEHOLDER = `Käsespätzle
-
-Zutaten
-400 g Spätzle
-200 g Bergkäse
-2 Zwiebeln
-Salz
-
-Zubereitung
-Zwiebeln in Butter goldbraun braten.
-Spätzle kochen und abgießen.
-Alles schichten und servieren.`;
 
 function fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -56,6 +45,7 @@ export default function QuickImport({
     aiEnabled: boolean;
     onImport: (draft: ImportedDraft) => void;
 }) {
+    const t = useTranslations('QuickImport');
     const [mode, setMode] = useState<Mode>('paste');
     const [text, setText] = useState('');
     const [url, setUrl] = useState('');
@@ -65,12 +55,10 @@ export default function QuickImport({
     const [note, setNote] = useState('');
     const photoInput = useRef<HTMLInputElement>(null);
 
-    const modes: { id: Mode; label: string; hint: string }[] = [
-        { id: 'paste', label: 'Text einfügen', hint: 'Rezept hineinkopieren' },
-        { id: 'link', label: 'Link importieren', hint: 'Von einer Rezeptseite' },
-        ...(aiEnabled
-            ? [{ id: 'photo' as Mode, label: 'Foto', hint: 'Kochbuchseite abfotografieren' }]
-            : []),
+    const modes: { id: Mode; label: string }[] = [
+        { id: 'paste', label: t('tabPaste') },
+        { id: 'link', label: t('tabLink') },
+        ...(aiEnabled ? [{ id: 'photo' as Mode, label: t('tabPhoto') }] : []),
     ];
 
     const reset = () => {
@@ -81,16 +69,14 @@ export default function QuickImport({
     const handlePaste = async () => {
         reset();
         if (!text.trim()) {
-            setError('Bitte zuerst ein Rezept einfügen.');
+            setError(t('pasteFirst'));
             return;
         }
 
         if (!useAiForText) {
             const parsed = parseRecipeText(text);
             onImport({ ...parsed, category: '', nationality: '' });
-            setNote(
-                `${parsed.ingredients.length} Zutaten erkannt. Bitte kurz prüfen und korrigieren.`
-            );
+            setNote(t('recognised', { count: parsed.ingredients.length }));
             return;
         }
 
@@ -104,21 +90,21 @@ export default function QuickImport({
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.message || 'Der Import ist fehlgeschlagen.');
+                setError(data.message || t('importFailed'));
                 return;
             }
 
             onImport(data.recipe);
             setNote(
                 data.source === 'fallback'
-                    ? 'KI war nicht verfügbar — der Text wurde lokal zerlegt.'
-                    : `${data.recipe.ingredients.length} Zutaten erkannt. Bitte kurz prüfen.`
+                    ? t('aiFallback')
+                    : t('recognised', { count: data.recipe.ingredients.length })
             );
         } catch {
             // Never lose the user's work to a network hiccup.
             const parsed = parseRecipeText(text);
             onImport({ ...parsed, category: '', nationality: '' });
-            setNote('Keine Verbindung zur KI — der Text wurde lokal zerlegt.');
+            setNote(t('aiOffline'));
         } finally {
             setBusy(false);
         }
@@ -127,7 +113,7 @@ export default function QuickImport({
     const handleLink = async () => {
         reset();
         if (!url.trim()) {
-            setError('Bitte einen Link einfügen.');
+            setError(t('urlFirst'));
             return;
         }
 
@@ -141,18 +127,14 @@ export default function QuickImport({
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.message || 'Die Seite konnte nicht gelesen werden.');
+                setError(data.message || t('pageFailed'));
                 return;
             }
 
             onImport(data.recipe);
-            setNote(
-                data.partial
-                    ? 'Die Seite hatte nur Teilangaben — bitte den Rest ergänzen.'
-                    : 'Rezept übernommen. Bitte kurz prüfen.'
-            );
+            setNote(data.partial ? t('partial') : t('imported'));
         } catch {
-            setError('Die Seite konnte nicht geladen werden.');
+            setError(t('pageFailed'));
         } finally {
             setBusy(false);
         }
@@ -171,14 +153,14 @@ export default function QuickImport({
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.message || 'Das Foto konnte nicht gelesen werden.');
+                setError(data.message || t('photoFailed'));
                 return;
             }
 
             onImport(data.recipe);
-            setNote(`${data.recipe.ingredients.length} Zutaten erkannt. Bitte kurz prüfen.`);
+            setNote(t('recognised', { count: data.recipe.ingredients.length }));
         } catch {
-            setError('Das Foto konnte nicht gelesen werden.');
+            setError(t('photoFailed'));
         } finally {
             setBusy(false);
             if (photoInput.current) photoInput.current.value = '';
@@ -188,7 +170,7 @@ export default function QuickImport({
     return (
         <section className="mb-10 rounded-xl border border-[var(--color-border)] bg-black/[0.02] dark:bg-white/[0.03] p-4 sm:p-6">
             <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">
-                Schnell befüllen
+                {t('heading')}
             </h2>
 
             <div className="flex flex-wrap gap-2 mb-4" role="tablist">
@@ -218,7 +200,7 @@ export default function QuickImport({
                         value={text}
                         onChange={(event) => setText(event.target.value)}
                         rows={8}
-                        placeholder={PLACEHOLDER}
+                        placeholder={t('pastePlaceholder')}
                         className="w-full rounded-lg border border-[var(--color-border)] bg-transparent p-3 font-mono text-sm outline-none focus:border-gray-900 dark:focus:border-white"
                     />
                     <div className="flex flex-wrap items-center gap-3">
@@ -228,7 +210,7 @@ export default function QuickImport({
                             disabled={busy}
                             className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
                         >
-                            {busy ? 'Wird gelesen…' : 'Übernehmen'}
+                            {busy ? t('reading') : t('apply')}
                         </button>
                         {aiEnabled && (
                             <label className="flex items-center gap-2 text-sm text-gray-500">
@@ -238,7 +220,7 @@ export default function QuickImport({
                                     onChange={(event) => setUseAiForText(event.target.checked)}
                                     className="h-4 w-4"
                                 />
-                                KI verwenden (genauer, kostet ein paar Cent)
+                                {t('useAi')}
                             </label>
                         )}
                     </div>
@@ -258,7 +240,7 @@ export default function QuickImport({
                                 handleLink();
                             }
                         }}
-                        placeholder="https://www.chefkoch.de/rezepte/…"
+                        placeholder={t('urlPlaceholder')}
                         className="flex-1 rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 outline-none focus:border-gray-900 dark:focus:border-white"
                     />
                     <button
@@ -267,7 +249,7 @@ export default function QuickImport({
                         disabled={busy}
                         className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
                     >
-                        {busy ? 'Wird geladen…' : 'Importieren'}
+                        {busy ? t('loading') : t('import')}
                     </button>
                 </div>
             )}
@@ -287,8 +269,8 @@ export default function QuickImport({
                         className="text-sm"
                     />
                     <p className="text-sm text-gray-500">
-                        Fotografiere eine Kochbuchseite oder einen handgeschriebenen Zettel.
-                        {busy && ' Wird gelesen…'}
+                        {t('photoHint')}
+                        {busy && ` ${t('reading')}`}
                     </p>
                 </div>
             )}

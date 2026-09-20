@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Rating from './Rating';
 
 interface Props {
@@ -14,6 +15,8 @@ interface Props {
 }
 
 export default function RatingDisplay({ recipeId, initialAverage, initialCount, initialUserRating, isLoggedIn, views, infoClassName }: Props) {
+    const t = useTranslations('Rating');
+    const tRecipe = useTranslations('Recipe');
     const [average, setAverage] = useState(initialAverage);
     const [count, setCount] = useState(initialCount);
     const [userRating, setUserRating] = useState(initialUserRating);
@@ -33,7 +36,7 @@ export default function RatingDisplay({ recipeId, initialAverage, initialCount, 
         <div className={infoClassName}>
 
             {/* The single rating display/input */}
-            <div title={isRatingOpen ? "Submit your rating" : `${count} Users rated this dish with ${average.toFixed(1)}/5 Oysters`} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div title={isRatingOpen ? t('submitYours') : t('summary', { count, average: average.toFixed(1) })} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 {isRatingOpen ? (
                     <Rating
                         value={userRating}
@@ -55,7 +58,7 @@ export default function RatingDisplay({ recipeId, initialAverage, initialCount, 
             </div>
 
             <span>•</span>
-            <span>{views} views</span>
+            <span>{tRecipe('views', { count: views })}</span>
 
             {/* Inline Edit/Rate Button */}
             {isLoggedIn && !isRatingOpen && (
@@ -65,7 +68,7 @@ export default function RatingDisplay({ recipeId, initialAverage, initialCount, 
                         onClick={() => setIsRatingOpen(true)}
                         className="text-sm font-semibold text-gray-900 dark:text-gray-300 underline decoration-1 underline-offset-4 hover:text-gray-500 transition-colors"
                     >
-                        {userRating === 0 ? 'Rate' : 'Edit Rating'}
+                        {userRating === 0 ? t('rate') : t('editRating')}
                     </button>
                 </>
             )}

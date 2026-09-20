@@ -77,6 +77,20 @@ The recipe page is built for someone standing at the stove:
 - **Link-Vorschauen** — each recipe page generates its own metadata and
   OpenGraph image, so a shared link shows the dish rather than the site name.
 
+## Languages
+
+The site runs in English and German at `/en` and `/de`. All user-facing text
+lives in `messages/en.json` and `messages/de.json` — nothing is hard-coded in a
+component any more, including the admin area.
+
+Category and cuisine names are stored on the recipe as typed and only
+translated when they match a known value, so a hand-written "Großmutters
+Sonntagsbraten" category survives a language switch untouched.
+
+`npm run check:messages` guards the catalogues: it fails when a key used in the
+source is missing from a catalogue, when the two catalogues drift apart, when a
+message loses an ICU placeholder in translation, or when a value is empty.
+
 ## Scripts
 
 | Command | What it does |
@@ -87,6 +101,7 @@ The recipe page is built for someone standing at the stove:
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run create-admin` | Create or promote an admin user (see above) |
 | `npm run db:push` | Apply the Prisma schema to the database |
+| `npm run check:messages` | Verify the translation catalogues |
 
 ## Project layout
 

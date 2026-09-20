@@ -11,6 +11,7 @@ import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 import { parseIngredients } from '@/lib/recipe';
 import { formatMinutes } from '@/lib/amount';
+import { getTranslations } from 'next-intl/server';
 
 interface RecipeRow {
     id: number;
@@ -48,11 +49,13 @@ export async function generateMetadata({
     const { slug, locale } = await params;
     const recipe = await loadRecipe(slug);
 
-    if (!recipe) return { title: 'Rezept nicht gefunden' };
+    const t = await getTranslations({ locale, namespace: 'Recipe' });
+
+    if (!recipe) return { title: t('notFound') };
 
     const description =
         recipe.description?.trim() ||
-        `${recipe.category ? recipe.category + ' · ' : ''}Rezept aus mo'scookbook`;
+        `${recipe.category ? recipe.category + ' · ' : ''}${t('metaFallback')}`;
 
     const image = recipe.images[0]?.url;
 
@@ -113,17 +116,29 @@ export default async function RecipePage({
             recipeData.ratings.find((rating: { userId: number }) => rating.userId === userId)?.value ?? 0;
     }
 
+    const t = await getTranslations('Recipe');
+    const tCategory = await getTranslations('Categories');
+    const tCuisine = await getTranslations('Cuisines');
+
+    // Category and cuisine are free text, so only translate the known values.
+    const categoryLabel = recipeData.category
+        ? (tCategory.has(recipeData.category) ? tCategory(recipeData.category) : recipeData.category)
+        : '';
+    const cuisineLabel = recipeData.nationality
+        ? (tCuisine.has(recipeData.nationality) ? tCuisine(recipeData.nationality) : recipeData.nationality)
+        : '';
+
     const ingredients = parseIngredients(recipeData.ingredients);
     const imageUrl = recipeData.images[0]?.url ?? '';
 
     const totalMinutes = (recipeData.prepMinutes ?? 0) + (recipeData.cookMinutes ?? 0);
     const times = [
-        recipeData.prepMinutes ? { label: 'Vorbereitung', value: formatMinutes(recipeData.prepMinutes) } : null,
-        recipeData.cookMinutes ? { label: 'Kochzeit', value: formatMinutes(recipeData.cookMinutes) } : null,
+        recipeData.prepMinutes ? { label: t('prepTime'), value: formatMinutes(recipeData.prepMinutes) } : null,
+        recipeData.cookMinutes ? { label: t('cookTime'), value: formatMinutes(recipeData.cookMinutes) } : null,
         recipeData.prepMinutes && recipeData.cookMinutes
-            ? { label: 'Gesamt', value: formatMinutes(totalMinutes) }
+            ? { label: t('totalTime'), value: formatMinutes(totalMinutes) }
             : null,
-        recipeData.servings ? { label: 'Portionen', value: String(recipeData.servings) } : null,
+        recipeData.servings ? { label: t('servings'), value: String(recipeData.servings) } : null,
     ].filter((entry): entry is { label: string; value: string } => entry !== null);
 
     const dateFormatter = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
@@ -151,8 +166,8 @@ export default async function RecipePage({
                 <div className="my-6 flex flex-col gap-1 border-y border-gray-200 py-4 dark:border-gray-800">
                     <span className="text-sm font-medium uppercase tracking-widest text-gray-500">
                         {dateFormatter.format(recipeData.createdAt)}
-                        {recipeData.category ? ` • ${recipeData.category}` : ''}
-                        {recipeData.nationality ? ` • ${recipeData.nationality}` : ''}
+                        {categoryLabel ? ` • ${categoryLabel}` : ''}
+                        {cuisineLabel ? ` • ${cuisineLabel}` : ''}
                     </span>
                 </div>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import styles from './page.module.css';
 
@@ -11,6 +12,7 @@ interface User {
 }
 
 export default function AdminUsersPage() {
+    const t = useTranslations('Admin');
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -27,7 +29,7 @@ export default function AdminUsersPage() {
             const data = await res.json();
             setUsers(data.users);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch users');
+            setError(err instanceof Error ? err.message : t('genericError'));
         } finally {
             setLoading(false);
         }
@@ -45,15 +47,15 @@ export default function AdminUsersPage() {
             if (res.ok) {
                 setUsers(users.map(u => u.id === userId ? { ...u, admin: !currentAdminStatus } : u));
             } else {
-                alert(data.message || 'Failed to update role');
+                alert(data.message || t('genericError'));
             }
         } catch {
-            alert('An error occurred');
+            alert(t('genericError'));
         }
     };
 
     const handleDeleteUser = async (userId: number) => {
-        if (!confirm('Are you sure you want to permanently delete this user? All their ratings and favorites will be permanently lost.')) {
+        if (!confirm(t('confirmDeleteUser'))) {
             return;
         }
 
@@ -66,35 +68,35 @@ export default function AdminUsersPage() {
             if (res.ok) {
                 setUsers(users.filter(u => u.id !== userId));
             } else {
-                alert(data.message || 'Failed to delete user');
+                alert(data.message || t('genericError'));
             }
         } catch {
-            alert('An error occurred');
+            alert(t('genericError'));
         }
     };
 
     return (
         <div className={styles.container}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1 className={styles.title}>User Management</h1>
+                <h1 className={styles.title}>{t('userManagement')}</h1>
                 <button onClick={() => router.push('/admin')} className={styles.btn} style={{ background: 'var(--color-border)', color: 'var(--color-text)' }}>
-                    Return to Dashboard
+                    {t('backToRecipes')}
                 </button>
             </div>
 
-            {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+            {error && <p style={{ color: 'red' }}>{error}</p>}
 
             {loading ? (
-                <p>Loading users...</p>
+                <p>{t('loadingUsers')}</p>
             ) : (
                 <div className={styles.tableContainer}>
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Actions</th>
+                                <th>{t('columnId')}</th>
+                                <th>{t('columnEmail')}</th>
+                                <th>{t('columnRole')}</th>
+                                <th>{t('columnActions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -104,7 +106,7 @@ export default function AdminUsersPage() {
                                     <td>{user.email}</td>
                                     <td>
                                         <span className={`${styles.roleBadge} ${user.admin ? styles.adminBadge : styles.userBadge}`}>
-                                            {user.admin ? 'Admin' : 'User'}
+                                            {user.admin ? t('roleAdmin') : t('roleUser')}
                                         </span>
                                     </td>
                                     <td>
@@ -113,13 +115,13 @@ export default function AdminUsersPage() {
                                                 className={`${styles.btn} ${styles.toggleBtn}`}
                                                 onClick={() => handleToggleRole(user.id, user.admin)}
                                             >
-                                                {user.admin ? 'Revoke Admin' : 'Make Admin'}
+                                                {user.admin ? t('revokeAdmin') : t('makeAdmin')}
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteUser(user.id)}
                                                 className={`${styles.btn} ${styles.deleteBtn}`}
                                             >
-                                                Delete
+                                                {t('delete')}
                                             </button>
                                         </div>
                                     </td>
@@ -128,7 +130,7 @@ export default function AdminUsersPage() {
                             {users.length === 0 && (
                                 <tr>
                                     <td colSpan={4} style={{ textAlign: 'center', padding: 'var(--space-lg)' }}>
-                                        No users found.
+                                        {t('noUsers')}
                                     </td>
                                 </tr>
                             )}

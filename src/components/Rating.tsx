@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useRouter } from '@/i18n/routing';
 import styles from './Rating.module.css';
@@ -16,6 +17,7 @@ interface RatingProps {
 }
 
 export default function Rating({ value, max = 5, recipeId, readonly = false, hideTitle = false, isInputMode = false, onChange }: RatingProps) {
+    const t = useTranslations('Rating');
     const [currentValue, setCurrentValue] = useState(value);
     const [hoverValue, setHoverValue] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,9 +48,9 @@ export default function Rating({ value, max = 5, recipeId, readonly = false, hid
                 // Revert on failure
                 setCurrentValue(previousValue);
                 if (res.status === 401) {
-                    alert('You must be logged in to rate recipes.');
+                    alert(t('loginRequired'));
                 } else {
-                    alert('Failed to submit rating.');
+                    alert(t('failed'));
                 }
             } else {
                 if (onChange) onChange(rating); // Signal successful submission
@@ -56,7 +58,7 @@ export default function Rating({ value, max = 5, recipeId, readonly = false, hid
             }
         } catch {
             setCurrentValue(previousValue);
-            alert('An error occurred while submitting your rating.');
+            alert(t('error'));
         } finally {
             setIsSubmitting(false);
         }
@@ -84,7 +86,7 @@ export default function Rating({ value, max = 5, recipeId, readonly = false, hid
                 {/* Background (Empty) Icon */}
                 <Image
                     src="/iconv3.png"
-                    alt="Empty Rating"
+                    alt={t('emptyIcon')}
                     width={24}
                     height={24}
                     className={styles.emptyIcon}
@@ -95,7 +97,7 @@ export default function Rating({ value, max = 5, recipeId, readonly = false, hid
                     <div className={styles.filledOverlay} style={{ width: `${fillPercentage}%`, zIndex: 1 }}>
                         <Image
                             src="/iconv3.png"
-                            alt={isInputMode ? "Your Rating" : "Average Rating"}
+                            alt={isInputMode ? t('yourRating') : t('averageRating')}
                             width={24}
                             height={24}
                             className={isInputMode ? styles.orangeFilterIcon : styles.averageIcon}
@@ -107,9 +109,9 @@ export default function Rating({ value, max = 5, recipeId, readonly = false, hid
     });
 
     return (
-        <div className={styles.ratingWrapper} {...(hideTitle ? {} : { title: `Average: ${value.toFixed(1)}${currentValue ? `, Yours: ${currentValue}` : ''}` })}>
+        <div className={styles.ratingWrapper} {...(hideTitle ? {} : { title: t('screenReader', { average: value.toFixed(1), max }) })}>
             {stars}
-            <span className={styles.srOnly}>Average {value.toFixed(1)} out of {max}</span>
+            <span className={styles.srOnly}>{t('screenReader', { average: value.toFixed(1), max })}</span>
         </div>
     );
 }

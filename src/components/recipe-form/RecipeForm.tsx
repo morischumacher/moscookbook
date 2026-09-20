@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import ReactMarkdown from 'react-markdown';
 import Image from 'next/image';
@@ -44,6 +45,7 @@ function ImageField({
     onChange: (url: string) => void;
     onError: (message: string) => void;
 }) {
+    const t = useTranslations('RecipeForm');
     const [uploading, setUploading] = useState(false);
     const [dragging, setDragging] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -61,17 +63,17 @@ function ImageField({
                 const data = await res.json();
 
                 if (!res.ok || !data.url) {
-                    onError(data.error || 'Das Bild konnte nicht hochgeladen werden.');
+                    onError(data.error || t('uploadFailed'));
                     return;
                 }
                 onChange(data.url);
             } catch {
-                onError('Das Bild konnte nicht hochgeladen werden.');
+                onError(t('uploadFailed'));
             } finally {
                 setUploading(false);
             }
         },
-        [onChange, onError]
+        [onChange, onError, t]
     );
 
     // Pasting a screenshot straight into the page is the fastest path of all.
@@ -89,7 +91,7 @@ function ImageField({
 
     return (
         <div>
-            <label className={labelClass}>Bild</label>
+            <label className={labelClass}>{t('image')}</label>
 
             <div
                 onDragOver={(event) => {
@@ -111,13 +113,13 @@ function ImageField({
             >
                 {imageUrl ? (
                     <div className="relative mx-auto aspect-[16/9] w-full max-w-md overflow-hidden rounded-lg">
-                        <Image src={imageUrl} alt="Vorschau" fill className="object-cover" sizes="400px" />
+                        <Image src={imageUrl} alt={t('imagePreview')} fill className="object-cover" sizes="400px" />
                     </div>
                 ) : (
                     <p className="py-6 text-sm text-gray-500">
                         {uploading
-                            ? 'Wird hochgeladen…'
-                            : 'Bild hierher ziehen, einfügen (⌘V) oder klicken zum Auswählen'}
+                            ? t('imageUploading')
+                            : t('imageDropHint')}
                     </p>
                 )}
 
@@ -137,7 +139,7 @@ function ImageField({
             <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
                 {/* On a phone this opens the camera directly. */}
                 <label className="cursor-pointer text-gray-500 underline underline-offset-2">
-                    Foto aufnehmen
+                    {t('takePhoto')}
                     <input
                         type="file"
                         accept="image/*"
@@ -156,10 +158,10 @@ function ImageField({
                         onClick={() => onChange('')}
                         className="text-gray-500 underline underline-offset-2"
                     >
-                        Bild entfernen
+                        {t('removeImage')}
                     </button>
                 )}
-                {uploading && <span className="text-gray-500">Wird hochgeladen…</span>}
+                {uploading && <span className="text-gray-500">{t('imageUploading')}</span>}
             </div>
         </div>
     );
@@ -174,6 +176,7 @@ function IngredientEditor({
     ingredients: Ingredient[];
     onChange: (next: Ingredient[]) => void;
 }) {
+    const t = useTranslations('RecipeForm');
     const [bulk, setBulk] = useState('');
     const [showBulk, setShowBulk] = useState(false);
     const itemRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -226,13 +229,13 @@ function IngredientEditor({
     return (
         <div>
             <div className="mb-2 flex items-baseline justify-between gap-4">
-                <label className={labelClass + ' mb-0'}>Zutaten</label>
+                <label className={labelClass + ' mb-0'}>{t('ingredients')}</label>
                 <button
                     type="button"
                     onClick={() => setShowBulk((open) => !open)}
                     className="text-sm text-gray-500 underline underline-offset-2"
                 >
-                    {showBulk ? 'Liste schließen' : 'Liste einfügen'}
+                    {showBulk ? t('closeList') : t('pasteList')}
                 </button>
             </div>
 
@@ -242,7 +245,7 @@ function IngredientEditor({
                         value={bulk}
                         onChange={(event) => setBulk(event.target.value)}
                         rows={6}
-                        placeholder={'200 g Mehl\n2 Eier\n1 Prise Salz'}
+                        placeholder={t('bulkPlaceholder')}
                         className={fieldClass + ' font-mono text-sm'}
                     />
                     <button
@@ -250,7 +253,7 @@ function IngredientEditor({
                         onClick={applyBulk}
                         className="self-start rounded-full border border-[var(--color-border)] px-4 py-1.5 text-sm hover:border-gray-500"
                     >
-                        Zutaten anhängen
+                        {t('appendIngredients')}
                     </button>
                 </div>
             )}
@@ -262,8 +265,8 @@ function IngredientEditor({
                             type="text"
                             value={row.amount}
                             onChange={(event) => update(index, 'amount', event.target.value)}
-                            placeholder="200 g"
-                            aria-label={`Menge ${index + 1}`}
+                            placeholder={t('amountPlaceholder')}
+                            aria-label={t('amountLabel', { number: index + 1 })}
                             className={fieldClass + ' w-24 shrink-0 sm:w-32'}
                         />
                         <input
@@ -279,15 +282,15 @@ function IngredientEditor({
                                     addRow(index);
                                 }
                             }}
-                            placeholder="Mehl"
-                            aria-label={`Zutat ${index + 1}`}
+                            placeholder={t('itemPlaceholder')}
+                            aria-label={t('itemLabel', { number: index + 1 })}
                             className={fieldClass + ' flex-1'}
                         />
                         <div className="flex shrink-0 items-center">
                             <button
                                 type="button"
                                 onClick={() => move(index, -1)}
-                                aria-label="Nach oben"
+                                aria-label={t('moveUp')}
                                 className="px-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white"
                             >
                                 ↑
@@ -295,7 +298,7 @@ function IngredientEditor({
                             <button
                                 type="button"
                                 onClick={() => move(index, 1)}
-                                aria-label="Nach unten"
+                                aria-label={t('moveDown')}
                                 className="px-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white"
                             >
                                 ↓
@@ -303,7 +306,7 @@ function IngredientEditor({
                             <button
                                 type="button"
                                 onClick={() => removeRow(index)}
-                                aria-label="Zutat entfernen"
+                                aria-label={t('removeIngredient')}
                                 className="px-1.5 text-gray-400 hover:text-red-600"
                             >
                                 ×
@@ -318,10 +321,10 @@ function IngredientEditor({
                 onClick={() => addRow()}
                 className="mt-3 rounded-full border border-[var(--color-border)] px-4 py-1.5 text-sm hover:border-gray-500"
             >
-                + Zutat
+                {t('addIngredient')}
             </button>
             <p className="mt-2 text-xs text-gray-500">
-                Enter in einem Zutatenfeld legt direkt die nächste Zeile an.
+                {t('enterHint')}
             </p>
         </div>
     );
@@ -338,6 +341,7 @@ export default function RecipeForm({
     initial?: Partial<RecipeFormValues> & { ingredientsJson?: string };
     aiEnabled: boolean;
 }) {
+    const t = useTranslations('RecipeForm');
     const router = useRouter();
 
     const initialIngredients = useMemo(() => {
@@ -476,7 +480,7 @@ export default function RecipeForm({
         const cleanedIngredients = ingredients.filter((row) => row.item.trim() !== '');
 
         if (!title.trim() || !instructions.trim()) {
-            setError('Titel und Zubereitung sind Pflichtfelder.');
+            setError(t('requiredFields'));
             return;
         }
 
@@ -503,7 +507,7 @@ export default function RecipeForm({
 
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                setError(data.message || 'Das Rezept konnte nicht gespeichert werden.');
+                setError(data.message || t('saveFailed'));
                 return;
             }
 
@@ -511,7 +515,7 @@ export default function RecipeForm({
             router.push('/admin');
             router.refresh();
         } catch {
-            setError('Das Rezept konnte nicht gespeichert werden.');
+            setError(t('saveFailed'));
         } finally {
             setSaving(false);
         }
@@ -520,17 +524,17 @@ export default function RecipeForm({
     return (
         <div className="container mx-auto max-w-3xl px-4 py-10 sm:px-8">
             <h1 className="mb-8 text-3xl font-extrabold tracking-tight sm:text-4xl">
-                {mode === 'create' ? 'Neues Rezept' : `Bearbeiten: ${initial?.title ?? ''}`}
+                {mode === 'create' ? t('newRecipe') : t('editRecipe', { title: initial?.title ?? '' })}
             </h1>
 
             {draftFound && (
                 <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-[var(--color-border)] bg-black/[0.03] p-3 text-sm dark:bg-white/[0.05]">
-                    <span>Es gibt einen nicht gespeicherten Entwurf.</span>
+                    <span>{t('draftFound')}</span>
                     <button type="button" onClick={restoreDraft} className="underline underline-offset-2">
-                        Wiederherstellen
+                        {t('restoreDraft')}
                     </button>
                     <button type="button" onClick={clearDraft} className="text-gray-500 underline underline-offset-2">
-                        Verwerfen
+                        {t('discardDraft')}
                     </button>
                 </div>
             )}
@@ -545,7 +549,7 @@ export default function RecipeForm({
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                 <div>
-                    <label htmlFor="title" className={labelClass}>Titel</label>
+                    <label htmlFor="title" className={labelClass}>{t('title')}</label>
                     <input
                         id="title"
                         type="text"
@@ -557,7 +561,7 @@ export default function RecipeForm({
                 </div>
 
                 <div>
-                    <label htmlFor="slug" className={labelClass}>Link-Adresse</label>
+                    <label htmlFor="slug" className={labelClass}>{t('slug')}</label>
                     <div className="flex items-center gap-2">
                         <span className="shrink-0 text-sm text-gray-500">/recipe/</span>
                         <input
@@ -579,14 +583,14 @@ export default function RecipeForm({
                                 }}
                                 className="shrink-0 text-sm text-gray-500 underline underline-offset-2"
                             >
-                                Aus Titel
+                                {t('slugFromTitle')}
                             </button>
                         )}
                     </div>
                 </div>
 
                 <div>
-                    <label htmlFor="description" className={labelClass}>Kurzbeschreibung</label>
+                    <label htmlFor="description" className={labelClass}>{t('description')}</label>
                     <textarea
                         id="description"
                         value={description}
@@ -598,7 +602,7 @@ export default function RecipeForm({
 
                 <div className="grid gap-6 sm:grid-cols-2">
                     <div>
-                        <label htmlFor="category" className={labelClass}>Kategorie</label>
+                        <label htmlFor="category" className={labelClass}>{t('category')}</label>
                         <input
                             id="category"
                             type="text"
@@ -615,7 +619,7 @@ export default function RecipeForm({
                     </div>
 
                     <div>
-                        <label htmlFor="nationality" className={labelClass}>Küche</label>
+                        <label htmlFor="nationality" className={labelClass}>{t('nationality')}</label>
                         <input
                             id="nationality"
                             type="text"
@@ -634,7 +638,7 @@ export default function RecipeForm({
 
                 <div className="grid gap-6 sm:grid-cols-3">
                     <div>
-                        <label htmlFor="servings" className={labelClass}>Portionen</label>
+                        <label htmlFor="servings" className={labelClass}>{t('servings')}</label>
                         <input
                             id="servings"
                             type="number"
@@ -651,7 +655,7 @@ export default function RecipeForm({
                         </p>
                     </div>
                     <div>
-                        <label htmlFor="prepMinutes" className={labelClass}>Vorbereitung</label>
+                        <label htmlFor="prepMinutes" className={labelClass}>{t('prepMinutes')}</label>
                         <input
                             id="prepMinutes"
                             type="number"
@@ -659,12 +663,12 @@ export default function RecipeForm({
                             min={0}
                             value={prepMinutes}
                             onChange={(event) => setPrepMinutes(event.target.value)}
-                            placeholder="Minuten"
+                            placeholder={t('minutes')}
                             className={fieldClass}
                         />
                     </div>
                     <div>
-                        <label htmlFor="cookMinutes" className={labelClass}>Kochzeit</label>
+                        <label htmlFor="cookMinutes" className={labelClass}>{t('cookMinutes')}</label>
                         <input
                             id="cookMinutes"
                             type="number"
@@ -672,7 +676,7 @@ export default function RecipeForm({
                             min={0}
                             value={cookMinutes}
                             onChange={(event) => setCookMinutes(event.target.value)}
-                            placeholder="Minuten"
+                            placeholder={t('minutes')}
                             className={fieldClass}
                         />
                     </div>
@@ -685,20 +689,20 @@ export default function RecipeForm({
                 <div>
                     <div className="mb-2 flex items-baseline justify-between gap-4">
                         <label htmlFor="instructions" className={labelClass + ' mb-0'}>
-                            Zubereitung
+                            {t('instructions')}
                         </label>
                         <button
                             type="button"
                             onClick={() => setPreview((open) => !open)}
                             className="text-sm text-gray-500 underline underline-offset-2"
                         >
-                            {preview ? 'Bearbeiten' : 'Vorschau'}
+                            {preview ? t('backToEdit') : t('preview')}
                         </button>
                     </div>
 
                     {preview ? (
                         <div className="prose min-h-[12rem] max-w-none rounded-lg border border-[var(--color-border)] p-4">
-                            <ReactMarkdown>{instructions || '_Noch nichts geschrieben._'}</ReactMarkdown>
+                            <ReactMarkdown>{instructions || t('previewEmpty')}</ReactMarkdown>
                         </div>
                     ) : (
                         <textarea
@@ -707,7 +711,7 @@ export default function RecipeForm({
                             onChange={(event) => setInstructions(event.target.value)}
                             required
                             rows={14}
-                            placeholder={'1. Zwiebeln schneiden.\n\n2. In Butter anbraten.'}
+                            placeholder={t('instructionsPlaceholder')}
                             className={fieldClass + ' font-mono text-sm'}
                         />
                     )}
@@ -719,14 +723,14 @@ export default function RecipeForm({
                         disabled={saving}
                         className="rounded-full bg-black px-6 py-3 font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
                     >
-                        {saving ? 'Wird gespeichert…' : mode === 'create' ? 'Rezept anlegen' : 'Änderungen speichern'}
+                        {saving ? t('saving') : mode === 'create' ? t('create') : t('save')}
                     </button>
                     <button
                         type="button"
                         onClick={() => router.push('/admin')}
                         className="text-sm text-gray-500 underline underline-offset-2"
                     >
-                        Abbrechen
+                        {t('cancel')}
                     </button>
                 </div>
             </form>

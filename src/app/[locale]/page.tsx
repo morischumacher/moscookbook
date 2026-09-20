@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { getTranslations } from 'next-intl/server';
 import FilterBar from '@/components/FilterBar';
 import RecipeCard from '@/components/RecipeCard';
 import prisma from '@/lib/prisma';
@@ -52,6 +53,8 @@ export default async function HomePage({
     const nationality = typeof nationalityParam === 'string' ? nationalityParam : '';
     const search = typeof searchParam === 'string' ? searchParam : '';
     const showFavorites = favorites === 'true';
+
+    const t = await getTranslations('Home');
 
     const user = await getCurrentUser();
     const isLoggedIn = user !== null;
@@ -111,7 +114,7 @@ export default async function HomePage({
 
     return (
         <main className="container mx-auto px-4 md:px-8 pb-32 pt-16">
-            <Suspense fallback={<div>Loading filters...</div>}>
+            <Suspense fallback={<div>{t('loadingFilters')}</div>}>
                 <FilterBar isLoggedIn={isLoggedIn} />
             </Suspense>
 
@@ -121,7 +124,7 @@ export default async function HomePage({
                 ))}
                 {formattedRecipes.length === 0 && (
                     <p className="text-gray-500 mt-8 text-center">
-                        No recipes found matching your criteria.
+                        {t('noResults')}
                     </p>
                 )}
             </div>

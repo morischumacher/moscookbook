@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, Link } from '@/i18n/routing';
 import styles from '../login/page.module.css';
 
 export default function RegisterPage() {
+    const t = useTranslations('Auth');
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -29,10 +31,10 @@ export default function RegisterPage() {
                 window.location.href = '/';
             } else {
                 const data = await res.json();
-                setError(data.message || 'Registration failed');
+                setError(data.message || t('registerFailed'));
             }
         } catch {
-            setError('An error occurred');
+            setError(t('error'));
         } finally {
             setIsLoading(false);
         }
@@ -41,14 +43,14 @@ export default function RegisterPage() {
     return (
         <div className={styles.container}>
             <form onSubmit={handleSubmit} className={styles.form}>
-                <h1 className={styles.title}>Register</h1>
+                <h1 className={styles.title}>{t('registerTitle')}</h1>
                 <p style={{ marginBottom: 'var(--space-md)', color: 'var(--color-neutral)' }}>
-                    Create an account to save favorite recipes and leave ratings.
+                    {t('registerIntro')}
                 </p>
                 {error && <p className={styles.error}>{error}</p>}
 
                 <div className={styles.group}>
-                    <label htmlFor="name">Name</label>
+                    <label htmlFor="name">{t('name')}</label>
                     <input
                         type="text"
                         id="name"
@@ -60,7 +62,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className={styles.group}>
-                    <label htmlFor="email">Email</label>
+                    <label htmlFor="email">{t('email')}</label>
                     <input
                         type="email"
                         id="email"
@@ -72,7 +74,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className={styles.group}>
-                    <label htmlFor="password">Password</label>
+                    <label htmlFor="password">{t('password')}</label>
                     <input
                         type="password"
                         id="password"
@@ -85,11 +87,14 @@ export default function RegisterPage() {
                 </div>
 
                 <button type="submit" className="btn" style={{ width: '100%' }} disabled={isLoading}>
-                    {isLoading ? 'Creating Account...' : 'Create Account'}
+                    {isLoading ? t('creatingAccount') : t('submitRegister')}
                 </button>
 
                 <div style={{ marginTop: 'var(--space-md)', textAlign: 'center', fontSize: '0.875rem' }}>
-                    Already have an account? <Link href="/login" style={{ textDecoration: 'underline' }}>Log In</Link>
+                    {t('haveAccount')}{' '}
+                    <Link href="/login" style={{ textDecoration: 'underline' }}>
+                        {t('loginLink')}
+                    </Link>
                 </div>
             </form>
         </div>
