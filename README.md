@@ -80,6 +80,58 @@ upload.
 
 ## The home page
 
+The list is a grid of tiles: the picture is the object and the words sit on it.
+A cookbook is usually opened with the question "what do I feel like", and that
+question is answered by looking rather than by reading — six dishes on a screen
+answer it faster than two rows of prose. Two columns on a phone, three once
+there is room; not four, because a tile that small stops being a photograph and
+becomes a swatch.
+
+The tile gives up the description. On a 170px-wide tile, two lines of serif are
+four words and an ellipsis, which is not a summary of anything. It keeps the
+rating, because the oysters are the one mark in this cookbook that is nobody
+else's, and a grid of pictures with no sign of which ones turned out well would
+be a worse list than the one it replaced.
+
+Two details that are not decoration:
+
+- **The title sits on a solid band, not a gradient.** Text over a photograph has
+  to clear 4.5:1 against whatever happens to be underneath, and only an opaque
+  backing can promise that — a fade promises it over a dark sky and breaks it
+  over a plate of polenta.
+- **A recipe with no photograph** gets its title set large across the whole
+  tile, so it reads as a tile without a picture rather than as one that failed
+  to load. That is the weak spot of any photo-led list, and it is worth
+  designing rather than discovering.
+
+The heart moved out of the link and onto the picture. A `<button>` nested inside
+an `<a>` is invalid markup, and it was only there because the old card had no
+free corner.
+
+Before that, the page opened with the site's name in 48px, forty pixels under a
+navigation bar that already said the same words. That was the whole first
+screen of a phone spent on the name of the site the person was already looking
+at. The heading is now what the page is *about*, and the recipes start where
+the second "mo'scookbook" used to be — about 130px higher.
+
+In a card, the category and cuisine used to be a line of uppercase with wide
+tracking, which made the least important thing in the card the loudest after
+the title. They are context, so they now read as context, directly under the
+title where they say what the dish is.
+
+They stayed on a line of their own, though, and the reason is worth recording:
+folded in beside the rating they had about a hundred pixels on a phone, which
+is enough to truncate "Hauptgericht" into "Hauptgeric…". A saved row is not
+worth a clipped word. (The two-row split was originally there for a different
+reason — oysters and words strung together with bullets wrapped, leaving a
+dangling bullet. That cannot happen now: the rating never shrinks.)
+
+The thumbnail went from 96px in an outlined box to 112px, rounded, with no
+outline. A small square in a frame reads as an icon standing in for a
+photograph; this reads as the photograph. The tint is only what shows through
+when a recipe has no picture yet.
+
+
 Twenty-four recipes per page, with older ones behind a next link that keeps the
 active filters. "Best rated" paginates too: Prisma cannot order by an average
 across a relation, so the page fetches the matching ids, ranks them against one
@@ -122,11 +174,40 @@ survives. So collecting, parsing and deciding are now three separate things:
 | An Instagram or TikTok link | those sites refuse to be read, so the **caption** that came with the share is parsed instead — which is why the shared text is kept even when a link is present |
 | Plain text | the same rule-based parser as paste-and-parse |
 | An e-mail | subject and body, with forwarding headers, quotes and signatures stripped |
-| A photograph | kept, and marked as needing the AI import or a minute of typing |
+| A screenshot or a photograph | stored first, then read by the AI import when a key is configured; kept with a clear note when it is not |
 
-Nothing here needs an API key. A video whose recipe is only spoken comes back
-as *needs a minute* with its title and thumbnail, rather than as a confidently
-wrong recipe.
+A video whose recipe is only spoken comes back as *needs a minute* with its
+title and thumbnail, rather than as a confidently wrong recipe.
+
+### Screenshots
+
+A screenshot is how most people actually save a recipe on a phone. It is one
+button, it works on an app that refuses to be read any other way, and it is
+what somebody standing in a kitchen with a cookbook does.
+
+It arrives as base64 in the same JSON body as everything else — not multipart,
+because an iOS Shortcut has a "Base64 Encode" block and cannot build a
+multipart request at all. A third more bytes on the wire, which for one
+screenshot is nothing.
+
+The picture is **stored before anything is read out of it**. A screenshot taken
+in a kitchen is the only copy of that moment, and losing it to a parser having
+a bad day would be the one unforgivable failure in this pipeline. It is also
+read back out of our own store rather than kept from the request, so that the
+retry button in the inbox takes exactly the same path as the first attempt.
+
+This is the only place the AI import is reached from the capture pipeline, and
+it is the honest exception to *nothing here needs an API key*: a screenshot is
+pixels, and there is no rule that reads pixels. Without a key the capture still
+lands, with the picture attached and a note saying what it needs. **Nothing is
+ever refused for want of a key.**
+
+A picture is carried whatever else was sent, so it is never the thing that got
+lost, and the order is deliberate: a link is tried first, because a page can be
+read; then the text, because reading words is exact and reading a picture of
+words is a guess; the picture last. But if the first two come to nothing and a
+screenshot is there, it gets one more attempt — which is exactly the Instagram
+case, where the link is a login wall and the caption is "so gut 😍".
 
 ### By e-mail
 
@@ -175,6 +256,17 @@ The Shortcut needs exactly one field: whatever was shared goes out as `text`,
 and the link is dug out of it on this side. That way a post carrying both a
 caption and a link keeps both.
 
+A second Shortcut, accepting **images**, sends a screenshot: *Base64 Encode* the
+input, then post
+
+```json
+{ "image": { "base64": "<the encoded image>", "mediaType": "image/png" } }
+```
+
+to the same endpoint with the same key. `text` and `note` may travel alongside
+it. Set it as the Photos share sheet action and a screenshot goes into the
+inbox in two taps.
+
 One key per device, so a lost phone costs one revoke. `lastUsedAt` on a revoked
 key is how you find out whether it was still being used afterwards.
 
@@ -208,6 +300,28 @@ backfills the columns with the recipes' own wording, so search works
 immediately; the reindex is what adds the ae spellings.
 
 ## Reading a recipe
+
+The page opens with the photograph, full width and edge to edge, and the content
+rides up over its bottom edge on a rounded sheet. A recipe is a picture of a
+dish before it is a list of words. With more than one picture, the thumbnails
+float in the corner *of* the photograph rather than under it, because the sheet
+is about to cover that strip.
+
+Times, servings and the rating became one row of pills. They are the same kind
+of fact — small, countable, glanced at — and they used to be spread across a
+bordered date line, a definition list and a rating row: three typographic voices
+for one paragraph's worth of information. The heart joined the rating's row for
+the same reason.
+
+None of this reaches paper. A printed recipe wants its method on the first page,
+not a photograph filling it, so the hero and the pills are `print:hidden` and the
+facts come back as a plain list.
+
+The tabbed Zutaten/Zubereitung split from the design catalogue was deliberately
+**not** built. Tabs hide the method while you read the ingredients, which is the
+one thing you do not want in a kitchen, and cook mode, serving scaling and the
+checkable steps all assume both are on the page at once.
+
 
 The recipe page is built for someone standing at the stove:
 
@@ -365,6 +479,37 @@ The admin tables became lists. A table of four columns on a 375px screen scrolls
 sideways and is miserable to use on the phone you are actually holding when you
 want to fix a typo in a recipe.
 
+## The channels, tested end to end
+
+`tests/channels.test.ts` drives every way a recipe gets in, from the JSON body
+a real device posts to the draft that lands in the inbox: the share sheet on a
+YouTube video, an Instagram caption whose page cannot be read, TikTok, an
+ordinary recipe page, a typed note, a forwarded e-mail, an e-mail carrying only
+a link, and a photograph. Nothing in between is stubbed except the network.
+
+That boundary is the point. The parsers each have their own tests; what this
+file covers is the joining, which is where the interesting bugs live. Its first
+run found two:
+
+- a YouTube recipe whose last step was `#suppe #linsen`, because the hashtag
+  line every cooking video ends with survived into the method;
+- every forwarded e-mail named after the covering note above the forward —
+  "Schau mal, das ist das Rezept von Tante Elfi." — because the separator was
+  dropped but what came before it was kept.
+
+It also covers the text that real messages are made of: Windows line endings
+from Outlook, and the non-breaking space between number and unit that copying
+from any recipe site produces and that is invisible in every editor.
+
+The logic between "the body is valid" and "write a row" lives in
+`src/lib/captureInput.ts` rather than inside the route, so it can be driven
+without a request, a session and a database.
+
+The fixtures are written by hand from the shape of the real thing, because the
+container these tests run in cannot reach the internet. The YouTube watch page
+and the Instagram case are the two worth replacing with real captures —
+`npm run fixtures -- <url>` reduces a real page to the parts that matter.
+
 ## Testing the import
 
 Two layers, because they answer different questions.
@@ -447,6 +592,58 @@ text contradicts — are all testable without a mail server. Plain text is the
 real message and HTML the decoration; a reset link that only exists inside a
 styled table is a reset link some people cannot use.
 
+## The blog
+
+One model, `Post`, for two things that turned out to be the same thing written
+on different days.
+
+An entry with no recipe is an ordinary post. An entry with a recipe attached is
+a dated note on that recipe's page — "made it again with half the sugar,
+better" — and also appears on the blog page like any other entry. The
+difference between them is one nullable column, and keeping them apart would
+have meant two tables, two editors and two lists for it.
+
+**Writing never requires a recipe.** The dropdown opens on "no recipe", which is
+the default, and nothing about an entry changes when it has one except where
+else it shows up. **Writing never requires the AI import either** — there is no
+AI anywhere in this part of the application. This is the one place where the
+words are supposed to be the author's, and a machine offering to write them
+would be answering a question nobody asked.
+
+Markdown, rendered with the same library the recipe method uses. No editor
+toolbar, no blocks, no rich text: the thing being written is a few paragraphs
+about a cake, and every format beyond Markdown is a format that has to be
+migrated later. The prose styles are seven rules in `globals.css`, written out
+rather than pulled in with a typography plugin — a plugin would bring a colour
+palette of its own, which `check:design` exists to keep out.
+
+Drafts and publishing are two buttons rather than a checkbox, so neither can
+happen by accident, and Enter in a field means "save what I have", never
+"publish". The publication date is set once when an entry is first published
+and then left alone: editing something from last year must not move it back to
+the top of the list as if it were new. `updatedAt` already records the other
+thing.
+
+A draft is visible to an admin and to nobody else — `notFound()` rather than a
+403, because somebody without rights has no business knowing an unfinished
+entry exists at that address. Entries share exactly like recipes, at
+`/de/p/<token>`, and a token stops working if the entry goes back to being a
+draft: unpublishing has to mean unpublished, or "draft" is only a label.
+
+Notes under a recipe are shown oldest first, unlike the blog index. A cooking
+log is read as a sequence — what changed, and then what changed after that. They
+appear on the private page only: a note is a kitchen diary, and whoever was sent
+a share link did not ask for it.
+
+Deleting a recipe, or an account, does not delete anything written. Both foreign
+keys are `ON DELETE SET NULL`; a note whose recipe is gone becomes an entry of
+its own. Verified against a real Postgres rather than assumed.
+
+Not yet: entries are not in the search index. `searchFields()` and the
+`searchVector` column are recipe-shaped, and giving posts their own would be a
+second migration for something worth doing once there is enough written to need
+it.
+
 ## Who can see what
 
 The cookbook is private. Every page needs an account except five: the two
@@ -499,6 +696,14 @@ button that silently does nothing is worse than no button.
 
 Cancelling the share sheet is not treated as a failure. It rejects with
 `AbortError`, and falling back to the clipboard there would be rude.
+
+Only the title and the link are handed over, never a `text` field — see
+`src/lib/sharePayload.ts`. The Web Share API accepts all three, but what a
+receiving app does with them is up to that app, and nothing in the
+specification says a target has to keep them all: Telegram took `text` and
+dropped `url`, so a shared recipe arrived as a paragraph of its own description
+with no link anywhere in it. The description is not lost — it turns up in the
+link preview, which is where a description belongs.
 
 What it hands over is the public link when the recipe has one, so that it
 reaches somebody without an account. Otherwise it is the address of the page
@@ -671,6 +876,9 @@ npx prisma migrate deploy
 
 **On a fresh database**, `npx prisma migrate deploy` is enough.
 
+`0008_posts` adds the `Post` table, with both foreign keys `ON DELETE SET NULL`
+so that deleting a recipe or an account never deletes something somebody wrote.
+
 `0007_auth_and_visibility` is the one to read before deploying: it adds the
 token table and `User.emailVerifiedAt` (backfilled to now, because accounts
 that already existed were created by somebody who was standing there), and it
@@ -706,6 +914,7 @@ npx prisma migrate diff \
 - Everything except the sign-in pages, the mailed links and the share links
   needs an account; the rule lives in `src/lib/accessRules.ts` and is tested.
 - Share tokens are 128 bits, unique, and revoked by setting the column to null.
+- A share token on an entry that has gone back to draft stops resolving.
 - The URL importer refuses loopback and private address ranges, so it cannot be
   pointed at internal services.
 - Recipe image URLs are restricted to `http(s)`.

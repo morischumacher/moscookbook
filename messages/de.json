@@ -78,7 +78,7 @@
   "Rating": {
     "rate": "Bewerten",
     "editRating": "Bewertung ändern",
-    "summary": "{count, plural, =0 {Noch nicht bewertet} one {# Person bewertete dies mit {average}/5} other {# Personen bewerteten dies mit {average}/5}}",
+    "summary": "{count, plural, =0 {Noch nicht bewertet} one {# Person bewertete dies mit {average}} other {# Personen bewerteten dies mit {average}}}",
     "submitYours": "Deine Bewertung abgeben",
     "screenReader": "Durchschnitt {average} von {max}",
     "loginRequired": "Zum Bewerten musst du angemeldet sein.",
@@ -339,7 +339,14 @@
     "body": "Anfrage-Inhalt",
     "field": "Feld",
     "shortcutInput": "Kurzbefehl-Eingabe",
-    "nav": "Geräte"
+    "nav": "Geräte",
+    "screenshotHeading": "Ein zweiter Kurzbefehl, für Screenshots",
+    "screenshotIntro": "Ein Screenshot ist ein Knopfdruck und funktioniert auch bei Apps, die sich anders nicht auslesen lassen. Gleicher Schlüssel, gleiche Adresse — nur der Inhalt ist ein anderer.",
+    "screenshotStep1": "Neuer Kurzbefehl, Name zum Beispiel „Screenshot ins Kochbuch\". In den Einstellungen (ⓘ) „Im Teilen-Menü anzeigen\" einschalten und nur Bilder akzeptieren.",
+    "screenshotStep2": "Die Aktion „Base64-codieren\" hinzufügen, mit der Kurzbefehl-Eingabe als Eingabe.",
+    "screenshotStep3": "Danach „Inhalte von URL abrufen\", gleiche Methode und gleicher Header wie oben, und das hier als Anfrage-Inhalt — das Base64-Ergebnis kommt an die Stelle des Platzhalters:",
+    "screenshotStep4": "Aus Fotos einen Screenshot teilen und den Kurzbefehl wählen. Er steht mit Bild im Eingang.",
+    "screenshotNote": "Ohne KI-Schlüssel bleibt das Bild trotzdem erhalten, und im Eingang steht, was fehlt. Mit Schlüssel wird das Rezept aus dem Bild gelesen. Abgelehnt wird nie etwas, nur weil kein Schlüssel da ist."
   },
   "Share": {
     "share": "Teilen",
@@ -354,7 +361,11 @@
     "revokeConfirm": "Link zurückziehen? Wer ihn schon bekommen hat, kann das Rezept dann nicht mehr öffnen.",
     "linkFailed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
     "sharedNotice": "Ein Rezept aus mo'scookbook, mit dir geteilt.",
-    "sharedLogin": "Anmelden"
+    "sharedLogin": "Anmelden",
+    "statePrivatePost": "Privat — diesen Beitrag lesen nur Leute mit einem Konto.",
+    "statePublicPost": "Öffentlicher Link aktiv — wer den Link hat, kann den Beitrag lesen, ganz ohne Konto.",
+    "revokeConfirmPost": "Link zurückziehen? Wer ihn schon bekommen hat, kann den Beitrag dann nicht mehr öffnen.",
+    "sharedPostNotice": "Ein Beitrag aus mo'scookbook, mit dir geteilt."
   },
   "Errors": {
     "title": "Fehler",
@@ -380,5 +391,38 @@
     "retry": "Nochmal versuchen",
     "home": "Zurück zu den Rezepten",
     "reference": "Kennung {digest}"
+  },
+  "Blog": {
+    "nav": "Blog",
+    "adminNav": "Beiträge",
+    "adminTitle": "Beiträge",
+    "title": "Blog",
+    "intro": "Notizen zu dem, was gekocht wurde — und alles andere, was aufschreibenswert ist.",
+    "empty": "Noch nichts geschrieben.",
+    "draft": "Entwurf",
+    "published": "Veröffentlicht",
+    "hasPublicLink": "Öffentlicher Link",
+    "belongsTo": "Geschrieben über",
+    "notesTitle": "Notizen",
+    "addNote": "Notiz schreiben",
+    "noNotes": "Zu diesem Rezept ist noch nichts notiert.",
+    "newPost": "Neuer Beitrag",
+    "editPost": "Beitrag bearbeiten",
+    "view": "Ansehen",
+    "delete": "Löschen",
+    "confirmDelete": "\"{title}\" löschen? Das lässt sich nicht rückgängig machen.",
+    "deleteFailed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
+    "saveFailed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
+    "fieldTitle": "Titel",
+    "fieldBody": "Text",
+    "fieldRecipe": "Rezept",
+    "fieldImage": "Bild",
+    "fieldSlug": "Adresse",
+    "noRecipe": "Kein Rezept — eigenständiger Beitrag",
+    "recipeHint": "Einem Rezept zugeordnet, erscheint der Beitrag dort zusätzlich als datierte Notiz.",
+    "markdownHint": "Markdown: # für eine Überschrift, - für eine Liste, **fett**.",
+    "publish": "Veröffentlichen",
+    "savePublished": "Speichern",
+    "saveDraft": "Als Entwurf speichern"
   }
 }

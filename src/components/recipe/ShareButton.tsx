@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { sharePayload } from '@/lib/sharePayload';
 
 /**
  * Sharing a recipe.
@@ -16,15 +17,20 @@ import { useTranslations } from 'next-intl';
  * navigator.share has to be called from the click itself: browsers only allow
  * it while a user gesture is being handled, so nothing may be awaited before
  * it.
+ *
+ * Only `title` and `url` are handed over, never `text`. The Web Share API lets
+ * you pass all three, but what a receiving app does with them is entirely up to
+ * that app: Telegram takes `text` and drops `url`, so a recipe arrived as its
+ * own description with no link in sight. Nothing in the API guarantees a target
+ * keeps every field, and the one field that has to survive is the link — the
+ * description travels with it anyway, in the page's OpenGraph card.
  */
 export default function ShareButton({
     title,
-    description,
     className,
     url: given,
 }: {
     title: string;
-    description?: string;
     className?: string;
     /**
      * What to hand over. Defaults to the page itself; a recipe with a public
@@ -41,7 +47,7 @@ export default function ShareButton({
         const current = given || window.location.href;
         setUrl(current);
 
-        const payload = { title, text: description || title, url: current };
+        const payload = sharePayload(title, current);
 
         if (typeof navigator.share === 'function') {
             try {

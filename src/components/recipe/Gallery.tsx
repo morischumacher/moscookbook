@@ -15,15 +15,35 @@ import { useTranslations } from 'next-intl';
  * The large image keeps its box whichever picture is selected, so choosing a
  * thumbnail does not make the page jump under your thumb.
  */
-export default function Gallery({ images, title }: { images: string[]; title: string }) {
+export default function Gallery({
+    images,
+    title,
+    variant = 'inline',
+}: {
+    images: string[];
+    title: string;
+    /**
+     * `hero` is the photo the recipe page opens with: full width, no corners
+     * of its own, and the thumbnails floated over the picture rather than laid
+     * out under it — the page's content sheet is about to cover that strip.
+     */
+    variant?: 'inline' | 'hero';
+}) {
     const t = useTranslations('Recipe');
     const [selected, setSelected] = useState(0);
 
     const current = images[selected] ?? images[0];
+    const hero = variant === 'hero';
 
     return (
-        <div>
-            <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface shadow-sm sm:aspect-[16/9] sm:rounded-xl">
+        <div className={hero ? 'relative' : undefined}>
+            <div
+                className={
+                    hero
+                        ? 'relative h-[300px] w-full overflow-hidden bg-surface sm:h-[420px]'
+                        : 'relative aspect-[4/3] w-full overflow-hidden bg-surface shadow-sm sm:aspect-[16/9] sm:rounded-xl'
+                }
+            >
                 {current ? (
                     <Image
                         src={current}
@@ -44,7 +64,13 @@ export default function Gallery({ images, title }: { images: string[]; title: st
             </div>
 
             {images.length > 1 && (
-                <ul className="mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-0 [&::-webkit-scrollbar]:hidden print:hidden">
+                <ul
+                    className={
+                        hero
+                            ? 'absolute right-3 top-3 z-10 flex max-w-[calc(100%-1.5rem)] gap-2 overflow-x-auto rounded-xl bg-ink/55 p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden print:hidden'
+                            : 'mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-0 [&::-webkit-scrollbar]:hidden print:hidden'
+                    }
+                >
                     {images.map((url, index) => (
                         <li key={url}>
                             <button
@@ -52,7 +78,10 @@ export default function Gallery({ images, title }: { images: string[]; title: st
                                 onClick={() => setSelected(index)}
                                 aria-label={t('showImage', { number: index + 1 })}
                                 aria-current={index === selected}
-                                className={`relative block h-16 w-20 shrink-0 overflow-hidden rounded-md border-2 transition-colors ${index === selected ? 'border-ink' : 'border-transparent opacity-70 hover:opacity-100'
+                                className={`relative block shrink-0 overflow-hidden border-2 transition-colors ${hero ? 'h-11 w-14 rounded-lg' : 'h-16 w-20 rounded-md'
+                                    } ${index === selected
+                                        ? hero ? 'border-white' : 'border-ink'
+                                        : 'border-transparent opacity-70 hover:opacity-100'
                                     }`}
                             >
                                 <Image src={url} alt="" fill sizes="80px" className="object-cover" />

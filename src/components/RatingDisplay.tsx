@@ -61,7 +61,12 @@ export default function RatingDisplay({
 
                 {/* The count in words rather than "(0)" next to five empty
                     shells, which reads as a rating of nought rather than as
-                    nobody having cooked it yet. */}
+                    nobody having cooked it yet.
+
+                    No "/5" after the average either: five oysters are sitting
+                    immediately to the left saying exactly that, and a scale
+                    written out next to a picture of the scale is the kind of
+                    small redundancy that makes an interface feel wordy. */}
                 <span className="text-muted">
                     {t('summary', { count, average: average.toFixed(1) })}
                 </span>

@@ -3,8 +3,9 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
-import { classifyCapture, tokenFromHeader, hashCaptureToken } from '@/lib/capture';
-import { emailToCapture } from '@/lib/email';
+import { tokenFromHeader, hashCaptureToken } from '@/lib/capture';
+import { captureInputFrom } from '@/lib/captureInput';
+import { storeCaptureImage, MAX_CAPTURE_IMAGE_BASE64 } from '@/lib/storeCaptureImage';
 import { findDuplicate, type ExistingRecipe } from '@/lib/duplicates';
 import { processCapture } from '@/lib/captureProcess';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
@@ -33,9 +34,22 @@ const captureSchema = z.object({
     via: z.enum(['email']).optional(),
     /** An e-mail's subject line. */
     subject: z.string().trim().max(500).optional(),
+
+    /**
+     * A screenshot. Base64 rather than multipart, because an iOS Shortcut can
+     * do "Base64 Encode" in one block and cannot build a multipart body at all.
+     */
+    image: z
+        .object({
+            base64: z.string().min(1).max(MAX_CAPTURE_IMAGE_BASE64),
+            mediaType: z.string().max(100),
+        })
+        .optional(),
 });
 
-const MAX_BODY_BYTES = 1024 * 1024;
+// Base64 is a third bigger than the bytes it carries, and a phone screenshot
+// is comfortably under five megabytes; ten leaves room for both.
+const MAX_BODY_BYTES = 10 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
     const length = Number(req.headers.get('content-length') ?? '0');
@@ -75,27 +89,31 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Send a url, some text, or both.' }, { status: 400 });
     }
 
-    // A mail arrives wrapped in forwarding headers, quote markers and a
-    // signature, and its subject has been through three clients. Cleaning that
-    // up here rather than in the bridge keeps the rules in one testable place —
-    // the bridge is a twenty-line script living in someone's Google account.
-    const input =
-        parsed.data.via === 'email'
-            ? (() => {
-                const mail = emailToCapture(parsed.data.subject ?? '', parsed.data.text ?? '');
-                return {
-                    url: parsed.data.url,
-                    text: mail.text,
-                    // The subject labels the capture but is kept away from the
-                    // recipe parser, which would otherwise name the dish
-                    // "Fwd: schau mal".
-                    note: parsed.data.note || mail.title || undefined,
-                    via: 'email' as const,
-                };
-            })()
-            : parsed.data;
+    // Stored before anything is read out of it. A screenshot taken in a
+    // kitchen is the only copy of that moment; losing it to a parser having a
+    // bad day would be the one unforgivable failure in this pipeline.
+    let imageUrl: string | undefined;
 
-    const classified = classifyCapture(input);
+    if (parsed.data.image) {
+        const stored = await storeCaptureImage(
+            parsed.data.image.base64,
+            parsed.data.image.mediaType
+        );
+
+        if (!stored.ok) {
+            return NextResponse.json(
+                { message: `The picture could not be stored (${stored.reason}).` },
+                { status: 400 }
+            );
+        }
+
+        imageUrl = stored.url;
+    }
+
+    // Everything between a valid body and a row lives in captureInputFrom, so
+    // that each channel can be driven end to end in a test — see
+    // tests/channels.test.ts.
+    const classified = captureInputFrom({ ...parsed.data, imageUrl });
     if (!classified) {
         return NextResponse.json({ message: 'Nothing usable was sent.' }, { status: 400 });
     }
@@ -109,6 +127,7 @@ export async function POST(req: NextRequest) {
             sourceUrl: classified.sourceUrl,
             rawText: classified.rawText,
             note: classified.note,
+            imageUrl: classified.imageUrl,
             status: 'new',
         },
         select: { id: true },

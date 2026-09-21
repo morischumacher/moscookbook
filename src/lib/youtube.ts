@@ -176,6 +176,17 @@ export function cleanYoutubeDescription(description: string): string {
             continue;
         }
 
+        // A line that is only hashtags. Almost every cooking video ends with
+        // one, and left in it becomes the last step of the method — a recipe
+        // whose final instruction is "#suppe #linsen". Only whole lines: a
+        // hashtag inside a sentence is someone writing, not tagging.
+        if (/^#[\wÄÖÜäöüß-]+(\s+#[\wÄÖÜäöüß-]+)*$/u.test(trimmed)) continue;
+
+        // A rule drawn out of dashes, underscores or equals signs, which is how
+        // a description separates the recipe from the sponsor block below it.
+        // The block itself is caught line by line above; this is the ruler.
+        if (/^[-_=*~·—–]{2,}$/.test(trimmed)) continue;
+
         kept.push(line);
     }
 

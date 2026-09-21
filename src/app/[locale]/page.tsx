@@ -260,14 +260,21 @@ export default async function HomePage({
 
     return (
         <main className="container mx-auto max-w-3xl px-4 pb-32 md:px-8">
-            <header className="border-b border-line pb-8 pt-12 sm:pt-16">
-                <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">{tSite('title')}</h1>
-                <p className="mt-3 font-serif text-lg italic text-muted sm:text-xl">
+            {/*
+                The navigation already says what this place is called, in the
+                same words, forty pixels higher up. Saying it again in 48px was
+                the whole first screen of a phone spent on the name of the site
+                the person is already looking at — so the heading is now what
+                the page is *about*, and the recipes start where the second
+                "mo'scookbook" used to be.
+            */}
+            <header className="pb-6 pt-10 sm:pt-14">
+                <h1 className="font-serif text-2xl italic leading-snug text-ink sm:text-3xl">
                     {tSite('description')}
-                </p>
+                </h1>
             </header>
 
-            <div className="py-6">
+            <div className="pb-6">
                 <Suspense fallback={<div className="h-24" aria-hidden="true" />}>
                     <FilterChips
                         categories={toFacets(categoryGroups, 'category')}
@@ -283,7 +290,12 @@ export default async function HomePage({
                     <p className="border-t border-line pt-4 text-xs uppercase tracking-widest text-faint">
                         {t('resultCount', { count: total })}
                     </p>
-                    <div className="flex flex-col divide-y divide-line">
+                    {/*
+                        Two columns on a phone, three once there is room. Not
+                        four: a tile that small stops being a photograph and
+                        becomes a swatch.
+                    */}
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
                         {formattedRecipes.map((recipe) => (
                             <RecipeCard key={recipe.id} {...recipe} />
                         ))}

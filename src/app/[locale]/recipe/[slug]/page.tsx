@@ -70,9 +70,30 @@ export default async function RecipePage({
             recipe.ratings.find((rating: { userId: number }) => rating.userId === userId)?.value ?? 0;
     }
 
+    // Oldest first: a cooking log is read as a sequence. Drafts only for an
+    // admin, same rule as the blog index.
+    const notes = await prisma.post.findMany({
+        where: {
+            recipeId: recipe.id,
+            ...(session.user?.admin ? {} : { publishedAt: { not: null } }),
+        },
+        orderBy: [{ publishedAt: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
+        take: 50,
+        select: {
+            id: true,
+            title: true,
+            slug: true,
+            body: true,
+            publishedAt: true,
+            createdAt: true,
+            author: { select: { name: true } },
+        },
+    });
+
     return (
         <RecipeArticle
             recipe={recipe}
+            notes={notes}
             locale={locale}
             mode="private"
             isLoggedIn={Boolean(session.user)}

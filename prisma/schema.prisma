@@ -26,6 +26,7 @@ model User {
   emailVerifiedAt DateTime?
 
   tokens         AuthToken[]
+  posts          Post[]
   ratings        Rating[]
   favorites      Favorite[]
   invitesCreated Invite[]   @relation("InviteCreatedBy")
@@ -141,6 +142,48 @@ model ErrorLog {
   @@index([resolvedAt, lastSeenAt])
 }
 
+/// A written entry.
+///
+/// One model for two things that turned out to be the same thing written on
+/// different days: an entry with no recipe is an ordinary post, and an entry
+/// attached to a recipe is a dated note on that recipe's page — "made it again
+/// with half the sugar, better". Keeping them apart would have meant two
+/// tables, two editors and two lists, for a difference of one nullable column.
+///
+/// Writing a post never requires a recipe, and never requires the AI import
+/// either: it is a title and some Markdown.
+model Post {
+  id          Int       @id @default(autoincrement())
+  title       String
+  slug        String    @unique
+  /// Markdown, same as a recipe's method.
+  body        String
+  imageUrl    String?
+
+  /// Null while it is a draft. A draft is visible to its author in the admin
+  /// area and nowhere else.
+  publishedAt DateTime?
+
+  /// The recipe this belongs to, when it belongs to one.
+  ///
+  /// SetNull rather than Cascade: deleting a recipe should not silently delete
+  /// something somebody wrote. The note simply becomes an entry of its own.
+  recipeId    Int?
+  recipe      Recipe?   @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+
+  authorId    Int?
+  author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  /// The public link, exactly as on a recipe. See Recipe.shareToken.
+  shareToken  String?   @unique
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([publishedAt])
+  @@index([recipeId, publishedAt])
+}
+
 model Recipe {
   id           Int        @id @default(autoincrement())
   title        String
@@ -178,6 +221,7 @@ model Recipe {
   favorites      Favorite[]
   ingredients    Ingredient[]
   captures       Capture[]
+  posts          Post[]
 }
 
 /// One ingredient line, split into the parts a cook actually uses.

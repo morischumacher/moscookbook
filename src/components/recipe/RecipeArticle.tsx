@@ -6,6 +6,7 @@ import Logo from '@/components/brand/Logo';
 import RecipeBody from '@/components/recipe/RecipeBody';
 import Gallery from '@/components/recipe/Gallery';
 import ShareLink from '@/components/recipe/ShareLink';
+import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
 import { formatMinutes } from '@/lib/amount';
 import { buildRecipeJsonLd } from '@/lib/recipeJsonLd';
@@ -55,6 +56,11 @@ export interface RecipeArticleProps {
     url: string;
     /** The public link, when one exists. Only ever shown to an admin. */
     publicUrl: string | null;
+    /**
+     * Entries written about this recipe. Empty on the shared page: a note is a
+     * kitchen diary, and the person you sent a recipe to did not ask for it.
+     */
+    notes: RecipeNote[];
 }
 
 export default async function RecipeArticle({
@@ -68,6 +74,7 @@ export default async function RecipeArticle({
     views,
     url,
     publicUrl,
+    notes,
 }: RecipeArticleProps) {
     const t = await getTranslations('Recipe');
     const tCategory = await getTranslations('Categories');
@@ -131,7 +138,24 @@ export default async function RecipeArticle({
                 />
             )}
 
-            <header className="container mx-auto max-w-2xl px-4 pt-8 sm:px-8 sm:pt-16">
+            {/*
+                The photograph opens the page, full width and edge to edge, and
+                the content rides up over its bottom edge on a rounded sheet.
+                A recipe is a picture of a dish before it is a list of words,
+                and this is the layout that says so.
+
+                Not on paper: a printed recipe wants its method on the first
+                page, not a photograph filling it.
+            */}
+            <div className="print:hidden">
+                <Gallery
+                    images={recipe.images.map((image) => image.url)}
+                    title={recipe.title}
+                    variant="hero"
+                />
+            </div>
+
+            <header className="relative z-10 -mt-7 rounded-t-3xl bg-page px-4 pt-7 sm:mx-auto sm:max-w-2xl sm:px-8 print:mt-0 print:rounded-none print:pt-8">
                 {/* The print stylesheet hides the navigation, and the logo used
                     to go with it — a printed recipe came out unbranded. This is
                     the same mark, shown only on paper. */}
@@ -139,28 +163,46 @@ export default async function RecipeArticle({
                     <Logo height={32} />
                 </div>
 
-                <h1 className="mb-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-ink sm:text-5xl md:text-6xl">
+                <p className="text-xs font-semibold uppercase tracking-widest text-faint">
+                    {[categoryLabel, cuisineLabel].filter(Boolean).join(' · ') ||
+                        dateFormatter.format(recipe.createdAt)}
+                </p>
+
+                <h1 className="mt-2 text-3xl font-extrabold leading-[1.12] tracking-tight text-ink sm:text-4xl">
                     {recipe.title}
-                    {mode === 'private' && (
-                        <span className="print:hidden ml-4 inline-block align-middle">
-                            <FavoriteButton
-                                recipeId={recipe.id}
-                                initialFavorited={isFavorited}
-                                disabled={!isLoggedIn}
-                            />
-                        </span>
-                    )}
                 </h1>
 
-                <div className="my-6 flex flex-col gap-1 border-y border-line py-4">
-                    <span className="text-sm font-medium uppercase tracking-widest text-muted">
-                        {dateFormatter.format(recipe.createdAt)}
-                        {categoryLabel ? ` • ${categoryLabel}` : ''}
-                        {cuisineLabel ? ` • ${cuisineLabel}` : ''}
-                    </span>
-                </div>
+                {recipe.description && (
+                    <p className="mt-3 font-serif text-lg italic leading-relaxed text-muted sm:text-xl">
+                        {recipe.description}
+                    </p>
+                )}
 
-                <div className="print:hidden mb-8">
+                {/*
+                    Times, servings and the rating as one row of pills. They are
+                    the same kind of fact — small, countable, glanced at — and
+                    they used to be spread over a bordered date line, a
+                    definition list and a rating row, three typographic voices
+                    for one paragraph's worth of information.
+                */}
+                {(times.length > 0 || recipe.ratings.length > 0) && (
+                    <div className="print:hidden mt-5 flex flex-wrap items-center gap-2">
+                        {times.map((entry) => (
+                            <span
+                                key={entry.label}
+                                className="rounded-full bg-surface px-3 py-1.5 text-sm text-muted"
+                            >
+                                <span className="text-faint">{entry.label}</span> {entry.value}
+                            </span>
+                        ))}
+                    </div>
+                )}
+
+                {/* The heart shares the rating's row rather than taking one of
+                    its own: they are the same gesture — what you thought of it —
+                    and stacked they cost three lines between the facts above and
+                    the recipe below. */}
+                <div className="print:hidden mt-5 flex items-start justify-between gap-4">
                     <RatingDisplay
                         recipeId={recipe.id}
                         initialAverage={averageRating}
@@ -168,41 +210,39 @@ export default async function RecipeArticle({
                         initialUserRating={userRatingValue}
                         isLoggedIn={mode === 'private' && isLoggedIn}
                         views={views}
-                        infoClassName="flex items-center gap-6 text-sm font-semibold text-muted py-3"
+                        infoClassName="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted"
                     />
+
+                    {mode === 'private' && (
+                        <span className="shrink-0">
+                            <FavoriteButton
+                                recipeId={recipe.id}
+                                initialFavorited={isFavorited}
+                                disabled={!isLoggedIn}
+                            />
+                        </span>
+                    )}
                 </div>
 
                 {mode === 'private' && isAdmin && (
-                    <div className="print:hidden mb-8">
-                        <ShareLink recipeId={recipe.id} initialUrl={publicUrl} locale={locale} />
+                    <div className="print:hidden mt-6">
+                        <ShareLink id={recipe.id} kind="recipe" initialUrl={publicUrl} locale={locale} />
                     </div>
                 )}
+
+                {/* On paper the pills and the picture are gone, so the facts
+                    come back as a plain line. */}
+                <dl className="hidden print:mt-4 print:flex print:flex-wrap print:gap-x-8">
+                    {times.map((entry) => (
+                        <div key={entry.label}>
+                            <dt className="text-xs uppercase tracking-widest text-muted">{entry.label}</dt>
+                            <dd className="text-base font-semibold text-ink">{entry.value}</dd>
+                        </div>
+                    ))}
+                </dl>
             </header>
 
-            <div className="container mx-auto max-w-2xl px-0 sm:px-8">
-                <Gallery images={recipe.images.map((image) => image.url)} title={recipe.title} />
-
-                {recipe.description && (
-                    <p className="mt-8 px-4 text-left font-serif text-xl italic leading-relaxed text-ink sm:px-0 sm:text-2xl">
-                        {recipe.description}
-                    </p>
-                )}
-
-                {times.length > 0 && (
-                    <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-4 px-4 sm:px-0">
-                        {times.map((entry) => (
-                            <div key={entry.label}>
-                                <dt className="text-xs font-bold uppercase tracking-widest text-muted">
-                                    {entry.label}
-                                </dt>
-                                <dd className="mt-1 text-lg font-semibold text-ink">{entry.value}</dd>
-                            </div>
-                        ))}
-                    </dl>
-                )}
-            </div>
-
-            <div className="h-16 w-full sm:h-24" aria-hidden="true" />
+            <div className="h-10 w-full sm:h-14" aria-hidden="true" />
 
             <div className="container mx-auto max-w-2xl px-4 font-serif sm:px-8">
                 <RecipeBody
@@ -210,7 +250,6 @@ export default async function RecipeArticle({
                     instructions={recipe.instructions}
                     baseServings={recipe.servings}
                     title={recipe.title}
-                    description={recipe.description ?? undefined}
                     // What the share sheet hands over: the public link when one
                     // exists, so that it reaches someone without an account.
                     // Left undefined otherwise, which shares the address of the
@@ -219,6 +258,15 @@ export default async function RecipeArticle({
                     // them on to the recipe once they are in.
                     shareUrl={mode === 'shared' ? url : publicUrl ?? undefined}
                 />
+
+                {mode === 'private' && (
+                    <RecipeNotes
+                        notes={notes}
+                        recipeId={recipe.id}
+                        isAdmin={isAdmin}
+                        locale={locale}
+                    />
+                )}
             </div>
         </article>
     );

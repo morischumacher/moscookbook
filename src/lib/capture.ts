@@ -171,6 +171,17 @@ export interface CaptureInput {
      * have arrived by mail.
      */
     via?: CaptureSource | null;
+    /**
+     * A picture that came with the share, already in our own store.
+     *
+     * A screenshot is how most people save a recipe on a phone: it takes one
+     * button and works on an app that refuses to be read any other way. It is
+     * kept alongside whatever else was sent rather than instead of it — a
+     * screenshot of an Instagram post usually arrives with the post's link,
+     * and the link is tried first because a page can be read and a picture has
+     * to be looked at.
+     */
+    imageUrl?: string | null;
 }
 
 export interface ClassifiedCapture {
@@ -179,6 +190,8 @@ export interface ClassifiedCapture {
     sourceUrl: string | null;
     rawText: string | null;
     note: string | null;
+    /** Carried whatever the kind is, so a picture is never the thing that got lost. */
+    imageUrl: string | null;
 }
 
 /**
@@ -193,6 +206,7 @@ export function classifyCapture(input: CaptureInput): ClassifiedCapture | null {
     const text = (input.text ?? '').trim();
     const note = (input.note ?? '').trim() || null;
     const explicitUrl = (input.url ?? '').trim();
+    const imageUrl = (input.imageUrl ?? '').trim() || null;
 
     const url = explicitUrl || firstUrlIn(text) || '';
 
@@ -203,9 +217,14 @@ export function classifyCapture(input: CaptureInput): ClassifiedCapture | null {
             sourceUrl: url,
             rawText: text || null,
             note,
+            imageUrl,
         };
     }
 
+    // Text beats a picture: reading words is exact, reading a picture of words
+    // is a guess. A screenshot shared with its caption is handled as the
+    // caption, and the picture stays attached in case the caption was not the
+    // recipe after all.
     if (text !== '') {
         return {
             kind: 'text',
@@ -213,6 +232,18 @@ export function classifyCapture(input: CaptureInput): ClassifiedCapture | null {
             sourceUrl: null,
             rawText: text,
             note,
+            imageUrl,
+        };
+    }
+
+    if (imageUrl !== null) {
+        return {
+            kind: 'image',
+            source: 'photo',
+            sourceUrl: null,
+            rawText: null,
+            note,
+            imageUrl,
         };
     }
 

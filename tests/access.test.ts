@@ -2,6 +2,7 @@ import { suite, equal, check } from './harness';
 import { pathAccess } from '../src/lib/accessRules';
 import { destinationFrom } from '../src/lib/loginDestination';
 import { generateShareToken, shareUrl } from '../src/lib/shareToken';
+import { sharePayload } from '../src/lib/sharePayload';
 
 export default function accessTests() {
     suite('pathAccess');
@@ -82,5 +83,23 @@ export default function accessTests() {
         'produces a path the proxy treats as open',
         pathAccess(new URL(shareUrl('https://x.test', 'de', token)).pathname),
         'open'
+    );
+
+    suite('sharePayload');
+
+    const payload = sharePayload('Thai Green Curry', 'https://www.moscookbook.com/de/r/abc');
+
+    equal('carries the title', payload.title, 'Thai Green Curry');
+    equal('carries the link', payload.url, 'https://www.moscookbook.com/de/r/abc');
+
+    // The bug this exists for: with a `text` field as well, Telegram took the
+    // text and dropped the link, so a shared recipe arrived as a paragraph of
+    // prose that went nowhere. Nothing in the Web Share API promises a target
+    // keeps every field, and the link is the one that has to survive.
+    equal('hands over nothing but those two', Object.keys(payload).sort(), ['title', 'url']);
+    check(
+        'never sends a text field, whatever a target might do with it',
+        !('text' in payload),
+        payload
     );
 }

@@ -14,15 +14,13 @@ export default function RecipeBody({
     instructions,
     baseServings,
     title,
-    description,
     shareUrl,
 }: {
     ingredients: StructuredIngredient[];
     instructions: string;
     baseServings: number | null;
-    /** For the share sheet, which offers them as the message's subject. */
+    /** For the share sheet, which offers it as the message's subject. */
     title: string;
-    description?: string;
     /** The public link, when the recipe has one. */
     shareUrl?: string;
 }) {
@@ -153,7 +151,6 @@ export default function RecipeBody({
 
                 <ShareButton
                     title={title}
-                    description={description}
                     url={shareUrl}
                     className="text-sm text-muted underline underline-offset-4 hover:text-ink"
                 />

@@ -76,6 +76,36 @@ export default async function emailTests() {
         '200 g Mehl\n3 Eier'
     );
 
+    suite('stripEmailFurniture — the covering note above a forward');
+
+    // The line somebody types above a forward is about the forward, not about
+    // the food, and the parser names a recipe after the first line it is given.
+    // Left in, every forwarded recipe is called "Schau mal".
+    equal(
+        'drops what was written above the forward separator',
+        stripEmailFurniture(
+            'Schau mal, das Rezept von Elfi.\n\n---------- Forwarded message ---------\nVon: Elfi <elfi@example.com>\n\nKartoffelsalat\n1 kg Kartoffeln'
+        ),
+        'Kartoffelsalat\n1 kg Kartoffeln'
+    );
+    equal(
+        'takes the last forward when a mail has been passed along twice',
+        stripEmailFurniture(
+            'von mir\n--- Weitergeleitete Nachricht ---\nvon Anna\n--- Weitergeleitete Nachricht ---\nBetreff: Suppe\n\nSuppe\n1 l Brühe'
+        ),
+        'Suppe\n1 l Brühe'
+    );
+    equal(
+        'keeps the covering note when the forwarded part turns out to be empty',
+        stripEmailFurniture('Omas Kuchen\n200 g Mehl\n\n---------- Forwarded message ---------\nVon: Elfi <elfi@example.com>\n'),
+        'Omas Kuchen\n200 g Mehl'
+    );
+    equal(
+        'leaves a mail with no forward alone',
+        stripEmailFurniture('Omas Kuchen\n200 g Mehl\nAlles verrühren.'),
+        'Omas Kuchen\n200 g Mehl\nAlles verrühren.'
+    );
+
     suite('emailToCapture');
 
     const capture = emailToCapture('WG: Omas Kuchen', '> 200 g Mehl\n\n--\nAnna');
