@@ -272,6 +272,32 @@ key is how you find out whether it was still being used afterwards.
 
 ## Search
 
+There are two fields on the front page, and they are two fields on purpose.
+
+**The search box ranks.** Type two words and a recipe that matches one of them
+well still comes back, which is what you want when you are looking for
+something you half remember.
+
+**"Ich habe…" does not.** It takes the ingredients you name and requires *every*
+one of them, because the question is whether you can cook a thing tonight and
+"you have half of it" is not an answer. It runs against the structured
+`Ingredient` rows rather than the search vector — that column is indexed and
+already has the quantity stripped off, which is exactly the thing being asked
+about. Each word is tried in three spellings (what was typed, its singular, and
+the ae/oe/ue form) so "zwiebel" finds "rote Zwiebeln".
+
+Hyphens split rather than being kept, and it is worth knowing why:
+"Crème-fraîche" kept whole matches nothing, because the recipe writes it
+"Crème fraîche". Split into two words that both have to be present, it matches
+exactly that — and it does the right thing for "Vollkorn-Mehl" against a recipe
+that says "Vollkornmehl". Filler words are dropped, the list is deduplicated so
+that asking twice is not harder to satisfy than asking once, and it is capped at
+six so one paste cannot become forty joins.
+
+Sharing one box would have meant guessing which of the two questions somebody
+meant.
+
+
 **Entries are in the index too, as of migration 0010** — the same German
 configuration, the same weighting, the same two application-written columns and
 a tsvector Postgres derives from them. An entry *called* Zwetschgen outranks one

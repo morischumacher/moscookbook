@@ -6,6 +6,7 @@ import RecipeCard from '@/components/RecipeCard';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { buildTsQuery } from '@/lib/searchText';
+import { parseIngredientQuery, variantsOf } from '@/lib/ingredientSearch';
 
 interface RecipeListRow {
     id: number;
@@ -20,10 +21,21 @@ interface RecipeListRow {
     ratings: { value: number }[];
 }
 
+/** One "this recipe has an ingredient like X" clause. */
+interface HasIngredient {
+    ingredients: {
+        some: {
+            OR: { name: { contains: string; mode: 'insensitive' } }[];
+        };
+    };
+}
+
 interface RecipeWhere {
     category?: string;
     nationality?: string;
     id?: { in: number[] };
+    /** One entry per ingredient somebody said they have: all of them must match. */
+    AND?: HasIngredient[];
 }
 
 type RecipeOrderBy = { createdAt: 'desc' } | { views: 'desc' };
@@ -66,6 +78,7 @@ export default async function HomePage({
         nationality: nationalityParam,
         favorites,
         search: searchParam,
+        have: haveParam,
         page: pageParam,
     } = await searchParams;
 
@@ -73,6 +86,7 @@ export default async function HomePage({
     const category = typeof categoryParam === 'string' ? categoryParam : '';
     const nationality = typeof nationalityParam === 'string' ? nationalityParam : '';
     const search = typeof searchParam === 'string' ? searchParam : '';
+    const have = typeof haveParam === 'string' ? haveParam : '';
     const showFavorites = favorites === 'true';
 
     const user = await getCurrentUser();
@@ -109,6 +123,32 @@ export default async function HomePage({
      * cookbook the list is short, and paying that to keep all the filtering in
      * one place is the right trade.
      */
+    /**
+     * "What can I make with what is in the house."
+     *
+     * Every named ingredient has to be present, not any of them: the question
+     * is whether a recipe can be cooked tonight, and "you have half of it" is
+     * not an answer. That makes it one `AND` per word rather than a ranked
+     * query — and it runs against the structured Ingredient rows, whose `name`
+     * column is indexed and already has the quantity stripped off.
+     */
+    const wanted = parseIngredientQuery(have);
+
+    if (wanted.length > 0) {
+        where.AND = wanted.map((word) => ({
+            ingredients: {
+                some: {
+                    // One word, several spellings: what was typed, its singular,
+                    // and the ae/oe/ue form. `contains` does the rest, so
+                    // "zwiebel" finds "rote Zwiebeln".
+                    OR: variantsOf(word).map((form) => ({
+                        name: { contains: form, mode: 'insensitive' as const },
+                    })),
+                },
+            },
+        }));
+    }
+
     let rankById: Map<number, number> | null = null;
 
     if (search) {
@@ -262,6 +302,7 @@ export default async function HomePage({
         if (category) params.set('category', category);
         if (nationality) params.set('nationality', nationality);
         if (search) params.set('search', search);
+        if (have) params.set('have', have);
         if (showFavorites) params.set('favorites', 'true');
         if (target > 1) params.set('page', String(target));
         const query = params.toString();

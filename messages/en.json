@@ -32,7 +32,9 @@
     "pagination": "Pages",
     "previousPage": "← Newer",
     "nextPage": "Older →",
-    "pageOf": "Page {page} of {pages}"
+    "pageOf": "Page {page} of {pages}",
+    "havePlaceholder": "I have… e.g. zucchini, feta",
+    "haveLabel": "Ingredients you have, all of which a recipe must use"
   },
   "Categories": {
     "Breakfast": "Breakfast",

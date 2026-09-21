@@ -25,7 +25,7 @@
  */
 
 /** ä → ae, ö → oe, ü → ue, ß → ss. Lower case only; call after lowercasing. */
-function expandUmlauts(word: string): string {
+export function expandUmlauts(word: string): string {
     return word
         .replace(/ä/g, 'ae')
         .replace(/ö/g, 'oe')

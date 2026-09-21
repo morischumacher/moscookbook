@@ -32,7 +32,9 @@
     "pagination": "Seiten",
     "previousPage": "← Neuer",
     "nextPage": "Älter →",
-    "pageOf": "Seite {page} von {pages}"
+    "pageOf": "Seite {page} von {pages}",
+    "havePlaceholder": "Ich habe… z. B. Zucchini, Feta",
+    "haveLabel": "Zutaten, die du hast — ein Rezept muss alle davon verwenden"
   },
   "Categories": {
     "Breakfast": "Frühstück",
