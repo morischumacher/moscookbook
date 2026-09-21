@@ -12,7 +12,7 @@
  *
  * The folder contains:
  *   recipes.json   a valid archive, importable as-is while the image URLs live
- *   images/        the image files themselves
+ *   images/        the image files themselves, the cooked photographs included
  *   images.json    which URL each file came from
  */
 import { PrismaClient } from '@prisma/client';
@@ -23,7 +23,10 @@ import 'dotenv/config';
 
 const prisma = new PrismaClient();
 
-const ARCHIVE_VERSION = 1;
+// Kept in step with src/lib/archive.ts by hand, and checked by
+// scripts/check-backup.mjs — this file had quietly stayed at 1 while the
+// application moved to 2, which is exactly the drift that guard is for.
+const ARCHIVE_VERSION = 2;
 
 function outputDir() {
     const flag = process.argv.indexOf('--out');
@@ -56,6 +59,25 @@ async function main() {
         },
     });
 
+    const posts = await prisma.post.findMany({
+        orderBy: { createdAt: 'asc' },
+        select: {
+            title: true, slug: true, body: true, imageUrl: true,
+            publishedAt: true, createdAt: true,
+            recipe: { select: { slug: true } },
+            author: { select: { name: true } },
+        },
+    });
+
+    const cookPhotos = await prisma.cookPhoto.findMany({
+        orderBy: { createdAt: 'asc' },
+        select: {
+            url: true, caption: true, createdAt: true,
+            recipe: { select: { slug: true } },
+            user: { select: { name: true } },
+        },
+    });
+
     const archive = {
         version: ARCHIVE_VERSION,
         exportedAt: new Date().toISOString(),
@@ -66,11 +88,39 @@ async function main() {
             images: recipe.images.map((image) => image.url),
             ingredients: recipe.ingredients.map((ingredient, index) => ({ ...ingredient, position: index })),
         })),
+        // By slug, not by id: this file is restored into a database where every
+        // id is new. See src/lib/archive.ts, which this mirrors.
+        posts: posts.map((post) => ({
+            title: post.title,
+            slug: post.slug,
+            body: post.body,
+            imageUrl: post.imageUrl,
+            publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+            createdAt: post.createdAt.toISOString(),
+            recipeSlug: post.recipe?.slug ?? null,
+            author: post.author?.name ?? null,
+        })),
+        cookPhotos: cookPhotos.map((photo) => ({
+            url: photo.url,
+            caption: photo.caption,
+            createdAt: photo.createdAt.toISOString(),
+            recipeSlug: photo.recipe.slug,
+            author: photo.user?.name ?? null,
+        })),
     };
 
     await writeFile(path.join(directory, 'recipes.json'), JSON.stringify(archive, null, 2));
 
-    const urls = [...new Set(recipes.flatMap((recipe) => recipe.images.map((image) => image.url)))];
+    // Every picture the cookbook points at, not only a recipe's own: what
+    // people photographed in their kitchens is the part that exists nowhere
+    // else.
+    const urls = [
+        ...new Set([
+            ...recipes.flatMap((recipe) => recipe.images.map((image) => image.url)),
+            ...posts.map((post) => post.imageUrl).filter(Boolean),
+            ...cookPhotos.map((photo) => photo.url),
+        ]),
+    ];
     const map = {};
     let downloaded = 0;
     let failed = 0;
@@ -93,7 +143,10 @@ async function main() {
 
     await writeFile(path.join(directory, 'images.json'), JSON.stringify(map, null, 2));
 
-    console.log(`\n${recipes.length} recipes and ${downloaded} images written to ${directory}`);
+    console.log(
+        `\n${recipes.length} recipes, ${posts.length} entries, ${cookPhotos.length} cooked photos ` +
+        `and ${downloaded} images written to ${directory}`
+    );
     if (failed > 0) console.log(`${failed} image(s) could not be fetched — see the warnings above.`);
 }
 

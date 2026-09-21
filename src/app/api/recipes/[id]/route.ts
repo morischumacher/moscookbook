@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { deleteBlobs } from '@/lib/blobCleanup';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
 import { searchFields } from '@/lib/searchText';
@@ -124,9 +125,27 @@ export async function DELETE(
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
         }
 
-        // Images, ratings and favourites all cascade on delete in the schema,
-        // so removing the recipe is enough.
+        // The URLs are read before the row goes, because afterwards there is
+        // nothing left to read them from. Rows first, files second: a delete
+        // that removed the files and then failed on the row would leave a
+        // recipe pointing at pictures that no longer exist, which is worse
+        // than a file nobody is pointing at.
+        const doomed: { images: { url: string }[]; cookPhotos: { url: string }[] } | null =
+            await prisma.recipe.findUnique({
+                where: { id: recipeId },
+                select: { images: { select: { url: true } }, cookPhotos: { select: { url: true } } },
+            });
+
+        // Images, cooked photographs, ratings and favourites all cascade on
+        // delete in the schema, so removing the recipe is enough for the rows.
         await prisma.recipe.delete({ where: { id: recipeId } });
+
+        if (doomed) {
+            await deleteBlobs([
+                ...doomed.images.map((image) => image.url),
+                ...doomed.cookPhotos.map((photo) => photo.url),
+            ]);
+        }
 
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (error) {

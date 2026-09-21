@@ -90,10 +90,28 @@ export default async function RecipePage({
         },
     });
 
+    // Oldest first as well, for the same reason the notes are: a wall of
+    // pictures of one dish reads as a sequence of attempts.
+    const cooked = await prisma.cookPhoto.findMany({
+        where: { recipeId: recipe.id },
+        orderBy: { createdAt: 'asc' },
+        take: 60,
+        select: {
+            id: true,
+            url: true,
+            caption: true,
+            createdAt: true,
+            userId: true,
+            user: { select: { name: true } },
+        },
+    });
+
     return (
         <RecipeArticle
             recipe={recipe}
             notes={notes}
+            cooked={cooked}
+            currentUserId={session.user?.id ?? null}
             locale={locale}
             mode="private"
             isLoggedIn={Boolean(session.user)}

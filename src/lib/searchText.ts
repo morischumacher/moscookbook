@@ -25,7 +25,7 @@
  */
 
 /** ä → ae, ö → oe, ü → ue, ß → ss. Lower case only; call after lowercasing. */
-function expandUmlauts(word: string): string {
+export function expandUmlauts(word: string): string {
     return word
         .replace(/ä/g, 'ae')
         .replace(/ö/g, 'oe')
@@ -119,6 +119,21 @@ export function searchFields(recipe: {
             recipe.ingredients?.join(' '),
             recipe.instructions
         ),
+    };
+}
+
+/**
+ * The same two columns for a written entry.
+ *
+ * Its own function rather than calling searchFields with `instructions: body`,
+ * which would work and would read as a lie six months from now: a post has a
+ * body, not a method, and the shape a caller passes should be the shape the
+ * thing actually has.
+ */
+export function postSearchFields(post: { title: string; body?: string | null }): SearchFields {
+    return {
+        searchTitle: searchableText(post.title),
+        searchBody: searchableText(post.body),
     };
 }
 

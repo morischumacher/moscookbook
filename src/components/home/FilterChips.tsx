@@ -37,6 +37,7 @@ export default function FilterChips({
     const searchParams = useSearchParams();
 
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') ?? '');
+    const [haveTerm, setHaveTerm] = useState(searchParams.get('have') ?? '');
 
     const activeCategory = searchParams.get('category') ?? '';
     const activeCuisine = searchParams.get('nationality') ?? '';
@@ -44,7 +45,8 @@ export default function FilterChips({
     const favoritesOnly = searchParams.get('favorites') === 'true';
 
     const hasFilters = Boolean(
-        activeCategory || activeCuisine || favoritesOnly || searchParams.get('search')
+        activeCategory || activeCuisine || favoritesOnly || searchParams.get('search') ||
+        searchParams.get('have')
     );
 
     useEffect(() => {
@@ -60,6 +62,22 @@ export default function FilterChips({
         return () => clearTimeout(timer);
     }, [searchTerm, pathname, router, searchParams]);
 
+    // The same debounce, for the other question. Kept as its own effect rather
+    // than one that syncs both, because two fields sharing one timer means
+    // typing in either resets the other's.
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const params = new URLSearchParams(searchParams.toString());
+            if (haveTerm === (params.get('have') ?? '')) return;
+
+            if (haveTerm) params.set('have', haveTerm);
+            else params.delete('have');
+            router.replace(`${pathname}?${params.toString()}`);
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [haveTerm, pathname, router, searchParams]);
+
     const setParam = (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString());
         if (value) params.set(key, value);
@@ -69,6 +87,7 @@ export default function FilterChips({
 
     const clearAll = () => {
         setSearchTerm('');
+        setHaveTerm('');
         router.replace(pathname);
     };
 
@@ -115,6 +134,38 @@ export default function FilterChips({
                     onChange={(event) => setSearchTerm(event.target.value)}
                     placeholder={t('searchPlaceholder')}
                     aria-label={t('searchPlaceholder')}
+                    className="w-full bg-transparent py-1 text-base outline-none placeholder:text-faint"
+                />
+            </label>
+
+            {/*
+                A second field, not a mode of the first. They ask different
+                questions and give different answers: the search box ranks, so
+                two words can both be half-matched, while this one requires
+                every ingredient named — because "you have half of it" is not an
+                answer to "can I cook this tonight". Sharing one box would mean
+                guessing which of the two somebody meant.
+            */}
+            <label className="flex items-center gap-3 border-b border-line pb-2">
+                <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    className="h-4 w-4 shrink-0 text-faint"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d="M4 20V10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10z" />
+                    <path d="M3 20h18" />
+                </svg>
+                <input
+                    type="search"
+                    value={haveTerm}
+                    onChange={(event) => setHaveTerm(event.target.value)}
+                    placeholder={t('havePlaceholder')}
+                    aria-label={t('haveLabel')}
                     className="w-full bg-transparent py-1 text-base outline-none placeholder:text-faint"
                 />
             </label>

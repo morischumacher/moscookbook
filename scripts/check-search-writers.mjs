@@ -16,22 +16,58 @@ import { readdirSync, readFileSync, statSync } from 'fs';
 import { join, relative } from 'path';
 
 const ROOTS = ['src', 'scripts', 'prisma'];
-const WRITES = /prisma\.recipe\.(create|update|updateMany|upsert|createMany)\s*\(/;
-const USES_SEARCH_FIELDS = /searchFields\s*\(/;
 
 /**
- * Writers that do not call searchFields(), each with the reason and a marker
- * that must still be present in the file. The marker is what keeps this from
- * being a rubber stamp: if the reason stops being true, the exemption fails
- * with it rather than quietly covering a new mistake.
+ * Two tables now carry search columns, and both fail the same silent way. The
+ * shapes differ only in which helper writes them, so they are checked by the
+ * same walk rather than by a second copy of this file.
+ */
+const SUBJECTS = [
+    {
+        what: 'recipe',
+        writes: /prisma\.recipe\.(create|update|updateMany|upsert|createMany)\s*\(/,
+        // searchFields, but not postSearchFields — the recipe helper by name.
+        uses: /(?<!post)searchFields\s*\(/i,
+        helper: 'searchFields({ title, description, instructions, ingredients })',
+    },
+    {
+        what: 'post',
+        writes: /prisma\.post\.(create|update|updateMany|upsert|createMany)\s*\(/,
+        uses: /postSearchFields\s*\(/,
+        helper: 'postSearchFields({ title, body })',
+    },
+];
+
+/**
+ * Writers that do not call the helper, each with the reason and a marker that
+ * must still be present in the file. The marker is what keeps this from being a
+ * rubber stamp: if the reason stops being true, the exemption fails with it
+ * rather than quietly covering a new mistake.
+ *
+ * Keyed by table *and* file, because one file can write both — the archive
+ * restore does, and exempting it wholesale would take the recipe check with it.
  */
 const ALLOWED = new Map([
     [
-        'src/app/api/recipes/[id]/view/route.ts',
+        'post src/app/api/posts/[id]/share/route.ts',
+        {
+            why: 'only ever sets or clears the share token',
+            marker: /data:\s*\{\s*shareToken:\s*(?:token|null)\s*\}/,
+        },
+    ],
+    [
+        'post src/app/api/import/archive/route.ts',
+        {
+            why: 'restores entries and says so; npm run reindex fills their columns',
+            marker: /npm run reindex/,
+        },
+    ],
+    [
+        'recipe src/app/api/recipes/[id]/view/route.ts',
         { why: 'increments the view counter only', marker: /views:\s*\{\s*increment/ },
     ],
     [
-        'src/app/api/recipes/[id]/share/route.ts',
+        'recipe src/app/api/recipes/[id]/share/route.ts',
         {
             why: 'only ever sets or clears the share token',
             // Both directions, so that widening this route to touch a recipe's
@@ -40,11 +76,11 @@ const ALLOWED = new Map([
         },
     ],
     [
-        'scripts/reindex-search.ts',
+        'recipe scripts/reindex-search.ts',
         { why: 'writes the columns this check is about', marker: /searchFields/ },
     ],
     [
-        'scripts/restore.mjs',
+        'recipe scripts/restore.mjs',
         { why: 'hands off to the reindex script afterwards', marker: /reindex-search/ },
     ],
 ]);
@@ -73,38 +109,41 @@ for (const root of ROOTS) {
 
     for (const file of files) {
         const source = readFileSync(file, 'utf8');
-        if (!WRITES.test(source)) continue;
-
-        writers += 1;
         const key = relative('.', file).split('\\').join('/');
 
-        const exemption = ALLOWED.get(key);
-        if (exemption) {
-            if (!exemption.marker.test(source)) {
+        for (const subject of SUBJECTS) {
+            if (!subject.writes.test(source)) continue;
+
+            writers += 1;
+            const exemption = ALLOWED.get(`${subject.what} ${key}`);
+
+            if (exemption) {
+                if (!exemption.marker.test(source)) {
+                    problems.push(
+                        `${key} is exempt from the ${subject.what} check because it ${exemption.why},\n` +
+                        '    but that is no longer visible in the file. Either restore it, or remove\n' +
+                        '    the exemption from ALLOWED in scripts/check-search-writers.mjs.'
+                    );
+                }
+                continue;
+            }
+
+            if (!subject.uses.test(source)) {
                 problems.push(
-                    `${key} is exempt because it ${exemption.why}, but that is no longer\n` +
-                    `    visible in the file. Either restore it, or remove the exemption\n` +
-                    '    from ALLOWED in scripts/check-search-writers.mjs.'
+                    `${key} writes a ${subject.what} but never calls its search helper.\n` +
+                    `    Either spread ${subject.helper} into the data, or add\n` +
+                    `    "${subject.what} ${key}" to ALLOWED in scripts/check-search-writers.mjs\n` +
+                    `    with the reason it cannot change a ${subject.what}'s text.`
                 );
             }
-            continue;
-        }
-
-        if (!USES_SEARCH_FIELDS.test(source)) {
-            problems.push(
-                `${key} writes a recipe but never calls searchFields().\n` +
-                '    Either spread searchFields({ title, description, instructions, ingredients })\n' +
-                '    into the data, or add the file to ALLOWED in scripts/check-search-writers.mjs\n' +
-                '    with the reason it cannot change a recipe\'s text.'
-            );
         }
     }
 }
 
 if (problems.length > 0) {
-    console.error('Recipe writers missing the search columns:\n');
+    console.error('Writers missing the search columns:\n');
     for (const problem of problems) console.error(`  ${problem}\n`);
     process.exit(1);
 }
 
-console.log(`check:search — ${writers} recipe writers, all accounted for.`);
+console.log(`check:search — ${writers} writers across ${SUBJECTS.length} tables, all accounted for.`);

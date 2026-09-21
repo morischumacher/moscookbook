@@ -97,7 +97,87 @@ export async function POST(req: NextRequest) {
             await prisma.recipe.create({ data: recipeData(recipe) });
         }
 
-        return NextResponse.json({ created, replaced, skipped, total: result.archive.recipes.length });
+        // Entries and photographs come after every recipe exists, because both
+        // point at one by slug. A slug the archive does not carry — a note
+        // about a recipe that was skipped, say — leaves the entry standing on
+        // its own rather than dropping it: losing writing to a missing link
+        // would be worse than an entry with nothing attached.
+        const slugToId = new Map<string, number>(
+            (
+                await prisma.recipe.findMany({ select: { id: true, slug: true } })
+            ).map((recipe: { id: number; slug: string }) => [recipe.slug, recipe.id])
+        );
+
+        let posts = 0;
+        for (const post of result.archive.posts) {
+            const taken = await prisma.post.findUnique({
+                where: { slug: post.slug },
+                select: { id: true },
+            });
+
+            // Same rule as a recipe: what is already here is not overwritten
+            // unless that was asked for.
+            if (taken && !replace) continue;
+            if (taken) await prisma.post.delete({ where: { slug: post.slug } });
+
+            // The search columns are left empty here on purpose. A restore
+            // writes hundreds of rows, and recomputing the expansions row by
+            // row would double its cost for a result `npm run reindex` produces
+            // in one pass — which is the step the restore script already ends
+            // with.
+            await prisma.post.create({
+                data: {
+                    title: post.title,
+                    slug: post.slug,
+                    body: post.body,
+                    imageUrl: post.imageUrl,
+                    publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
+                    createdAt: new Date(post.createdAt),
+                    recipeId: post.recipeSlug ? slugToId.get(post.recipeSlug) ?? null : null,
+                    // Authorship is by name in an archive and accounts are not
+                    // in one, so a restored entry has no author rather than a
+                    // wrong one.
+                    authorId: null,
+                },
+            });
+            posts += 1;
+        }
+
+        let photos = 0;
+        for (const photo of result.archive.cookPhotos) {
+            const recipeId = slugToId.get(photo.recipeSlug);
+            // Unlike an entry, a photograph of a dish has nowhere to be shown
+            // without one — the same reason its foreign key cascades.
+            if (recipeId === undefined) continue;
+
+            // The url is what makes a photograph unique here; importing the
+            // same archive twice should not double every picture.
+            const already = await prisma.cookPhoto.findFirst({
+                where: { url: photo.url, recipeId },
+                select: { id: true },
+            });
+            if (already) continue;
+
+            await prisma.cookPhoto.create({
+                data: {
+                    url: photo.url,
+                    caption: photo.caption,
+                    createdAt: new Date(photo.createdAt),
+                    recipeId,
+                    userId: null,
+                },
+            });
+            photos += 1;
+        }
+
+        return NextResponse.json({
+            created,
+            replaced,
+            skipped,
+            total: result.archive.recipes.length,
+            posts,
+            photos,
+        });
     } catch (error) {
         console.error('Archive import error:', error);
         return NextResponse.json({ message: 'The archive could not be imported.' }, { status: 500 });

@@ -246,6 +246,25 @@ warns only when two titles say the *same* thing: "Apfelkuchen" does not flag
 "Apfelkuchen mit Streuseln und Vanillesauce", because that is a different cake
 and a warning there teaches you to ignore warnings.
 
+### Merging a duplicate
+
+The inbox has always spotted the same dish arriving twice — a link that is
+already a recipe is certain, a title that matches is a suspicion. Until now the
+only answers were to discard the capture, throwing away whatever came with it,
+or to publish it and end up with two copies of one recipe.
+
+**Merge** is the third, and it is deliberately the conservative one. The
+existing recipe's words are never touched: a capture is a guess made by a
+parser, the recipe is something a person wrote, and a merge that overwrote it
+would be the same second disaster the archive restore refuses to be. What it
+does take is a picture the recipe does not already have — appended, so the
+recipe's own first photograph stays the one every list shows — and it files the
+capture against the recipe and marks it published, so it leaves the inbox with
+a record of where it went rather than vanishing.
+
+If the new version is genuinely better, the editor is one click away and takes
+a minute. The merge does not try to decide that.
+
 ### Setting it up on an iPhone
 
 iOS cannot add a web page to the share sheet — Web Share Target is an Android
@@ -271,6 +290,51 @@ One key per device, so a lost phone costs one revoke. `lastUsedAt` on a revoked
 key is how you find out whether it was still being used afterwards.
 
 ## Search
+
+There are two fields on the front page, and they are two fields on purpose.
+
+**The search box ranks.** Type two words and a recipe that matches one of them
+well still comes back, which is what you want when you are looking for
+something you half remember.
+
+**"Ich habe…" does not.** It takes the ingredients you name and requires *every*
+one of them, because the question is whether you can cook a thing tonight and
+"you have half of it" is not an answer. It runs against the structured
+`Ingredient` rows rather than the search vector — that column is indexed and
+already has the quantity stripped off, which is exactly the thing being asked
+about. Each word is tried in three spellings (what was typed, its singular, and
+the ae/oe/ue form) so "zwiebel" finds "rote Zwiebeln".
+
+Hyphens split rather than being kept, and it is worth knowing why:
+"Crème-fraîche" kept whole matches nothing, because the recipe writes it
+"Crème fraîche". Split into two words that both have to be present, it matches
+exactly that — and it does the right thing for "Vollkorn-Mehl" against a recipe
+that says "Vollkornmehl". Filler words are dropped, the list is deduplicated so
+that asking twice is not harder to satisfy than asking once, and it is capped at
+six so one paste cannot become forty joins.
+
+Sharing one box would have meant guessing which of the two questions somebody
+meant.
+
+
+**Entries are in the index too, as of migration 0010** — the same German
+configuration, the same weighting, the same two application-written columns and
+a tsvector Postgres derives from them. An entry *called* Zwetschgen outranks one
+that merely mentions them, exactly as with a recipe.
+
+They are not mixed into the recipe grid: a blog post is not a recipe and a tile
+is not what it looks like. But somebody who searched from the front page should
+not have to know the answer might be one page over, so a search that also
+matches writing says so in a line above the results and links to
+`/blog?search=…`. The blog has its own field, a plain GET form — a search is
+then a URL you can keep, and the page needs no JavaScript to answer it.
+
+`check:search` grew with it. It now walks two tables rather than one, and its
+exemptions are keyed by table *and* file, because one file can write both: the
+archive restore does, and exempting it wholesale would have taken the recipe
+check with it. Removing the helper from a post writer fails it, which is the
+whole point.
+
 
 The search box looks at titles, descriptions, ingredient names and the method,
 through Postgres full text search with the `german` configuration. Titles are
@@ -298,6 +362,54 @@ out of step, and a GIN index makes the lookup cheap.
 After deploying the search migration, run `npm run reindex` once. The migration
 backfills the columns with the recipes' own wording, so search works
 immediately; the reindex is what adds the ae spellings.
+
+## Nachgekocht — photos from whoever cooked it
+
+The one place in this cookbook where somebody without admin rights puts
+something on a page everybody sees, and the reason it earns the trouble: a
+recipe with three pictures from three kitchens says more about whether it works
+than any amount of styling.
+
+It sits at the end of the recipe, above the notes. Anyone with an account can
+add a picture; the caption is a borderless line under it that saves when you
+leave the field, because a note is a sentence somebody is still writing until
+they stop. One tap to add — picking the photograph *is* the action, and a
+"save" step after it would be a second tap for something nobody hesitates
+about.
+
+Who may do what:
+
+- **Delete**: the person who uploaded it, and an admin. Nobody else — a shared
+  wall where anyone can remove anyone's picture is not a shared wall.
+- **Caption**: only the uploader, admin or not. A caption is somebody speaking,
+  and an admin who can remove a photograph still has no business rewriting what
+  its owner said about it. Removing it whole is the moderation an admin gets.
+
+Both checks live in the `where` clause of a `deleteMany`/`updateMany` rather
+than in an `if` above it, so there is no window between asking who owns a row
+and writing to it. A delete that matches nothing answers success rather than
+403: telling somebody which of "it does not exist" and "it is not yours" applies
+tells them whether a picture they may not touch exists.
+
+Limits: 10 MB a picture (the admin form's own photography gets 15), twelve per
+person per recipe, twenty uploads an hour per account. The count is checked
+before the upload, so somebody already at the limit does not pay for a transfer
+that is about to be refused. The rate limit is per account rather than per IP,
+because what is being rationed is writes to the Blob store, and those belong to
+a person rather than to a network.
+
+The rules for what counts as an image moved into `src/lib/uploadImage.ts`,
+shared with the admin form so a trusted uploader and an ordinary one cannot
+drift on to different definitions of a safe file. Only the size limit differs.
+Three of those rules are less obvious than they look, and each has a sabotage
+test behind it: the MIME type **or** the extension is enough (a phone sends
+HEIC with neither reliably, so requiring both refuses half of what an iPhone
+shares), a long filename is trimmed from the **front** (the end holds the
+extension), and HEIC is detected in the first 64 bytes rather than anywhere in
+the file (a JPEG containing the word further in is not a HEIC).
+
+None of it appears on a shared link. Somebody who put a photograph into a
+private cookbook did not agree to it travelling out of it.
 
 ## Reading a recipe
 
@@ -351,6 +463,54 @@ source is missing from a catalogue, when the two catalogues drift apart, when a
 message loses an ICU placeholder in translation, or when a value is empty.
 
 ## Backup and restore
+
+**A backup runs by itself every Monday.** `vercel.json` schedules
+`/api/cron/backup`, which writes the archive into the Blob store and keeps the
+newest eight. It is deliberately the *small* backup — the JSON, not the image
+files: those are already in the same store, and copying them weekly would
+multiply the bill to protect against nothing, since a store that loses the
+pictures loses the copies with them.
+
+`npm run backup` on a laptop is still the one that matters, because it takes the
+files somewhere else entirely. This is the one that happens whether or not
+anybody thinks of it, and a backup you have to remember is a backup that
+eventually is not taken.
+
+It needs `CRON_SECRET`. Without one the endpoint refuses every request rather
+than opening: an unauthenticated route that makes the database do work is a way
+to run up a bill.
+
+**Version 2 of the archive carries the blog entries and the cooked photographs
+as well.** It did not, for a while, and that is worth recording rather than
+quietly fixing: the blog and the photographs were built, shipped and used while
+the export kept writing a file with nothing in it but recipes. Nothing broke.
+The backups simply stopped covering the newest thing anybody had written, and
+the way you find that out is by needing one.
+
+`npm run check:backup` now refuses to let it happen again, and it checks **all three**
+backups — the browser export, the weekly job and the offline `npm run backup`,
+which are separate queries over the same tables. The offline one had quietly stayed at
+archive version 1 while the application moved to 2; the guard compares the two
+declared versions as well, so that cannot recur. Every model in
+`schema.prisma` is either read by all of them or named in that script's
+`NOT_BACKED_UP` list with the reason it is not worth keeping — an account's
+password hash, a reset token that dies in an hour, the inbox queue. A model
+added from now on fails the check until somebody decides which it is. Deciding
+takes a minute; noticing in a year costs everything written in between. A name
+left in the list after its model is renamed fails too, because a stale
+exemption is how something gets exempted by accident.
+
+Entries and photographs point at their recipe **by slug**, not by id: an archive
+is restored into a database where every id is new, and a slug is the one name
+that survives the trip. Authorship travels as a name and is not restored —
+accounts are not in an archive, and a restored entry with no author is better
+than one with the wrong one.
+
+A version 1 archive still reads, with both lists empty. A restore that refused
+last month's file because this month's format grew would be the exact failure a
+backup exists to prevent.
+
+
 
 The cookbook exists in one hosting account. Everything else on this list is an
 annoyance if it goes wrong; this is the only part that cannot be redone.
@@ -505,10 +665,22 @@ The logic between "the body is valid" and "write a row" lives in
 `src/lib/captureInput.ts` rather than inside the route, so it can be driven
 without a request, a session and a database.
 
-The fixtures are written by hand from the shape of the real thing, because the
-container these tests run in cannot reach the internet. The YouTube watch page
-and the Instagram case are the two worth replacing with real captures —
-`npm run fixtures -- <url>` reduces a real page to the parts that matter.
+The fixtures in that file are written by hand from the shape of the real thing,
+because the container these tests run in cannot reach the internet.
+
+Real pages go in `tests/fixtures/`, collected with `npm run fixtures -- <url>`,
+and **they are picked up on their own** — `tests/fixtures.test.ts` reads every
+file in that folder and drives it through the real import. No registration step
+and no list to keep in step; drop a file in and it is covered from the next
+`npm test`.
+
+Nothing in that suite knows what a particular page contains, which is the only
+way it could work. What it asserts is what must be true whatever the page turned
+out to be: a draft came back, it has a title, the title is not the URL, there
+are ingredients or a method, no cookie banner or subscribe plea survived into
+the method, no "ingredient" is a whole paragraph, the source is kept. A fixture
+that fails one of those has found a real bug, because none of them is a
+statement about a site. An empty folder says so and passes.
 
 ## Testing the import
 
@@ -751,6 +923,33 @@ that might be reversed.
 The query string is stripped from the reported path before it is stored. An
 error report is not a place to start collecting what people searched for.
 
+## Pictures that nothing points at
+
+Deleting a recipe deleted its `Image` rows and left every file sitting in the
+Blob store for ever. Nothing broke — the pictures simply became unreachable and
+kept being paid for, and the bill is the only place that would ever have
+mentioned it. The same went for an entry's picture and for a cooked photograph.
+
+Now the files go with the row, through `src/lib/blobCleanup.ts`. Two rules:
+
+- **Only our own files.** A recipe imported from a website can hold a link to
+  somebody else's server, and asking the Blob API to delete that is at best a
+  wasted call and at worst a request we had no business making. The host is
+  matched as a host, not with `includes` — a sabotage test covers
+  `https://public.blob.vercel-storage.com.evil.test/x.jpg`.
+- **Never throws.** Deleting a recipe has to succeed even when the store is
+  having a bad afternoon. A file left behind is a small cost; a delete that
+  fails halfway leaves a recipe that is half gone, which is a real one. Rows go
+  first for the same reason.
+
+`npm run sweep` finds what leaked before this existed, and whatever a failed
+delete leaves later. It **lists and deletes nothing** unless `--delete` is
+passed, because the failure mode is deleting a photograph somebody took, and it
+ignores anything uploaded in the last 24 hours — the admin form uploads a
+picture and saves the recipe a minute later, and in between the file is real
+with nothing pointing at it yet. Captures count as references, drafts included:
+a screenshot waiting in the inbox is not an orphan.
+
 ## Pictures
 
 A recipe can hold several. The first one is the cover and the one that goes
@@ -875,6 +1074,12 @@ npx prisma migrate deploy
 ```
 
 **On a fresh database**, `npx prisma migrate deploy` is enough.
+
+`0009_cook_photos` adds `CookPhoto`, with `ON DELETE CASCADE` on the recipe —
+the opposite of `Post`, deliberately: a written entry stands on its own once its
+recipe is gone, while a picture of a dish with no dish attached has nowhere to
+be shown and nothing to say. The account keeps `SET NULL`, so deleting a person
+keeps the pictures they left.
 
 `0008_posts` adds the `Post` table, with both foreign keys `ON DELETE SET NULL`
 so that deleting a recipe or an account never deletes something somebody wrote.

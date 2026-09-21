@@ -12,7 +12,7 @@ import { z } from 'zod';
  * older build.
  */
 
-export const ARCHIVE_VERSION = 1;
+export const ARCHIVE_VERSION = 2;
 
 const archiveIngredientSchema = z.object({
     position: z.number().int().min(0),
@@ -40,14 +40,51 @@ const archiveRecipeSchema = z.object({
     ingredients: z.array(archiveIngredientSchema).default([]),
 });
 
+/**
+ * A written entry, and the pictures people took of what they cooked.
+ *
+ * Added in version 2, and defaulted to empty so that a version 1 archive —
+ * every backup taken before this — still reads. A restore that refused last
+ * month's file because this month's format grew would be the exact failure a
+ * backup exists to prevent.
+ *
+ * A post's recipe is carried as that recipe's slug rather than as an id:
+ * an archive is restored into a database where ids are new, and a slug is the
+ * one name that survives the trip.
+ */
+const archivePostSchema = z.object({
+    title: z.string().min(1),
+    slug: z.string().min(1),
+    body: z.string().default(''),
+    imageUrl: z.string().nullable().default(null),
+    publishedAt: z.string().nullable().default(null),
+    createdAt: z.string().default(() => new Date().toISOString()),
+    /** The recipe it belongs to, by slug. Null for a standalone entry. */
+    recipeSlug: z.string().nullable().default(null),
+    /** Who wrote it, by name. Accounts are not in an archive. */
+    author: z.string().nullable().default(null),
+});
+
+const archiveCookPhotoSchema = z.object({
+    url: z.string().min(1),
+    caption: z.string().nullable().default(null),
+    createdAt: z.string().default(() => new Date().toISOString()),
+    recipeSlug: z.string().min(1),
+    author: z.string().nullable().default(null),
+});
+
 export const archiveSchema = z.object({
     version: z.number().int(),
     exportedAt: z.string(),
     recipeCount: z.number().int().min(0).optional(),
     recipes: z.array(archiveRecipeSchema),
+    posts: z.array(archivePostSchema).default([]),
+    cookPhotos: z.array(archiveCookPhotoSchema).default([]),
 });
 
 export type ArchiveRecipe = z.infer<typeof archiveRecipeSchema>;
+export type ArchivePost = z.infer<typeof archivePostSchema>;
+export type ArchiveCookPhoto = z.infer<typeof archiveCookPhotoSchema>;
 export type Archive = z.infer<typeof archiveSchema>;
 
 export interface ParseResult {
@@ -114,7 +151,31 @@ export interface ExportableRecipe {
     }[];
 }
 
-export function buildArchive(recipes: ExportableRecipe[], now = new Date()): Archive {
+export interface ExportablePost {
+    title: string;
+    slug: string;
+    body: string;
+    imageUrl: string | null;
+    publishedAt: Date | null;
+    createdAt: Date;
+    recipe: { slug: string } | null;
+    author: { name: string } | null;
+}
+
+export interface ExportableCookPhoto {
+    url: string;
+    caption: string | null;
+    createdAt: Date;
+    recipe: { slug: string };
+    user: { name: string } | null;
+}
+
+export function buildArchive(
+    recipes: ExportableRecipe[],
+    now = new Date(),
+    posts: ExportablePost[] = [],
+    cookPhotos: ExportableCookPhoto[] = []
+): Archive {
     return {
         version: ARCHIVE_VERSION,
         exportedAt: now.toISOString(),
@@ -136,6 +197,27 @@ export function buildArchive(recipes: ExportableRecipe[], now = new Date()): Arc
                 .slice()
                 .sort((a, b) => a.position - b.position)
                 .map((ingredient, index) => ({ ...ingredient, position: index })),
+        })),
+        posts: posts.map((post) => ({
+            title: post.title,
+            slug: post.slug,
+            body: post.body,
+            imageUrl: post.imageUrl,
+            publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+            createdAt: post.createdAt.toISOString(),
+            // By slug rather than by id: an archive is restored into a database
+            // where every id is new, and a slug is the one name that survives
+            // the trip. The author is a name for the same reason — accounts are
+            // not in an archive.
+            recipeSlug: post.recipe?.slug ?? null,
+            author: post.author?.name ?? null,
+        })),
+        cookPhotos: cookPhotos.map((photo) => ({
+            url: photo.url,
+            caption: photo.caption,
+            createdAt: photo.createdAt.toISOString(),
+            recipeSlug: photo.recipe.slug,
+            author: photo.user?.name ?? null,
         })),
     };
 }

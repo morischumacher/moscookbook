@@ -15,11 +15,13 @@
     "check:search": "node scripts/check-search-writers.mjs",
     "check:contrast": "node scripts/check-contrast.mjs",
     "check:design": "node scripts/check-design.mjs",
+    "check:backup": "node scripts/check-backup.mjs",
     "fixtures": "node scripts/collect-import-fixtures.mjs",
     "reindex": "ts-node --transpile-only --project tests/tsconfig.json scripts/reindex-search.ts",
     "verify:search": "ts-node --transpile-only --project tests/tsconfig.json scripts/verify-search.ts",
     "test": "ts-node --transpile-only --project tests/tsconfig.json tests/run.ts",
     "backup": "node scripts/backup.mjs",
+    "sweep": "node scripts/sweep-blobs.mjs",
     "restore": "node scripts/restore.mjs"
   },
   "dependencies": {

@@ -32,7 +32,9 @@
     "pagination": "Seiten",
     "previousPage": "← Neuer",
     "nextPage": "Älter →",
-    "pageOf": "Seite {page} von {pages}"
+    "pageOf": "Seite {page} von {pages}",
+    "havePlaceholder": "Ich habe… z. B. Zucchini, Feta",
+    "haveLabel": "Zutaten, die du hast — ein Rezept muss alle davon verwenden"
   },
   "Categories": {
     "Breakfast": "Frühstück",
@@ -303,7 +305,9 @@
       "email": "E-Mail"
     },
     "duplicateLink": "Dieser Link steht schon im Kochbuch als",
-    "duplicateTitle": "Gibt es vielleicht schon:"
+    "duplicateTitle": "Gibt es vielleicht schon:",
+    "merge": "Zusammenführen",
+    "confirmMerge": "Mit „{title}\" zusammenführen? Der Text bleibt, wie er ist; ein neues Bild kommt dazu und dieser Eingang wird dem Rezept zugeordnet."
   },
   "Devices": {
     "title": "Geräte",
@@ -423,6 +427,22 @@
     "markdownHint": "Markdown: # für eine Überschrift, - für eine Liste, **fett**.",
     "publish": "Veröffentlichen",
     "savePublished": "Speichern",
-    "saveDraft": "Als Entwurf speichern"
+    "saveDraft": "Als Entwurf speichern",
+    "searchLabel": "Beiträge durchsuchen",
+    "searchPlaceholder": "Beiträge durchsuchen",
+    "noResults": "Zu „{search}\" ist nichts geschrieben.",
+    "alsoInBlog": "{count, plural, one {Ein Beitrag im Blog passt auch} other {# Beiträge im Blog passen auch}}"
+  },
+  "Cooked": {
+    "title": "Nachgekocht",
+    "add": "Foto hinzufügen",
+    "uploading": "Wird hochgeladen…",
+    "empty": "Noch kein Foto dabei. Mach das erste.",
+    "someone": "Jemand",
+    "remove": "Entfernen",
+    "confirmDelete": "Dieses Foto entfernen?",
+    "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
+    "captionPlaceholder": "Notiz hinzufügen…",
+    "captionLabel": "Notiz zu diesem Foto"
   }
 }

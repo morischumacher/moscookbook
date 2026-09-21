@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { slugify } from '@/lib/recipe';
 import { postInputSchema, formatPostError } from '@/lib/postSchema';
+import { postSearchFields } from '@/lib/searchText';
 
 /**
  * A slug nobody has taken yet.
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
                 title,
                 slug: await freeSlug(slug, title),
                 body,
+                ...postSearchFields({ title, body }),
                 imageUrl,
                 recipeId: recipeId ?? null,
                 authorId: auth.user.id,

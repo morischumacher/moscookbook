@@ -92,6 +92,35 @@ export default function AdminInboxPage() {
         }
     };
 
+    const merge = async (id: number, recipeId: number, title: string) => {
+        if (!window.confirm(t('confirmMerge', { title }))) return;
+
+        setBusyId(id);
+        setError('');
+
+        try {
+            const res = await fetch(`/api/capture/${id}/merge`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ recipeId }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                setError(data.message || tAdmin('genericError'));
+                return;
+            }
+
+            await load();
+            router.refresh();
+        } catch {
+            setError(tAdmin('genericError'));
+        } finally {
+            setBusyId(null);
+        }
+    };
+
     const discard = async (id: number) => {
         if (!window.confirm(t('confirmDiscard'))) return;
         setBusyId(id);
@@ -148,6 +177,16 @@ export default function AdminInboxPage() {
                             onPublish={() => act(capture.id, 'publish')}
                             onRetry={() => act(capture.id, 'retry')}
                             onDiscard={() => discard(capture.id)}
+                            onMerge={
+                                capture.duplicateOf
+                                    ? () =>
+                                          merge(
+                                              capture.id,
+                                              capture.duplicateOf!.id,
+                                              capture.duplicateOf!.title
+                                          )
+                                    : undefined
+                            }
                         />
                     ))}
                 </ul>
@@ -186,12 +225,15 @@ function CaptureRow({
     onPublish,
     onRetry,
     onDiscard,
+    onMerge,
 }: {
     capture: Capture;
     busy: boolean;
     onPublish: () => void;
     onRetry: () => void;
     onDiscard: () => void;
+    /** Only offered when the inbox thinks this is something we already have. */
+    onMerge?: () => void;
 }) {
     const t = useTranslations('Inbox');
 
@@ -232,6 +274,23 @@ function CaptureRow({
                     >
                         {capture.duplicateOf.title}
                     </Link>
+
+                    {/* Right next to the hint rather than down in the row of
+                        actions: this is the answer to the sentence above it,
+                        and it should read as one. */}
+                    {onMerge && (
+                        <>
+                            {' · '}
+                            <button
+                                type="button"
+                                onClick={onMerge}
+                                disabled={busy}
+                                className="font-medium underline underline-offset-4 disabled:opacity-50"
+                            >
+                                {t('merge')}
+                            </button>
+                        </>
+                    )}
                 </p>
             )}
 

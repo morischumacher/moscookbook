@@ -4,6 +4,8 @@ import { requireAdmin } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { slugify } from '@/lib/recipe';
 import { postInputSchema, formatPostError } from '@/lib/postSchema';
+import { postSearchFields } from '@/lib/searchText';
+import { deleteBlobs } from '@/lib/blobCleanup';
 
 async function postId(params: Promise<{ id: string }>): Promise<number | null> {
     const { id } = await params;
@@ -45,6 +47,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
                 title,
                 slug: slug || existing.slug || slugify(title),
                 body,
+                ...postSearchFields({ title, body }),
                 imageUrl,
                 recipeId: recipeId ?? null,
                 publishedAt,
@@ -77,7 +80,15 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     if (id === null) return NextResponse.json({ message: 'Invalid post ID' }, { status: 400 });
 
     try {
+        const doomed: { imageUrl: string | null } | null = await prisma.post.findUnique({
+            where: { id },
+            select: { imageUrl: true },
+        });
+
         await prisma.post.delete({ where: { id } });
+
+        if (doomed?.imageUrl) await deleteBlobs([doomed.imageUrl]);
+
         return NextResponse.json({ success: true });
     } catch (error) {
         // Already gone is the end state that was asked for.
