@@ -218,7 +218,8 @@
     "moveImageEarlier": "Bild {number} nach vorne",
     "moveImageLater": "Bild {number} nach hinten",
     "removeImageNumber": "Bild {number} entfernen",
-    "uploadTooLarge": "Dieses Bild ist auch verkleinert noch zu groß. Bitte ein kleineres wählen."
+    "uploadTooLarge": "Dieses Bild ist auch verkleinert noch zu groß. Bitte ein kleineres wählen.",
+    "servingsHint": "Schaltet den Portionsrechner frei."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
@@ -393,7 +394,10 @@
     "source": {
       "client": "Im Browser",
       "server": "Auf dem Server"
-    }
+    },
+    "loadFailed": "Die Fehlerliste konnte nicht geladen werden — diese Seite kann gerade nicht sagen, ob etwas kaputt ist.",
+    "resolveFailed": "Das konnte nicht als erledigt markiert werden.",
+    "retry": "Nochmal versuchen"
   },
   "ErrorPage": {
     "title": "Diese Seite hat nicht geladen.",

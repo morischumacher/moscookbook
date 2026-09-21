@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
+import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
 import { tokenFromHeader, hashCaptureToken } from '@/lib/capture';
@@ -89,9 +90,21 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Send a url, some text, or both.' }, { status: 400 });
     }
 
-    // Stored before anything is read out of it. A screenshot taken in a
-    // kitchen is the only copy of that moment; losing it to a parser having a
-    // bad day would be the one unforgivable failure in this pipeline.
+    /*
+     * Order matters here, and it was the wrong way round.
+     *
+     * The picture used to be written to the Blob store first and the body
+     * checked afterwards — so a capture with a screenshot and nothing else
+     * usable answered 400 with the file already written and nothing in the
+     * database pointing at it. The classifier needs no image to decide, so it
+     * decides first and the file is only paid for once there is somewhere for
+     * it to belong.
+     */
+    const classified = captureInputFrom(parsed.data);
+    if (!classified) {
+        return NextResponse.json({ message: 'Nothing usable was sent.' }, { status: 400 });
+    }
+
     let imageUrl: string | undefined;
 
     if (parsed.data.image) {
@@ -110,65 +123,108 @@ export async function POST(req: NextRequest) {
         imageUrl = stored.url;
     }
 
-    // Everything between a valid body and a row lives in captureInputFrom, so
-    // that each channel can be driven end to end in a test — see
-    // tests/channels.test.ts.
-    const classified = captureInputFrom({ ...parsed.data, imageUrl });
-    if (!classified) {
-        return NextResponse.json({ message: 'Nothing usable was sent.' }, { status: 400 });
-    }
-
     // Step one: make it durable. Everything after this point may fail without
     // losing what was shared.
-    const capture = await prisma.capture.create({
-        data: {
-            kind: classified.kind,
-            source: classified.source,
-            sourceUrl: classified.sourceUrl,
-            rawText: classified.rawText,
-            note: classified.note,
-            imageUrl: classified.imageUrl,
-            status: 'new',
-        },
-        select: { id: true },
-    });
+    let capture: { id: number };
 
-    await prisma.captureToken.update({
-        where: { id: record.id },
-        data: { lastUsedAt: new Date() },
-    });
+    try {
+        capture = await prisma.capture.create({
+            data: {
+                kind: classified.kind,
+                source: classified.source,
+                sourceUrl: classified.sourceUrl,
+                rawText: classified.rawText,
+                note: classified.note,
+                imageUrl: imageUrl ?? classified.imageUrl,
+                status: 'new',
+            },
+            select: { id: true },
+        });
+    } catch (error) {
+        /*
+         * This is the failure the comment above calls unforgivable, and until
+         * now it was also unhandled: the screenshot was already in the store,
+         * the row never appeared, and the Shortcut got an HTML 500 with no
+         * reason in it. The file goes with the failure rather than being left
+         * behind, and the answer says what happened.
+         */
+        if (imageUrl) await deleteBlobs([imageUrl]);
+
+        console.error('Capture could not be stored:', error);
+        return NextResponse.json(
+            { message: 'The capture could not be saved. Nothing was kept — please send it again.' },
+            { status: 500 }
+        );
+    }
+
+    // updateMany, not update: a token revoked and deleted between the lookup
+    // above and here threw P2025 and failed a capture that had already been
+    // saved successfully. Whether the stamp lands is not worth that.
+    await prisma.captureToken
+        .updateMany({ where: { id: record.id }, data: { lastUsedAt: new Date() } })
+        .catch(() => undefined);
 
     // Step two: try to read it, here and now, so that the common case is
     // already sorted by the time the inbox is next opened. A failure is
     // recorded on the capture, not returned as an error — the capture itself
     // succeeded.
-    const result = await processCapture(classified);
+    /*
+     * Wrapped, because the row already exists and the person has already been
+     * told nothing by then. A site that will not load, an image host that
+     * hangs, a page that parses into something unexpected — none of those may
+     * turn a capture that *was* saved into a 500 that says it was not. The
+     * failure is recorded on the capture, which is what the inbox's "retry" is
+     * for.
+     */
+    let status = 'failed';
+    let title = '';
 
-    // Foreign image hosts are rejected by next/image, so the picture is copied
-    // into our own store rather than kept as a link that will not render.
-    const draft =
-        result.draft && result.draft.imageUrl
-            ? { ...result.draft, imageUrl: await mirrorImageToBlob(result.draft.imageUrl) }
-            : result.draft;
+    try {
+        const result = await processCapture(classified);
 
-    await prisma.capture.update({
-        where: { id: capture.id },
-        data: {
-            status: result.status,
-            error: result.error,
-            // Widened before storing: see src/lib/json.ts, and
-            // tests/prismaJsonCompat.ts for why the compiler insists.
-            draft: draft ? toJsonObject(draft) : undefined,
-            imageUrl: draft?.imageUrl || null,
-            processedAt: new Date(),
-        },
-    });
+        // Foreign image hosts are rejected by next/image, so the picture is
+        // copied into our own store rather than kept as a link that will not
+        // render.
+        const draft =
+            result.draft && result.draft.imageUrl
+                ? { ...result.draft, imageUrl: await mirrorImageToBlob(result.draft.imageUrl) }
+                : result.draft;
+
+        status = result.status;
+        title = draft?.title ?? '';
+
+        await prisma.capture.update({
+            where: { id: capture.id },
+            data: {
+                status: result.status,
+                error: result.error,
+                // Widened before storing: see src/lib/json.ts, and
+                // tests/prismaJsonCompat.ts for why the compiler insists.
+                draft: draft ? toJsonObject(draft) : undefined,
+                imageUrl: draft?.imageUrl || imageUrl || null,
+                processedAt: new Date(),
+            },
+        });
+    } catch (error) {
+        console.error('Capture was saved but could not be read:', error);
+
+        await prisma.capture
+            .updateMany({
+                where: { id: capture.id },
+                data: {
+                    status: 'failed',
+                    error: error instanceof Error ? error.message.slice(0, 500) : 'unknown',
+                    processedAt: new Date(),
+                },
+            })
+            .catch(() => undefined);
+    }
 
     return NextResponse.json(
         {
             id: capture.id,
-            status: result.status,
-            title: draft?.title ?? '',
+            status,
+            title,
             // No prose here: this answer is read by a Shortcut, which has no
             // locale to pick from. The Shortcut builds its own notification
             // out of `status` and `title`.

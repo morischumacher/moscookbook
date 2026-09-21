@@ -14,7 +14,10 @@
 
 .button:hover:not(:disabled) {
     color: var(--color-fg);
-    background-color: var(--color-bg-hover);
+    /* --color-bg-hover was never defined anywhere, so this line did nothing
+       for as long as it has existed and the heart had no hover fill at all.
+       --color-surface is the token for exactly this: a barely-there fill. */
+    background-color: var(--color-surface);
     transform: scale(1.1);
 }
 

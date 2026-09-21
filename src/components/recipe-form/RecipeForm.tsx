@@ -457,6 +457,16 @@ export default function RecipeForm({
     const [preview, setPreview] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+
+    /**
+     * Where the error is, so the page can be moved to it.
+     *
+     * The banner sits above the form and the save button is about seven
+     * hundred pixels below it. On a phone that meant pressing Save and having
+     * nothing whatsoever change: the reason was on screen, just not on the
+     * part of the screen anybody was looking at.
+     */
+    const errorBox = useRef<HTMLDivElement>(null);
     const [draftFound, setDraftFound] = useState(false);
 
     const draftKey = mode === 'create' ? 'moscookbook:draft:new' : `moscookbook:draft:${initial?.id}`;
@@ -564,6 +574,23 @@ export default function RecipeForm({
         return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
     };
 
+    /**
+     * Shows the person the thing that just went wrong.
+     *
+     * Called from everywhere an error is set, rather than from an effect on
+     * `error`: the same message twice in a row would not change the state and
+     * so would not scroll, and the second failure is exactly when somebody is
+     * most confused about why nothing is happening.
+     */
+    const failWith = (message: string) => {
+        setError(message);
+
+        // After the render that puts the banner on the page.
+        requestAnimationFrame(() => {
+            errorBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    };
+
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         setError('');
@@ -571,7 +598,7 @@ export default function RecipeForm({
         const cleanedIngredients = ingredients.filter((row) => row.item.trim() !== '');
 
         if (!title.trim() || !instructions.trim()) {
-            setError(t('requiredFields'));
+            failWith(t('requiredFields'));
             return;
         }
 
@@ -599,7 +626,7 @@ export default function RecipeForm({
 
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                setError(data.message || t('saveFailed'));
+                failWith(data.message || t('saveFailed'));
                 return;
             }
 
@@ -607,7 +634,7 @@ export default function RecipeForm({
             router.push(captureId ? '/admin/inbox' : '/admin');
             router.refresh();
         } catch {
-            setError(t('saveFailed'));
+            failWith(t('saveFailed'));
         } finally {
             setSaving(false);
         }
@@ -634,9 +661,17 @@ export default function RecipeForm({
             {mode === 'create' && <QuickImport aiEnabled={aiEnabled} onImport={applyImport} />}
 
             {error && (
-                <p className="mb-6 rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
+                <div
+                    ref={errorBox}
+                    // Announced as well as scrolled to: somebody using a screen
+                    // reader is not helped by the page moving.
+                    role="alert"
+                    // -mt-2 scroll-mt-24 keeps it clear of the sticky bar when
+                    // it is scrolled into view.
+                    className="mb-6 scroll-mt-24 rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger"
+                >
                     {error}
-                </p>
+                </div>
             )}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-8">
@@ -742,9 +777,7 @@ export default function RecipeForm({
                             placeholder="4"
                             className={fieldClass}
                         />
-                        <p className="mt-1 text-xs text-muted">
-                            Schaltet den Portionsrechner frei.
-                        </p>
+                        <p className="mt-1 text-xs text-muted">{t('servingsHint')}</p>
                     </div>
                     <div>
                         <label htmlFor="prepMinutes" className={labelClass}>{t('prepMinutes')}</label>
@@ -774,7 +807,14 @@ export default function RecipeForm({
                     </div>
                 </div>
 
-                <GalleryField imageUrls={imageUrls} onChange={setImageUrls} onError={setError} />
+                {/* failWith rather than setError: an upload that fails from
+                    the drop zone reports itself in the same banner, which is
+                    just as far off screen. */}
+                <GalleryField
+                    imageUrls={imageUrls}
+                    onChange={setImageUrls}
+                    onError={(message) => (message ? failWith(message) : setError(''))}
+                />
 
                 <IngredientEditor ingredients={ingredients} onChange={setIngredients} />
 

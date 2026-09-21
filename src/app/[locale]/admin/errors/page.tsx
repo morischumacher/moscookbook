@@ -31,28 +31,47 @@ export default function AdminErrorsPage() {
 
     const [errors, setErrors] = useState<ErrorRow[]>([]);
     const [loading, setLoading] = useState(true);
+    /**
+     * This page had no error state at all, on the one page whose job is to
+     * tell you when things break. A 500 from /api/errors left the list empty,
+     * loading went false, and it rendered "all quiet" — the most misleading
+     * sentence it could possibly have shown.
+     */
+    const [error, setError] = useState('');
     const [showResolved, setShowResolved] = useState(false);
     const [expanded, setExpanded] = useState<number | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
+        setError('');
+
         try {
             const res = await fetch(`/api/errors?resolved=${showResolved}`);
-            if (!res.ok) return;
+            if (!res.ok) throw new Error(t('loadFailed'));
             const data = await res.json();
             setErrors(data.errors);
+        } catch (err) {
+            setErrors([]);
+            setError(err instanceof Error ? err.message : t('loadFailed'));
         } finally {
             setLoading(false);
         }
-    }, [showResolved]);
+    }, [showResolved, t]);
 
     useEffect(() => {
         load();
     }, [load]);
 
     const resolve = async (id: number) => {
-        await fetch(`/api/errors/${id}`, { method: 'POST' });
-        setErrors((current) => current.filter((row) => row.id !== id));
+        // The row used to vanish whatever happened, so an expired session
+        // looked exactly like a successful resolve until the next reload.
+        try {
+            const res = await fetch(`/api/errors/${id}`, { method: 'POST' });
+            if (!res.ok) throw new Error(t('resolveFailed'));
+            setErrors((current) => current.filter((row) => row.id !== id));
+        } catch (err) {
+            setError(err instanceof Error ? err.message : t('resolveFailed'));
+        }
     };
 
     return (
@@ -73,9 +92,27 @@ export default function AdminErrorsPage() {
                 {showResolved ? t('showOpen') : t('showResolved')}
             </button>
 
+            {/* Before the list, and instead of it: "all quiet" must never be
+                shown when the truth is "could not ask". */}
+            {error && (
+                <div
+                    role="alert"
+                    className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger-line bg-danger-surface p-3"
+                >
+                    <p className="text-sm text-danger">{error}</p>
+                    <button
+                        type="button"
+                        onClick={load}
+                        className="text-sm font-medium text-danger underline underline-offset-4"
+                    >
+                        {t('retry')}
+                    </button>
+                </div>
+            )}
+
             {loading ? (
                 <p className="text-muted">{t('loading')}</p>
-            ) : errors.length === 0 ? (
+            ) : error ? null : errors.length === 0 ? (
                 <p className="border-t border-line py-16 text-center text-muted">
                     {showResolved ? t('noneResolved') : t('allQuiet')}
                 </p>

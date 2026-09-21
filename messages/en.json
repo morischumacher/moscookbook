@@ -218,7 +218,8 @@
     "moveImageEarlier": "Move picture {number} earlier",
     "moveImageLater": "Move picture {number} later",
     "removeImageNumber": "Remove picture {number}",
-    "uploadTooLarge": "That picture is too large to send, even after shrinking it. Try a smaller one."
+    "uploadTooLarge": "That picture is too large to send, even after shrinking it. Try a smaller one.",
+    "servingsHint": "Unlocks the servings calculator."
   },
   "QuickImport": {
     "heading": "Fill in quickly",
@@ -393,7 +394,10 @@
     "source": {
       "client": "In the browser",
       "server": "On the server"
-    }
+    },
+    "loadFailed": "The error list could not be loaded, so this page cannot say whether anything is wrong.",
+    "resolveFailed": "That could not be marked as handled.",
+    "retry": "Try again"
   },
   "ErrorPage": {
     "title": "This page did not load.",
