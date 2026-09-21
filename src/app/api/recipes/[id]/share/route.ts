@@ -39,13 +39,46 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
         if (!recipe) return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
 
-        // Asking twice gives the same link back rather than a second one. Two
-        // live links to the same recipe would mean revoking is a thing you can
-        // do incompletely without being told.
-        const token = recipe.shareToken ?? generateShareToken();
+        /*
+         * Asking twice gives the same link back rather than a second one. Two
+         * live links to the same recipe would mean revoking is a thing you can
+         * do incompletely without being told.
+         *
+         * Which is what the read-then-write above used to allow. Two requests
+         * both saw `shareToken: null`, both minted one, and the second `update`
+         * overwrote the first — so the caller who had already been handed a URL
+         * held one that now leads nowhere. Two taps on a phone is enough: the
+         * share button asks for a link the moment it is pressed, and the
+         * disabled state only exists after the first render that follows.
+         *
+         * updateMany with `shareToken: null` in the WHERE clause is the
+         * conditional write that settles it: exactly one caller gets
+         * count === 1, and everybody else re-reads what that one wrote.
+         */
+        let token = recipe.shareToken;
 
-        if (!recipe.shareToken) {
-            await prisma.recipe.update({ where: { id }, data: { shareToken: token } });
+        if (!token) {
+            const minted = generateShareToken();
+            const claimed = await prisma.recipe.updateMany({
+                where: { id, shareToken: null },
+                data: { shareToken: minted },
+            });
+
+            if (claimed.count === 1) {
+                token = minted;
+            } else {
+                // Somebody else won. Their token is the one that exists.
+                const fresh: { shareToken: string | null } | null =
+                    await prisma.recipe.findUnique({
+                        where: { id },
+                        select: { shareToken: true },
+                    });
+                token = fresh?.shareToken ?? null;
+            }
+        }
+
+        if (!token) {
+            return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
         }
 
         return NextResponse.json({

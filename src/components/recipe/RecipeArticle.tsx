@@ -8,9 +8,13 @@ import Gallery from '@/components/recipe/Gallery';
 import ShareLink from '@/components/recipe/ShareLink';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import CookedPhotos, { type CookedPhoto } from '@/components/recipe/CookedPhotos';
+import CookLog, { type CookLogEntry } from '@/components/recipe/CookLog';
+import SimilarRecipes from '@/components/recipe/SimilarRecipes';
+import type { SimilarRecipe } from '@/lib/similarRecipes';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
 import { formatMinutes } from '@/lib/amount';
 import { buildRecipeJsonLd } from '@/lib/recipeJsonLd';
+import { formatDate } from '@/lib/formatDate';
 
 export interface RecipeRow {
     id: number;
@@ -26,6 +30,13 @@ export interface RecipeRow {
     cookMinutes: number | null;
     createdAt: Date;
     shareToken: string | null;
+    /**
+     * The recipe's own searchable wording. Not shown anywhere — it is what
+     * "recipes like this one" is computed from, and it comes with the row
+     * that is already being read rather than costing a second query.
+     */
+    searchTitle: string;
+    searchBody: string;
     images: { url: string }[];
     ratings: { value: number; userId: number }[];
     ingredients: StructuredIngredient[];
@@ -70,6 +81,17 @@ export interface RecipeArticleProps {
     cooked: CookedPhoto[];
     /** Whose pictures are whose. Null for a reader with no account. */
     currentUserId: number | null;
+    /**
+     * Four recipes like this one. Empty on the shared page: somebody holding a
+     * link to one recipe was given that recipe, not a way into the rest of a
+     * private cookbook.
+     */
+    similar: SimilarRecipe[];
+    /**
+     * Who cooked this and when. Empty on the shared page, for the same reason
+     * the notes are: a kitchen diary is not part of a link you send somebody.
+     */
+    cookLog: CookLogEntry[];
 }
 
 export default async function RecipeArticle({
@@ -86,6 +108,8 @@ export default async function RecipeArticle({
     notes,
     cooked,
     currentUserId,
+    similar,
+    cookLog,
 }: RecipeArticleProps) {
     const t = await getTranslations('Recipe');
     const tCategory = await getTranslations('Categories');
@@ -119,11 +143,6 @@ export default async function RecipeArticle({
         recipe.servings ? { label: t('servings'), value: String(recipe.servings) } : null,
     ].filter((entry): entry is { label: string; value: string } => entry !== null);
 
-    const dateFormatter = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    });
 
     return (
         <article className="min-h-screen w-full bg-page pb-32">
@@ -176,7 +195,7 @@ export default async function RecipeArticle({
 
                 <p className="text-xs font-semibold uppercase tracking-widest text-faint">
                     {[categoryLabel, cuisineLabel].filter(Boolean).join(' · ') ||
-                        dateFormatter.format(recipe.createdAt)}
+                        formatDate(recipe.createdAt, locale, 'short')}
                 </p>
 
                 <h1 className="mt-2 text-3xl font-extrabold leading-[1.12] tracking-tight text-ink sm:text-4xl">
@@ -257,6 +276,7 @@ export default async function RecipeArticle({
 
             <div className="container mx-auto max-w-2xl px-4 font-serif sm:px-8">
                 <RecipeBody
+                    recipeId={recipe.id}
                     ingredients={recipe.ingredients}
                     instructions={recipe.instructions}
                     baseServings={recipe.servings}
@@ -276,6 +296,16 @@ export default async function RecipeArticle({
 
                 {mode === 'private' && (
                     <>
+                        {/* Before the pictures: the fact comes first and the
+                            photograph is the thing you sometimes also took. */}
+                        <CookLog
+                            recipeId={recipe.id}
+                            entries={cookLog}
+                            canLog={isLoggedIn}
+                            currentUserId={currentUserId}
+                            locale={locale}
+                        />
+
                         <CookedPhotos
                             recipeId={recipe.id}
                             photos={cooked}
@@ -291,6 +321,8 @@ export default async function RecipeArticle({
                             isAdmin={isAdmin}
                             locale={locale}
                         />
+
+                        <SimilarRecipes recipes={similar} />
                     </>
                 )}
             </div>

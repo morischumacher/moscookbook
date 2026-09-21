@@ -105,6 +105,10 @@ export default async function SharedRecipePage({
                 // Somebody who put a photograph into a private cookbook did not
                 // agree to it travelling out of it on a link.
                 cooked={[]}
+            // Empty on purpose: somebody holding a link to one recipe was given
+            // that recipe, not a way into the rest of a private cookbook.
+            similar={[]}
+            cookLog={[]}
                 currentUserId={null}
                 locale={locale}
                 mode="shared"

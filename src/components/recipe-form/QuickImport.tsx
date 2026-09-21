@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { parseRecipeText } from '@/lib/recipeParser';
 import type { Ingredient } from '@/lib/recipe';
+import { buttonPrimarySmall } from '@/lib/ui';
 
 export interface ImportedDraft {
     title: string;
@@ -173,18 +174,27 @@ export default function QuickImport({
                 {t('heading')}
             </h2>
 
-            <div className="flex flex-wrap gap-2 mb-4" role="tablist">
+            {/*
+                These were marked up as ARIA tabs — role="tablist", role="tab",
+                aria-selected — with no tabpanel, no aria-controls, no ids and
+                no arrow-key handling. A screen reader announced "tab 1 of 3"
+                and then the arrow keys did nothing, which is worse than having
+                no roles at all: the promise was made and then broken.
+                
+                They are not tabs. They are three buttons that pick a mode, and
+                `aria-pressed` says exactly that with nothing left to implement.
+            */}
+            <div className="flex flex-wrap gap-2 mb-4">
                 {modes.map((entry) => (
                     <button
                         key={entry.id}
                         type="button"
-                        role="tab"
-                        aria-selected={mode === entry.id}
+                        aria-pressed={mode === entry.id}
                         onClick={() => {
                             setMode(entry.id);
                             reset();
                         }}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${mode === entry.id
+                        className={`flex min-h-11 items-center rounded-full px-4 text-sm font-medium transition-colors ${mode === entry.id
                             ? 'bg-ink text-page'
                             : 'border border-line hover:border-ink'
                             }`}
@@ -208,7 +218,7 @@ export default function QuickImport({
                             type="button"
                             onClick={handlePaste}
                             disabled={busy}
-                            className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-page disabled:opacity-50"
+                            className={buttonPrimarySmall}
                         >
                             {busy ? t('reading') : t('apply')}
                         </button>
@@ -247,7 +257,7 @@ export default function QuickImport({
                         type="button"
                         onClick={handleLink}
                         disabled={busy}
-                        className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-page disabled:opacity-50"
+                        className={buttonPrimarySmall}
                     >
                         {busy ? t('loading') : t('import')}
                     </button>

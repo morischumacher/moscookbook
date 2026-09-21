@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { destinationFrom } from '@/lib/loginDestination';
 import { goAfterAuth } from '@/lib/afterAuth';
+import { buttonPrimary } from '@/lib/ui';
 
 const fieldClass =
     'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
@@ -88,7 +89,7 @@ function LoginForm() {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="rounded-full bg-ink px-6 py-3 font-medium text-page disabled:opacity-50"
+                    className={buttonPrimary}
                 >
                     {t('submitLogin')}
                 </button>

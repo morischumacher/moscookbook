@@ -28,6 +28,7 @@ model User {
   tokens         AuthToken[]
   posts          Post[]
   cookPhotos     CookPhoto[]
+  cookLogs       CookLog[]
   ratings        Rating[]
   favorites      Favorite[]
   invitesCreated Invite[]   @relation("InviteCreatedBy")
@@ -108,6 +109,10 @@ model Capture {
   processedAt DateTime?
 
   @@index([status, createdAt])
+
+  /// Postgres does not index the referencing side of a foreign key, so
+  /// deleting a recipe scanned this table to find the captures pointing at it.
+  @@index([recipeId])
 }
 
 /// A long-lived key that lets one device — an iOS Shortcut, a mail bridge —
@@ -217,6 +222,10 @@ model CookPhoto {
   createdAt DateTime @default(now())
 
   @@index([recipeId, createdAt])
+
+  /// Deleting a person sets their photographs' userId to null, which without
+  /// this is a scan of every cooked photo on the site.
+  @@index([userId])
 }
 
 model Recipe {
@@ -258,6 +267,22 @@ model Recipe {
   captures       Capture[]
   posts          Post[]
   cookPhotos     CookPhoto[]
+  cookLogs       CookLog[]
+  collections    CollectionRecipe[]
+
+  /// This table had no index at all beyond the two unique columns and the
+  /// search vector, while being the table everything sorts and groups by.
+  ///
+  /// `createdAt` is the default order of the whole site — the front page, the
+  /// admin list, the export, the backup — so every visit sorted the table.
+  /// `views` is the "popular" order. `category` and `nationality` are grouped
+  /// on *unconditionally* on every front-page render, to build the filter
+  /// rails, whether or not anybody filtered: two full scans guaranteed, per
+  /// request, forever.
+  @@index([createdAt])
+  @@index([views])
+  @@index([category])
+  @@index([nationality])
 }
 
 /// One ingredient line, split into the parts a cook actually uses.
@@ -282,6 +307,14 @@ model Ingredient {
   raw         String  @default("")
 
   @@unique([recipeId, position])
+
+  /// A B-tree on the name, for exact and prefix lookups.
+  ///
+  /// It cannot serve "what can I make with what I have", which asks
+  /// `ILIKE '%zwiebel%'` — a pattern starting with a wildcard. That needs a
+  /// trigram index, which Prisma has no syntax for, so it is created in
+  /// migration 0012 and lives only there. Measured: sequential scan of 32,000
+  /// rows before, bitmap index scan after.
   @@index([name])
 }
 
@@ -308,6 +341,11 @@ model Rating {
   createdAt DateTime @default(now())
 
   @@unique([userId, recipeId])
+
+  /// The unique index above leads with userId, so it cannot serve a lookup by
+  /// recipe — and every rating-sorted page, every average, and the cascade
+  /// behind every recipe deletion is a lookup by recipe.
+  @@index([recipeId])
 }
 
 model Favorite {
@@ -319,4 +357,114 @@ model Favorite {
   createdAt DateTime @default(now())
 
   @@unique([userId, recipeId])
+
+  /// Same reason as Rating: deleting a recipe cascades through this table, and
+  /// without recipeId leading, that is a sequential scan every time.
+  @@index([recipeId])
+}
+
+/// One window of one rate limit.
+///
+/// The limiter used to be a Map inside the process. On Vercel a process is one
+/// warm instance among however many the platform started, so "ten attempts per
+/// fifteen minutes" meant ten times the number of instances, and a cold start
+/// reset it to zero — which is no limit on password guessing at all.
+///
+/// A row, incremented by the same statement that reads it, so every instance
+/// counts into the same window. Used for the things where the limit is a
+/// security property; the view counter keeps the in-process one, because a
+/// database write to ration a database write is a strange trade.
+model RateLimit {
+  /// What is being limited, and for whom: "login:203.0.113.4".
+  key       String   @id
+  count     Int      @default(0)
+  /// When this window closes. Rows past it are reused in place, and swept.
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+/// "I cooked this", with what you would do differently.
+///
+/// Two ideas that turned out to be one. "When did I last make this" and "note
+/// to self: half the chilli next time" are the same moment — you cook it, and
+/// what you learned is worth a line. Two features would have meant two buttons
+/// and two lists for one act.
+///
+/// Separate from CookPhoto, which is the picture: a photograph is a thing you
+/// took and this is a thing that happened, and most cooking produces the second
+/// without the first.
+///
+/// The note is optional and added afterwards, like a photograph's caption, so
+/// that recording the cooking is one tap and nothing else.
+model CookLog {
+  id       Int      @id @default(autoincrement())
+
+  recipeId Int
+  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  /// Whose log this is. Cascades, unlike a photograph's author: a picture on a
+  /// shared wall outlives the account that put it there, a private note about
+  /// what to change next time does not.
+  userId   Int
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  cookedAt DateTime @default(now())
+  /// Short on purpose. A paragraph about a recipe is an entry on the blog.
+  note     String?
+
+  /// "When was this last cooked", which is a lookup by recipe, newest first —
+  /// and the home page's "not made in a while" order.
+  @@index([recipeId, cookedAt])
+  /// One person's own cooking, newest first.
+  @@index([userId, cookedAt])
+}
+
+/// A handful of recipes with a name on it: "Weihnachten", "Schnell nach der
+/// Arbeit", "Für Tante Elfi".
+///
+/// Not a second category system. A category says what a dish *is* and there is
+/// one right answer; a collection says what a group of dishes is *for*, and a
+/// recipe belongs to as many as somebody finds useful. That is the whole reason
+/// this is a separate table rather than another column.
+///
+/// Shareable by the same token as a single recipe, and revoked the same way —
+/// which is most of why it is worth building: "here is the Christmas menu" is a
+/// thing people actually want to send.
+model Collection {
+  id          Int      @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  /// One line, shown under the title. Optional.
+  description String?
+
+  /// The public link, or null. Same mechanism as a recipe's, deliberately:
+  /// one way of making something public is one way of taking it back.
+  shareToken  String?  @unique
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  recipes     CollectionRecipe[]
+
+  @@index([createdAt])
+}
+
+/// One recipe in one collection, in the order somebody arranged.
+///
+/// A join table with a position, not an implicit many-to-many: the order of a
+/// menu is the point of a menu, and an implicit relation has no room to keep it.
+model CollectionRecipe {
+  collectionId Int
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  recipeId     Int
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  position     Int
+
+  @@id([collectionId, recipeId])
+  @@index([collectionId, position])
+  /// Deleting a recipe cascades through here; without this that is a scan.
+  @@index([recipeId])
 }

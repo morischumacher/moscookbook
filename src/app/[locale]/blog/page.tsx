@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { excerptOf } from '@/lib/postSchema';
 import { buildTsQuery } from '@/lib/searchText';
+import { formatDate } from '@/lib/formatDate';
 
 export const metadata: Metadata = {
     robots: { index: false, follow: false },
@@ -65,6 +66,10 @@ export default async function BlogIndex({
                 WHERE "searchVector" @@ to_tsquery('german', ${tsquery})
                 ORDER BY ts_rank("searchVector", to_tsquery('german', ${tsquery})) DESC,
                          "createdAt" DESC
+                -- Bounded for the same reason as the recipe search: these ids
+                -- become an IN list, and an unbounded one is a query that gets
+                -- slower for the person who searched for a common word.
+                LIMIT 300
             `;
             matchedIds = ranked.map((row) => row.id);
         }
@@ -98,16 +103,11 @@ export default async function BlogIndex({
         posts.sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
     }
 
-    const dateFormatter = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
 
     return (
         <main className="container mx-auto max-w-2xl px-4 pb-32 sm:px-8">
             <header className="border-b border-line pb-6 pt-12 sm:pt-16">
-                <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">{t('title')}</h1>
+                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
                 <p className="mt-3 font-serif text-lg leading-relaxed text-muted">{t('intro')}</p>
 
                 <form action="" className="mt-6 flex items-center gap-3 border-b border-line pb-2">
@@ -155,7 +155,7 @@ export default async function BlogIndex({
                             >
                                 <div className="flex min-w-0 flex-1 flex-col">
                                     <p className="mb-2 flex flex-wrap items-center gap-x-2 text-xs font-semibold uppercase tracking-widest text-muted">
-                                        <span>{dateFormatter.format(post.publishedAt ?? post.createdAt)}</span>
+                                        <span>{formatDate(post.publishedAt ?? post.createdAt, locale)}</span>
                                         {post.publishedAt === null && <span>• {t('draft')}</span>}
                                         {post.recipe && <span>• {post.recipe.title}</span>}
                                     </p>

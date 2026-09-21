@@ -21,13 +21,13 @@ export function generateShareToken(): string {
     return randomBytes(16).toString('base64url');
 }
 
-export type ShareKind = 'recipe' | 'post';
+export type ShareKind = 'recipe' | 'post' | 'collection';
 
 /**
  * One letter each, because these addresses get typed and read aloud.
- * `/de/r/<token>` and `/de/p/<token>`.
+ * `/de/r/<token>`, `/de/p/<token>`, `/de/c/<token>`.
  */
-const SEGMENT: Record<ShareKind, string> = { recipe: 'r', post: 'p' };
+const SEGMENT: Record<ShareKind, string> = { recipe: 'r', post: 'p', collection: 'c' };
 
 /**
  * The address to hand out. Built in one place so the API, the page and the

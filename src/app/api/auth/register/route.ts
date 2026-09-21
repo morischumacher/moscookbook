@@ -4,7 +4,8 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { sessionOptions, SessionData } from '@/lib/session';
-import { rateLimit, clientKey } from '@/lib/rateLimit';
+import { clientKey } from '@/lib/rateLimit';
+import { rateLimitShared } from '@/lib/rateLimitShared';
 import prisma from '@/lib/prisma';
 import { fullName } from '@/lib/personName';
 import { issueToken } from '@/lib/issueToken';
@@ -19,7 +20,7 @@ const registerSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-    const limit = rateLimit(clientKey(req, 'register'), 5, 60 * 60 * 1000);
+    const limit = await rateLimitShared(clientKey(req, 'register'), 5, 60 * 60 * 1000);
 
     if (!limit.ok) {
         return NextResponse.json(
@@ -54,7 +55,21 @@ export async function POST(req: NextRequest) {
         );
     }
 
+    /**
+     * Give the invitation back — but only while giving it back is still true.
+     *
+     * Once the account exists, the invitation has done its job and releasing it
+     * would be a lie with consequences: `inviteState` would call the link valid
+     * again, a second person could redeem it, and the first account would be
+     * sitting there able to sign in. That was reachable, because this used to
+     * run from the catch for *every* failure, including the ones after the user
+     * row was written — a pool timeout while saving the session was enough.
+     */
+    let accountExists = false;
+
     const releaseInvite = async () => {
+        if (accountExists) return;
+
         await prisma.invite
             .updateMany({ where: { code: invite }, data: { usedAt: null } })
             .catch(() => undefined);
@@ -83,6 +98,9 @@ export async function POST(req: NextRequest) {
                 admin: false, // Admin rights are only ever granted by another admin.
             },
         });
+
+        // From here on the invitation stays burned whatever happens next.
+        accountExists = true;
 
         await prisma.invite.updateMany({
             where: { code: invite },

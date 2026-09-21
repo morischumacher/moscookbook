@@ -1,10 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { captureLabel } from '@/lib/capture';
 import { useConfirm } from '@/components/ui/useConfirm';
+import { formatDate } from '@/lib/formatDate';
+import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
 
 interface DraftSummary {
     title?: string;
@@ -153,8 +155,8 @@ export default function AdminInboxPage() {
     const done = captures.filter((capture) => capture.status === 'published');
 
     return (
-        <main className="container mx-auto max-w-3xl px-4 pb-32 pt-10 sm:px-8">
-            <div className="mb-8 flex flex-wrap items-baseline justify-between gap-4 border-b border-line pb-6">
+        <main className={`${pageContainer} pb-32`}>
+            <div className={`mb-8 flex flex-wrap items-baseline justify-between gap-4 ${pageTop} ${pageHeading}`}>
                 <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
                 <Link href="/admin/devices" className="text-sm underline underline-offset-4">
                     {t('devices')}
@@ -244,6 +246,11 @@ function CaptureRow({
     onMerge?: () => void;
 }) {
     const t = useTranslations('Inbox');
+    // The site's language, not the browser's: this page used
+    // toLocaleDateString() with no argument, so a German reader on an
+    // English-language phone saw 9/21/2026 here and 21. September 2026 on
+    // the blog, in one visit.
+    const locale = useLocale();
 
     const label = capture.draft?.title || captureLabel(capture) || t('untitled');
     const ingredientCount = capture.draft?.ingredients?.length ?? 0;
@@ -259,7 +266,7 @@ function CaptureRow({
                 <StatusBadge status={capture.status} />
                 <span aria-hidden="true">·</span>
                 <time dateTime={capture.createdAt}>
-                    {new Date(capture.createdAt).toLocaleDateString()}
+                    {formatDate(capture.createdAt, locale, 'short')}
                 </time>
             </div>
 

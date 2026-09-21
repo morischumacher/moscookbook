@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { requireUser } from '@/lib/auth';
-import { rateLimit } from '@/lib/rateLimit';
+import { rateLimitShared } from '@/lib/rateLimitShared';
 import { issueToken } from '@/lib/issueToken';
 
 const schema = z.object({
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const auth = await requireUser();
     if ('response' in auth) return auth.response;
 
-    const limit = rateLimit(`resend:${auth.user.id}`, 3, 60 * 60 * 1000);
+    const limit = await rateLimitShared(`resend:${auth.user.id}`, 3, 60 * 60 * 1000);
 
     if (!limit.ok) {
         return NextResponse.json(

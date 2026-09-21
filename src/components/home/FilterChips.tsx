@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
@@ -16,6 +16,14 @@ export interface FacetValue {
  * The old filter bar offered a fixed list — categories nobody had used were
  * shown, hand-typed ones were missing. These come from the data, so the filters
  * can never point at an empty result.
+ *
+ * Every control here re-runs the page on the server, and until now that
+ * happened in complete silence: you typed on a phone on mobile data, and for a
+ * second or more nothing on the screen changed at all — the old results sat
+ * there looking like the answer. Each navigation is a transition now, and while
+ * one is in flight a hairline runs under the navigation and the chips go quiet.
+ * Not a spinner over the results: the old ones are still true until the new
+ * ones arrive, and hiding them would be a worse lie than leaving them.
  */
 export default function FilterChips({
     categories,
@@ -35,6 +43,10 @@ export default function FilterChips({
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+
+    // `isPending` is true from the moment a navigation starts until the server
+    // has sent the new page — which is exactly the window that was silent.
+    const [isPending, startTransition] = useTransition();
 
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') ?? '');
     const [haveTerm, setHaveTerm] = useState(searchParams.get('have') ?? '');
@@ -56,7 +68,7 @@ export default function FilterChips({
 
             if (searchTerm) params.set('search', searchTerm);
             else params.delete('search');
-            router.replace(`${pathname}?${params.toString()}`);
+            startTransition(() => router.replace(`${pathname}?${params.toString()}`));
         }, 300);
 
         return () => clearTimeout(timer);
@@ -72,7 +84,7 @@ export default function FilterChips({
 
             if (haveTerm) params.set('have', haveTerm);
             else params.delete('have');
-            router.replace(`${pathname}?${params.toString()}`);
+            startTransition(() => router.replace(`${pathname}?${params.toString()}`));
         }, 300);
 
         return () => clearTimeout(timer);
@@ -82,13 +94,13 @@ export default function FilterChips({
         const params = new URLSearchParams(searchParams.toString());
         if (value) params.set(key, value);
         else params.delete(key);
-        router.replace(`${pathname}?${params.toString()}`);
+        startTransition(() => router.replace(`${pathname}?${params.toString()}`));
     };
 
     const clearAll = () => {
         setSearchTerm('');
         setHaveTerm('');
-        router.replace(pathname);
+        startTransition(() => router.replace(pathname));
     };
 
     /**
@@ -114,8 +126,30 @@ export default function FilterChips({
     ) => (translate.has(value) ? translate(value) : value);
 
     return (
-        <div className="flex flex-col gap-4">
-            <label className="flex items-center gap-3 border-b border-line pb-2">
+        <div
+            className="flex flex-col gap-4"
+            // Announced as well as drawn, because the person who most needs to
+            // know the page is working cannot see a hairline move.
+            aria-busy={isPending}
+        >
+            {/*
+                A hairline under the navigation while the server is answering.
+                Fixed rather than in the flow, so nothing below it shifts when
+                it appears — a layout that jumps on every keystroke is worse
+                than no indicator at all. It sits just under the sticky bar.
+            */}
+            <span
+                aria-hidden="true"
+                className={`fixed inset-x-0 top-[77px] z-[90] h-0.5 origin-left bg-accent transition-opacity duration-150 ${
+                    isPending ? 'animate-pulse opacity-100' : 'opacity-0'
+                }`}
+            />
+
+            <label
+                className={`flex items-center gap-3 border-b border-line pb-2 transition-opacity ${
+                    isPending ? 'opacity-60' : ''
+                }`}
+            >
                 <svg
                     viewBox="0 0 24 24"
                     aria-hidden="true"
@@ -248,6 +282,9 @@ export default function FilterChips({
                         <option value="recent">{t('sortRecent')}</option>
                         <option value="views">{t('sortViews')}</option>
                         <option value="rating">{t('sortRating')}</option>
+                        {/* The question a cookbook is for once it has more
+                            recipes than anybody can hold in their head. */}
+                        <option value="forgotten">{t('sortForgotten')}</option>
                     </select>
                 </label>
             </div>

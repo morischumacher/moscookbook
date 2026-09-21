@@ -26,7 +26,7 @@ const prisma = new PrismaClient();
 // Kept in step with src/lib/archive.ts by hand, and checked by
 // scripts/check-backup.mjs — this file had quietly stayed at 1 while the
 // application moved to 2, which is exactly the drift that guard is for.
-const ARCHIVE_VERSION = 2;
+const ARCHIVE_VERSION = 4;
 
 function outputDir() {
     const flag = process.argv.indexOf('--out');
@@ -78,6 +78,30 @@ async function main() {
         },
     });
 
+    // Writing, and the only copy of it. "Half the chilli next time" is the
+    // kind of line that is written once and missed by the person who wrote it.
+    const cookLogs = await prisma.cookLog.findMany({
+        orderBy: { cookedAt: 'asc' },
+        select: {
+            cookedAt: true, note: true,
+            recipe: { select: { slug: true } },
+            user: { select: { name: true } },
+        },
+    });
+
+    // Arranging is work. Nobody remembers the order of a Christmas menu they
+    // put together two years ago.
+    const collections = await prisma.collection.findMany({
+        orderBy: { createdAt: 'asc' },
+        select: {
+            title: true, slug: true, description: true, createdAt: true,
+            recipes: {
+                orderBy: { position: 'asc' },
+                select: { recipe: { select: { slug: true } } },
+            },
+        },
+    });
+
     const archive = {
         version: ARCHIVE_VERSION,
         exportedAt: new Date().toISOString(),
@@ -106,6 +130,19 @@ async function main() {
             createdAt: photo.createdAt.toISOString(),
             recipeSlug: photo.recipe.slug,
             author: photo.user?.name ?? null,
+        })),
+        cookLogs: cookLogs.map((entry) => ({
+            recipeSlug: entry.recipe.slug,
+            cookedAt: entry.cookedAt.toISOString(),
+            note: entry.note,
+            author: entry.user?.name ?? null,
+        })),
+        collections: collections.map((collection) => ({
+            title: collection.title,
+            slug: collection.slug,
+            description: collection.description,
+            createdAt: collection.createdAt.toISOString(),
+            recipeSlugs: collection.recipes.map((row) => row.recipe.slug),
         })),
     };
 

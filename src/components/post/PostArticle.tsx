@@ -5,6 +5,7 @@ import { Link } from '@/i18n/routing';
 import Logo from '@/components/brand/Logo';
 import ShareButton from '@/components/recipe/ShareButton';
 import ShareLink from '@/components/recipe/ShareLink';
+import { formatDate } from '@/lib/formatDate';
 
 export interface PostRow {
     id: number;
@@ -48,11 +49,6 @@ export default async function PostArticle({
 }) {
     const t = await getTranslations('Blog');
 
-    const dateFormatter = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
 
     // A draft has no date of its own yet, so it shows when it was started.
     const shown = post.publishedAt ?? post.createdAt;
@@ -64,12 +60,15 @@ export default async function PostArticle({
                     <Logo height={32} />
                 </div>
 
-                <h1 className="mb-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-ink sm:text-5xl">
+                {/* The same scale as a recipe's title. These are the two article
+                    pages of the site, at the same depth, and they were one step
+                    apart for no reason anybody chose. */}
+                <h1 className="mb-6 text-3xl font-extrabold leading-[1.12] tracking-tight text-ink sm:text-4xl">
                     {post.title}
                 </h1>
 
                 <div className="my-6 flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-line py-4 text-sm font-medium uppercase tracking-widest text-muted">
-                    <span>{dateFormatter.format(shown)}</span>
+                    <span>{formatDate(shown, locale)}</span>
                     {post.author && <span>• {post.author.name}</span>}
                     {post.publishedAt === null && <span>• {t('draft')}</span>}
                 </div>

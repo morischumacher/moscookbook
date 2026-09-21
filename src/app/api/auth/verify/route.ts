@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
-import { rateLimit, clientKey } from '@/lib/rateLimit';
+import { forgetVerified } from '@/lib/verifiedFlag';
+import { clientKey } from '@/lib/rateLimit';
+import { rateLimitShared } from '@/lib/rateLimitShared';
 import { hashToken, tokenState } from '@/lib/authTokens';
 
 const schema = z.object({
@@ -21,7 +23,7 @@ const schema = z.object({
  * first is not their problem.
  */
 export async function POST(req: NextRequest) {
-    const limit = rateLimit(clientKey(req, 'verify'), 20, 60 * 60 * 1000);
+    const limit = await rateLimitShared(clientKey(req, 'verify'), 20, 60 * 60 * 1000);
 
     if (!limit.ok) {
         return NextResponse.json(
@@ -74,6 +76,10 @@ export async function POST(req: NextRequest) {
             where: { id: record.userId },
             data: { emailVerifiedAt: now },
         });
+
+        // The banner reads a cached copy of this flag; without clearing it, the
+        // reminder to confirm would outlive the confirming by up to an hour.
+        forgetVerified(record.userId);
 
         return NextResponse.json({ success: true });
     } catch (error) {

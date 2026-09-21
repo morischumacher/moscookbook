@@ -34,7 +34,8 @@
     "nextPage": "Older →",
     "pageOf": "Page {page} of {pages}",
     "havePlaceholder": "I have… e.g. zucchini, feta",
-    "haveLabel": "Ingredients you have, all of which a recipe must use"
+    "haveLabel": "Ingredients you have, all of which a recipe must use",
+    "sortForgotten": "Not made in a while"
   },
   "Categories": {
     "Breakfast": "Breakfast",
@@ -75,7 +76,12 @@
     "metaFallback": "Recipe from mo'scookbook",
     "totalTime": "Total",
     "imageOf": "Picture {number} of {total}: {title}",
-    "showImage": "Show picture {number}"
+    "showImage": "Show picture {number}",
+    "similar": "Recipes like this",
+    "openImage": "See the photo in full",
+    "closeImage": "Close",
+    "previousImage": "Previous photo",
+    "nextImage": "Next photo"
   },
   "Rating": {
     "rate": "Rate",
@@ -133,7 +139,9 @@
     "verifyBanner": "Please confirm your e-mail address — it is what lets you reset your password later.",
     "verifyResend": "Send the e-mail again",
     "verifyResent": "Sent. Have a look in your inbox.",
-    "verifyResendFailed": "that did not work, try again later"
+    "verifyResendFailed": "that did not work, try again later",
+    "inviteShareTitle": "You have been invited to Mo'sCookbook",
+    "inviteShareDescription": "A private cookbook. Open the link to create your account."
   },
   "Admin": {
     "dashboard": "Recipes",
@@ -215,7 +223,8 @@
     "moveImageEarlier": "Move picture {number} earlier",
     "moveImageLater": "Move picture {number} later",
     "removeImageNumber": "Remove picture {number}",
-    "uploadTooLarge": "That picture is too large to send, even after shrinking it. Try a smaller one."
+    "uploadTooLarge": "That picture is too large to send, even after shrinking it. Try a smaller one.",
+    "servingsHint": "Unlocks the servings calculator."
   },
   "QuickImport": {
     "heading": "Fill in quickly",
@@ -268,7 +277,11 @@
     "result": "Done: {created} added, {replaced} replaced, {skipped} skipped.",
     "notJson": "That file is not valid JSON.",
     "failed": "The archive could not be imported.",
-    "offlineHint": "This file references the images by URL. For a copy that survives the image store going away, run npm run backup on your machine — it downloads the picture files too."
+    "offlineHint": "This file references the images by URL. For a copy that survives the image store going away, run npm run backup on your machine — it downloads the picture files too.",
+    "confirmReplaceTitle": "Replace what is already here?",
+    "confirmReplaceBody": "Every recipe and entry in this archive overwrites the one with the same address here. What you have edited since the backup was made is lost. Anything not in the archive is left alone.",
+    "confirmReplaceGo": "Replace",
+    "someFailed": "{count, plural, one {# entry could not be restored} other {# entries could not be restored}}"
   },
   "Inbox": {
     "title": "Inbox",
@@ -368,7 +381,10 @@
     "statePublicPost": "Public link active — anyone with this link can read the entry, no account needed.",
     "revokeConfirmPost": "Withdraw this link? Anyone you have already sent it to will no longer be able to open the entry.",
     "sharedPostNotice": "An entry from mo'scookbook, shared with you.",
-    "preparing": "Preparing link…"
+    "preparing": "Preparing link…",
+    "statePrivateCollection": "This collection is only for people with an account.",
+    "statePublicCollection": "Anyone with this link can see this collection.",
+    "revokeConfirmCollection": "Withdraw this link? Anyone you have already sent it to will no longer be able to open the collection."
   },
   "Errors": {
     "title": "Errors",
@@ -386,7 +402,10 @@
     "source": {
       "client": "In the browser",
       "server": "On the server"
-    }
+    },
+    "loadFailed": "The error list could not be loaded, so this page cannot say whether anything is wrong.",
+    "resolveFailed": "That could not be marked as handled.",
+    "retry": "Try again"
   },
   "ErrorPage": {
     "title": "This page did not load.",
@@ -429,7 +448,10 @@
     "searchLabel": "Search entries",
     "searchPlaceholder": "Search entries",
     "noResults": "Nothing written about “{search}”.",
-    "alsoInBlog": "{count, plural, one {One entry in the blog matches too} other {# entries in the blog match too}}"
+    "alsoInBlog": "{count, plural, one {One entry in the blog matches too} other {# entries in the blog match too}}",
+    "draftFound": "There is an unsaved version of this entry in this browser.",
+    "draftRestore": "Restore it",
+    "draftDiscard": "Discard"
   },
   "Cooked": {
     "title": "Cooked by",
@@ -443,12 +465,56 @@
     "captionLabel": "A note about this photo",
     "preparing": "Preparing…",
     "tooLarge": "That picture is too large to send, even after shrinking it. Try a smaller one.",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "neverCooked": "Not cooked yet",
+    "logIt": "I've cooked this",
+    "logging": "Noting it…",
+    "undoLog": "Remove",
+    "notePlaceholder": "Next time…",
+    "noteLabel": "What to do differently next time",
+    "since": {
+      "today": "Cooked today",
+      "yesterday": "Cooked yesterday",
+      "days": "{count, plural, one {Cooked # day ago} other {Cooked # days ago}}",
+      "weeks": "{count, plural, one {Cooked # week ago} other {Cooked # weeks ago}}",
+      "months": "{count, plural, one {Cooked # month ago} other {Cooked # months ago}}",
+      "years": "{count, plural, one {Cooked # year ago} other {Cooked # years ago}}"
+    }
   },
   "Dialog": {
     "cancel": "Cancel",
     "confirm": "Confirm",
     "ok": "OK",
     "sure": "Sure?"
+  },
+  "NotFound": {
+    "title": "Nothing here",
+    "explanation": "This page has been renamed, removed, or the link it came from has been withdrawn. The recipes are all still where they were.",
+    "toRecipes": "To the recipes"
+  },
+  "Collections": {
+    "title": "Collections",
+    "nav": "Collections",
+    "intro": "A handful of recipes with a name on it — a menu, a week, an evening.",
+    "none": "No collections yet.",
+    "empty": "Nothing in this collection yet.",
+    "createNew": "New collection",
+    "edit": "Edit this collection",
+    "recipeCount": "{count, plural, =0 {No recipes} one {# recipe} other {# recipes}}",
+    "fieldTitle": "Name",
+    "fieldDescription": "One line about it",
+    "pick": "Recipes in this collection",
+    "add": "Add a recipe",
+    "remove": "Remove",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "save": "Save collection",
+    "saving": "Saving…",
+    "saveFailed": "That could not be saved.",
+    "delete": "Delete collection",
+    "confirmDelete": "Delete this collection? The recipes themselves stay.",
+    "newTitle": "New collection",
+    "editTitle": "Edit collection",
+    "sharedBy": "A collection from Mo’sCookbook"
   }
 }

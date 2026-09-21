@@ -1,12 +1,14 @@
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
-import FilterChips, { type FacetValue } from '@/components/home/FilterChips';
+import FilterChips from '@/components/home/FilterChips';
 import RecipeCard from '@/components/RecipeCard';
 import prisma from '@/lib/prisma';
+import { collectionFacets } from '@/lib/collectionFacets';
 import { getCurrentUser } from '@/lib/auth';
 import { buildTsQuery } from '@/lib/searchText';
 import { parseIngredientQuery, variantsOf } from '@/lib/ingredientSearch';
+import { pageContainer } from '@/lib/ui';
 
 interface RecipeListRow {
     id: number;
@@ -43,23 +45,24 @@ type RecipeOrderBy = { createdAt: 'desc' } | { views: 'desc' };
 /** One screenful. The page never loads the whole collection. */
 const PAGE_SIZE = 24;
 
-interface FacetGroup {
-    category?: string | null;
-    nationality?: string | null;
-    _count: { _all: number };
-}
+/**
+ * How many search hits are ever ranked.
+ *
+ * The raw query below had no LIMIT at all: it returned every matching id, and
+ * those ids then went into `where.id = { in: … }` for the count *and* for the
+ * fetch. A common German stem across a few thousand recipes meant a couple of
+ * thousand bind parameters, twice, sorted in Node, to show twenty-four rows.
+ * Postgres's own ceiling is 65535 parameters; the practical one is far below.
+ *
+ * Six hundred is twenty-five pages. Nobody pages twenty-five screens deep into
+ * a search — they type a better word — and the ranking means the ones that
+ * would fall off the end are the ones that matched least.
+ */
+const SEARCH_MATCH_CAP = 600;
 
 function averageRating(ratings: { value: number }[]): number {
     if (ratings.length === 0) return 0;
     return ratings.reduce((sum, rating) => sum + rating.value, 0) / ratings.length;
-}
-
-/** Turns a Prisma groupBy result into chip data, busiest first. */
-function toFacets(groups: FacetGroup[], key: 'category' | 'nationality'): FacetValue[] {
-    return groups
-        .map((group) => ({ value: (group[key] ?? '').trim(), count: group._count._all }))
-        .filter((facet) => facet.value !== '')
-        .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
 }
 
 export default async function HomePage({
@@ -165,6 +168,7 @@ export default async function HomePage({
                 WHERE "searchVector" @@ to_tsquery('german', ${tsquery})
                 ORDER BY ts_rank("searchVector", to_tsquery('german', ${tsquery})) DESC,
                          "createdAt" DESC
+                LIMIT ${SEARCH_MATCH_CAP}
             `;
 
             const matchedIds = ranked.map((row) => row.id);
@@ -189,15 +193,30 @@ export default async function HomePage({
     const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
     const skip = (page - 1) * PAGE_SIZE;
 
-    const include = { images: { orderBy: { position: 'asc' as const } }, ratings: true };
+    /*
+     * Exactly what a tile draws, and nothing else.
+     *
+     * This was `{ images: { orderBy }, ratings: true }`, which fetched every
+     * photograph of every recipe on the page when a tile shows one, and every
+     * column of every rating row — id, userId, recipeId, both timestamps — to
+     * add five numbers up and divide. Twenty-four recipes with six photographs
+     * and a dozen ratings each is a few thousand rows crossing the wire to
+     * render twenty-four squares. The admin list next door already got this
+     * right; the front page, the busiest page on the site, did not.
+     */
+    const include = {
+        images: { orderBy: { position: 'asc' as const }, take: 1, select: { url: true } },
+        ratings: { select: { value: true } },
+    };
 
     // The chips describe the whole collection rather than the current result,
-    // because a chip that leads to an empty page is worse than no chip.
-    const [total, categoryGroups, cuisineGroups, collectionSize] = await Promise.all([
+    // because a chip that leads to an empty page is worse than no chip — and
+    // because that makes the answer the same for everybody, which is what lets
+    // it be computed once instead of on every visit. The two groupBys behind it
+    // read the entire table and no index can change that; see lib/collectionFacets.
+    const [total, facets] = await Promise.all([
         prisma.recipe.count({ where }),
-        prisma.recipe.groupBy({ by: ['category'], _count: { _all: true } }),
-        prisma.recipe.groupBy({ by: ['nationality'], _count: { _all: true } }),
-        prisma.recipe.count(),
+        collectionFacets(),
     ]);
 
     /**
@@ -269,6 +288,48 @@ export default async function HomePage({
                 (a, b) => (averageById.get(b) ?? 0) - (averageById.get(a) ?? 0) || b - a
             )
         );
+    } else if (sort === 'forgotten') {
+        /*
+         * "Not made in a while", which is the question a cookbook is actually
+         * for once it has more recipes than anybody can hold in their head.
+         *
+         * Same shape as the rating sort, and for the same reason: Prisma cannot
+         * order by an aggregate across a relation, so the matching ids are
+         * ranked against one grouped query and only the page shown is read.
+         *
+         * A recipe nobody has ever cooked sorts first, because it is the most
+         * forgotten thing there is — and that is the difference between this
+         * and "oldest": a recipe added in 2023 and made last week is not
+         * waiting for anybody.
+         */
+        const matching: { id: number }[] = await prisma.recipe.findMany({
+            where,
+            select: { id: true },
+        });
+        const matchingIds = matching.map((row) => row.id);
+
+        const lastCookedById = new Map<number, number>();
+
+        if (matchingIds.length > 0) {
+            const lastCooked = await prisma.cookLog.groupBy({
+                by: ['recipeId'],
+                where: { recipeId: { in: matchingIds } },
+                _max: { cookedAt: true },
+            });
+
+            for (const entry of lastCooked) {
+                const at = entry._max.cookedAt;
+                if (at) lastCookedById.set(entry.recipeId, new Date(at).getTime());
+            }
+        }
+
+        recipes = await pageOf(
+            matchingIds.sort(
+                (a, b) =>
+                    // Never cooked is 0, which sorts before every real date.
+                    (lastCookedById.get(a) ?? 0) - (lastCookedById.get(b) ?? 0) || a - b
+            )
+        );
     } else {
         recipes = await prisma.recipe.findMany({ where, orderBy, skip, take: PAGE_SIZE, include });
     }
@@ -321,7 +382,7 @@ export default async function HomePage({
     }));
 
     return (
-        <main className="container mx-auto max-w-3xl px-4 pb-32 md:px-8">
+        <main className={`${pageContainer} pb-32`}>
             {/*
                 The navigation already says what this place is called, in the
                 same words, forty pixels higher up. Saying it again in 48px was
@@ -339,10 +400,10 @@ export default async function HomePage({
             <div className="pb-6">
                 <Suspense fallback={<div className="h-24" aria-hidden="true" />}>
                     <FilterChips
-                        categories={toFacets(categoryGroups, 'category')}
-                        cuisines={toFacets(cuisineGroups, 'nationality')}
+                        categories={facets.categories}
+                        cuisines={facets.cuisines}
                         isLoggedIn={isLoggedIn}
-                        total={collectionSize}
+                        total={facets.total}
                     />
                 </Suspense>
             </div>

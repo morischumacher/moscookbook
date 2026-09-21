@@ -15,6 +15,12 @@
  * **It lists first.** Nothing is deleted unless `--delete` is passed, because
  * the failure mode here is deleting a photograph somebody took.
  *
+ * **It never touches the backups.** They live under a prefix of their own and
+ * no row in the database points at them, which is exactly the shape this
+ * script looks for — so without the rule below, one `--delete` would have
+ * taken every automated backup with it. The safety net was on the list of
+ * things to sweep away.
+ *
  * **It ignores anything recent.** The admin form uploads a picture and saves
  * the recipe a minute later; in between, the file is real and nothing points at
  * it yet. A file has to be older than the grace period before it counts as
@@ -22,6 +28,7 @@
  */
 import { list, del } from '@vercel/blob';
 import { PrismaClient } from '@prisma/client';
+import { BACKUP_PREFIX } from '../src/lib/backupPrefix.mjs';
 import 'dotenv/config';
 
 const prisma = new PrismaClient();
@@ -67,6 +74,7 @@ async function main() {
     const orphans = [];
     let total = 0;
     let recent = 0;
+    let kept = 0;
     let bytes = 0;
 
     let cursor;
@@ -76,6 +84,15 @@ async function main() {
 
         for (const blob of page.blobs) {
             total += 1;
+
+            // Nothing in the database points at a backup, and nothing ever
+            // will. Matched on the pathname rather than on the URL, because the
+            // store's own listing is the only thing that knows where a file
+            // sits.
+            if (blob.pathname.startsWith(BACKUP_PREFIX)) {
+                kept += 1;
+                continue;
+            }
 
             if (referenced.has(blob.url)) continue;
 
@@ -92,6 +109,7 @@ async function main() {
     const mb = (bytes / (1024 * 1024)).toFixed(1);
 
     console.log(`${total} files in the store, ${referenced.size} referenced.`);
+    if (kept > 0) console.log(`${kept} backup(s) under ${BACKUP_PREFIX} — never swept.`);
     if (recent > 0) {
         console.log(`${recent} unreferenced but newer than ${GRACE_HOURS}h — left alone.`);
     }

@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDateTime } from '@/lib/formatDate';
+import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
 
 interface ErrorRow {
     id: number;
@@ -22,38 +24,62 @@ interface ErrorRow {
  */
 export default function AdminErrorsPage() {
     const t = useTranslations('Errors');
+    // The site's language, not the browser's: these three pages used
+    // toLocaleDateString() with no argument, so a German reader on an
+    // English-language phone saw 9/21/2026 here and 21. September 2026
+    // on the blog, in one visit.
+    const locale = useLocale();
 
     const [errors, setErrors] = useState<ErrorRow[]>([]);
     const [loading, setLoading] = useState(true);
+    /**
+     * This page had no error state at all, on the one page whose job is to
+     * tell you when things break. A 500 from /api/errors left the list empty,
+     * loading went false, and it rendered "all quiet" — the most misleading
+     * sentence it could possibly have shown.
+     */
+    const [error, setError] = useState('');
     const [showResolved, setShowResolved] = useState(false);
     const [expanded, setExpanded] = useState<number | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
+        setError('');
+
         try {
             const res = await fetch(`/api/errors?resolved=${showResolved}`);
-            if (!res.ok) return;
+            if (!res.ok) throw new Error(t('loadFailed'));
             const data = await res.json();
             setErrors(data.errors);
+        } catch (err) {
+            setErrors([]);
+            setError(err instanceof Error ? err.message : t('loadFailed'));
         } finally {
             setLoading(false);
         }
-    }, [showResolved]);
+    }, [showResolved, t]);
 
     useEffect(() => {
         load();
     }, [load]);
 
     const resolve = async (id: number) => {
-        await fetch(`/api/errors/${id}`, { method: 'POST' });
-        setErrors((current) => current.filter((row) => row.id !== id));
+        // The row used to vanish whatever happened, so an expired session
+        // looked exactly like a successful resolve until the next reload.
+        try {
+            const res = await fetch(`/api/errors/${id}`, { method: 'POST' });
+            if (!res.ok) throw new Error(t('resolveFailed'));
+            setErrors((current) => current.filter((row) => row.id !== id));
+        } catch (err) {
+            setError(err instanceof Error ? err.message : t('resolveFailed'));
+        }
     };
 
     return (
-        <main className="container mx-auto max-w-3xl px-4 pb-32 pt-10 sm:px-8">
+        <main className={`${pageContainer} pb-32`}>
             {/* No "back to recipes" link any more: the row of admin sections
                 above this page is the way back, and it is on every page. */}
-            <h1 className="mb-8 border-b border-line pb-6 text-3xl font-extrabold tracking-tight sm:text-4xl">
+            <h1 className={`mb-8 ${pageTop} ${pageHeading}`}>
                 {t('title')}
             </h1>
 
@@ -67,9 +93,27 @@ export default function AdminErrorsPage() {
                 {showResolved ? t('showOpen') : t('showResolved')}
             </button>
 
+            {/* Before the list, and instead of it: "all quiet" must never be
+                shown when the truth is "could not ask". */}
+            {error && (
+                <div
+                    role="alert"
+                    className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger-line bg-danger-surface p-3"
+                >
+                    <p className="text-sm text-danger">{error}</p>
+                    <button
+                        type="button"
+                        onClick={load}
+                        className="text-sm font-medium text-danger underline underline-offset-4"
+                    >
+                        {t('retry')}
+                    </button>
+                </div>
+            )}
+
             {loading ? (
                 <p className="text-muted">{t('loading')}</p>
-            ) : errors.length === 0 ? (
+            ) : error ? null : errors.length === 0 ? (
                 <p className="border-t border-line py-16 text-center text-muted">
                     {showResolved ? t('noneResolved') : t('allQuiet')}
                 </p>
@@ -83,7 +127,7 @@ export default function AdminErrorsPage() {
                                 <span>{t('seen', { count: row.count })}</span>
                                 <span aria-hidden="true">·</span>
                                 <time dateTime={row.lastSeenAt}>
-                                    {new Date(row.lastSeenAt).toLocaleString()}
+                                    {formatDateTime(row.lastSeenAt, locale)}
                                 </time>
                             </div>
 

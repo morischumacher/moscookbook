@@ -8,6 +8,7 @@ import { getSession } from '@/lib/auth';
 import { getTranslations } from 'next-intl/server';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { shareUrl } from '@/lib/shareToken';
+import { similarRecipes } from '@/lib/similarRecipes';
 
 // generateMetadata and the page itself both need the recipe; cache() makes
 // that a single database round trip per request instead of two.
@@ -106,9 +107,30 @@ export default async function RecipePage({
         },
     });
 
+    // Newest first: the question this answers is "when did I last make this",
+    // and the answer is the first row.
+    const cookLog = await prisma.cookLog.findMany({
+        where: { recipeId: recipe.id },
+        orderBy: { cookedAt: 'desc' },
+        take: 20,
+        select: {
+            id: true,
+            cookedAt: true,
+            note: true,
+            userId: true,
+            user: { select: { name: true } },
+        },
+    });
+
+    // Computed from the recipe's own search vector, which already exists and
+    // is already indexed. See lib/similarRecipes.
+    const similar = await similarRecipes(recipe);
+
     return (
         <RecipeArticle
             recipe={recipe}
+            similar={similar}
+            cookLog={cookLog}
             notes={notes}
             cooked={cooked}
             currentUserId={session.user?.id ?? null}

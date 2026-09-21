@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { sharePayload } from '@/lib/sharePayload';
@@ -69,7 +69,23 @@ export default function ShareButton({
     // recipe is synchronous and gets the system sheet.
     const [made, setMade] = useState('');
 
+    // A ref, not the state below: `disabled` only takes effect after the render
+    // that follows, and two taps on a phone arrive inside that gap. This is
+    // read and set in the same synchronous breath, so the second tap sees it.
+    const inFlight = useRef(false);
+
     const share = async () => {
+        if (inFlight.current) return;
+        inFlight.current = true;
+
+        try {
+            await doShare();
+        } finally {
+            inFlight.current = false;
+        }
+    };
+
+    const doShare = async () => {
         let current = given || made;
         let madeNow = false;
 

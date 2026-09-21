@@ -1,9 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import InlineConfirm from '@/components/ui/InlineConfirm';
+import { formatDate } from '@/lib/formatDate';
+import { buttonPrimarySmall, pageContainer, pageHeading, pageTop } from '@/lib/ui';
 
 interface CaptureTokenRow {
     id: number;
@@ -24,6 +26,11 @@ interface CaptureTokenRow {
 export default function AdminDevicesPage() {
     const t = useTranslations('Devices');
     const tAdmin = useTranslations('Admin');
+    // The site's language, not the browser's: these three pages used
+    // toLocaleDateString() with no argument, so a German reader on an
+    // English-language phone saw 9/21/2026 here and 21. September 2026
+    // on the blog, in one visit.
+    const locale = useLocale();
 
     const [tokens, setTokens] = useState<CaptureTokenRow[]>([]);
     const [loading, setLoading] = useState(true);
@@ -91,8 +98,8 @@ export default function AdminDevicesPage() {
         typeof window === 'undefined' ? '/api/capture' : `${window.location.origin}/api/capture`;
 
     return (
-        <main className="container mx-auto max-w-3xl px-4 pb-32 pt-10 sm:px-8">
-            <div className="mb-8 flex flex-wrap items-baseline justify-between gap-4 border-b border-line pb-6">
+        <main className={`${pageContainer} pb-32`}>
+            <div className={`mb-8 flex flex-wrap items-baseline justify-between gap-4 ${pageTop} ${pageHeading}`}>
                 <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
                 <Link href="/admin/inbox" className="text-sm underline underline-offset-4">
                     {t('backToInbox')}
@@ -113,13 +120,16 @@ export default function AdminDevicesPage() {
                     value={label}
                     onChange={(event) => setLabel(event.target.value)}
                     placeholder={t('labelPlaceholder')}
+                    // A placeholder is not a label: it vanishes the moment
+                    // somebody types, taking the only explanation with it.
+                    aria-label={t('labelPlaceholder')}
                     className="min-w-0 flex-1 rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink"
                 />
                 <button
                     type="button"
                     onClick={create}
                     disabled={creating}
-                    className="rounded-full bg-ink px-5 py-2 font-medium text-page disabled:opacity-50"
+                    className={buttonPrimarySmall}
                 >
                     {creating ? t('creating') : t('create')}
                 </button>
@@ -163,7 +173,7 @@ export default function AdminDevicesPage() {
                                 <p className="text-sm text-faint">
                                     {token.lastUsedAt
                                         ? t('lastUsed', {
-                                            date: new Date(token.lastUsedAt).toLocaleDateString(),
+                                            date: formatDate(token.lastUsedAt, locale, 'short'),
                                         })
                                         : t('neverUsed')}
                                 </p>

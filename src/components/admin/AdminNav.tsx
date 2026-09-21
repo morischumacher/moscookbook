@@ -26,6 +26,7 @@ export default function AdminNav() {
     const t = useTranslations('Admin');
     const tInbox = useTranslations('Inbox');
     const tBlog = useTranslations('Blog');
+    const tCollections = useTranslations('Collections');
     const tErrors = useTranslations('Errors');
     const tDevices = useTranslations('Devices');
 
@@ -37,6 +38,7 @@ export default function AdminNav() {
         { href: '/admin', label: t('dashboard') },
         { href: '/admin/inbox', label: tInbox('nav') },
         { href: '/admin/posts', label: tBlog('adminNav') },
+        { href: '/admin/collections/new', label: tCollections('createNew') },
         { href: '/admin/users', label: t('people') },
         { href: '/admin/errors', label: tErrors('nav') },
         { href: '/admin/devices', label: tDevices('nav') },

@@ -1,7 +1,14 @@
 /**
- * Fails the build when a recipe writer forgets the search columns.
+ * Fails the build when a recipe writer forgets something that fails silently.
  *
  *   npm run check:search
+ *
+ * Two such things now, and they are the same kind of mistake: the write
+ * succeeds, the page looks right, and something elsewhere is quietly wrong
+ * from then on. The search columns are one. The filter rail is the other —
+ * it is computed once and kept, so a writer that does not call
+ * forgetCollectionFacets() leaves a new category out of the rail until the
+ * hourly backstop, and nobody sees an error.
  *
  * `searchTitle` and `searchBody` are maintained by the application, not by the
  * database, so every place that creates or updates a recipe has to go through
@@ -96,8 +103,28 @@ function walk(dir) {
     return out;
 }
 
+/**
+ * Which writers change what the collection looks like as a whole — the set of
+ * categories, the set of cuisines, how many recipes there are. Those three are
+ * cached (src/lib/collectionFacets.ts) because they cost two full table scans
+ * and change a few times a week, and a cache nobody clears is just stale data.
+ *
+ * Creating, deleting or editing a recipe changes them. Bumping a view counter
+ * or setting a share token does not, which is why those are named here rather
+ * than made to call it for nothing.
+ */
+const FACET_NEUTRAL = new Set([
+    'src/app/api/recipes/[id]/view/route.ts',
+    'src/app/api/recipes/[id]/share/route.ts',
+    'scripts/reindex-search.ts',
+    'scripts/restore.mjs',
+]);
+
+const FACET_WRITES = /prisma\.recipe\.(create|update|updateMany|upsert|createMany|delete|deleteMany)\s*\(/;
+
 const problems = [];
 let writers = 0;
+let facetWriters = 0;
 
 for (const root of ROOTS) {
     let files;
@@ -110,6 +137,24 @@ for (const root of ROOTS) {
     for (const file of files) {
         const source = readFileSync(file, 'utf8');
         const key = relative('.', file).split('\\').join('/');
+
+        // The scripts run outside a request, where there is no cache to clear;
+        // they are named in FACET_NEUTRAL rather than exempted silently.
+        if (FACET_WRITES.test(source) && !FACET_NEUTRAL.has(key)) {
+            facetWriters += 1;
+
+            if (!/forgetCollectionFacets\s*\(\s*\)/.test(source)) {
+                problems.push(
+                    `${key} creates, changes or deletes a recipe but never calls\n` +
+                    '    forgetCollectionFacets(). The filter rail on the front page is computed\n' +
+                    '    once and kept, so a new category would not appear in it until the\n' +
+                    '    hourly backstop — with nothing on screen to say so.\n' +
+                    '    Either call it, or add the file to FACET_NEUTRAL in\n' +
+                    '    scripts/check-search-writers.mjs with the reason it cannot change\n' +
+                    '    what the collection looks like.'
+                );
+            }
+        }
 
         for (const subject of SUBJECTS) {
             if (!subject.writes.test(source)) continue;
@@ -141,9 +186,12 @@ for (const root of ROOTS) {
 }
 
 if (problems.length > 0) {
-    console.error('Writers missing the search columns:\n');
+    console.error('Writers missing something that fails silently:\n');
     for (const problem of problems) console.error(`  ${problem}\n`);
     process.exit(1);
 }
 
-console.log(`check:search — ${writers} writers across ${SUBJECTS.length} tables, all accounted for.`);
+console.log(
+    `check:search — ${writers} writers across ${SUBJECTS.length} tables, ` +
+    `${facetWriters} of them clearing the collection cache. All accounted for.`
+);

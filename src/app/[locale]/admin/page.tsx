@@ -4,6 +4,7 @@ import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
 import DeleteRecipeButton from '@/components/DeleteRecipeButton';
 import BackupPanel from '@/components/admin/BackupPanel';
+import { buttonPrimarySmall, pageContainer, pageHeading, pageTop } from '@/lib/ui';
 
 interface AdminRecipeRow {
     id: number;
@@ -34,12 +35,12 @@ export default async function AdminDashboard() {
     });
 
     return (
-        <main className="container mx-auto max-w-3xl px-4 pb-32 md:px-8">
-            <header className="flex flex-wrap items-baseline justify-between gap-4 border-b border-line pb-6 pt-12 sm:pt-16">
+        <main className={`${pageContainer} pb-32`}>
+            <header className={`flex flex-wrap items-baseline justify-between gap-4 ${pageTop} ${pageHeading}`}>
                 <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('dashboard')}</h1>
                 <Link
                     href="/admin/create"
-                    className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-page"
+                    className={buttonPrimarySmall}
                 >
                     {t('createNew')}
                 </Link>

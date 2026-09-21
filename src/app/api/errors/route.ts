@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
-import { rateLimit, clientKey } from '@/lib/rateLimit';
+import { clientKey } from '@/lib/rateLimit';
+import { rateLimitShared } from '@/lib/rateLimitShared';
 import { prepareErrorReport } from '@/lib/errorReport';
 
 /**
@@ -22,7 +23,7 @@ const reportSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-    const limit = rateLimit(clientKey(req, 'error-report'), 20, 5 * 60 * 1000);
+    const limit = await rateLimitShared(clientKey(req, 'error-report'), 20, 5 * 60 * 1000);
     if (!limit.ok) {
         // 204 rather than 429: a page that is already broken should not then
         // have to handle a failure from the thing that reports failures.

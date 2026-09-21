@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import ErrorReporter from '@/components/ErrorReporter';
+import { buttonPrimary } from '@/lib/ui';
 
 /**
  * What a visitor sees when a page fails, and what tells us it did.
@@ -32,7 +33,7 @@ export default function LocaleError({
                 <button
                     type="button"
                     onClick={reset}
-                    className="rounded-full bg-ink px-6 py-3 font-medium text-page"
+                    className={buttonPrimary}
                 >
                     {t('retry')}
                 </button>

@@ -4,7 +4,8 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { sessionOptions, SessionData } from '@/lib/session';
-import { rateLimit, clientKey } from '@/lib/rateLimit';
+import { clientKey } from '@/lib/rateLimit';
+import { rateLimitShared } from '@/lib/rateLimitShared';
 import { hashToken, tokenState } from '@/lib/authTokens';
 
 const schema = z.object({
@@ -23,7 +24,7 @@ const schema = z.object({
  * `tokenState` is still consulted, but only to say *why* a link did not work.
  */
 export async function POST(req: NextRequest) {
-    const limit = rateLimit(clientKey(req, 'reset'), 20, 60 * 60 * 1000);
+    const limit = await rateLimitShared(clientKey(req, 'reset'), 20, 60 * 60 * 1000);
 
     if (!limit.ok) {
         return NextResponse.json(

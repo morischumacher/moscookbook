@@ -1,3 +1,4 @@
+import { safeFetch, UnsafeUrlError } from './safeFetch';
 import { isSafePublicUrl } from './recipeFromHtml';
 
 /**
@@ -40,9 +41,10 @@ export async function fetchPage(rawUrl: string): Promise<FetchPageResult> {
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
     try {
-        const response = await fetch(url, {
+        // safeFetch, not fetch: a redirect used to be followed by the runtime
+        // without anything checking where to. See lib/safeFetch.
+        const response = await safeFetch(url, {
             signal: controller.signal,
-            redirect: 'follow',
             headers: {
                 // Some sites serve a stripped page to unknown agents.
                 'User-Agent': 'Mozilla/5.0 (compatible; moscookbook-import/1.0)',
@@ -70,6 +72,11 @@ export async function fetchPage(rawUrl: string): Promise<FetchPageResult> {
     } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
             return { ok: false, failure: 'timeout' };
+        }
+        // A redirect that pointed somewhere private is refused rather than
+        // reported as a network blip, so the inbox says what actually happened.
+        if (error instanceof UnsafeUrlError) {
+            return { ok: false, failure: 'unsafe-url' };
         }
         return { ok: false, failure: 'network' };
     } finally {

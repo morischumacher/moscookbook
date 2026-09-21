@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import ReactMarkdown from 'react-markdown';
 import { Link } from '@/i18n/routing';
+import { formatDate } from '@/lib/formatDate';
 
 export interface RecipeNote {
     id: number;
@@ -42,11 +43,6 @@ export default async function RecipeNotes({
 
     if (notes.length === 0 && !isAdmin) return null;
 
-    const dateFormatter = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
 
     return (
         <section className="print:hidden mt-16 border-t border-line pt-8">
@@ -72,7 +68,7 @@ export default async function RecipeNotes({
                     {notes.map((note) => (
                         <li key={note.id}>
                             <p className="mb-1 flex flex-wrap items-center gap-x-2 text-xs font-semibold uppercase tracking-widest text-muted">
-                                <span>{dateFormatter.format(note.publishedAt ?? note.createdAt)}</span>
+                                <span>{formatDate(note.publishedAt ?? note.createdAt, locale)}</span>
                                 {note.author && <span>• {note.author.name}</span>}
                                 {note.publishedAt === null && <span>• {t('draft')}</span>}
                             </p>

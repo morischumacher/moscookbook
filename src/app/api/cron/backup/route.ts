@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put, list, del } from '@vercel/blob';
 import prisma from '@/lib/prisma';
+import { sweepRateLimits } from '@/lib/rateLimitShared';
+import { BACKUP_PREFIX } from '@/lib/backupPrefix.mjs';
 import {
     buildArchive,
     archiveFilename,
     type ExportableRecipe,
     type ExportablePost,
     type ExportableCookPhoto,
+    type ExportableCookLog,
+    type ExportableCollection,
 } from '@/lib/archive';
 
 /**
@@ -28,7 +32,10 @@ import {
  */
 
 const KEEP = 8;
-const PREFIX = 'backups/';
+
+// Imported rather than written out again: the sweep script needs the same
+// string, and when the two disagreed the sweep deleted every backup.
+const PREFIX = BACKUP_PREFIX;
 
 /**
  * Vercel sends `Authorization: Bearer $CRON_SECRET` when the secret is set.
@@ -101,7 +108,47 @@ export async function GET(req: NextRequest) {
             },
         });
 
-        const archive = buildArchive(recipes, new Date(), posts, cookPhotos);
+        // Writing, and the only copy of it: "half the chilli next time" is a
+        // line written once and missed by the person who wrote it.
+        const cookLogs: ExportableCookLog[] = await prisma.cookLog.findMany({
+            orderBy: { cookedAt: 'asc' },
+            select: {
+                cookedAt: true,
+                note: true,
+                recipe: { select: { slug: true } },
+                user: { select: { name: true } },
+            },
+        });
+
+        const collections: ExportableCollection[] = await prisma.collection.findMany({
+            orderBy: { createdAt: 'asc' },
+            select: {
+                title: true,
+                slug: true,
+                description: true,
+                createdAt: true,
+                recipes: {
+                    orderBy: { position: 'asc' },
+                    select: { recipe: { select: { slug: true } } },
+                },
+            },
+        });
+
+        const archive = buildArchive(
+            recipes,
+            new Date(),
+            posts,
+            cookPhotos,
+            cookLogs,
+            collections
+        );
+
+        // Housekeeping, attached to the one thing that already runs weekly.
+        // Nothing depends on it — a closed rate-limit window is reused in
+        // place — but without it the table grows a row per address that ever
+        // signed in.
+        const sweptLimits = await sweepRateLimits();
+        if (sweptLimits > 0) console.log(`Swept ${sweptLimits} closed rate-limit windows.`);
 
         const blob = await put(
             `${PREFIX}${archiveFilename()}`,

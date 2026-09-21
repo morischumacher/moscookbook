@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import InlineConfirm from '@/components/ui/InlineConfirm';
 import { compressImage, UPLOAD_LIMIT_BYTES } from '@/lib/imageCompression';
+import { formatDate } from '@/lib/formatDate';
 
 export interface CookedPhoto {
     id: number;
@@ -55,11 +56,6 @@ export default function CookedPhotos({
     const [stage, setStage] = useState<'preparing' | 'uploading'>('preparing');
     const [error, setError] = useState('');
 
-    const dateFormatter = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
 
     const upload = async (chosen: File) => {
         setBusy(true);
@@ -231,7 +227,7 @@ export default function CookedPhotos({
 
                                 <p className="mt-2 text-xs text-faint">
                                     {photo.user?.name ?? t('someone')} ·{' '}
-                                    {dateFormatter.format(photo.createdAt)}
+                                    {formatDate(photo.createdAt, locale)}
                                 </p>
 
                                 {mine ? (

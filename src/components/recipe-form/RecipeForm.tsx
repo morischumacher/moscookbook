@@ -9,6 +9,7 @@ import { slugify, type Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
 import { compressImage, looksLikeImage, UPLOAD_LIMIT_BYTES } from '@/lib/imageCompression';
 import QuickImport, { type ImportedDraft } from './QuickImport';
+import { buttonPrimary } from '@/lib/ui';
 
 export interface RecipeFormValues {
     id?: number;
@@ -192,7 +193,20 @@ function GalleryField({
                 </ul>
             )}
 
-            <div
+            {/*
+                A <label> wrapping the file input, not a <div onClick>.
+                The drop zone used to be a div with a click handler and a
+                `display: none` input inside it — a div cannot be focused, and
+                a hidden input cannot either, so adding a picture to a recipe
+                was reachable with a mouse or a finger and by nothing else. A
+                label is focusable through the control it labels, and `sr-only`
+                keeps that control in the accessibility tree instead of
+                removing it from the page.
+
+                The drag handlers stay: dropping a file is a pointer gesture by
+                nature, and nothing else depends on them.
+            */}
+            <label
                 onDragOver={(event) => {
                     event.preventDefault();
                     setDragging(true);
@@ -203,8 +217,7 @@ function GalleryField({
                     setDragging(false);
                     upload(Array.from(event.dataTransfer.files ?? []));
                 }}
-                onClick={() => inputRef.current?.click()}
-                className={`cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-colors ${dragging ? 'border-ink bg-surface' : 'border-control'
+                className={`block cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-colors focus-within:border-ink focus-within:ring-2 focus-within:ring-ink/20 ${dragging ? 'border-ink bg-surface' : 'border-control'
                     }`}
             >
                 <p className="py-6 text-sm text-muted">
@@ -216,23 +229,23 @@ function GalleryField({
                     type="file"
                     accept="image/*"
                     multiple
-                    className="hidden"
+                    className="sr-only"
                     onChange={(event) => {
                         upload(Array.from(event.target.files ?? []));
                         event.target.value = '';
                     }}
                 />
-            </div>
+            </label>
 
             <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
                 {/* On a phone this opens the camera directly. */}
-                <label className="cursor-pointer text-muted underline underline-offset-2">
+                <label className="cursor-pointer text-muted underline underline-offset-4 focus-within:text-ink">
                     {t('takePhoto')}
                     <input
                         type="file"
                         accept="image/*"
                         capture="environment"
-                        className="hidden"
+                        className="sr-only"
                         onChange={(event) => {
                             upload(Array.from(event.target.files ?? []));
                             event.target.value = '';
@@ -311,7 +324,7 @@ function IngredientEditor({
                 <button
                     type="button"
                     onClick={() => setShowBulk((open) => !open)}
-                    className="text-sm text-muted underline underline-offset-2"
+                    className="text-sm text-muted underline underline-offset-4"
                 >
                     {showBulk ? t('closeList') : t('pasteList')}
                 </button>
@@ -457,6 +470,16 @@ export default function RecipeForm({
     const [preview, setPreview] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+
+    /**
+     * Where the error is, so the page can be moved to it.
+     *
+     * The banner sits above the form and the save button is about seven
+     * hundred pixels below it. On a phone that meant pressing Save and having
+     * nothing whatsoever change: the reason was on screen, just not on the
+     * part of the screen anybody was looking at.
+     */
+    const errorBox = useRef<HTMLDivElement>(null);
     const [draftFound, setDraftFound] = useState(false);
 
     const draftKey = mode === 'create' ? 'moscookbook:draft:new' : `moscookbook:draft:${initial?.id}`;
@@ -564,6 +587,23 @@ export default function RecipeForm({
         return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
     };
 
+    /**
+     * Shows the person the thing that just went wrong.
+     *
+     * Called from everywhere an error is set, rather than from an effect on
+     * `error`: the same message twice in a row would not change the state and
+     * so would not scroll, and the second failure is exactly when somebody is
+     * most confused about why nothing is happening.
+     */
+    const failWith = (message: string) => {
+        setError(message);
+
+        // After the render that puts the banner on the page.
+        requestAnimationFrame(() => {
+            errorBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    };
+
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         setError('');
@@ -571,7 +611,7 @@ export default function RecipeForm({
         const cleanedIngredients = ingredients.filter((row) => row.item.trim() !== '');
 
         if (!title.trim() || !instructions.trim()) {
-            setError(t('requiredFields'));
+            failWith(t('requiredFields'));
             return;
         }
 
@@ -599,7 +639,7 @@ export default function RecipeForm({
 
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                setError(data.message || t('saveFailed'));
+                failWith(data.message || t('saveFailed'));
                 return;
             }
 
@@ -607,7 +647,7 @@ export default function RecipeForm({
             router.push(captureId ? '/admin/inbox' : '/admin');
             router.refresh();
         } catch {
-            setError(t('saveFailed'));
+            failWith(t('saveFailed'));
         } finally {
             setSaving(false);
         }
@@ -622,10 +662,10 @@ export default function RecipeForm({
             {draftFound && (
                 <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-black/[0.03] p-3 text-sm dark:bg-white/[0.05]">
                     <span>{t('draftFound')}</span>
-                    <button type="button" onClick={restoreDraft} className="underline underline-offset-2">
+                    <button type="button" onClick={restoreDraft} className="underline underline-offset-4">
                         {t('restoreDraft')}
                     </button>
-                    <button type="button" onClick={clearDraft} className="text-muted underline underline-offset-2">
+                    <button type="button" onClick={clearDraft} className="text-muted underline underline-offset-4">
                         {t('discardDraft')}
                     </button>
                 </div>
@@ -634,9 +674,17 @@ export default function RecipeForm({
             {mode === 'create' && <QuickImport aiEnabled={aiEnabled} onImport={applyImport} />}
 
             {error && (
-                <p className="mb-6 rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
+                <div
+                    ref={errorBox}
+                    // Announced as well as scrolled to: somebody using a screen
+                    // reader is not helped by the page moving.
+                    role="alert"
+                    // -mt-2 scroll-mt-24 keeps it clear of the sticky bar when
+                    // it is scrolled into view.
+                    className="mb-6 scroll-mt-24 rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger"
+                >
                     {error}
-                </p>
+                </div>
             )}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-8">
@@ -673,7 +721,7 @@ export default function RecipeForm({
                                     setSlugTouched(false);
                                     setSlug(slugify(title));
                                 }}
-                                className="shrink-0 text-sm text-muted underline underline-offset-2"
+                                className="shrink-0 text-sm text-muted underline underline-offset-4"
                             >
                                 {t('slugFromTitle')}
                             </button>
@@ -742,9 +790,7 @@ export default function RecipeForm({
                             placeholder="4"
                             className={fieldClass}
                         />
-                        <p className="mt-1 text-xs text-muted">
-                            Schaltet den Portionsrechner frei.
-                        </p>
+                        <p className="mt-1 text-xs text-muted">{t('servingsHint')}</p>
                     </div>
                     <div>
                         <label htmlFor="prepMinutes" className={labelClass}>{t('prepMinutes')}</label>
@@ -774,7 +820,14 @@ export default function RecipeForm({
                     </div>
                 </div>
 
-                <GalleryField imageUrls={imageUrls} onChange={setImageUrls} onError={setError} />
+                {/* failWith rather than setError: an upload that fails from
+                    the drop zone reports itself in the same banner, which is
+                    just as far off screen. */}
+                <GalleryField
+                    imageUrls={imageUrls}
+                    onChange={setImageUrls}
+                    onError={(message) => (message ? failWith(message) : setError(''))}
+                />
 
                 <IngredientEditor ingredients={ingredients} onChange={setIngredients} />
 
@@ -786,7 +839,7 @@ export default function RecipeForm({
                         <button
                             type="button"
                             onClick={() => setPreview((open) => !open)}
-                            className="text-sm text-muted underline underline-offset-2"
+                            className="text-sm text-muted underline underline-offset-4"
                         >
                             {preview ? t('backToEdit') : t('preview')}
                         </button>
@@ -813,14 +866,14 @@ export default function RecipeForm({
                     <button
                         type="submit"
                         disabled={saving}
-                        className="rounded-full bg-ink px-6 py-3 font-medium text-page disabled:opacity-50"
+                        className={buttonPrimary}
                     >
                         {saving ? t('saving') : mode === 'create' ? t('create') : t('save')}
                     </button>
                     <button
                         type="button"
                         onClick={() => router.push('/admin')}
-                        className="text-sm text-muted underline underline-offset-2"
+                        className="text-sm text-muted underline underline-offset-4"
                     >
                         {t('cancel')}
                     </button>

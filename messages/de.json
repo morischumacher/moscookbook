@@ -34,7 +34,8 @@
     "nextPage": "Älter →",
     "pageOf": "Seite {page} von {pages}",
     "havePlaceholder": "Ich habe… z. B. Zucchini, Feta",
-    "haveLabel": "Zutaten, die du hast — ein Rezept muss alle davon verwenden"
+    "haveLabel": "Zutaten, die du hast — ein Rezept muss alle davon verwenden",
+    "sortForgotten": "Lange nicht gemacht"
   },
   "Categories": {
     "Breakfast": "Frühstück",
@@ -75,7 +76,12 @@
     "metaFallback": "Rezept aus mo'scookbook",
     "totalTime": "Gesamt",
     "imageOf": "Bild {number} von {total}: {title}",
-    "showImage": "Bild {number} anzeigen"
+    "showImage": "Bild {number} anzeigen",
+    "similar": "Ähnliche Rezepte",
+    "openImage": "Foto ganz ansehen",
+    "closeImage": "Schließen",
+    "previousImage": "Vorheriges Foto",
+    "nextImage": "Nächstes Foto"
   },
   "Rating": {
     "rate": "Bewerten",
@@ -133,7 +139,9 @@
     "verifyBanner": "Bitte bestätige deine E-Mail-Adresse — nur damit kannst du dein Passwort später selbst zurücksetzen.",
     "verifyResend": "E-Mail noch einmal schicken",
     "verifyResent": "Abgeschickt. Schau in dein Postfach.",
-    "verifyResendFailed": "hat nicht geklappt, bitte später noch einmal"
+    "verifyResendFailed": "hat nicht geklappt, bitte später noch einmal",
+    "inviteShareTitle": "Du bist zu Mo'sCookbook eingeladen",
+    "inviteShareDescription": "Ein privates Kochbuch. Über den Link legst du dein Konto an."
   },
   "Admin": {
     "dashboard": "Rezepte",
@@ -215,7 +223,8 @@
     "moveImageEarlier": "Bild {number} nach vorne",
     "moveImageLater": "Bild {number} nach hinten",
     "removeImageNumber": "Bild {number} entfernen",
-    "uploadTooLarge": "Dieses Bild ist auch verkleinert noch zu groß. Bitte ein kleineres wählen."
+    "uploadTooLarge": "Dieses Bild ist auch verkleinert noch zu groß. Bitte ein kleineres wählen.",
+    "servingsHint": "Schaltet den Portionsrechner frei."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
@@ -268,7 +277,11 @@
     "result": "Fertig: {created} angelegt, {replaced} ersetzt, {skipped} übersprungen.",
     "notJson": "Diese Datei ist kein gültiges JSON.",
     "failed": "Das Archiv konnte nicht eingelesen werden.",
-    "offlineHint": "Diese Datei verweist auf die Bilder per URL. Für eine Kopie, die auch ohne den Bildspeicher funktioniert, führe npm run backup auf deinem Rechner aus — das lädt die Bilddateien mit herunter."
+    "offlineHint": "Diese Datei verweist auf die Bilder per URL. Für eine Kopie, die auch ohne den Bildspeicher funktioniert, führe npm run backup auf deinem Rechner aus — das lädt die Bilddateien mit herunter.",
+    "confirmReplaceTitle": "Vorhandenes ersetzen?",
+    "confirmReplaceBody": "Jedes Rezept und jeder Beitrag aus diesem Archiv überschreibt das gleichnamige hier. Was du seit dem Backup bearbeitet hast, ist damit weg. Was nicht im Archiv steht, bleibt unberührt.",
+    "confirmReplaceGo": "Ersetzen",
+    "someFailed": "{count, plural, one {# Eintrag konnte nicht wiederhergestellt werden} other {# Einträge konnten nicht wiederhergestellt werden}}"
   },
   "Inbox": {
     "title": "Eingang",
@@ -368,7 +381,10 @@
     "statePublicPost": "Öffentlicher Link aktiv — wer den Link hat, kann den Beitrag lesen, ganz ohne Konto.",
     "revokeConfirmPost": "Link zurückziehen? Wer ihn schon bekommen hat, kann den Beitrag dann nicht mehr öffnen.",
     "sharedPostNotice": "Ein Beitrag aus mo'scookbook, mit dir geteilt.",
-    "preparing": "Link wird erstellt…"
+    "preparing": "Link wird erstellt…",
+    "statePrivateCollection": "Diese Sammlung sehen nur Leute mit Konto.",
+    "statePublicCollection": "Wer diesen Link hat, kann die Sammlung sehen.",
+    "revokeConfirmCollection": "Diesen Link zurückziehen? Wer ihn schon bekommen hat, kann die Sammlung dann nicht mehr öffnen."
   },
   "Errors": {
     "title": "Fehler",
@@ -386,7 +402,10 @@
     "source": {
       "client": "Im Browser",
       "server": "Auf dem Server"
-    }
+    },
+    "loadFailed": "Die Fehlerliste konnte nicht geladen werden — diese Seite kann gerade nicht sagen, ob etwas kaputt ist.",
+    "resolveFailed": "Das konnte nicht als erledigt markiert werden.",
+    "retry": "Nochmal versuchen"
   },
   "ErrorPage": {
     "title": "Diese Seite hat nicht geladen.",
@@ -429,7 +448,10 @@
     "searchLabel": "Beiträge durchsuchen",
     "searchPlaceholder": "Beiträge durchsuchen",
     "noResults": "Zu „{search}\" ist nichts geschrieben.",
-    "alsoInBlog": "{count, plural, one {Ein Beitrag im Blog passt auch} other {# Beiträge im Blog passen auch}}"
+    "alsoInBlog": "{count, plural, one {Ein Beitrag im Blog passt auch} other {# Beiträge im Blog passen auch}}",
+    "draftFound": "In diesem Browser liegt eine ungespeicherte Fassung dieses Beitrags.",
+    "draftRestore": "Wiederherstellen",
+    "draftDiscard": "Verwerfen"
   },
   "Cooked": {
     "title": "Nachgekocht",
@@ -443,12 +465,56 @@
     "captionLabel": "Notiz zu diesem Foto",
     "preparing": "Wird vorbereitet…",
     "tooLarge": "Dieses Bild ist auch verkleinert noch zu groß. Bitte ein kleineres wählen.",
-    "dismiss": "Schließen"
+    "dismiss": "Schließen",
+    "neverCooked": "Noch nie gekocht",
+    "logIt": "Habe ich gekocht",
+    "logging": "Wird notiert…",
+    "undoLog": "Entfernen",
+    "notePlaceholder": "Nächstes Mal…",
+    "noteLabel": "Was beim nächsten Mal anders soll",
+    "since": {
+      "today": "Heute gekocht",
+      "yesterday": "Gestern gekocht",
+      "days": "{count, plural, one {Vor # Tag gekocht} other {Vor # Tagen gekocht}}",
+      "weeks": "{count, plural, one {Vor # Woche gekocht} other {Vor # Wochen gekocht}}",
+      "months": "{count, plural, one {Vor # Monat gekocht} other {Vor # Monaten gekocht}}",
+      "years": "{count, plural, one {Vor # Jahr gekocht} other {Vor # Jahren gekocht}}"
+    }
   },
   "Dialog": {
     "cancel": "Abbrechen",
     "confirm": "Bestätigen",
     "ok": "OK",
     "sure": "Sicher?"
+  },
+  "NotFound": {
+    "title": "Hier ist nichts",
+    "explanation": "Diese Seite wurde umbenannt, gelöscht, oder der Link dorthin wurde zurückgezogen. Die Rezepte sind alle noch da, wo sie waren.",
+    "toRecipes": "Zu den Rezepten"
+  },
+  "Collections": {
+    "title": "Sammlungen",
+    "nav": "Sammlungen",
+    "intro": "Ein paar Rezepte mit einem Namen darauf — ein Menü, eine Woche, ein Abend.",
+    "none": "Noch keine Sammlungen.",
+    "empty": "In dieser Sammlung ist noch nichts.",
+    "createNew": "Neue Sammlung",
+    "edit": "Sammlung bearbeiten",
+    "recipeCount": "{count, plural, =0 {Keine Rezepte} one {# Rezept} other {# Rezepte}}",
+    "fieldTitle": "Name",
+    "fieldDescription": "Eine Zeile dazu",
+    "pick": "Rezepte in dieser Sammlung",
+    "add": "Rezept hinzufügen",
+    "remove": "Entfernen",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "save": "Sammlung speichern",
+    "saving": "Wird gespeichert…",
+    "saveFailed": "Das konnte nicht gespeichert werden.",
+    "delete": "Sammlung löschen",
+    "confirmDelete": "Diese Sammlung löschen? Die Rezepte selbst bleiben.",
+    "newTitle": "Neue Sammlung",
+    "editTitle": "Sammlung bearbeiten",
+    "sharedBy": "Eine Sammlung aus Mo’sCookbook"
   }
 }

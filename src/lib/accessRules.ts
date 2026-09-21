@@ -33,7 +33,7 @@ const ADMIN_PATH = /^\/(?:en|de)\/admin(?:\/|$)/;
  * page called `/en/registered-users` would be read as starting with `register`
  * and let through.
  */
-const OPEN_PATH = /^\/(?:en|de)\/(?:login|register|forgot|reset|verify|r|p)(?:\/|$)/;
+const OPEN_PATH = /^\/(?:en|de)\/(?:login|register|forgot|reset|verify|r|p|c)(?:\/|$)/;
 
 export function pathAccess(pathname: string): Access {
     if (!LOCALISED.test(pathname)) return 'unmatched';
