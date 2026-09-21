@@ -78,7 +78,7 @@
   "Rating": {
     "rate": "Bewerten",
     "editRating": "Bewertung ändern",
-    "summary": "{count, plural, =0 {Noch nicht bewertet} one {# Person bewertete dies mit {average}/5} other {# Personen bewerteten dies mit {average}/5}}",
+    "summary": "{count, plural, =0 {Noch nicht bewertet} one {# Person bewertete dies mit {average}} other {# Personen bewerteten dies mit {average}}}",
     "submitYours": "Deine Bewertung abgeben",
     "screenReader": "Durchschnitt {average} von {max}",
     "loginRequired": "Zum Bewerten musst du angemeldet sein.",

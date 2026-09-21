@@ -78,7 +78,7 @@
   "Rating": {
     "rate": "Rate",
     "editRating": "Edit rating",
-    "summary": "{count, plural, =0 {Not rated yet} one {# person rated this {average}/5} other {# people rated this {average}/5}}",
+    "summary": "{count, plural, =0 {Not rated yet} one {# person rated this {average}} other {# people rated this {average}}}",
     "submitYours": "Submit your rating",
     "screenReader": "Average {average} out of {max}",
     "loginRequired": "You must be logged in to rate recipes.",
