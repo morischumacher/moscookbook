@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
+import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
 import { slugify } from '@/lib/recipe';
@@ -121,6 +122,10 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         where: { id: captureId },
         data: { status: 'published', recipeId: recipe.id, error: null },
     });
+
+    // Publishing a capture is a recipe appearing, with a category the filter
+    // rail has never seen. See lib/collectionFacets.
+    forgetCollectionFacets();
 
     return NextResponse.json({ recipe }, { status: 201 });
 }

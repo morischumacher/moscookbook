@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
+import { forgetVerified } from '@/lib/verifiedFlag';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
 import { hashToken, tokenState } from '@/lib/authTokens';
 
@@ -74,6 +75,10 @@ export async function POST(req: NextRequest) {
             where: { id: record.userId },
             data: { emailVerifiedAt: now },
         });
+
+        // The banner reads a cached copy of this flag; without clearing it, the
+        // reminder to confirm would outlive the confirming by up to an hour.
+        forgetVerified(record.userId);
 
         return NextResponse.json({ success: true });
     } catch (error) {

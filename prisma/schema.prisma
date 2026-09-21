@@ -108,6 +108,10 @@ model Capture {
   processedAt DateTime?
 
   @@index([status, createdAt])
+
+  /// Postgres does not index the referencing side of a foreign key, so
+  /// deleting a recipe scanned this table to find the captures pointing at it.
+  @@index([recipeId])
 }
 
 /// A long-lived key that lets one device — an iOS Shortcut, a mail bridge —
@@ -217,6 +221,10 @@ model CookPhoto {
   createdAt DateTime @default(now())
 
   @@index([recipeId, createdAt])
+
+  /// Deleting a person sets their photographs' userId to null, which without
+  /// this is a scan of every cooked photo on the site.
+  @@index([userId])
 }
 
 model Recipe {
@@ -258,6 +266,20 @@ model Recipe {
   captures       Capture[]
   posts          Post[]
   cookPhotos     CookPhoto[]
+
+  /// This table had no index at all beyond the two unique columns and the
+  /// search vector, while being the table everything sorts and groups by.
+  ///
+  /// `createdAt` is the default order of the whole site — the front page, the
+  /// admin list, the export, the backup — so every visit sorted the table.
+  /// `views` is the "popular" order. `category` and `nationality` are grouped
+  /// on *unconditionally* on every front-page render, to build the filter
+  /// rails, whether or not anybody filtered: two full scans guaranteed, per
+  /// request, forever.
+  @@index([createdAt])
+  @@index([views])
+  @@index([category])
+  @@index([nationality])
 }
 
 /// One ingredient line, split into the parts a cook actually uses.
@@ -308,6 +330,11 @@ model Rating {
   createdAt DateTime @default(now())
 
   @@unique([userId, recipeId])
+
+  /// The unique index above leads with userId, so it cannot serve a lookup by
+  /// recipe — and every rating-sorted page, every average, and the cascade
+  /// behind every recipe deletion is a lookup by recipe.
+  @@index([recipeId])
 }
 
 model Favorite {
@@ -319,4 +346,8 @@ model Favorite {
   createdAt DateTime @default(now())
 
   @@unique([userId, recipeId])
+
+  /// Same reason as Rating: deleting a recipe cascades through this table, and
+  /// without recipeId leading, that is a sequential scan every time.
+  @@index([recipeId])
 }

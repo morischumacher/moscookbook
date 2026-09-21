@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { requireAdmin } from '@/lib/auth';
 import { parseArchive, type ArchiveRecipe } from '@/lib/archive';
 import { searchFields } from '@/lib/searchText';
@@ -236,6 +237,9 @@ export async function POST(req: NextRequest) {
                 console.error(`Archive import: photo for ${photo.recipeSlug} failed`, error);
             }
         }
+
+        // A restore can bring in a whole cookbook's worth of categories.
+        forgetCollectionFacets();
 
         return NextResponse.json({
             created,

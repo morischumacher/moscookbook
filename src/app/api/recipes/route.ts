@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
+import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { requireAdmin } from '@/lib/auth';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
@@ -79,6 +80,10 @@ export async function POST(req: NextRequest) {
                 data: { status: 'published', recipeId: recipe.id, error: null },
             });
         }
+
+        // A new recipe can bring a category nobody has used before, and the
+        // filter rail is computed once and kept. See lib/collectionFacets.
+        forgetCollectionFacets();
 
         return NextResponse.json(recipe, { status: 201 });
     } catch (error) {

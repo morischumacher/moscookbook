@@ -1,9 +1,10 @@
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
-import FilterChips, { type FacetValue } from '@/components/home/FilterChips';
+import FilterChips from '@/components/home/FilterChips';
 import RecipeCard from '@/components/RecipeCard';
 import prisma from '@/lib/prisma';
+import { collectionFacets } from '@/lib/collectionFacets';
 import { getCurrentUser } from '@/lib/auth';
 import { buildTsQuery } from '@/lib/searchText';
 import { parseIngredientQuery, variantsOf } from '@/lib/ingredientSearch';
@@ -43,23 +44,9 @@ type RecipeOrderBy = { createdAt: 'desc' } | { views: 'desc' };
 /** One screenful. The page never loads the whole collection. */
 const PAGE_SIZE = 24;
 
-interface FacetGroup {
-    category?: string | null;
-    nationality?: string | null;
-    _count: { _all: number };
-}
-
 function averageRating(ratings: { value: number }[]): number {
     if (ratings.length === 0) return 0;
     return ratings.reduce((sum, rating) => sum + rating.value, 0) / ratings.length;
-}
-
-/** Turns a Prisma groupBy result into chip data, busiest first. */
-function toFacets(groups: FacetGroup[], key: 'category' | 'nationality'): FacetValue[] {
-    return groups
-        .map((group) => ({ value: (group[key] ?? '').trim(), count: group._count._all }))
-        .filter((facet) => facet.value !== '')
-        .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
 }
 
 export default async function HomePage({
@@ -189,15 +176,30 @@ export default async function HomePage({
     const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
     const skip = (page - 1) * PAGE_SIZE;
 
-    const include = { images: { orderBy: { position: 'asc' as const } }, ratings: true };
+    /*
+     * Exactly what a tile draws, and nothing else.
+     *
+     * This was `{ images: { orderBy }, ratings: true }`, which fetched every
+     * photograph of every recipe on the page when a tile shows one, and every
+     * column of every rating row — id, userId, recipeId, both timestamps — to
+     * add five numbers up and divide. Twenty-four recipes with six photographs
+     * and a dozen ratings each is a few thousand rows crossing the wire to
+     * render twenty-four squares. The admin list next door already got this
+     * right; the front page, the busiest page on the site, did not.
+     */
+    const include = {
+        images: { orderBy: { position: 'asc' as const }, take: 1, select: { url: true } },
+        ratings: { select: { value: true } },
+    };
 
     // The chips describe the whole collection rather than the current result,
-    // because a chip that leads to an empty page is worse than no chip.
-    const [total, categoryGroups, cuisineGroups, collectionSize] = await Promise.all([
+    // because a chip that leads to an empty page is worse than no chip — and
+    // because that makes the answer the same for everybody, which is what lets
+    // it be computed once instead of on every visit. The two groupBys behind it
+    // read the entire table and no index can change that; see lib/collectionFacets.
+    const [total, facets] = await Promise.all([
         prisma.recipe.count({ where }),
-        prisma.recipe.groupBy({ by: ['category'], _count: { _all: true } }),
-        prisma.recipe.groupBy({ by: ['nationality'], _count: { _all: true } }),
-        prisma.recipe.count(),
+        collectionFacets(),
     ]);
 
     /**
@@ -339,10 +341,10 @@ export default async function HomePage({
             <div className="pb-6">
                 <Suspense fallback={<div className="h-24" aria-hidden="true" />}>
                     <FilterChips
-                        categories={toFacets(categoryGroups, 'category')}
-                        cuisines={toFacets(cuisineGroups, 'nationality')}
+                        categories={facets.categories}
+                        cuisines={facets.cuisines}
                         isLoggedIn={isLoggedIn}
-                        total={collectionSize}
+                        total={facets.total}
                     />
                 </Suspense>
             </div>

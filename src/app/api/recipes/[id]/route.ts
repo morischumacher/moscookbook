@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
+import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { requireAdmin } from '@/lib/auth';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
@@ -117,6 +118,9 @@ export async function PUT(
         // worse outcome than a file nobody points at.
         if (droppedUrls.length > 0) await deleteBlobs(droppedUrls);
 
+        // The category or cuisine may have changed, and with it the rail.
+        forgetCollectionFacets();
+
         return NextResponse.json(updatedRecipe, { status: 200 });
     } catch (error) {
         if (isPrismaError(error, 'P2002')) {
@@ -170,6 +174,9 @@ export async function DELETE(
                 ...doomed.cookPhotos.map((photo) => photo.url),
             ]);
         }
+
+        // One fewer recipe, and possibly one fewer category.
+        forgetCollectionFacets();
 
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (error) {

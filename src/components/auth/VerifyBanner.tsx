@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
-import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { isEmailVerified } from '@/lib/verifiedFlag';
 import ResendVerification from './ResendVerification';
 
 /**
@@ -14,18 +14,16 @@ import ResendVerification from './ResendVerification';
  *
  * The flag is read from the database rather than the session cookie, so that
  * confirming makes the banner disappear on the next render instead of at the
- * next sign-in.
+ * next sign-in. That read is cached per person and cleared by the route that
+ * does the confirming — it used to be a round trip on every page render for
+ * every signed-in person, for the whole life of an account, to learn something
+ * that changes once. See lib/verifiedFlag.
  */
 export default async function VerifyBanner() {
     const sessionUser = await getCurrentUser();
     if (!sessionUser) return null;
 
-    const user = await prisma.user.findUnique({
-        where: { id: sessionUser.id },
-        select: { emailVerifiedAt: true },
-    });
-
-    if (!user || user.emailVerifiedAt) return null;
+    if (await isEmailVerified(sessionUser.id)) return null;
 
     const t = await getTranslations('Auth');
 
