@@ -327,5 +327,10 @@
     "field": "Field",
     "shortcutInput": "Shortcut Input",
     "nav": "Devices"
+  },
+  "Share": {
+    "share": "Share",
+    "copied": "Link copied",
+    "linkLabel": "Link to this recipe"
   }
 }

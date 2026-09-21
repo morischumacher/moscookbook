@@ -14,6 +14,8 @@ import { getSession } from '@/lib/auth';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
 import { formatMinutes } from '@/lib/amount';
 import { getTranslations } from 'next-intl/server';
+import { buildRecipeJsonLd } from '@/lib/recipeJsonLd';
+import { getSiteUrl } from '@/lib/siteUrl';
 
 interface RecipeRow {
     id: number;
@@ -63,7 +65,10 @@ export async function generateMetadata({
         recipe.description?.trim() ||
         `${recipe.category ? recipe.category + ' · ' : ''}${t('metaFallback')}`;
 
-    const image = recipe.images[0]?.url;
+    // A recipe with no photograph still has to look like something when it is
+    // sent to someone. Without a picture WhatsApp and Signal show a bare link,
+    // which reads like spam; the branded card at least says where it is from.
+    const image = recipe.images[0]?.url ?? '/og-default.png';
 
     return {
         title: `${recipe.title} — mo'scookbook`,
@@ -71,16 +76,19 @@ export async function generateMetadata({
         alternates: { canonical: `/${locale}/recipe/${recipe.slug}` },
         openGraph: {
             type: 'article',
+            siteName: "mo'scookbook",
+            locale,
             title: recipe.title,
             description,
             publishedTime: recipe.createdAt.toISOString(),
-            images: image ? [{ url: image, alt: recipe.title }] : undefined,
+            url: `/${locale}/recipe/${recipe.slug}`,
+            images: [{ url: image, alt: recipe.title, width: 1200, height: 630 }],
         },
         twitter: {
-            card: image ? 'summary_large_image' : 'summary',
+            card: 'summary_large_image',
             title: recipe.title,
             description,
-            images: image ? [image] : undefined,
+            images: [image],
         },
     };
 }
@@ -155,6 +163,22 @@ export default async function RecipePage({
     return (
         <article className="min-h-screen w-full bg-page pb-32">
             <ViewTracker recipeId={recipeData.id} />
+
+            {/* The markup this application reads out of other people's pages,
+                written for ours. JSON.stringify escapes the content, and the
+                only way out of a script block is the closing tag, so that one
+                sequence is broken up. */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify(
+                        buildRecipeJsonLd({
+                            ...recipeData,
+                            url: `${getSiteUrl()}/${locale}/recipe/${recipeData.slug}`,
+                        })
+                    ).replace(/</g, '\\u003c'),
+                }}
+            />
 
             <header className="container mx-auto max-w-2xl px-4 pt-8 sm:px-8 sm:pt-16">
                 {/* The print stylesheet hides the navigation, and the logo used
@@ -245,6 +269,8 @@ export default async function RecipePage({
                     ingredients={recipeData.ingredients}
                     instructions={recipeData.instructions}
                     baseServings={recipeData.servings}
+                    title={recipeData.title}
+                    description={recipeData.description ?? undefined}
                 />
             </div>
         </article>

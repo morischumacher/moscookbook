@@ -327,5 +327,10 @@
     "field": "Feld",
     "shortcutInput": "Kurzbefehl-Eingabe",
     "nav": "Geräte"
+  },
+  "Share": {
+    "share": "Teilen",
+    "copied": "Link kopiert",
+    "linkLabel": "Link zu diesem Rezept"
   }
 }

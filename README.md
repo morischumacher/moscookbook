@@ -381,6 +381,34 @@ The admin tables became lists. A table of four columns on a 375px screen scrolls
 sideways and is miserable to use on the phone you are actually holding when you
 want to fix a typo in a recipe.
 
+## Sharing a recipe
+
+The share button opens the phone's own share sheet through `navigator.share`,
+which is the thing people already know how to use. Where that does not exist —
+most desktop browsers — the link goes to the clipboard, and if even that is
+refused the URL appears on screen to be copied by hand. Three rungs, because a
+button that silently does nothing is worse than no button.
+
+Cancelling the share sheet is not treated as a failure. It rejects with
+`AbortError`, and falling back to the clipboard there would be rude.
+
+What the person on the other end sees comes from the page's OpenGraph data. A
+recipe with a photograph shows the photograph; one without used to show a bare
+link, which reads like spam, and now falls back to a branded card.
+
+Every recipe page also carries **schema.org/Recipe** markup — the same markup
+this application reads out of other people's pages when importing. That makes
+the recipes legible to Google and to anyone else's importer, and it means the
+cookbook can import from itself, which is exactly what the round-trip test
+does: build the markup, feed it to our own extractor, and check that nothing
+was lost. That test earned its keep on the first run by catching
+`recipeIngredient` being emitted as objects rather than strings — markup no
+importer could have read.
+
+The JSON is escaped before it goes into the `<script>` block. Recipe titles can
+come from the capture inbox, which means from whatever page a stranger wrote,
+so a title containing `</script>` is not hypothetical.
+
 ## The oyster
 
 The mark in the logo is what a recipe is rated in, so it is one shape in one

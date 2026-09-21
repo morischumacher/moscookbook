@@ -21,6 +21,7 @@ import youtube from './youtube.test';
 import captureProcess from './captureProcess.test';
 import email from './email.test';
 import duplicates from './duplicates.test';
+import recipeJsonLd from './recipeJsonLd.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
 // they are run in order rather than fired off together.
@@ -40,6 +41,7 @@ async function main() {
     await captureProcess();
     await email();
     duplicates();
+    recipeJsonLd();
 
     process.exit(summary() === 0 ? 0 : 1);
 }
