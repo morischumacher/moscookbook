@@ -15,6 +15,7 @@ export default function RecipeBody({
     baseServings,
     title,
     description,
+    shareUrl,
 }: {
     ingredients: StructuredIngredient[];
     instructions: string;
@@ -22,6 +23,8 @@ export default function RecipeBody({
     /** For the share sheet, which offers them as the message's subject. */
     title: string;
     description?: string;
+    /** The public link, when the recipe has one. */
+    shareUrl?: string;
 }) {
     const [servings, setServings] = useState(baseServings ?? 0);
     const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
@@ -151,6 +154,7 @@ export default function RecipeBody({
                 <ShareButton
                     title={title}
                     description={description}
+                    url={shareUrl}
                     className="text-sm text-muted underline underline-offset-4 hover:text-ink"
                 />
 

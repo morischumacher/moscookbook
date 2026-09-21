@@ -7,6 +7,7 @@ import { sessionOptions, SessionData } from '@/lib/session';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
 import prisma from '@/lib/prisma';
 import { fullName } from '@/lib/personName';
+import { issueToken } from '@/lib/issueToken';
 
 const registerSchema = z.object({
     email: z.string().trim().email().max(320),
@@ -14,6 +15,7 @@ const registerSchema = z.object({
     lastName: z.string().trim().min(1, 'Last name is required').max(80),
     password: z.string().min(8, 'Password must be at least 8 characters').max(200),
     invite: z.string().trim().min(1, 'An invitation is required').max(200),
+    locale: z.enum(['en', 'de']).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -35,7 +37,7 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    const { email, firstName, lastName, password, invite } = parsed.data;
+    const { email, firstName, lastName, password, invite, locale = 'en' } = parsed.data;
 
     // Claim the invite before creating anything. updateMany with the conditions
     // in the WHERE clause makes this atomic: if two people redeem the same link
@@ -87,7 +89,13 @@ export async function POST(req: NextRequest) {
             data: { usedById: user.id },
         });
 
-        const res = NextResponse.json({ success: true });
+        // Deliberately not awaited for its outcome beyond logging, and never
+        // allowed to fail the registration: the account exists, the invitation
+        // is burned, and a mail server that is down must not undo either. The
+        // address can be confirmed later from the banner on the site.
+        const mailed = await issueToken(user, 'verify', locale).catch(() => 'failed' as const);
+
+        const res = NextResponse.json({ success: true, verificationMail: mailed });
         const session = await getIronSession<SessionData>(req, res, sessionOptions);
 
         session.user = {

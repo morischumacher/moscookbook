@@ -110,7 +110,28 @@
     "passwordHint": "At least 8 characters.",
     "inviteRequired": "Registration is by invitation. Ask Mo for a link.",
     "firstName": "First name",
-    "lastName": "Last name"
+    "lastName": "Last name",
+    "forgotLink": "Forgot your password?",
+    "forgotTitle": "Reset password",
+    "forgotIntro": "Enter your e-mail address and we will send you a link to set a new password.",
+    "forgotSubmit": "Send link",
+    "forgotSent": "If there is an account for this address, a link is on its way. It is valid for one hour — do check the spam folder.",
+    "backToLogin": "Back to login",
+    "resetTitle": "Choose a new password",
+    "newPassword": "New password",
+    "repeatPassword": "Repeat password",
+    "passwordMismatch": "The two passwords are not the same.",
+    "resetSubmit": "Save password",
+    "linkExpired": "This link is no longer valid. Please request a new one.",
+    "linkMissing": "This link is incomplete. Please open it again from the e-mail.",
+    "verifyTitle": "Confirm your address",
+    "verifyWorking": "One moment…",
+    "verifyDone": "Your address is confirmed. You can now reset your own password whenever you need to.",
+    "toCookbook": "To the cookbook",
+    "verifyBanner": "Please confirm your e-mail address — it is what lets you reset your password later.",
+    "verifyResend": "Send the e-mail again",
+    "verifyResent": "Sent. Have a look in your inbox.",
+    "verifyResendFailed": "that did not work, try again later"
   },
   "Admin": {
     "dashboard": "Recipes",
@@ -218,20 +239,6 @@
     "partial": "The page only had partial data — please fill in the rest.",
     "imported": "Recipe imported. Please check it before saving."
   },
-  "ShoppingList": {
-    "title": "Shopping list",
-    "fromRecipes": "{count, plural, one {From # recipe} other {From # recipes}}",
-    "empty": "Nothing on the list yet. Open a recipe and add it.",
-    "browseRecipes": "Browse recipes",
-    "addToList": "Add to shopping list",
-    "onList": "On the shopping list",
-    "removeRecipe": "Remove {title} from the list",
-    "remaining": "{count, plural, =0 {All done} one {# item left} other {# items left}}",
-    "fromCount": "{count, plural, other {from # recipes}}",
-    "print": "Print",
-    "clearAll": "Empty the list",
-    "nav": "Shopping list"
-  },
   "Invites": {
     "title": "Invitations",
     "create": "New invitation",
@@ -337,7 +344,17 @@
   "Share": {
     "share": "Share",
     "copied": "Link copied",
-    "linkLabel": "Link to this recipe"
+    "linkLabel": "Link to this recipe",
+    "visibilityTitle": "Visibility",
+    "statePrivate": "Private — only people with an account can open this recipe.",
+    "statePublic": "Public link active — anyone with this link can read the recipe, no account needed.",
+    "createLink": "Create a public link",
+    "copyLink": "Copy link",
+    "revoke": "Withdraw link",
+    "revokeConfirm": "Withdraw this link? Anyone you have already sent it to will no longer be able to open the recipe.",
+    "linkFailed": "That did not work. Please try again.",
+    "sharedNotice": "A recipe from mo'scookbook, shared with you.",
+    "sharedLogin": "Log in"
   },
   "Errors": {
     "title": "Errors",

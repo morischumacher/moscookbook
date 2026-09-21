@@ -21,17 +21,24 @@ export default function ShareButton({
     title,
     description,
     className,
+    url: given,
 }: {
     title: string;
     description?: string;
     className?: string;
+    /**
+     * What to hand over. Defaults to the page itself; a recipe with a public
+     * link passes that instead, so the person on the other end is not sent to
+     * a sign-in form.
+     */
+    url?: string;
 }) {
     const t = useTranslations('Share');
     const [state, setState] = useState<'idle' | 'copied' | 'manual'>('idle');
     const [url, setUrl] = useState('');
 
     const share = async () => {
-        const current = window.location.href;
+        const current = given || window.location.href;
         setUrl(current);
 
         const payload = { title, text: description || title, url: current };

@@ -51,8 +51,7 @@ const PLURAL_ENDINGS = ['nen', 'en', 'er', 'n', 'e', 's'];
  * The shortest word that may remain after an ending is removed.
  *
  * Four is not arbitrary. At three, "Eis" loses its -s and becomes "Ei", and a
- * shopping list for ice cream starts suggesting eggs — the same trap that made
- * the shopping list refuse to stem at all. Four keeps "Eier" → "Ei" from
+ * a search for ice cream starts turning up eggs. Four keeps "Eier" → "Ei" from
  * happening too, at the cost of missing a few genuine short plurals. Missing a
  * result is recoverable; a wrong result is not.
  */

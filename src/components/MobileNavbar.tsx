@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import Logo from './brand/Logo';
 import LogoutButton from './LogoutButton';
-import { useShoppingSelection } from './shopping/useShoppingSelection';
 
 interface MobileNavbarProps {
     user: { id: number; email: string; name: string; admin: boolean } | null;
@@ -28,11 +27,9 @@ interface MobileNavbarProps {
  */
 export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
     const t = useTranslations('Navigation');
-    const tShopping = useTranslations('ShoppingList');
     const tInvites = useTranslations('Invites');
     const tInbox = useTranslations('Inbox');
     const tErrors = useTranslations('Errors');
-    const { ids, href } = useShoppingSelection();
     const [isOpen, setIsOpen] = useState(false);
     const toggleRef = useRef<HTMLButtonElement>(null);
 
@@ -58,16 +55,6 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
         'py-2 text-base font-medium text-ink text-left hover:opacity-60 transition-opacity';
     const deskLink = 'text-sm text-ink hover:opacity-60 transition-opacity';
 
-    // Only worth a place in the bar once something is actually on it.
-    const shoppingLink =
-        ids.length > 0 ? (
-            <Link href={href} onClick={close} className={deskLink}>
-                {tShopping('nav')}
-                <span className="ml-1.5 rounded-full bg-ink px-1.5 py-0.5 text-xs text-page">
-                    {ids.length}
-                </span>
-            </Link>
-        ) : null;
 
     const adminLinks = [
         { href: '/admin', label: t('admin') },
@@ -100,8 +87,6 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
                             <LogoutButton className={deskLink} />
                         </>
                     )}
-
-                    {shoppingLink}
 
                     <Link
                         href="/"
@@ -171,14 +156,6 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
                                 </>
                             )}
 
-                            {ids.length > 0 && (
-                                <Link href={href} onClick={close} className={row}>
-                                    {tShopping('nav')}
-                                    <span className="ml-1.5 rounded-full bg-ink px-1.5 py-0.5 text-xs text-page">
-                                        {ids.length}
-                                    </span>
-                                </Link>
-                            )}
                         </div>
 
                         <Link

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 
 const fieldClass =
@@ -11,6 +11,7 @@ const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-
 
 export default function RegisterPage() {
     const t = useTranslations('Auth');
+    const locale = useLocale();
     const router = useRouter();
     const searchParams = useSearchParams();
     const invite = searchParams.get('invite') ?? '';
@@ -30,7 +31,7 @@ export default function RegisterPage() {
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ firstName, lastName, email, password, invite }),
+                body: JSON.stringify({ firstName, lastName, email, password, invite, locale }),
             });
 
             if (res.ok) {

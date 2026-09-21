@@ -31,6 +31,15 @@ const ALLOWED = new Map([
         { why: 'increments the view counter only', marker: /views:\s*\{\s*increment/ },
     ],
     [
+        'src/app/api/recipes/[id]/share/route.ts',
+        {
+            why: 'only ever sets or clears the share token',
+            // Both directions, so that widening this route to touch a recipe's
+            // words would take the exemption with it.
+            marker: /data:\s*\{\s*shareToken:\s*(?:token|null)\s*\}/,
+        },
+    ],
+    [
         'scripts/reindex-search.ts',
         { why: 'writes the columns this check is about', marker: /searchFields/ },
     ],

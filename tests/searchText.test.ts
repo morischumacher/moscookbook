@@ -17,7 +17,7 @@ export default function searchTextTests() {
     equal('leaves a word with no plural ending alone', singular('salz'), null);
 
     // The whole reason MIN_STEM exists: three-letter stems turn ice cream into
-    // eggs, which is how the shopping list learned not to stem at all.
+    // eggs, and a search for one starts returning the other.
     equal('refuses to turn Eis into Ei', singular('eis'), null);
     equal('refuses to turn Eier into Ei', singular('eier'), null);
     equal('refuses to turn Tee into Te', singular('tee'), null);
