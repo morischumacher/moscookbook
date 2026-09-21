@@ -30,6 +30,7 @@ import channels from './channels.test';
 import post from './post.test';
 import uploadImage from './uploadImage.test';
 import ingredientSearch from './ingredientSearch.test';
+import blobCleanup from './blobCleanup.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
 // they are run in order rather than fired off together.
@@ -58,6 +59,7 @@ async function main() {
     post();
     uploadImage();
     ingredientSearch();
+    blobCleanup();
 
     process.exit(summary() === 0 ? 0 : 1);
 }

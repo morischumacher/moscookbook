@@ -7,6 +7,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { rateLimit } from '@/lib/rateLimit';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { checkImageUpload, looksLikeHeic } from '@/lib/uploadImage';
+import { deleteBlobs } from '@/lib/blobCleanup';
 
 /**
  * "Nachgekocht" — a photograph of the dish as somebody actually made it.
@@ -184,6 +185,18 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     try {
+        // Read before the delete, and only the row this person is allowed to
+        // delete — the same condition, so a photograph somebody may not touch
+        // never has its URL looked at either.
+        const doomed: { url: string } | null = await prisma.cookPhoto.findFirst({
+            where: {
+                id: photoId,
+                recipeId: id,
+                ...(user.admin ? {} : { userId: user.id }),
+            },
+            select: { url: true },
+        });
+
         // The ownership check is in the WHERE clause, not in an `if` above it:
         // a guest can only ever match their own rows, an admin matches any, and
         // there is no window between reading who owns it and deleting it.
@@ -198,6 +211,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         // Not 404 or 403 — telling somebody which of the two it is tells them
         // whether a picture they may not touch exists. The end state they asked
         // for is "that picture is not mine to see any more", and it holds.
+        if (removed.count === 1 && doomed) await deleteBlobs([doomed.url]);
+
         return NextResponse.json({ success: true, removed: removed.count });
     } catch (error) {
         console.error('Cooked-photo deletion failed:', error);

@@ -452,8 +452,12 @@ the export kept writing a file with nothing in it but recipes. Nothing broke.
 The backups simply stopped covering the newest thing anybody had written, and
 the way you find that out is by needing one.
 
-`npm run check:backup` now refuses to let it happen again. Every model in
-`schema.prisma` is either read by the export or named in that script's
+`npm run check:backup` now refuses to let it happen again, and it checks **both**
+backups — the browser export and the offline `npm run backup`, which are
+separate queries over the same tables. The offline one had quietly stayed at
+archive version 1 while the application moved to 2; the guard compares the two
+declared versions as well, so that cannot recur. Every model in
+`schema.prisma` is either read by both or named in that script's
 `NOT_BACKED_UP` list with the reason it is not worth keeping — an account's
 password hash, a reset token that dies in an hour, the inbox queue. A model
 added from now on fails the check until somebody decides which it is. Deciding
@@ -871,6 +875,33 @@ that might be reversed.
 
 The query string is stripped from the reported path before it is stored. An
 error report is not a place to start collecting what people searched for.
+
+## Pictures that nothing points at
+
+Deleting a recipe deleted its `Image` rows and left every file sitting in the
+Blob store for ever. Nothing broke — the pictures simply became unreachable and
+kept being paid for, and the bill is the only place that would ever have
+mentioned it. The same went for an entry's picture and for a cooked photograph.
+
+Now the files go with the row, through `src/lib/blobCleanup.ts`. Two rules:
+
+- **Only our own files.** A recipe imported from a website can hold a link to
+  somebody else's server, and asking the Blob API to delete that is at best a
+  wasted call and at worst a request we had no business making. The host is
+  matched as a host, not with `includes` — a sabotage test covers
+  `https://public.blob.vercel-storage.com.evil.test/x.jpg`.
+- **Never throws.** Deleting a recipe has to succeed even when the store is
+  having a bad afternoon. A file left behind is a small cost; a delete that
+  fails halfway leaves a recipe that is half gone, which is a real one. Rows go
+  first for the same reason.
+
+`npm run sweep` finds what leaked before this existed, and whatever a failed
+delete leaves later. It **lists and deletes nothing** unless `--delete` is
+passed, because the failure mode is deleting a photograph somebody took, and it
+ignores anything uploaded in the last 24 hours — the admin form uploads a
+picture and saves the recipe a minute later, and in between the file is real
+with nothing pointing at it yet. Captures count as references, drafts included:
+a screenshot waiting in the inbox is not an orphan.
 
 ## Pictures
 

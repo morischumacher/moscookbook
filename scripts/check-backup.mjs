@@ -15,7 +15,16 @@
 import { readFileSync } from 'node:fs';
 
 const SCHEMA = 'prisma/schema.prisma';
-const EXPORT = 'src/app/api/export/route.ts';
+
+/**
+ * Both of them. The browser export and the offline `npm run backup` are two
+ * separate queries over the same tables, and the second one had quietly stayed
+ * a version behind while the first moved on — which is the drift this whole
+ * file exists to make loud.
+ */
+const EXPORTS = ['src/app/api/export/route.ts', 'scripts/backup.mjs'];
+
+const ARCHIVE = 'src/lib/archive.ts';
 
 /**
  * Models that are on purpose not in a backup, each with the reason. A reason
@@ -35,7 +44,7 @@ const NOT_BACKED_UP = new Map([
 ]);
 
 const schema = readFileSync(SCHEMA, 'utf8');
-const exportRoute = readFileSync(EXPORT, 'utf8');
+const sources = EXPORTS.map((file) => ({ file, text: readFileSync(file, 'utf8') }));
 
 const models = [...schema.matchAll(/^model\s+(\w+)\s*\{/gm)].map((match) => match[1]);
 
@@ -45,29 +54,58 @@ let covered = 0;
 for (const model of models) {
     // `prisma.cookPhoto.findMany` for `model CookPhoto`.
     const accessor = model[0].toLowerCase() + model.slice(1);
-    const queried = new RegExp(`prisma\\.${accessor}\\.find`).test(exportRoute);
+    const reads = new RegExp(`prisma\\.${accessor}\\.find`);
+    const missing = sources.filter((source) => !reads.test(source.text));
 
-    if (queried) {
+    if (missing.length === 0) {
         covered += 1;
 
         if (NOT_BACKED_UP.has(model)) {
             problems.push(
-                `${model} is in the export but also listed as deliberately left out.\n` +
+                `${model} is in the backups but also listed as deliberately left out.\n` +
                 '    Take it out of NOT_BACKED_UP in scripts/check-backup.mjs.'
             );
         }
         continue;
     }
 
-    if (!NOT_BACKED_UP.has(model)) {
+    if (NOT_BACKED_UP.has(model)) {
+        // Named as not worth keeping, and none of them reads it: as intended.
+        if (missing.length === sources.length) continue;
+
         problems.push(
-            `${model} is in the schema but the export never reads it.\n` +
-            `    Either query it in ${EXPORT} and carry it in the archive, or add it\n` +
-            '    to NOT_BACKED_UP in scripts/check-backup.mjs with the reason it is not\n' +
-            '    worth keeping. A backup that silently stops covering new data is the\n' +
-            '    one failure a backup exists to prevent.'
+            `${model} is listed as deliberately not backed up, but ` +
+            `${sources.length - missing.length} of the ${sources.length} backups reads it.\n` +
+            '    One of them is wrong. Decide which, in scripts/check-backup.mjs.'
         );
+        continue;
     }
+
+    problems.push(
+        `${model} is in the schema but ${missing.map((source) => source.file).join(' and ')}\n` +
+        '    never reads it. Either query it there and carry it in the archive, or add it\n' +
+        '    to NOT_BACKED_UP in scripts/check-backup.mjs with the reason it is not\n' +
+        '    worth keeping. A backup that silently stops covering new data is the\n' +
+        '    one failure a backup exists to prevent.'
+    );
+}
+
+/**
+ * And the two have to agree on the format they are writing. They are separate
+ * implementations on purpose — one runs in a serverless function, the other on
+ * a laptop with no time limit — but a file that says version 1 while carrying
+ * version 2's data is a file a restore will read wrongly.
+ */
+const declared = /ARCHIVE_VERSION\s*=\s*(\d+)/;
+const inLibrary = declared.exec(readFileSync(ARCHIVE, 'utf8'))?.[1];
+const inScript = declared.exec(readFileSync('scripts/backup.mjs', 'utf8'))?.[1];
+
+if (inLibrary && inScript && inLibrary !== inScript) {
+    problems.push(
+        `${ARCHIVE} writes archive version ${inLibrary} but scripts/backup.mjs writes ${inScript}.\n` +
+        '    They are separate implementations of one format; a file that says one\n' +
+        '    version while carrying another is a file a restore reads wrongly.'
+    );
 }
 
 // A name in the list that no longer exists is a stale exemption, and a stale
@@ -88,6 +126,6 @@ if (problems.length > 0) {
 }
 
 console.log(
-    `check:backup — ${covered} of ${models.length} models in the archive, ` +
+    `check:backup — ${covered} of ${models.length} models in both backups, ` +
     `${NOT_BACKED_UP.size} deliberately not.`
 );
