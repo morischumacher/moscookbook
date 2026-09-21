@@ -22,7 +22,15 @@ export default function LogoutButton({ className }: { className?: string }) {
     };
 
     return (
-        <button onClick={handleLogout} className={className} style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}>
+        // The chrome is stripped with classes rather than an inline style, so
+        // the caller's className can still change alignment. As an inline style
+        // it could not: `padding: 0` and a stretched button in a flex column
+        // are what centred "Logout" in the middle of a left-aligned menu.
+        <button
+            type="button"
+            onClick={handleLogout}
+            className={`cursor-pointer border-none bg-transparent font-[inherit] ${className ?? ''}`}
+        >
             {t('logout')}
         </button>
     );

@@ -8,12 +8,20 @@
   /* Page background */
   --color-fg: #111111;
   /* Body text and headings */
-  --color-muted: #6B7280;
-  /* Secondary text: meta lines, hints, captions */
-  --color-faint: #9CA3AF;
-  /* Tertiary: eyebrows, counts, placeholder icons */
+  --color-muted: #4B5563;
+  /* Secondary text: meta lines, hints, captions. 7.2:1 on the page. */
+  --color-faint: #6B7280;
+  /* Tertiary: eyebrows, counts, placeholder icons. 4.6:1 — was #9CA3AF at
+     2.4:1, which fails even the 3:1 asked of a graphic, and that colour was
+     carrying every uppercase label on the site. npm run check:contrast now
+     refuses to let it drift back. */
   --color-border: #EAEAEE;
-  /* Hairline rules and input borders */
+  /* Hairline rules between rows. Decorative, deliberately almost invisible. */
+  --color-control: #8D877F;
+  /* The outline of something you can operate: a chip, a select, a field.
+     WCAG asks 3:1 for the boundary of a control, and --color-border is 1.1:1 —
+     which is why the filter chips read as loose words with one black pill
+     among them rather than as a row of buttons. */
   --color-surface: rgba(0, 0, 0, 0.04);
   /* Subtle fills: thumbnails, panels */
   --color-danger: #DC2626;
@@ -21,11 +29,28 @@
   --color-danger-surface: #FEF2F2;
   --color-danger-line: #FCA5A5;
 
+  /* The brand orange, taken from the logo (#ff4a0e). It is 3.2:1 on the page —
+     enough for a shape, not for words — so text and links use the darker
+     --color-accent-text, and the two are separate tokens precisely so that
+     nobody has to remember the difference. */
+  --color-accent: #ff4a0e;
+  --color-accent-text: #C73500;
+
+  /* Confirmations. Paired with --color-danger so the two readable states of a
+     form have tokens rather than one having a token and the other a literal. */
+  --color-success: #15803D;
+
   --color-neutral: var(--color-muted);
   /* Legacy alias, kept for the plain-CSS classes below */
 
   /* Typography */
-  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* The fallback inside var() is not decoration. --font-geist-sans is set by a
+     class on <body>; anywhere that class is missing — an error page, a document
+     rendered outside the layout, a font that fails to load — the whole
+     font-family declaration would be invalid without it, and the entire site
+     would fall back to Times. Building a static preview of these pages is how
+     that turned up. */
+  --font-sans: var(--font-geist-sans, ui-sans-serif), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   /* Spacing Scale (Base 8px) */
   --space-xs: 0.5rem;
@@ -49,12 +74,17 @@
     --color-bg: #000000;
     --color-fg: #EEEEEE;
     --color-muted: #9CA3AF;
-    --color-faint: #6B7280;
+    --color-faint: #767E8C;
     --color-border: #333333;
+    --color-control: #616161;
     --color-surface: rgba(255, 255, 255, 0.06);
     --color-danger: #F87171;
     --color-danger-surface: rgba(127, 29, 29, 0.35);
     --color-danger-line: #7F1D1D;
+    /* On black the brand orange is 6.2:1, so one token does both jobs. */
+    --color-accent: #ff4a0e;
+    --color-accent-text: #ff4a0e;
+    --color-success: #34D399;
   }
 }
 
@@ -134,8 +164,13 @@ a {
 
 button {
   cursor: pointer;
-  border: none;
   font-family: inherit;
+  /* No `border: none` here. The shorthand also sets border-style, and a button
+     with border-style: none cannot be given a border by any utility class —
+     Tailwind's `border` only sets the width. Every outlined button in the app
+     was silently borderless because of this line, which is why the filter row
+     read as one black pill and some loose words. Tailwind's own reset already
+     leaves buttons at `border: 0 solid`, so nothing is needed here. */
 }
 
 img {

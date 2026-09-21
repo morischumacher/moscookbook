@@ -44,6 +44,72 @@ model Invite {
   @@index([expiresAt])
 }
 
+/// The inbox. Everything shared from a phone lands here raw, before anyone
+/// decides whether it becomes a recipe. See src/lib/capture.ts for why the
+/// collecting, the parsing and the deciding are kept apart.
+model Capture {
+  id     Int     @id @default(autoincrement())
+  /// url | text | image
+  kind   String
+  /// youtube | instagram | tiktok | web | note | photo
+  source String
+
+  sourceUrl String?
+  /// Whatever was shared, kept verbatim so a capture survives a parser that
+  /// cannot yet read it and can be retried once the parser improves.
+  rawText   String?
+  imageUrl  String?
+  /// What the sender typed alongside the share.
+  note      String?
+
+  /// new | ready | needsWork | failed | published
+  status String  @default("new")
+  error  String?
+  /// The parsed recipe draft, in the shape the recipe form expects.
+  draft  Json?
+
+  recipe   Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  recipeId Int?
+
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([status, createdAt])
+}
+
+/// A long-lived key that lets one device — an iOS Shortcut, a mail bridge —
+/// post to the capture endpoint. Only the hash is stored.
+model CaptureToken {
+  id         Int       @id @default(autoincrement())
+  label      String
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+}
+
+/// Something that went wrong, grouped so that two hundred occurrences of one
+/// bug are one row with a count. See src/lib/errorReport.ts for why this is in
+/// the database rather than in a monitoring service.
+model ErrorLog {
+  id          Int      @id @default(autoincrement())
+  /// Same problem, same fingerprint.
+  fingerprint String   @unique
+  /// client | server
+  source      String
+  message     String
+  stack       String?
+  /// The path it happened on, without the query string.
+  path        String?
+  count       Int      @default(1)
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  /// Set when it has been dealt with; the list hides these.
+  resolvedAt  DateTime?
+
+  @@index([resolvedAt, lastSeenAt])
+}
+
 model Recipe {
   id           Int        @id @default(autoincrement())
   title        String
@@ -58,10 +124,23 @@ model Recipe {
   cookMinutes  Int?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+
+  /// Search columns. Written by searchFields() in src/lib/searchText.ts, never
+  /// by hand: they hold the recipe's own wording plus an ae/oe/ue spelling of
+  /// every word with an umlaut, so "Kaesespaetzle" finds "Käsespätzle".
+  searchTitle  String     @default("")
+  searchBody   String     @default("")
+
+  /// Maintained by Postgres from the two columns above. Prisma has no tsvector
+  /// type, so it is declared Unsupported and queried through raw SQL; nothing
+  /// writes to it.
+  searchVector Unsupported("tsvector")?
+
   images         Image[]
   ratings        Rating[]
   favorites      Favorite[]
   ingredients    Ingredient[]
+  captures       Capture[]
 }
 
 /// One ingredient line, split into the parts a cook actually uses.
@@ -90,10 +169,16 @@ model Ingredient {
 }
 
 model Image {
-  id       Int    @id @default(autoincrement())
-  url      String
+  id  Int    @id @default(autoincrement())
+  url String
+  /// The order the author arranged them in. Reading by id instead would
+  /// reshuffle a gallery every time one picture was replaced.
+  position Int @default(0)
+
   recipeId Int
   recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId, position])
 }
 
 model Rating {

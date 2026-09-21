@@ -48,7 +48,7 @@ async function main() {
             title: true, slug: true, description: true, instructions: true,
             category: true, nationality: true, servings: true, prepMinutes: true,
             cookMinutes: true, views: true, createdAt: true,
-            images: { orderBy: { id: 'asc' }, select: { url: true } },
+            images: { orderBy: { position: 'asc' }, select: { url: true } },
             ingredients: {
                 orderBy: { position: 'asc' },
                 select: { position: true, quantity: true, quantityMax: true, unit: true, name: true, raw: true },

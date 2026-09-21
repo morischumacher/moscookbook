@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import Rating from './Rating';
+import Rating, { type RatingResult } from './Rating';
 
 interface Props {
     recipeId: number;
@@ -14,60 +14,69 @@ interface Props {
     infoClassName?: string;
 }
 
-export default function RatingDisplay({ recipeId, initialAverage, initialCount, initialUserRating, isLoggedIn, views, infoClassName }: Props) {
+/**
+ * The rating line under a recipe: the average, how many people, and a way in.
+ *
+ * It used to recompute the average itself after a vote —
+ *
+ *     const newSum = average * count - userRating + newRating;
+ *
+ * — from the numbers this component happened to be holding, while the server
+ * was already returning the real average over every rating in the database.
+ * Two sources for one number, and the client's one drifts the moment anyone
+ * else votes. The server's numbers are used now; the arithmetic is gone.
+ */
+export default function RatingDisplay({
+    recipeId,
+    initialAverage,
+    initialCount,
+    initialUserRating,
+    isLoggedIn,
+    views,
+    infoClassName,
+}: Props) {
     const t = useTranslations('Rating');
     const tRecipe = useTranslations('Recipe');
+
     const [average, setAverage] = useState(initialAverage);
     const [count, setCount] = useState(initialCount);
     const [userRating, setUserRating] = useState(initialUserRating);
     const [isRatingOpen, setIsRatingOpen] = useState(false);
 
-    const handleChange = (newRating: number) => {
-        const isNew = userRating === 0;
-        const newCount = isNew ? count + 1 : count;
-        const oldSum = average * count;
-        const newSum = oldSum - userRating + newRating;
-        setAverage(newCount === 0 ? 0 : newSum / newCount);
-        setCount(newCount);
-        setUserRating(newRating);
-        setIsRatingOpen(false); // Close the rating input mode
+    const handleRated = (result: RatingResult) => {
+        setAverage(result.average);
+        setCount(result.totalRatings);
+        setUserRating(result.rating);
+        setIsRatingOpen(false);
     };
 
     return (
         <div className={infoClassName}>
-
-            {/* The single rating display/input */}
-            <div title={isRatingOpen ? t('submitYours') : t('summary', { count, average: average.toFixed(1) })} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span className="inline-flex items-center gap-2">
                 {isRatingOpen ? (
-                    <Rating
-                        value={userRating}
-                        recipeId={recipeId}
-                        readonly={false}
-                        isInputMode={true}
-                        hideTitle={true}
-                        onChange={handleChange}
-                    />
+                    <Rating value={userRating} recipeId={recipeId} onRated={handleRated} />
                 ) : (
-                    <Rating
-                        value={average}
-                        readonly={true}
-                        isInputMode={false}
-                        hideTitle={true}
-                    />
+                    <Rating value={average} readonly />
                 )}
-                <span>({count})</span>
-            </div>
 
-            <span>•</span>
+                {/* The count in words rather than "(0)" next to five empty
+                    shells, which reads as a rating of nought rather than as
+                    nobody having cooked it yet. */}
+                <span className="text-muted">
+                    {t('summary', { count, average: average.toFixed(1) })}
+                </span>
+            </span>
+
+            <span aria-hidden="true">•</span>
             <span>{tRecipe('views', { count: views })}</span>
 
-            {/* Inline Edit/Rate Button */}
             {isLoggedIn && !isRatingOpen && (
                 <>
-                    <span>•</span>
+                    <span aria-hidden="true">•</span>
                     <button
+                        type="button"
                         onClick={() => setIsRatingOpen(true)}
-                        className="text-sm font-semibold text-ink underline decoration-1 underline-offset-4 hover:text-muted transition-colors"
+                        className="text-sm font-semibold text-accent-text underline decoration-1 underline-offset-4 hover:opacity-70 transition-opacity"
                     >
                         {userRating === 0 ? t('rate') : t('editRating')}
                     </button>

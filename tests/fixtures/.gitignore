@@ -1,0 +1,4 @@
+# Someone else's pages. Collect your own with `npm run fixtures`.
+*
+!.gitignore
+!README.md

@@ -29,7 +29,7 @@ export async function GET() {
                 cookMinutes: true,
                 views: true,
                 createdAt: true,
-                images: { orderBy: { id: 'asc' }, select: { url: true } },
+                images: { orderBy: { position: 'asc' }, select: { url: true } },
                 ingredients: {
                     orderBy: { position: 'asc' },
                     select: {

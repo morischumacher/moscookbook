@@ -12,6 +12,12 @@
     "create-admin": "node scripts/create-admin.js",
     "db:push": "prisma db push",
     "check:messages": "node scripts/check-messages.mjs",
+    "check:search": "node scripts/check-search-writers.mjs",
+    "check:contrast": "node scripts/check-contrast.mjs",
+    "check:design": "node scripts/check-design.mjs",
+    "fixtures": "node scripts/collect-import-fixtures.mjs",
+    "reindex": "ts-node --transpile-only --project tests/tsconfig.json scripts/reindex-search.ts",
+    "verify:search": "ts-node --transpile-only --project tests/tsconfig.json scripts/verify-search.ts",
     "test": "ts-node --transpile-only --project tests/tsconfig.json tests/run.ts",
     "backup": "node scripts/backup.mjs",
     "restore": "node scripts/restore.mjs"

@@ -1,18 +1,21 @@
 import type { Metadata } from 'next';
 import { cache } from 'react';
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import { cookies } from 'next/headers';
 import RatingDisplay from '@/components/RatingDisplay';
 import FavoriteButton from '@/components/FavoriteButton';
 import ViewTracker from '@/components/ViewTracker';
+import Logo from '@/components/brand/Logo';
 import RecipeBody from '@/components/recipe/RecipeBody';
+import Gallery from '@/components/recipe/Gallery';
 import AddToListButton from '@/components/shopping/AddToListButton';
 import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
 import { formatMinutes } from '@/lib/amount';
 import { getTranslations } from 'next-intl/server';
+import { buildRecipeJsonLd } from '@/lib/recipeJsonLd';
+import { getSiteUrl } from '@/lib/siteUrl';
 
 interface RecipeRow {
     id: number;
@@ -38,7 +41,7 @@ const loadRecipe = cache(async (slug: string): Promise<RecipeRow | null> => {
     return prisma.recipe.findUnique({
         where: { slug },
         include: {
-            images: { orderBy: { id: 'asc' } },
+            images: { orderBy: { position: 'asc' } },
             ratings: true,
             ingredients: { orderBy: { position: 'asc' } },
         },
@@ -62,7 +65,10 @@ export async function generateMetadata({
         recipe.description?.trim() ||
         `${recipe.category ? recipe.category + ' · ' : ''}${t('metaFallback')}`;
 
-    const image = recipe.images[0]?.url;
+    // A recipe with no photograph still has to look like something when it is
+    // sent to someone. Without a picture WhatsApp and Signal show a bare link,
+    // which reads like spam; the branded card at least says where it is from.
+    const image = recipe.images[0]?.url ?? '/og-default.png';
 
     return {
         title: `${recipe.title} — mo'scookbook`,
@@ -70,16 +76,19 @@ export async function generateMetadata({
         alternates: { canonical: `/${locale}/recipe/${recipe.slug}` },
         openGraph: {
             type: 'article',
+            siteName: "mo'scookbook",
+            locale,
             title: recipe.title,
             description,
             publishedTime: recipe.createdAt.toISOString(),
-            images: image ? [{ url: image, alt: recipe.title }] : undefined,
+            url: `/${locale}/recipe/${recipe.slug}`,
+            images: [{ url: image, alt: recipe.title, width: 1200, height: 630 }],
         },
         twitter: {
-            card: image ? 'summary_large_image' : 'summary',
+            card: 'summary_large_image',
             title: recipe.title,
             description,
-            images: image ? [image] : undefined,
+            images: [image],
         },
     };
 }
@@ -133,7 +142,6 @@ export default async function RecipePage({
         ? (tCuisine.has(recipeData.nationality) ? tCuisine(recipeData.nationality) : recipeData.nationality)
         : '';
 
-    const imageUrl = recipeData.images[0]?.url ?? '';
 
     const totalMinutes = (recipeData.prepMinutes ?? 0) + (recipeData.cookMinutes ?? 0);
     const times = [
@@ -155,7 +163,30 @@ export default async function RecipePage({
         <article className="min-h-screen w-full bg-page pb-32">
             <ViewTracker recipeId={recipeData.id} />
 
+            {/* The markup this application reads out of other people's pages,
+                written for ours. JSON.stringify escapes the content, and the
+                only way out of a script block is the closing tag, so that one
+                sequence is broken up. */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify(
+                        buildRecipeJsonLd({
+                            ...recipeData,
+                            url: `${getSiteUrl()}/${locale}/recipe/${recipeData.slug}`,
+                        })
+                    ).replace(/</g, '\\u003c'),
+                }}
+            />
+
             <header className="container mx-auto max-w-2xl px-4 pt-8 sm:px-8 sm:pt-16">
+                {/* The print stylesheet hides the navigation, and the logo used
+                    to go with it — a printed recipe came out unbranded. This is
+                    the same mark, shown only on paper. */}
+                <div className="hidden print:mb-6 print:block">
+                    <Logo height={32} />
+                </div>
+
                 <h1 className="mb-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-ink sm:text-5xl md:text-6xl">
                     {recipeData.title}
                     <span className="print:hidden ml-4 inline-block align-middle">
@@ -193,20 +224,10 @@ export default async function RecipePage({
             </header>
 
             <div className="container mx-auto max-w-2xl px-0 sm:px-8">
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface shadow-sm sm:aspect-[16/9] sm:rounded-xl">
-                    {imageUrl ? (
-                        <Image
-                            src={imageUrl}
-                            alt={recipeData.title}
-                            fill
-                            sizes="(max-width: 640px) 100vw, 672px"
-                            className="object-cover"
-                            priority
-                        />
-                    ) : (
-                        <div className="absolute inset-0 bg-surface" />
-                    )}
-                </div>
+                <Gallery
+                    images={recipeData.images.map((image) => image.url)}
+                    title={recipeData.title}
+                />
 
                 {recipeData.description && (
                     <p className="mt-8 px-4 text-left font-serif text-xl italic leading-relaxed text-ink sm:px-0 sm:text-2xl">
@@ -237,6 +258,8 @@ export default async function RecipePage({
                     ingredients={recipeData.ingredients}
                     instructions={recipeData.instructions}
                     baseServings={recipeData.servings}
+                    title={recipeData.title}
+                    description={recipeData.description ?? undefined}
                 />
             </div>
         </article>

@@ -15,6 +15,20 @@ jobs:
   verify:
     runs-on: ubuntu-latest
 
+    # A throwaway Postgres, so the migrations and the German search are checked
+    # against the real thing rather than against an assumption about it.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +44,15 @@ jobs:
       - name: Translations
         run: npm run check:messages
 
+      - name: Recipe writers maintain the search columns
+        run: npm run check:search
+
+      - name: Colour contrast
+        run: npm run check:contrast
+
+      - name: Colours stay inside the design tokens
+        run: npm run check:design
+
       - name: Lint
         run: npm run lint
 
@@ -38,6 +61,19 @@ jobs:
 
       - name: Types
         run: npm run typecheck
+
+      - name: Migrations apply to an empty database
+        env:
+          POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/migrations
+          POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/migrations
+        run: |
+          psql postgresql://postgres:postgres@localhost:5432/postgres -c 'CREATE DATABASE migrations'
+          npx prisma migrate deploy
+
+      - name: German search against a real Postgres
+        env:
+          VERIFY_SEARCH_URL: postgresql://postgres:postgres@localhost:5432/migrations
+        run: npm run verify:search
 
       - name: Build
         # Placeholder values: nothing here connects to a database or serves a

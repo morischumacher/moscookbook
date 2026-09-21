@@ -43,9 +43,31 @@ export const recipeInputSchema = z.object({
     servings: z.number().int().min(1).max(100).nullable().optional(),
     prepMinutes: z.number().int().min(0).max(10_000).nullable().optional(),
     cookMinutes: z.number().int().min(0).max(10_000).nullable().optional(),
-    // Left out entirely = keep whatever image the recipe already has.
+    // Left out entirely = keep whatever pictures the recipe already has.
+    // An empty array means "remove them all", which is a different thing.
+    imageUrls: z.array(imageUrlSchema).max(12).optional(),
+    /**
+     * The single-picture form this API had before galleries. Still accepted,
+     * because the capture inbox and older clients send it, and because a
+     * breaking change to an endpoint costs more than four lines of kindness.
+     */
     imageUrl: imageUrlSchema.optional(),
 });
+
+/**
+ * The pictures a request is asking for, or null for "leave them alone".
+ *
+ * One place decides this, so the create route and the edit route cannot
+ * disagree about what an absent field means.
+ */
+export function resolveImageUrls(input: {
+    imageUrls?: string[];
+    imageUrl?: string;
+}): string[] | null {
+    if (input.imageUrls !== undefined) return input.imageUrls.filter((url) => url !== '');
+    if (input.imageUrl !== undefined) return input.imageUrl === '' ? [] : [input.imageUrl];
+    return null;
+}
 
 export type RecipeInput = z.infer<typeof recipeInputSchema>;
 

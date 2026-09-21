@@ -1,84 +1,91 @@
-.ratingWrapper {
+.wrapper {
     display: inline-flex;
-    align-items: center;
+    flex-direction: column;
     gap: 4px;
 }
 
-.starContainer {
-    position: relative;
-    width: 24px;
-    height: 24px;
-    display: inline-block;
+.row {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
 }
 
-.interactive {
+/* A bare button: the oyster is the control, so the chrome has to go. The
+   padding stays, because a 24px tap target on a phone is a miss waiting to
+   happen — 44px is the size a thumb actually hits. */
+.button {
+    background: none;
+    border: none;
+    padding: 10px 2px;
+    margin: -10px 0;
+    font: inherit;
+    cursor: pointer;
+    line-height: 0;
+    border-radius: 4px;
     transition: transform 0.15s ease;
 }
 
-.interactive:hover {
-    transform: scale(1.1);
+.button:hover:not(:disabled) {
+    transform: scale(1.12);
 }
 
-.emptyIcon {
-    position: absolute;
-    top: 0;
-    left: 0;
-    opacity: 0.15;
-    object-fit: contain;
-    border: none;
-    outline: none;
+.button:disabled {
+    cursor: default;
 }
 
-.filledOverlay {
+/* Focus has to be visible: these are now keyboard-reachable, and an invisible
+   focus ring is the same as no keyboard support at all. */
+.button:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.oyster {
+    position: relative;
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    line-height: 0;
+}
+
+.empty {
+    display: block;
+    color: var(--color-faint);
+    opacity: 0.55;
+}
+
+/* The filled shell is clipped to a percentage, which is what lets an average of
+   3.4 look like 3.4 rather than rounding to something that is not true. */
+.fill {
     position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
+    inset: 0;
     overflow: hidden;
+    line-height: 0;
 }
 
-.averageIcon {
-    /* Ensure the image inside doesn't shrink when the container width changes */
+.full {
+    display: block;
+    color: var(--color-accent);
+    /* Never shrinks with the clipping container. */
     max-width: none;
     width: 24px;
     height: 24px;
-    object-fit: contain;
-    border: none;
-    outline: none;
-    opacity: 0.5;
 }
 
-.filledIcon {
-    /* Ensure the image inside doesn't shrink when the container width changes */
-    max-width: none;
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    border: none;
-    outline: none;
-    opacity: 1;
+.error {
+    font-size: 0.875rem;
+    color: var(--color-danger);
 }
 
-.orangeFilterIcon {
-    max-width: none;
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    border: none;
-    outline: none;
-    opacity: 1;
-    /* Apply an orange filter */
-    filter: invert(53%) sepia(85%) saturate(3029%) hue-rotate(346deg) brightness(101%) contrast(96%);
-}
+/* Printed, a filled shell has to be told apart from an empty one on a
+   black-and-white page, so the fill becomes solid ink. */
+@media print {
+    .full {
+        color: #000;
+    }
 
-.srOnly {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
+    .empty {
+        color: #000;
+        opacity: 0.3;
+    }
 }

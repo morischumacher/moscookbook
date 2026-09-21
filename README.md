@@ -100,6 +100,113 @@ filter could lead to an empty page.
 On a phone the category chips scroll sideways in one line instead of stacking
 four dropdowns down the screen.
 
+## The inbox
+
+Adding a recipe used to mean a laptop, a form and ten minutes, which no evening
+survives. So collecting, parsing and deciding are now three separate things:
+
+1. **Collecting** has to be instant — one tap in a share sheet while standing in
+   a shop. A capture is written to the database raw, before anything is parsed.
+2. **Parsing** runs straight afterwards and is allowed to fail. A capture that
+   could not be read keeps everything that was sent and can be retried later,
+   against a better parser.
+3. **Deciding** waits for a free evening. `/admin/inbox` shows one row per
+   capture with one decision each: take it, finish it, read it again, bin it.
+
+### What can be read
+
+| Shared | What happens |
+| --- | --- |
+| A recipe site | schema.org/Recipe data, as the manual link import already did |
+| A YouTube link | the video description, which is where "full recipe below" points; chapter markers, subscribe pleas and bare links are stripped first |
+| An Instagram or TikTok link | those sites refuse to be read, so the **caption** that came with the share is parsed instead — which is why the shared text is kept even when a link is present |
+| Plain text | the same rule-based parser as paste-and-parse |
+| An e-mail | subject and body, with forwarding headers, quotes and signatures stripped |
+| A photograph | kept, and marked as needing the AI import or a minute of typing |
+
+Nothing here needs an API key. A video whose recipe is only spoken comes back
+as *needs a minute* with its title and thumbnail, rather than as a confidently
+wrong recipe.
+
+### By e-mail
+
+The channel that works from every device and every app without installing
+anything, and the one a friend can use without being told to install anything.
+
+Gmail cannot call a webhook, and inbound-mail services want a domain in the mail
+path, so the bridge is a Google Apps Script: `scripts/gmail-to-inbox.gs`, living
+in the same account as the mailbox, run by a timer every fifteen minutes. It
+sends only unread mail carrying a Gmail label, and marks a message read once the
+cookbook has accepted it — so a failed send is retried on the next run rather
+than lost, and nothing is ever sent twice. A Gmail filter decides what gets the
+label; a script that swallowed the whole inbox would put every newsletter into
+the cookbook.
+
+What arrives by mail is a mess — forwarding headers, quoted replies,
+signatures, "Gesendet von meinem iPhone", and a subject that has been through
+three clients. `src/lib/email.ts` cleans it, one-sidedly: it cuts only at
+markers that cannot be part of a recipe. A forwarded header block is removed but
+what follows it is kept, because in a forward the recipe comes *after* the
+header. Quoted lines are unquoted rather than dropped, because a recipe replied
+to arrives entirely quoted.
+
+The subject becomes the capture's label, never the start of the body: the recipe
+parser names a dish after the first line it is given, and "Fwd: schau mal" is
+not a dish.
+
+### Duplicates
+
+The inbox says when something looks like it is already in the cookbook. The same
+link that already became a recipe is certain; a matching title is a suspicion.
+
+It is only ever a hint next to the capture, never a refusal — a false warning
+costs a second of reading, a wrongly blocked recipe is a recipe lost. And it
+warns only when two titles say the *same* thing: "Apfelkuchen" does not flag
+"Apfelkuchen mit Streuseln und Vanillesauce", because that is a different cake
+and a warning there teaches you to ignore warnings.
+
+### Setting it up on an iPhone
+
+iOS cannot add a web page to the share sheet — Web Share Target is an Android
+feature — so a Shortcut does the job instead. `/admin/devices` creates a key and
+walks through the five steps; the key is shown once and stored only as a hash.
+
+The Shortcut needs exactly one field: whatever was shared goes out as `text`,
+and the link is dug out of it on this side. That way a post carrying both a
+caption and a link keeps both.
+
+One key per device, so a lost phone costs one revoke. `lastUsedAt` on a revoked
+key is how you find out whether it was still being used afterwards.
+
+## Search
+
+The search box looks at titles, descriptions, ingredient names and the method,
+through Postgres full text search with the `german` configuration. Titles are
+weighted above everything else, so a recipe *called* Zwiebelsuppe comes before
+one that merely lists an onion, and the results are ordered by relevance unless
+you pick a different sort yourself.
+
+German needs two things the database does not provide, both measured rather
+than assumed — `npm run verify:search` is the measurement:
+
+| Typed | Recipe says | Works because |
+| --- | --- | --- |
+| `Kase` | Käse | Postgres' German stemmer folds umlauts itself (`'kas'`) |
+| `Kaese` | Käse | the indexed text carries an ae spelling alongside the original |
+| `Zwiebel` | Zwiebeln | each word is searched as a prefix |
+| `Zwiebeln` | Zwiebel | the query also offers a de-pluralised alternative |
+| `Eis` | — | **not** reduced to `Ei`: a stem must keep four letters, or ice cream starts suggesting eggs |
+
+The indexed text lives in `Recipe.searchTitle` and `Recipe.searchBody`, written
+by `searchFields()` in `src/lib/searchText.ts` — one function, used by every
+writer, with `npm run check:search` failing the build if a new one forgets. The
+`searchVector` column is derived from those two by Postgres, so it cannot fall
+out of step, and a GIN index makes the lookup cheap.
+
+After deploying the search migration, run `npm run reindex` once. The migration
+backfills the columns with the recipes' own wording, so search works
+immediately; the reindex is what adds the ae spellings.
+
 ## Reading a recipe
 
 The recipe page is built for someone standing at the stove:
@@ -176,6 +283,12 @@ they belong to an installation, not to a recipe.
 | `npm run create-admin` | Create or promote an admin user (see above) |
 | `npm run db:push` | Apply the Prisma schema to the database |
 | `npm run check:messages` | Verify the translation catalogues |
+| `npm run check:search` | Verify every recipe writer maintains the search columns |
+| `npm run check:contrast` | Verify the colour tokens meet WCAG AA, in both themes |
+| `npm run check:design` | Refuse colours that bypass the design tokens |
+| `npm run fixtures` | Collect real pages to test the import against |
+| `npm run reindex` | Rebuild the search columns for every recipe |
+| `npm run verify:search` | Check the German search against a real Postgres |
 | `npm test` | Run the logic check suites |
 | `npm run backup` | Write an offline copy, images included |
 | `npm run restore` | Put a backup folder back |
@@ -269,6 +382,132 @@ already drifted apart in places.
 The admin tables became lists. A table of four columns on a 375px screen scrolls
 sideways and is miserable to use on the phone you are actually holding when you
 want to fix a typo in a recipe.
+
+## Testing the import
+
+Two layers, because they answer different questions.
+
+`tests/importVariants.test.ts` covers the shapes schema.org *allows*: a yield
+that is `4`, `"4 Portionen"`, `"Für 4 Personen"` or `["4 servings", "4"]`; a
+method that is one HTML blob, an array of `HowToStep`, or nested
+`HowToSection`s; an image that is a string, an array, an `ImageObject`, or an
+`ImageObject` inside an array; a recipe buried in a `@graph` next to two other
+blocks, one of which is malformed.
+
+Writing those found two real bugs on the first run. A step that already read
+`"1. Rühren."` came out as `"1. 1. Rühren."`, and a `recipeIngredient` given as
+a single string — which the specification permits — imported a recipe with no
+ingredients at all.
+
+`npm run fixtures` covers the shapes particular sites actually *emit*, which is
+a different and much less tidy set. It fetches pages you would really import and
+keeps only the parts the extractor reads, so a fixture is a few kilobytes and
+readable in a diff. See `tests/fixtures/README.md`.
+
+## Sharing a recipe
+
+The share button opens the phone's own share sheet through `navigator.share`,
+which is the thing people already know how to use. Where that does not exist —
+most desktop browsers — the link goes to the clipboard, and if even that is
+refused the URL appears on screen to be copied by hand. Three rungs, because a
+button that silently does nothing is worse than no button.
+
+Cancelling the share sheet is not treated as a failure. It rejects with
+`AbortError`, and falling back to the clipboard there would be rude.
+
+What the person on the other end sees comes from the page's OpenGraph data. A
+recipe with a photograph shows the photograph; one without used to show a bare
+link, which reads like spam, and now falls back to a branded card.
+
+Every recipe page also carries **schema.org/Recipe** markup — the same markup
+this application reads out of other people's pages when importing. That makes
+the recipes legible to Google and to anyone else's importer, and it means the
+cookbook can import from itself, which is exactly what the round-trip test
+does: build the markup, feed it to our own extractor, and check that nothing
+was lost. That test earned its keep on the first run by catching
+`recipeIngredient` being emitted as objects rather than strings — markup no
+importer could have read.
+
+The JSON is escaped before it goes into the `<script>` block. Recipe titles can
+come from the capture inbox, which means from whatever page a stranger wrote,
+so a title containing `</script>` is not hypothetical.
+
+## Errors
+
+`/admin/errors` lists what has been failing: one row per problem with a count,
+not one row per occurrence. Client errors are reported by the error boundaries,
+server errors through `reportServerError`, and both are grouped by a
+fingerprint that ignores the parts of a message which vary — so "Recipe 7 not
+found" and "Recipe 1284 not found" are one entry.
+
+Deliberately not Sentry. Sentry is better: it symbolicates stacks and can send
+an e-mail when something new appears. But it is a third party, an account and a
+bill, and the rule here has been that nothing essential depends on a
+subscription. Everything in `src/lib/errorReport.ts` would be thrown away
+rather than migrated if that changes, which is the right shape for a decision
+that might be reversed.
+
+The query string is stripped from the reported path before it is stored. An
+error report is not a place to start collecting what people searched for.
+
+## Pictures
+
+A recipe can hold several. The first one is the cover and the one that goes
+into a shared link's preview; the rest appear as thumbnails under it, and all
+of them are printed. Order is stored rather than inferred — read by id, a
+gallery reshuffles itself the moment one picture is replaced.
+
+## The oyster
+
+The mark in the logo is what a recipe is rated in, so it is one shape in one
+place: `src/components/brand/Oyster.tsx`, drawn, taking its colour from
+`currentColor`.
+
+It used to be a 482 KB photograph drawn at 24 pixels and tinted with
+
+```css
+filter: invert(53%) sepia(85%) saturate(3029%) hue-rotate(346deg) …
+```
+
+which made a muddy blur out of a photographic shell, could not follow dark
+mode, and printed as a grey smudge — and, worst of it, an empty shell and a
+full one looked almost the same, so you could not read a rating at a glance.
+Drawn, it is about a kilobyte, scales, prints, and has two growth rings rather
+than four because four turn to mush at the size it is actually used.
+
+The wordmark is still `public/logo.png`, deliberately: redrawing it is a
+decision about the brand, not a technical one. It goes through
+`src/components/brand/Logo.tsx` so the navigation and the printed masthead use
+the same mark — the print stylesheet hides `nav`, and a printed recipe used to
+come out unbranded.
+
+## Colour and contrast
+
+Colours are tokens in `globals.css`, one set per theme, and `npm run
+check:contrast` measures every one of them against the page background in both.
+
+That check was not written for its own sake. `--color-faint` was `#9CA3AF`,
+which is **2.41:1** on the page — below even the 3:1 asked of a graphic, while
+carrying every uppercase label on the site. It is 4.59:1 now, `--color-muted`
+moved with it to keep the hierarchy, and dark mode needed its own fix.
+
+There are two line tokens, and the difference matters. `--color-border` is the
+hairline between rows: decorative, almost invisible, and exempt from the check.
+`--color-control` is the outline of something you operate — a chip, a select, a
+field — which WCAG asks to be 3:1, and which was previously drawn with the
+hairline. That is why the filter row read as one black pill and a few loose
+words rather than as a row of buttons.
+
+Underneath that was a better bug still: `globals.css` reset every button with
+`border: none`. The shorthand also sets `border-style`, and Tailwind's `border`
+utility only sets the width — so **no outlined button in the application could
+ever draw its outline**. It was found by building a static preview of these
+pages and looking at the result, which is a habit worth keeping.
+
+The brand orange has two tokens on purpose. `--color-accent` (#ff4a0e, the
+logo's orange) is 3.2:1 on the page: enough for a shape, not for words. Text
+and links use `--color-accent-text`, which is darker in light mode and the
+brand orange in dark mode, where it already passes.
 
 ## Continuous integration
 

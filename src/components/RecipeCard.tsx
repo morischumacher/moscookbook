@@ -41,20 +41,32 @@ export default function RecipeCard({ id, title, description, imageUrl, slug, cat
                 <p className="mb-4 line-clamp-2 font-serif text-base leading-relaxed text-muted">
                     {description}
                 </p>
-                <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-widest text-muted">
-                    <span>{categoryLabel}</span>
-                    {cuisineLabel && (
-                        <>
-                            <span>•</span>
-                            <span>{cuisineLabel}</span>
-                        </>
+                {/*
+                    Two rows, not one. Words and oysters were strung together
+                    with bullets, and on a phone the oysters wrapped to the next
+                    line — leaving a bullet dangling at the end of the labels
+                    with nothing after it, and the heart adrift from both.
+                */}
+                <div className="mt-auto flex flex-col gap-2">
+                    {(categoryLabel || cuisineLabel) && (
+                        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-widest text-muted">
+                            {categoryLabel && <span>{categoryLabel}</span>}
+                            {categoryLabel && cuisineLabel && <span aria-hidden="true">•</span>}
+                            {cuisineLabel && <span>{cuisineLabel}</span>}
+                        </p>
                     )}
-                    <span>•</span>
-                    <Rating value={rating} hideTitle />
 
-                    {/* Favorite Button (Stop Propagation to avoid triggering the Link) */}
-                    <div onClick={(e) => e.preventDefault()} className="ml-auto sm:ml-4">
-                        <FavoriteButton recipeId={id} initialFavorited={isFavorited} disabled={!isLoggedIn} />
+                    <div className="flex items-center justify-between gap-4">
+                        <Rating value={rating} readonly />
+
+                        {/* Inside the card's Link, so the click must not navigate. */}
+                        <div onClick={(event) => event.preventDefault()}>
+                            <FavoriteButton
+                                recipeId={id}
+                                initialFavorited={isFavorited}
+                                disabled={!isLoggedIn}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

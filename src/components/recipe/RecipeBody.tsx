@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import { toDisplayIngredient, type StructuredIngredient } from '@/lib/ingredientParts';
 import { splitSteps } from '@/lib/steps';
+import ShareButton from './ShareButton';
 
 const SERVING_STEPS = [1, 2, 3, 4, 6, 8, 10, 12];
 
@@ -12,10 +13,15 @@ export default function RecipeBody({
     ingredients,
     instructions,
     baseServings,
+    title,
+    description,
 }: {
     ingredients: StructuredIngredient[];
     instructions: string;
     baseServings: number | null;
+    /** For the share sheet, which offers them as the message's subject. */
+    title: string;
+    description?: string;
 }) {
     const [servings, setServings] = useState(baseServings ?? 0);
     const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
@@ -141,6 +147,12 @@ export default function RecipeBody({
                 >
                     {cookMode ? t('cookModeExit') : t('cookMode')}
                 </button>
+
+                <ShareButton
+                    title={title}
+                    description={description}
+                    className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+                />
 
                 <button
                     type="button"

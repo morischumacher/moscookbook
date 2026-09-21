@@ -19,7 +19,8 @@ export interface RecipeFormValues {
     nationality: string;
     instructions: string;
     ingredients: Ingredient[];
-    imageUrl: string;
+    /** In the order they should be shown; the first one is the cover. */
+    imageUrls: string[];
     servings: number | null;
     prepMinutes: number | null;
     cookMinutes: number | null;
@@ -31,46 +32,65 @@ const CATEGORIES = ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Snack', 'Drink']
 const NATIONALITIES = ['German', 'Italian', 'Asian', 'Mexican', 'French', 'Greek', 'Indian'];
 
 const fieldClass =
-    'w-full rounded-lg border border-line bg-transparent px-3 py-2 outline-none focus:border-ink transition-colors';
+    'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none focus:border-ink transition-colors';
 const labelClass = 'block text-sm font-bold uppercase tracking-widest text-muted mb-2';
 
 /* ------------------------------------------------------------------ image */
 
-function ImageField({
-    imageUrl,
+function GalleryField({
+    imageUrls,
     onChange,
     onError,
 }: {
-    imageUrl: string;
-    onChange: (url: string) => void;
+    imageUrls: string[];
+    onChange: (next: string[]) => void;
     onError: (message: string) => void;
 }) {
     const t = useTranslations('RecipeForm');
-    const [uploading, setUploading] = useState(false);
+    const [uploading, setUploading] = useState(0);
     const [dragging, setDragging] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
+    /**
+     * Uploads a batch and appends what succeeded.
+     *
+     * The list is read from a ref rather than from `imageUrls`, because several
+     * uploads finish at different moments and each would otherwise append to
+     * the list as it was when the batch started — losing every picture but the
+     * last.
+     */
+    const current = useRef(imageUrls);
+    current.current = imageUrls;
+
     const upload = useCallback(
-        async (file: File) => {
-            setUploading(true);
+        async (files: File[]) => {
+            const usable = files.filter((file) => file.type.startsWith('image/'));
+            if (usable.length === 0) return;
+
+            setUploading((count) => count + usable.length);
             onError('');
-            try {
-                const prepared = await compressImage(file);
-                const formData = new FormData();
-                formData.append('file', prepared);
 
-                const res = await fetch('/api/upload', { method: 'POST', body: formData });
-                const data = await res.json();
+            for (const file of usable) {
+                try {
+                    const prepared = await compressImage(file);
+                    const formData = new FormData();
+                    formData.append('file', prepared);
 
-                if (!res.ok || !data.url) {
-                    onError(data.error || t('uploadFailed'));
-                    return;
+                    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                    const data = await res.json();
+
+                    if (!res.ok || !data.url) {
+                        onError(data.error || t('uploadFailed'));
+                    } else {
+                        const next = [...current.current, data.url];
+                        current.current = next;
+                        onChange(next);
+                    }
+                } catch {
+                    onError(t('uploadFailed'));
+                } finally {
+                    setUploading((count) => count - 1);
                 }
-                onChange(data.url);
-            } catch {
-                onError(t('uploadFailed'));
-            } finally {
-                setUploading(false);
             }
         },
         [onChange, onError, t]
@@ -79,19 +99,86 @@ function ImageField({
     // Pasting a screenshot straight into the page is the fastest path of all.
     useEffect(() => {
         const onPaste = (event: ClipboardEvent) => {
-            const file = Array.from(event.clipboardData?.files ?? [])[0];
-            if (file?.type.startsWith('image/')) {
+            const files = Array.from(event.clipboardData?.files ?? []);
+            if (files.some((file) => file.type.startsWith('image/'))) {
                 event.preventDefault();
-                upload(file);
+                upload(files);
             }
         };
         window.addEventListener('paste', onPaste);
         return () => window.removeEventListener('paste', onPaste);
     }, [upload]);
 
+    const move = (from: number, to: number) => {
+        if (to < 0 || to >= imageUrls.length) return;
+        const next = [...imageUrls];
+        const [moved] = next.splice(from, 1);
+        next.splice(to, 0, moved);
+        onChange(next);
+    };
+
+    const remove = (index: number) => onChange(imageUrls.filter((_, i) => i !== index));
+
     return (
         <div>
-            <label className={labelClass}>{t('image')}</label>
+            <label className={labelClass}>{t('images')}</label>
+
+            {imageUrls.length > 0 && (
+                <ul className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {imageUrls.map((url, index) => (
+                        <li key={url} className="overflow-hidden rounded-lg border border-line">
+                            <div className="relative aspect-[4/3]">
+                                <Image
+                                    src={url}
+                                    alt={t('imageNumber', { number: index + 1 })}
+                                    fill
+                                    className="object-cover"
+                                    sizes="200px"
+                                />
+                                {index === 0 && (
+                                    <span className="absolute left-1 top-1 rounded bg-ink px-1.5 py-0.5 text-xs text-page">
+                                        {t('coverImage')}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Buttons rather than drag handles: dragging a
+                                thumbnail with a thumb, on a phone, inside a
+                                scrolling form, is a fight nobody wins. */}
+                            <div className="flex items-center justify-between px-1 py-1 text-sm">
+                                <span className="flex">
+                                    <button
+                                        type="button"
+                                        onClick={() => move(index, index - 1)}
+                                        disabled={index === 0}
+                                        aria-label={t('moveImageEarlier', { number: index + 1 })}
+                                        className="px-2 py-1 text-muted disabled:opacity-30"
+                                    >
+                                        ←
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => move(index, index + 1)}
+                                        disabled={index === imageUrls.length - 1}
+                                        aria-label={t('moveImageLater', { number: index + 1 })}
+                                        className="px-2 py-1 text-muted disabled:opacity-30"
+                                    >
+                                        →
+                                    </button>
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => remove(index)}
+                                    aria-label={t('removeImageNumber', { number: index + 1 })}
+                                    className="px-2 py-1 text-muted hover:text-danger"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
 
             <div
                 onDragOver={(event) => {
@@ -102,35 +189,24 @@ function ImageField({
                 onDrop={(event) => {
                     event.preventDefault();
                     setDragging(false);
-                    const file = event.dataTransfer.files?.[0];
-                    if (file) upload(file);
+                    upload(Array.from(event.dataTransfer.files ?? []));
                 }}
                 onClick={() => inputRef.current?.click()}
-                className={`cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-colors ${dragging
-                    ? 'border-ink bg-surface'
-                    : 'border-line'
+                className={`cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-colors ${dragging ? 'border-ink bg-surface' : 'border-control'
                     }`}
             >
-                {imageUrl ? (
-                    <div className="relative mx-auto aspect-[16/9] w-full max-w-md overflow-hidden rounded-lg">
-                        <Image src={imageUrl} alt={t('imagePreview')} fill className="object-cover" sizes="400px" />
-                    </div>
-                ) : (
-                    <p className="py-6 text-sm text-muted">
-                        {uploading
-                            ? t('imageUploading')
-                            : t('imageDropHint')}
-                    </p>
-                )}
+                <p className="py-6 text-sm text-muted">
+                    {uploading > 0 ? t('imageUploading') : t('imageDropHint')}
+                </p>
 
                 <input
                     ref={inputRef}
                     type="file"
                     accept="image/*"
+                    multiple
                     className="hidden"
                     onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) upload(file);
+                        upload(Array.from(event.target.files ?? []));
                         event.target.value = '';
                     }}
                 />
@@ -146,22 +222,12 @@ function ImageField({
                         capture="environment"
                         className="hidden"
                         onChange={(event) => {
-                            const file = event.target.files?.[0];
-                            if (file) upload(file);
+                            upload(Array.from(event.target.files ?? []));
                             event.target.value = '';
                         }}
                     />
                 </label>
-                {imageUrl && (
-                    <button
-                        type="button"
-                        onClick={() => onChange('')}
-                        className="text-muted underline underline-offset-2"
-                    >
-                        {t('removeImage')}
-                    </button>
-                )}
-                {uploading && <span className="text-muted">{t('imageUploading')}</span>}
+                {uploading > 0 && <span className="text-muted">{t('imageUploading')}</span>}
             </div>
         </div>
     );
@@ -336,10 +402,18 @@ export default function RecipeForm({
     mode,
     initial,
     aiEnabled,
+    captureId,
 }: {
     mode: 'create' | 'edit';
     initial?: Partial<RecipeFormValues>;
     aiEnabled: boolean;
+    /**
+     * Set when this form was opened from the inbox. Passed back on save so the
+     * capture is marked done in the same request — otherwise finishing a
+     * recipe by hand would leave its capture sitting in the queue, and a queue
+     * with stale entries stops being read.
+     */
+    captureId?: number;
 }) {
     const t = useTranslations('RecipeForm');
     const router = useRouter();
@@ -355,7 +429,7 @@ export default function RecipeForm({
     const [description, setDescription] = useState(initial?.description ?? '');
     const [category, setCategory] = useState(initial?.category ?? '');
     const [nationality, setNationality] = useState(initial?.nationality ?? '');
-    const [imageUrl, setImageUrl] = useState(initial?.imageUrl ?? '');
+    const [imageUrls, setImageUrls] = useState<string[]>(initial?.imageUrls ?? []);
     const [instructions, setInstructions] = useState(initial?.instructions ?? '');
     const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
     const [servings, setServings] = useState<string>(
@@ -391,11 +465,11 @@ export default function RecipeForm({
 
     const values = useMemo(
         () => ({
-            title, slug, description, category, nationality, imageUrl, instructions,
+            title, slug, description, category, nationality, imageUrls, instructions,
             ingredients, servings, prepMinutes, cookMinutes,
         }),
         [
-            title, slug, description, category, nationality, imageUrl, instructions,
+            title, slug, description, category, nationality, imageUrls, instructions,
             ingredients, servings, prepMinutes, cookMinutes,
         ]
     );
@@ -436,7 +510,7 @@ export default function RecipeForm({
             setDescription(draft.description ?? '');
             setCategory(draft.category ?? '');
             setNationality(draft.nationality ?? '');
-            setImageUrl(draft.imageUrl ?? '');
+            setImageUrls(draft.imageUrls ?? []);
             setInstructions(draft.instructions ?? '');
             setIngredients(
                 draft.ingredients && draft.ingredients.length > 0 ? draft.ingredients : [{ ...EMPTY_ROW }]
@@ -458,7 +532,12 @@ export default function RecipeForm({
         if (draft.category) setCategory(draft.category);
         if (draft.nationality) setNationality(draft.nationality);
         if (draft.instructions) setInstructions(draft.instructions);
-        if (draft.imageUrl) setImageUrl(draft.imageUrl);
+        // Appended rather than replacing: a second import — pasting text after
+        // importing a link, say — must not throw away pictures already there.
+        const imported = draft.imageUrl;
+        if (imported) {
+            setImageUrls((current) => (current.includes(imported) ? current : [...current, imported]));
+        }
         if (draft.ingredients.length > 0) setIngredients(draft.ingredients);
         if (draft.servings != null) setServings(String(draft.servings));
         if (draft.prepMinutes != null) setPrepMinutes(String(draft.prepMinutes));
@@ -496,12 +575,13 @@ export default function RecipeForm({
                     description,
                     category,
                     nationality,
-                    imageUrl,
+                    imageUrls,
                     instructions,
                     ingredients: cleanedIngredients,
                     servings: toOptionalNumber(servings),
                     prepMinutes: toOptionalNumber(prepMinutes),
                     cookMinutes: toOptionalNumber(cookMinutes),
+                    ...(mode === 'create' && captureId ? { captureId } : {}),
                 }),
             });
 
@@ -512,7 +592,7 @@ export default function RecipeForm({
             }
 
             clearDraft();
-            router.push('/admin');
+            router.push(captureId ? '/admin/inbox' : '/admin');
             router.refresh();
         } catch {
             setError(t('saveFailed'));
@@ -682,7 +762,7 @@ export default function RecipeForm({
                     </div>
                 </div>
 
-                <ImageField imageUrl={imageUrl} onChange={setImageUrl} onError={setError} />
+                <GalleryField imageUrls={imageUrls} onChange={setImageUrls} onError={setError} />
 
                 <IngredientEditor ingredients={ingredients} onChange={setIngredients} />
 

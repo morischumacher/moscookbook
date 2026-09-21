@@ -71,7 +71,9 @@
     "views": "{count, plural, one {# Aufruf} other {# Aufrufe}}",
     "notFound": "Rezept nicht gefunden",
     "metaFallback": "Rezept aus mo'scookbook",
-    "totalTime": "Gesamt"
+    "totalTime": "Gesamt",
+    "imageOf": "Bild {number} von {total}: {title}",
+    "showImage": "Bild {number} anzeigen"
   },
   "Rating": {
     "rate": "Bewerten",
@@ -79,12 +81,10 @@
     "summary": "{count, plural, =0 {Noch nicht bewertet} one {# Person bewertete dies mit {average}/5} other {# Personen bewerteten dies mit {average}/5}}",
     "submitYours": "Deine Bewertung abgeben",
     "screenReader": "Durchschnitt {average} von {max}",
-    "emptyIcon": "Leere Bewertung",
-    "yourRating": "Deine Bewertung",
-    "averageRating": "Durchschnittliche Bewertung",
     "loginRequired": "Zum Bewerten musst du angemeldet sein.",
     "failed": "Die Bewertung konnte nicht gespeichert werden.",
-    "error": "Beim Speichern der Bewertung ist etwas schiefgelaufen."
+    "error": "Beim Speichern der Bewertung ist etwas schiefgelaufen.",
+    "rateN": "{value, number} von {max}"
   },
   "Favorite": {
     "add": "Zu Favoriten hinzufügen",
@@ -155,12 +155,9 @@
     "servings": "Portionen",
     "prepMinutes": "Vorbereitung",
     "cookMinutes": "Kochzeit",
-    "image": "Bild",
-    "imageDropHint": "Bild hierher ziehen, einfügen (⌘V) oder klicken zum Auswählen",
+    "imageDropHint": "Bilder hierher ziehen, einfügen (⌘V) oder klicken zum Auswählen",
     "imageUploading": "Wird hochgeladen…",
-    "imagePreview": "Vorschau",
     "takePhoto": "Foto aufnehmen",
-    "removeImage": "Bild entfernen",
     "uploadFailed": "Das Bild konnte nicht hochgeladen werden.",
     "ingredients": "Zutaten",
     "pasteList": "Liste einfügen",
@@ -188,7 +185,13 @@
     "saveFailed": "Das Rezept konnte nicht gespeichert werden.",
     "minutes": "Minuten",
     "optional": "optional",
-    "bulkPlaceholder": "200 g Mehl\n2 Eier\n1 Prise Salz"
+    "bulkPlaceholder": "200 g Mehl\n2 Eier\n1 Prise Salz",
+    "images": "Bilder",
+    "imageNumber": "Bild {number}",
+    "coverImage": "Titelbild",
+    "moveImageEarlier": "Bild {number} nach vorne",
+    "moveImageLater": "Bild {number} nach hinten",
+    "removeImageNumber": "Bild {number} entfernen"
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
@@ -257,5 +260,107 @@
     "notJson": "Diese Datei ist kein gültiges JSON.",
     "failed": "Das Archiv konnte nicht eingelesen werden.",
     "offlineHint": "Diese Datei verweist auf die Bilder per URL. Für eine Kopie, die auch ohne den Bildspeicher funktioniert, führe npm run backup auf deinem Rechner aus — das lädt die Bilddateien mit herunter."
+  },
+  "Inbox": {
+    "title": "Eingang",
+    "explanation": "Alles, was du vom Handy teilst, landet erst hier. Übernehmen, fertigstellen oder wegwerfen.",
+    "loading": "Eingang wird geladen…",
+    "empty": "Nichts da. Teile etwas von deinem Handy.",
+    "untitled": "Ohne Titel",
+    "devices": "Geräte",
+    "accept": "Übernehmen",
+    "finish": "Fertigstellen",
+    "retry": "Neu einlesen",
+    "discard": "Wegwerfen",
+    "openSource": "Quelle öffnen",
+    "working": "Moment…",
+    "confirmDiscard": "Wirklich wegwerfen? Der geteilte Text geht mit.",
+    "recognised": "{count, plural, one {# Zutat erkannt} other {# Zutaten erkannt}}",
+    "published": "{count, plural, one {# schon übernommen} other {# schon übernommen}}",
+    "nav": "Eingang",
+    "status": {
+      "new": "Noch nicht gelesen",
+      "ready": "Fertig",
+      "needsWork": "Braucht eine Minute",
+      "failed": "Nicht lesbar",
+      "published": "Übernommen"
+    },
+    "source": {
+      "youtube": "YouTube",
+      "instagram": "Instagram",
+      "tiktok": "TikTok",
+      "web": "Webseite",
+      "note": "Notiz",
+      "photo": "Foto",
+      "email": "E-Mail"
+    },
+    "duplicateLink": "Dieser Link steht schon im Kochbuch als",
+    "duplicateTitle": "Gibt es vielleicht schon:"
+  },
+  "Devices": {
+    "title": "Geräte",
+    "explanation": "Ein Gerät mit Schlüssel darf Rezepte in deinen Eingang schicken, ohne sich anzumelden. Ein Schlüssel pro Gerät — dann kostet ein verlorenes Handy einen Widerruf und sonst nichts.",
+    "backToInbox": "Zurück zum Eingang",
+    "loading": "Geräte werden geladen…",
+    "devicesHeading": "Schlüssel",
+    "noDevices": "Noch keine Geräte.",
+    "labelPlaceholder": "Welches Gerät? (z. B. mein iPhone)",
+    "defaultLabel": "Handy",
+    "create": "Neuer Schlüssel",
+    "creating": "Wird erstellt…",
+    "secretHeading": "Hier ist der Schlüssel.",
+    "secretWarning": "Er wird genau einmal gezeigt und nie wieder. Trag ihn jetzt in den Kurzbefehl ein.",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "revoke": "Widerrufen",
+    "confirmRevoke": "Schlüssel widerrufen? Das Gerät funktioniert sofort nicht mehr.",
+    "lastUsed": "Zuletzt benutzt am {date}",
+    "neverUsed": "Nie benutzt",
+    "shortcutHeading": "Kurzbefehl auf dem iPhone einrichten",
+    "shortcutIntro": "iOS kann keine Webseite ins Teilen-Menü aufnehmen, deshalb übernimmt das ein Kurzbefehl. Einmal fünf Minuten, danach ein Tipp aus Instagram, YouTube, Safari und Notizen.",
+    "step1": "Kurzbefehle-App öffnen und einen neuen Kurzbefehl anlegen. Gib ihm einen Namen, den du im Teilen-Menü wiedererkennst — zum Beispiel „Ins Kochbuch\".",
+    "step2": "In den Einstellungen des Kurzbefehls (ⓘ) „Im Teilen-Menü anzeigen\" einschalten. Bei den akzeptierten Typen URLs und Text anlassen, den Rest ausschalten.",
+    "step3": "Die Aktion „Inhalte von URL abrufen\" hinzufügen und so einstellen:",
+    "step4": "Danach „Mitteilung anzeigen\" anhängen, damit du siehst, dass etwas angekommen ist.",
+    "step5": "Aus Instagram oder YouTube etwas teilen und deinen Kurzbefehl wählen. Innerhalb von Sekunden sollte es im Eingang stehen.",
+    "shortcutNote": "Es braucht nur ein Feld: Was geteilt wird, geht als `text` raus, und der Link wird auf dieser Seite herausgesucht. So bleibt bei einem Beitrag mit Bildunterschrift beides erhalten.",
+    "method": "Methode",
+    "header": "Header",
+    "headerValue": "Wert",
+    "yourToken": "dein Schlüssel",
+    "body": "Anfrage-Inhalt",
+    "field": "Feld",
+    "shortcutInput": "Kurzbefehl-Eingabe",
+    "nav": "Geräte"
+  },
+  "Share": {
+    "share": "Teilen",
+    "copied": "Link kopiert",
+    "linkLabel": "Link zu diesem Rezept"
+  },
+  "Errors": {
+    "title": "Fehler",
+    "nav": "Fehler",
+    "explanation": "Was schiefgegangen ist. Eine Zeile pro Problem, mit der Häufigkeit.",
+    "loading": "Wird geladen…",
+    "allQuiet": "Nichts kaputt.",
+    "noneResolved": "Nichts als erledigt markiert.",
+    "showResolved": "Erledigte anzeigen",
+    "showOpen": "Offene anzeigen",
+    "seen": "{count, plural, one {einmal aufgetreten} other {#-mal aufgetreten}}",
+    "showStack": "Stack anzeigen",
+    "hideStack": "Stack ausblenden",
+    "resolve": "Als erledigt markieren",
+    "source": {
+      "client": "Im Browser",
+      "server": "Auf dem Server"
+    }
+  },
+  "ErrorPage": {
+    "title": "Diese Seite hat nicht geladen.",
+    "explanation": "Auf unserer Seite ist etwas schiefgegangen. Es ist notiert; ein zweiter Versuch hilft oft.",
+    "retry": "Nochmal versuchen",
+    "home": "Zurück zu den Rezepten",
+    "reference": "Kennung {digest}"
   }
 }

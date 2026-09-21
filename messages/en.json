@@ -71,7 +71,9 @@
     "views": "{count, plural, one {# view} other {# views}}",
     "notFound": "Recipe not found",
     "metaFallback": "Recipe from mo'scookbook",
-    "totalTime": "Total"
+    "totalTime": "Total",
+    "imageOf": "Picture {number} of {total}: {title}",
+    "showImage": "Show picture {number}"
   },
   "Rating": {
     "rate": "Rate",
@@ -79,12 +81,10 @@
     "summary": "{count, plural, =0 {Not rated yet} one {# person rated this {average}/5} other {# people rated this {average}/5}}",
     "submitYours": "Submit your rating",
     "screenReader": "Average {average} out of {max}",
-    "emptyIcon": "Empty rating",
-    "yourRating": "Your rating",
-    "averageRating": "Average rating",
     "loginRequired": "You must be logged in to rate recipes.",
     "failed": "Rating could not be saved.",
-    "error": "Something went wrong while saving your rating."
+    "error": "Something went wrong while saving your rating.",
+    "rateN": "{value, number} of {max}"
   },
   "Favorite": {
     "add": "Add to favourites",
@@ -155,12 +155,9 @@
     "servings": "Servings",
     "prepMinutes": "Prep time",
     "cookMinutes": "Cooking time",
-    "image": "Picture",
-    "imageDropHint": "Drop a picture here, paste it (⌘V), or click to choose",
+    "imageDropHint": "Drop pictures here, paste them (⌘V), or click to choose",
     "imageUploading": "Uploading…",
-    "imagePreview": "Preview",
     "takePhoto": "Take a photo",
-    "removeImage": "Remove picture",
     "uploadFailed": "The picture could not be uploaded.",
     "ingredients": "Ingredients",
     "pasteList": "Paste a list",
@@ -188,7 +185,13 @@
     "saveFailed": "The recipe could not be saved.",
     "minutes": "Minutes",
     "optional": "optional",
-    "bulkPlaceholder": "200 g flour\n2 eggs\n1 pinch of salt"
+    "bulkPlaceholder": "200 g flour\n2 eggs\n1 pinch of salt",
+    "images": "Pictures",
+    "imageNumber": "Picture {number}",
+    "coverImage": "Cover",
+    "moveImageEarlier": "Move picture {number} earlier",
+    "moveImageLater": "Move picture {number} later",
+    "removeImageNumber": "Remove picture {number}"
   },
   "QuickImport": {
     "heading": "Fill in quickly",
@@ -257,5 +260,107 @@
     "notJson": "That file is not valid JSON.",
     "failed": "The archive could not be imported.",
     "offlineHint": "This file references the images by URL. For a copy that survives the image store going away, run npm run backup on your machine — it downloads the picture files too."
+  },
+  "Inbox": {
+    "title": "Inbox",
+    "explanation": "Everything shared from your phone lands here first. Take it, finish it, or bin it.",
+    "loading": "Loading the inbox…",
+    "empty": "Nothing waiting. Share something from your phone.",
+    "untitled": "Untitled",
+    "devices": "Devices",
+    "accept": "Take it",
+    "finish": "Finish it",
+    "retry": "Read again",
+    "discard": "Bin it",
+    "openSource": "Open the source",
+    "working": "Working…",
+    "confirmDiscard": "Bin this capture? The shared text goes with it.",
+    "recognised": "{count, plural, one {# ingredient recognised} other {# ingredients recognised}}",
+    "published": "{count, plural, one {# already taken} other {# already taken}}",
+    "nav": "Inbox",
+    "status": {
+      "new": "Not read yet",
+      "ready": "Ready",
+      "needsWork": "Needs a minute",
+      "failed": "Could not be read",
+      "published": "Taken"
+    },
+    "source": {
+      "youtube": "YouTube",
+      "instagram": "Instagram",
+      "tiktok": "TikTok",
+      "web": "Web page",
+      "note": "Note",
+      "photo": "Photo",
+      "email": "E-mail"
+    },
+    "duplicateLink": "That link is already in the cookbook as",
+    "duplicateTitle": "There may already be"
+  },
+  "Devices": {
+    "title": "Devices",
+    "explanation": "A device with a key may send recipes to your inbox without logging in. One key per device, so losing a phone costs one revoke.",
+    "backToInbox": "Back to the inbox",
+    "loading": "Loading devices…",
+    "devicesHeading": "Keys",
+    "noDevices": "No devices yet.",
+    "labelPlaceholder": "What is this device? (e.g. my iPhone)",
+    "defaultLabel": "Phone",
+    "create": "New key",
+    "creating": "Creating…",
+    "secretHeading": "Here is the key.",
+    "secretWarning": "It is shown once and never again. Put it into the Shortcut now.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "revoke": "Revoke",
+    "confirmRevoke": "Revoke this key? The device stops working immediately.",
+    "lastUsed": "Last used {date}",
+    "neverUsed": "Never used",
+    "shortcutHeading": "Setting up the Shortcut on an iPhone",
+    "shortcutIntro": "iOS cannot add a web page to the share sheet, so a Shortcut does it instead. Five minutes once, then it is one tap from Instagram, YouTube, Safari and Notes.",
+    "step1": "Open the Shortcuts app and create a new shortcut. Name it something you will recognise in a share sheet — \"To the cookbook\", say.",
+    "step2": "Open its settings (the ⓘ button) and turn on \"Use with Share Sheet\". Under the accepted types, leave URLs and Text on and turn the rest off.",
+    "step3": "Add the action \"Get Contents of URL\" and set it up like this:",
+    "step4": "Add \"Show Notification\" after it, so a share tells you it arrived.",
+    "step5": "Share something from Instagram or YouTube and pick your shortcut. It should appear in the inbox within seconds.",
+    "shortcutNote": "Only one field is needed: whatever is shared goes into `text`, and the link is dug out of it on this side. That way a share carrying a caption as well as a link keeps both.",
+    "method": "Method",
+    "header": "Header",
+    "headerValue": "Value",
+    "yourToken": "your key",
+    "body": "Request Body",
+    "field": "Field",
+    "shortcutInput": "Shortcut Input",
+    "nav": "Devices"
+  },
+  "Share": {
+    "share": "Share",
+    "copied": "Link copied",
+    "linkLabel": "Link to this recipe"
+  },
+  "Errors": {
+    "title": "Errors",
+    "nav": "Errors",
+    "explanation": "What has been failing. One row per problem, with how often it happened.",
+    "loading": "Loading…",
+    "allQuiet": "Nothing is failing.",
+    "noneResolved": "Nothing has been marked as dealt with.",
+    "showResolved": "Show what has been dealt with",
+    "showOpen": "Show what is still open",
+    "seen": "{count, plural, one {seen once} other {seen # times}}",
+    "showStack": "Show the stack",
+    "hideStack": "Hide the stack",
+    "resolve": "Mark as dealt with",
+    "source": {
+      "client": "In the browser",
+      "server": "On the server"
+    }
+  },
+  "ErrorPage": {
+    "title": "This page did not load.",
+    "explanation": "Something went wrong on our side. It has been recorded; trying again often works.",
+    "retry": "Try again",
+    "home": "Back to the recipes",
+    "reference": "Reference {digest}"
   }
 }

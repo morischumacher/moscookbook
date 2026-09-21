@@ -16,7 +16,7 @@ export default function AddToListButton({ recipeId }: { recipeId: number }) {
             aria-pressed={onList}
             className={`flex h-10 items-center rounded-full px-4 text-sm font-medium transition-colors ${onList
                 ? 'bg-ink text-page'
-                : 'border border-line text-muted hover:border-ink hover:text-ink'
+                : 'border border-control text-muted hover:border-ink hover:text-ink'
                 }`}
         >
             {onList ? t('onList') : t('addToList')}

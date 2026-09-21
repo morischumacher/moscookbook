@@ -3,7 +3,8 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
-import { recipeInputSchema, formatZodError } from '@/lib/recipeSchema';
+import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
+import { searchFields } from '@/lib/searchText';
 
 function parseRecipeId(raw: string): number | null {
     const id = Number.parseInt(raw, 10);
@@ -36,25 +37,16 @@ export async function PUT(
 
         const {
             title, slug, description, category, nationality,
-            ingredients, instructions, imageUrl,
+            ingredients, instructions,
             servings, prepMinutes, cookMinutes,
         } = parsed.data;
 
-        // Only touch images when the payload actually says something about them.
-        // Previously every update wiped the image, so saving an edit without
-        // re-uploading silently lost the picture.
-        const existingImages: { url: string }[] =
-            imageUrl === undefined
-                ? []
-                : await prisma.image.findMany({
-                    where: { recipeId },
-                    orderBy: { id: 'asc' },
-                    select: { url: true },
-                });
+        // null means the request said nothing about pictures, which is not the
+        // same as an empty list. Saving an edit without touching the gallery
+        // must not empty it — that bug has been fixed here once already.
+        const imageUrls = resolveImageUrls(parsed.data);
 
-        const replaceImage =
-            imageUrl !== undefined &&
-            ((existingImages[0]?.url ?? '') !== imageUrl || existingImages.length > 1);
+        const replaceImages = imageUrls !== null;
 
         // Ingredient rows are replaced wholesale rather than diffed: the list is
         // short, order matters, and a rewrite keeps positions contiguous.
@@ -77,13 +69,26 @@ export async function PUT(
                     servings: servings ?? null,
                     prepMinutes: prepMinutes ?? null,
                     cookMinutes: cookMinutes ?? null,
+                    ...searchFields({
+                        title,
+                        description,
+                        instructions,
+                        ingredients: ingredientRows.map((row) => row.name),
+                    }),
                 },
             }),
             prisma.ingredient.deleteMany({ where: { recipeId } }),
             prisma.ingredient.createMany({ data: ingredientRows }),
-            ...(replaceImage ? [prisma.image.deleteMany({ where: { recipeId } })] : []),
-            ...(replaceImage && imageUrl
-                ? [prisma.image.create({ data: { recipeId, url: imageUrl } })]
+            // Replaced wholesale rather than diffed, like the ingredients: the
+            // list is short, the order is what the author arranged, and a
+            // rewrite keeps positions contiguous.
+            ...(replaceImages ? [prisma.image.deleteMany({ where: { recipeId } })] : []),
+            ...(replaceImages && imageUrls && imageUrls.length > 0
+                ? [
+                    prisma.image.createMany({
+                        data: imageUrls.map((url, index) => ({ recipeId, url, position: index })),
+                    }),
+                ]
                 : []),
         ]);
 

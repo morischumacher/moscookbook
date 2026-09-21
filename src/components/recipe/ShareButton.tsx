@@ -1,0 +1,86 @@
+'use client';
+
+import { useState } from 'react';
+import { useTranslations } from 'next-intl';
+
+/**
+ * Sharing a recipe.
+ *
+ * On a phone this opens the system share sheet, which is the thing people
+ * already know how to use: WhatsApp, Signal, Messages, whatever they have.
+ * Where that does not exist — most desktop browsers — the link goes to the
+ * clipboard instead, and if even that is refused the URL is put on screen to be
+ * copied by hand. Three rungs, because a share that silently does nothing is
+ * worse than no button.
+ *
+ * navigator.share has to be called from the click itself: browsers only allow
+ * it while a user gesture is being handled, so nothing may be awaited before
+ * it.
+ */
+export default function ShareButton({
+    title,
+    description,
+    className,
+}: {
+    title: string;
+    description?: string;
+    className?: string;
+}) {
+    const t = useTranslations('Share');
+    const [state, setState] = useState<'idle' | 'copied' | 'manual'>('idle');
+    const [url, setUrl] = useState('');
+
+    const share = async () => {
+        const current = window.location.href;
+        setUrl(current);
+
+        const payload = { title, text: description || title, url: current };
+
+        if (typeof navigator.share === 'function') {
+            try {
+                await navigator.share(payload);
+                return;
+            } catch (error) {
+                // Cancelling the share sheet rejects with AbortError. That is
+                // a person changing their mind, not a failure, and falling back
+                // to the clipboard there would be rude.
+                if (error instanceof DOMException && error.name === 'AbortError') return;
+            }
+        }
+
+        try {
+            await navigator.clipboard.writeText(current);
+            setState('copied');
+            window.setTimeout(() => setState('idle'), 2500);
+        } catch {
+            setState('manual');
+        }
+    };
+
+    return (
+        <span className="inline-flex flex-col items-start gap-2">
+            <button type="button" onClick={share} className={className}>
+                {state === 'copied' ? t('copied') : t('share')}
+            </button>
+
+            {state === 'manual' && (
+                <input
+                    type="text"
+                    readOnly
+                    value={url}
+                    aria-label={t('linkLabel')}
+                    onFocus={(event) => event.currentTarget.select()}
+                    // 16px, because anything smaller makes iOS Safari zoom the
+                    // page when the field takes focus.
+                    className="w-full min-w-0 rounded border border-control bg-transparent px-2 py-1 text-base"
+                />
+            )}
+
+            {/* Announced rather than only shown, since the button's own label
+                changes back after a moment. */}
+            <span role="status" className="sr-only">
+                {state === 'copied' ? t('copied') : ''}
+            </span>
+        </span>
+    );
+}

@@ -1,41 +1,57 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
-import { useRouter } from '@/i18n/routing';
+import Oyster from './brand/Oyster';
 import styles from './Rating.module.css';
+
+/** What the server says after a rating is saved. Its numbers, not ours. */
+export interface RatingResult {
+    rating: number;
+    average: number;
+    totalRatings: number;
+}
 
 interface RatingProps {
     value: number;
     max?: number;
-    recipeId?: number; // If provided, the rating is interactable
+    /** Present and not readonly: the oysters can be clicked. */
+    recipeId?: number;
     readonly?: boolean;
-    hideTitle?: boolean;
-    isInputMode?: boolean; // When true, uses orange filter for filling
-    onChange?: (newRating: number) => void;
+    onRated?: (result: RatingResult) => void;
 }
 
-export default function Rating({ value, max = 5, recipeId, readonly = false, hideTitle = false, isInputMode = false, onChange }: RatingProps) {
+/**
+ * The oyster rating.
+ *
+ * Two things here were wrong in ways that do not show up until someone tries.
+ *
+ * The oysters were `<div onClick>`: unreachable by keyboard, invisible to a
+ * screen reader, and not announced as controls. They are buttons now, which is
+ * what they always were.
+ *
+ * And a failure used `alert()`, which stops the page dead with a browser dialog
+ * to say a rating did not save. It is a line of text next to the oysters now.
+ */
+export default function Rating({
+    value,
+    max = 5,
+    recipeId,
+    readonly = false,
+    onRated,
+}: RatingProps) {
     const t = useTranslations('Rating');
-    const [currentValue, setCurrentValue] = useState(value);
     const [hoverValue, setHoverValue] = useState<number | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const router = useRouter();
+    const [pending, setPending] = useState<number | null>(null);
+    const [error, setError] = useState('');
 
-    useEffect(() => {
-        setCurrentValue(value);
-    }, [value]);
-
-    const isInteractive = !!recipeId && !readonly;
+    const isInteractive = Boolean(recipeId) && !readonly;
 
     const handleRate = async (rating: number) => {
-        if (!isInteractive || isSubmitting) return;
+        if (!isInteractive || pending !== null) return;
 
-        setIsSubmitting(true);
-        // Optimistic update
-        const previousValue = currentValue;
-        setCurrentValue(rating);
+        setPending(rating);
+        setError('');
 
         try {
             const res = await fetch(`/api/recipes/${recipeId}/rate`, {
@@ -45,73 +61,89 @@ export default function Rating({ value, max = 5, recipeId, readonly = false, hid
             });
 
             if (!res.ok) {
-                // Revert on failure
-                setCurrentValue(previousValue);
-                if (res.status === 401) {
-                    alert(t('loginRequired'));
-                } else {
-                    alert(t('failed'));
-                }
-            } else {
-                if (onChange) onChange(rating); // Signal successful submission
-                router.refresh();
+                setError(res.status === 401 ? t('loginRequired') : t('failed'));
+                return;
             }
+
+            const data = await res.json();
+
+            // The server has just recomputed the average across every rating.
+            // Recomputing it again here from the numbers this component happens
+            // to be holding is how a displayed average drifts from the real one.
+            onRated?.({
+                rating: data.rating ?? rating,
+                average: data.average ?? 0,
+                totalRatings: data.totalRatings ?? 0,
+            });
         } catch {
-            setCurrentValue(previousValue);
-            alert(t('error'));
+            setError(t('error'));
         } finally {
-            setIsSubmitting(false);
+            setPending(null);
         }
     };
 
-    // Calculate displayed value based on mode
-    const displayValue = isInputMode ? (hoverValue !== null ? hoverValue : currentValue) : value;
+    // While choosing, the oysters follow the pointer; otherwise they show the
+    // value they were given.
+    const shown = hoverValue ?? pending ?? value;
 
-    // Generate an array of length `max`
-    const stars = Array.from({ length: max }, (_, index) => {
-        const starValue = index + 1;
+    const positions = Array.from({ length: max }, (_, index) => index + 1);
 
-        // Calculate how much of the current star should be filled
-        const fillPercentage = Math.max(0, Math.min(1, displayValue - index)) * 100;
+    /** How much of oyster `position` is filled, 0 to 1. Averages are fractional. */
+    const fillFor = (position: number) => Math.max(0, Math.min(1, shown - position + 1));
+
+    const oysters = positions.map((position) => {
+        const fill = fillFor(position);
+
+        const shape = (
+            <span className={styles.oyster}>
+                <Oyster variant="outline" className={styles.empty} />
+                {fill > 0 && (
+                    <span className={styles.fill} style={{ width: `${fill * 100}%` }}>
+                        <Oyster variant="solid" className={styles.full} />
+                    </span>
+                )}
+            </span>
+        );
+
+        if (!isInteractive) return <span key={position}>{shape}</span>;
 
         return (
-            <div
-                key={index}
-                className={`${styles.starContainer} ${isInteractive ? `${styles.interactive} starTouch` : ''}`}
-                onClick={() => handleRate(starValue)}
-                onMouseEnter={() => isInteractive && setHoverValue(starValue)}
-                onMouseLeave={() => isInteractive && setHoverValue(null)}
-                style={{ cursor: isInteractive ? 'pointer' : 'default' }}
+            <button
+                key={position}
+                type="button"
+                onClick={() => handleRate(position)}
+                onMouseEnter={() => setHoverValue(position)}
+                onMouseLeave={() => setHoverValue(null)}
+                onFocus={() => setHoverValue(position)}
+                onBlur={() => setHoverValue(null)}
+                disabled={pending !== null}
+                aria-label={t('rateN', { value: position, max })}
+                aria-pressed={Math.round(value) === position}
+                className={styles.button}
             >
-                {/* Background (Empty) Icon */}
-                <Image
-                    src="/iconv3.png"
-                    alt={t('emptyIcon')}
-                    width={24}
-                    height={24}
-                    className={styles.emptyIcon}
-                />
-
-                {/* Foreground (Filled) Icon - clipped by CSS width */}
-                {fillPercentage > 0 && (
-                    <div className={styles.filledOverlay} style={{ width: `${fillPercentage}%`, zIndex: 1 }}>
-                        <Image
-                            src="/iconv3.png"
-                            alt={isInputMode ? t('yourRating') : t('averageRating')}
-                            width={24}
-                            height={24}
-                            className={isInputMode ? styles.orangeFilterIcon : styles.averageIcon}
-                        />
-                    </div>
-                )}
-            </div>
+                {shape}
+            </button>
         );
     });
 
     return (
-        <div className={styles.ratingWrapper} {...(hideTitle ? {} : { title: t('screenReader', { average: value.toFixed(1), max }) })}>
-            {stars}
-            <span className={styles.srOnly}>{t('screenReader', { average: value.toFixed(1), max })}</span>
-        </div>
+        <span className={styles.wrapper}>
+            <span
+                className={styles.row}
+                // One label for the group. Without it a screen reader reads five
+                // decorative images and says nothing about the rating.
+                {...(isInteractive
+                    ? { role: 'group', 'aria-label': t('submitYours') }
+                    : { role: 'img', 'aria-label': t('screenReader', { average: value.toFixed(1), max }) })}
+            >
+                {oysters}
+            </span>
+
+            {error && (
+                <span role="alert" className={styles.error}>
+                    {error}
+                </span>
+            )}
+        </span>
     );
 }

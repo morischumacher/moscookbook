@@ -72,11 +72,22 @@ export default function FilterChips({
         router.replace(pathname);
     };
 
+    /**
+     * One shape for every filter.
+     *
+     * Categories were pills and cuisines were underlined words, which read as
+     * two unrelated controls stacked on top of each other. They do the same
+     * thing, so they look the same.
+     */
     const chipClass = (active: boolean) =>
-        `flex h-10 shrink-0 items-center rounded-full px-4 text-sm transition-colors ${active
+        `flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm transition-colors ${active
             ? 'bg-ink text-page'
-            : 'border border-line text-muted hover:border-ink hover:text-ink'
+            : 'border border-control text-muted hover:border-ink hover:text-ink'
         }`;
+
+    /** A row of chips that scrolls sideways rather than wrapping on a phone. */
+    const railClass =
+        '-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden';
 
     const label = (
         translate: ReturnType<typeof useTranslations>,
@@ -110,10 +121,10 @@ export default function FilterChips({
 
             {/* Horizontal scroll rather than wrapping, so a long list stays one line on a phone. */}
             {categories.length > 0 && (
-                <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden">
+                <div className={railClass} role="group" aria-label={t('category')}>
                     <button type="button" onClick={() => setParam('category', '')} className={chipClass(!activeCategory)}>
                         {t('allCategories')}
-                        <span className="ml-1.5 opacity-60">{total}</span>
+                        <span className="tabular-nums text-xs opacity-60">{total}</span>
                     </button>
                     {categories.map((facet) => (
                         <button
@@ -123,64 +134,71 @@ export default function FilterChips({
                             className={chipClass(activeCategory === facet.value)}
                         >
                             {label(tCategory, facet.value)}
-                            <span className="ml-1.5 opacity-60">{facet.count}</span>
+                            <span className="tabular-nums text-xs opacity-60">{facet.count}</span>
                         </button>
                     ))}
                 </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
-                {cuisines.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs uppercase tracking-widest text-faint">
-                            {t('nationality')}
-                        </span>
-                        {cuisines.map((facet) => (
-                            <button
-                                key={facet.value}
-                                type="button"
-                                onClick={() =>
-                                    setParam('nationality', activeCuisine === facet.value ? '' : facet.value)
-                                }
-                                className={`underline-offset-4 transition-colors ${activeCuisine === facet.value
-                                    ? 'text-ink underline'
-                                    : 'text-muted hover:text-ink'
-                                    }`}
-                            >
-                                {label(tCuisine, facet.value)}
-                            </button>
-                        ))}
-                    </div>
+            {/*
+                No "all cuisines" chip. The category rail has one because its
+                count says how big the collection is; a second filled pill
+                directly underneath only competed with it. An active chip
+                switches itself off when tapped, and "clear filters" appears
+                below as soon as anything is set.
+            */}
+            {cuisines.length > 0 && (
+                <div className={railClass} role="group" aria-label={t('nationality')}>
+                    {cuisines.map((facet) => (
+                        <button
+                            key={facet.value}
+                            type="button"
+                            onClick={() =>
+                                setParam('nationality', activeCuisine === facet.value ? '' : facet.value)
+                            }
+                            className={chipClass(activeCuisine === facet.value)}
+                        >
+                            {label(tCuisine, facet.value)}
+                            <span className="tabular-nums text-xs opacity-60">{facet.count}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/*
+                Stacked on a phone, side by side once there is room. The old
+                version pushed this group right with ml-auto, which on a narrow
+                screen left it hanging off the end of a wrapped row.
+            */}
+            <div className="flex flex-col gap-3 border-t border-line pt-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                {isLoggedIn ? (
+                    <button
+                        type="button"
+                        onClick={() => setParam('favorites', favoritesOnly ? '' : 'true')}
+                        aria-pressed={favoritesOnly}
+                        className={`self-start underline-offset-4 transition-colors ${favoritesOnly
+                            ? 'font-medium text-ink underline'
+                            : 'text-muted hover:text-ink'
+                            }`}
+                    >
+                        {t('favoritesOnly')}
+                    </button>
+                ) : (
+                    <span />
                 )}
 
-                <div className="ml-auto flex items-center gap-4">
-                    {isLoggedIn && (
-                        <button
-                            type="button"
-                            onClick={() => setParam('favorites', favoritesOnly ? '' : 'true')}
-                            aria-pressed={favoritesOnly}
-                            className={`underline-offset-4 transition-colors ${favoritesOnly
-                                ? 'text-ink underline'
-                                : 'text-muted hover:text-ink'
-                                }`}
-                        >
-                            {t('favoritesOnly')}
-                        </button>
-                    )}
-
-                    <label className="flex items-center gap-2 text-muted">
-                        <span className="text-xs uppercase tracking-widest text-faint">{t('sortBy')}</span>
-                        <select
-                            value={activeSort}
-                            onChange={(event) => setParam('sort', event.target.value)}
-                            className="cursor-pointer bg-transparent text-ink outline-none"
-                        >
-                            <option value="recent">{t('sortRecent')}</option>
-                            <option value="views">{t('sortViews')}</option>
-                            <option value="rating">{t('sortRating')}</option>
-                        </select>
-                    </label>
-                </div>
+                <label className="flex items-center gap-2">
+                    <span className="text-muted">{t('sortBy')}</span>
+                    <select
+                        value={activeSort}
+                        onChange={(event) => setParam('sort', event.target.value)}
+                        className="cursor-pointer rounded border border-control bg-transparent px-2 py-1 text-ink outline-none focus-visible:border-ink"
+                    >
+                        <option value="recent">{t('sortRecent')}</option>
+                        <option value="views">{t('sortViews')}</option>
+                        <option value="rating">{t('sortRating')}</option>
+                    </select>
+                </label>
             </div>
 
             {hasFilters && (
