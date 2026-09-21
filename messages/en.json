@@ -424,5 +424,17 @@
     "publish": "Publish",
     "savePublished": "Save",
     "saveDraft": "Save as draft"
+  },
+  "Cooked": {
+    "title": "Cooked by",
+    "add": "Add a photo",
+    "uploading": "Uploading…",
+    "empty": "Nobody has added a photo yet. Be the first.",
+    "someone": "Someone",
+    "remove": "Remove",
+    "confirmDelete": "Remove this photo?",
+    "failed": "That did not work. Please try again.",
+    "captionPlaceholder": "Add a note…",
+    "captionLabel": "A note about this photo"
   }
 }

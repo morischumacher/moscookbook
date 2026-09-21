@@ -424,5 +424,17 @@
     "publish": "Veröffentlichen",
     "savePublished": "Speichern",
     "saveDraft": "Als Entwurf speichern"
+  },
+  "Cooked": {
+    "title": "Nachgekocht",
+    "add": "Foto hinzufügen",
+    "uploading": "Wird hochgeladen…",
+    "empty": "Noch kein Foto dabei. Mach das erste.",
+    "someone": "Jemand",
+    "remove": "Entfernen",
+    "confirmDelete": "Dieses Foto entfernen?",
+    "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
+    "captionPlaceholder": "Notiz hinzufügen…",
+    "captionLabel": "Notiz zu diesem Foto"
   }
 }

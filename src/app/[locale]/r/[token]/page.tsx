@@ -102,6 +102,10 @@ export default async function SharedRecipePage({
                 // A note is a kitchen diary; whoever was sent this link did
                 // not ask for it.
                 notes={[]}
+                // Somebody who put a photograph into a private cookbook did not
+                // agree to it travelling out of it on a link.
+                cooked={[]}
+                currentUserId={null}
                 locale={locale}
                 mode="shared"
                 isLoggedIn={false}

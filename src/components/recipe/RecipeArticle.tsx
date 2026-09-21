@@ -7,6 +7,7 @@ import RecipeBody from '@/components/recipe/RecipeBody';
 import Gallery from '@/components/recipe/Gallery';
 import ShareLink from '@/components/recipe/ShareLink';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
+import CookedPhotos, { type CookedPhoto } from '@/components/recipe/CookedPhotos';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
 import { formatMinutes } from '@/lib/amount';
 import { buildRecipeJsonLd } from '@/lib/recipeJsonLd';
@@ -61,6 +62,14 @@ export interface RecipeArticleProps {
      * kitchen diary, and the person you sent a recipe to did not ask for it.
      */
     notes: RecipeNote[];
+    /**
+     * Pictures of the dish as other people cooked it. Empty on the shared page:
+     * somebody who put a photograph into a private cookbook did not agree to it
+     * travelling out of it on a link.
+     */
+    cooked: CookedPhoto[];
+    /** Whose pictures are whose. Null for a reader with no account. */
+    currentUserId: number | null;
 }
 
 export default async function RecipeArticle({
@@ -75,6 +84,8 @@ export default async function RecipeArticle({
     url,
     publicUrl,
     notes,
+    cooked,
+    currentUserId,
 }: RecipeArticleProps) {
     const t = await getTranslations('Recipe');
     const tCategory = await getTranslations('Categories');
@@ -260,12 +271,23 @@ export default async function RecipeArticle({
                 />
 
                 {mode === 'private' && (
-                    <RecipeNotes
-                        notes={notes}
-                        recipeId={recipe.id}
-                        isAdmin={isAdmin}
-                        locale={locale}
-                    />
+                    <>
+                        <CookedPhotos
+                            recipeId={recipe.id}
+                            photos={cooked}
+                            canAdd={isLoggedIn}
+                            isAdmin={isAdmin}
+                            currentUserId={currentUserId}
+                            locale={locale}
+                        />
+
+                        <RecipeNotes
+                            notes={notes}
+                            recipeId={recipe.id}
+                            isAdmin={isAdmin}
+                            locale={locale}
+                        />
+                    </>
                 )}
             </div>
         </article>

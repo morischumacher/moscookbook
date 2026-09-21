@@ -299,6 +299,54 @@ After deploying the search migration, run `npm run reindex` once. The migration
 backfills the columns with the recipes' own wording, so search works
 immediately; the reindex is what adds the ae spellings.
 
+## Nachgekocht — photos from whoever cooked it
+
+The one place in this cookbook where somebody without admin rights puts
+something on a page everybody sees, and the reason it earns the trouble: a
+recipe with three pictures from three kitchens says more about whether it works
+than any amount of styling.
+
+It sits at the end of the recipe, above the notes. Anyone with an account can
+add a picture; the caption is a borderless line under it that saves when you
+leave the field, because a note is a sentence somebody is still writing until
+they stop. One tap to add — picking the photograph *is* the action, and a
+"save" step after it would be a second tap for something nobody hesitates
+about.
+
+Who may do what:
+
+- **Delete**: the person who uploaded it, and an admin. Nobody else — a shared
+  wall where anyone can remove anyone's picture is not a shared wall.
+- **Caption**: only the uploader, admin or not. A caption is somebody speaking,
+  and an admin who can remove a photograph still has no business rewriting what
+  its owner said about it. Removing it whole is the moderation an admin gets.
+
+Both checks live in the `where` clause of a `deleteMany`/`updateMany` rather
+than in an `if` above it, so there is no window between asking who owns a row
+and writing to it. A delete that matches nothing answers success rather than
+403: telling somebody which of "it does not exist" and "it is not yours" applies
+tells them whether a picture they may not touch exists.
+
+Limits: 10 MB a picture (the admin form's own photography gets 15), twelve per
+person per recipe, twenty uploads an hour per account. The count is checked
+before the upload, so somebody already at the limit does not pay for a transfer
+that is about to be refused. The rate limit is per account rather than per IP,
+because what is being rationed is writes to the Blob store, and those belong to
+a person rather than to a network.
+
+The rules for what counts as an image moved into `src/lib/uploadImage.ts`,
+shared with the admin form so a trusted uploader and an ordinary one cannot
+drift on to different definitions of a safe file. Only the size limit differs.
+Three of those rules are less obvious than they look, and each has a sabotage
+test behind it: the MIME type **or** the extension is enough (a phone sends
+HEIC with neither reliably, so requiring both refuses half of what an iPhone
+shares), a long filename is trimmed from the **front** (the end holds the
+extension), and HEIC is detected in the first 64 bytes rather than anywhere in
+the file (a JPEG containing the word further in is not a HEIC).
+
+None of it appears on a shared link. Somebody who put a photograph into a
+private cookbook did not agree to it travelling out of it.
+
 ## Reading a recipe
 
 The page opens with the photograph, full width and edge to edge, and the content
@@ -875,6 +923,12 @@ npx prisma migrate deploy
 ```
 
 **On a fresh database**, `npx prisma migrate deploy` is enough.
+
+`0009_cook_photos` adds `CookPhoto`, with `ON DELETE CASCADE` on the recipe —
+the opposite of `Post`, deliberately: a written entry stands on its own once its
+recipe is gone, while a picture of a dish with no dish attached has nowhere to
+be shown and nothing to say. The account keeps `SET NULL`, so deleting a person
+keeps the pictures they left.
 
 `0008_posts` adds the `Post` table, with both foreign keys `ON DELETE SET NULL`
 so that deleting a recipe or an account never deletes something somebody wrote.

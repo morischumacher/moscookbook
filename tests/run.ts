@@ -28,6 +28,7 @@ import authTokens from './authTokens.test';
 import access from './access.test';
 import channels from './channels.test';
 import post from './post.test';
+import uploadImage from './uploadImage.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
 // they are run in order rather than fired off together.
@@ -54,6 +55,7 @@ async function main() {
     access();
     await channels();
     post();
+    uploadImage();
 
     process.exit(summary() === 0 ? 0 : 1);
 }

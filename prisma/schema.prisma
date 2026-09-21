@@ -27,6 +27,7 @@ model User {
 
   tokens         AuthToken[]
   posts          Post[]
+  cookPhotos     CookPhoto[]
   ratings        Rating[]
   favorites      Favorite[]
   invitesCreated Invite[]   @relation("InviteCreatedBy")
@@ -184,6 +185,34 @@ model Post {
   @@index([recipeId, publishedAt])
 }
 
+/// A photograph of the dish as somebody actually cooked it.
+///
+/// Separate from Image, which is the recipe's own photography and belongs to
+/// whoever wrote it. This is the other thing a cookbook is for: proof that a
+/// recipe has been made, by people who are not the author, and what it looked
+/// like when they did.
+///
+/// Cascade on the recipe, unlike Post, and the difference is deliberate: a
+/// written entry stands on its own once its recipe is gone, while a picture of
+/// a dish with no dish attached has nowhere to be shown and nothing to say.
+/// SetNull on the user, so deleting an account keeps the pictures it left.
+model CookPhoto {
+  id        Int      @id @default(autoincrement())
+  url       String
+  /// Optional, short: "mit doppelt Knoblauch".
+  caption   String?
+
+  recipeId  Int
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([recipeId, createdAt])
+}
+
 model Recipe {
   id           Int        @id @default(autoincrement())
   title        String
@@ -222,6 +251,7 @@ model Recipe {
   ingredients    Ingredient[]
   captures       Capture[]
   posts          Post[]
+  cookPhotos     CookPhoto[]
 }
 
 /// One ingredient line, split into the parts a cook actually uses.
