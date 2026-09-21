@@ -64,10 +64,12 @@ function walk(dir) {
  *
  * Matched on the filled pill with a label on it, because that is the one that
  * was drifting: `rounded-full`, a solid `bg-ink`, and `text-page` for the
- * words. A bordered button is not a shape people copy wrongly, and `bg-ink/55`
- * with a slash is a translucent overlay — the corner the heart sits in, the
- * pill the rating sits in — which is a different thing that happens to be
- * round.
+ * words. A bordered button is not a shape people copy wrongly, and a class
+ * with a slash in it is a translucent overlay — the corner the heart sits in,
+ * the pill the rating sits in — which is a different thing that happens to be
+ * round. Those live on the scrim tokens now (lib/ui.ts), so they would not
+ * match this in any case; the negative lookahead stays because the rule is
+ * about the shape, not about which token is current this month.
  */
 const HAND_ROLLED_BUTTON = /rounded-full[^"'`]*\bbg-ink(?!\/)\b[^"'`]*\btext-page\b/;
 

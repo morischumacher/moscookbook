@@ -96,7 +96,11 @@ export default function Lightbox({
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className="fixed inset-0 z-[300] flex items-center justify-center bg-ink"
+            // `bg-ink` here meant a **white** lightbox in dark mode, which is
+            // the opposite of what a lightbox is for: the surround goes dark
+            // so the photograph is the only thing lit. The ink follows the
+            // colour scheme; this must not. See globals.css.
+            className="fixed inset-0 z-[300] flex items-center justify-center bg-scrim"
             onClick={onClose}
             onTouchStart={(event) => {
                 const point = event.touches[0];
@@ -142,7 +146,7 @@ export default function Lightbox({
                 onClick={onClose}
                 aria-label={t('closeImage')}
                 // Clear of the notch and of the home indicator.
-                className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-page/15 text-page backdrop-blur-sm"
+                className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-on-scrim/15 text-on-scrim backdrop-blur-sm"
             >
                 <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
                     <path
@@ -166,7 +170,7 @@ export default function Lightbox({
                             show(index - 1);
                         }}
                         aria-label={t('previousImage')}
-                        className="absolute left-2 flex h-11 w-11 items-center justify-center rounded-full bg-page/15 text-page backdrop-blur-sm"
+                        className="absolute left-2 flex h-11 w-11 items-center justify-center rounded-full bg-on-scrim/15 text-on-scrim backdrop-blur-sm"
                     >
                         <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
                             <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
@@ -180,14 +184,14 @@ export default function Lightbox({
                             show(index + 1);
                         }}
                         aria-label={t('nextImage')}
-                        className="absolute right-2 flex h-11 w-11 items-center justify-center rounded-full bg-page/15 text-page backdrop-blur-sm"
+                        className="absolute right-2 flex h-11 w-11 items-center justify-center rounded-full bg-on-scrim/15 text-on-scrim backdrop-blur-sm"
                     >
                         <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
                             <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                         </svg>
                     </button>
 
-                    <p className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] text-sm tabular-nums text-page/80">
+                    <p className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] text-sm tabular-nums text-on-scrim/80">
                         {index + 1} / {images.length}
                     </p>
                 </>

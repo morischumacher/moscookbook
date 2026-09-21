@@ -147,7 +147,13 @@ export function useConfirm(): [(request: ConfirmRequest) => Promise<boolean>, Re
             // question about one photograph. Most of those questions are asked
             // in place now (InlineConfirm); what is left is a small card and a
             // dimming light enough to read the page through.
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-ink/25 p-6"
+            // `bg-ink/25` emitted no background whatsoever — Tailwind dropped
+            // the utility rather than failing (tailwind.config.ts) — so the
+            // "dimming" described above has never once appeared. And the ink
+            // would have been the wrong colour for it anyway: in dark mode it
+            // is near-white, and lightening the page to say "attend to this
+            // card" is not a thing any interface does.
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-scrim/40 p-6"
             // A tap outside is a cancel, which is what people expect of a
             // sheet on a phone. Keyboard users have Escape; this is not the
             // only way out, so it needs no role of its own.

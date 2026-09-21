@@ -58,15 +58,36 @@ export const pageHeading =
  * A small thing sitting on a photograph: the rating on a tile, the position in
  * a collection.
  *
- * Translucent ink rather than solid, and that is not decoration. It has to be
- * legible over whatever picture somebody uploads, and 75% of the ink is dark
- * enough for the page colour on top of it even where the photograph behind is
- * white — while still reading as something laid *on* the picture rather than a
- * hole punched in it. A gradient would promise the same and break it over a
- * plate of polenta.
+ * Translucent rather than solid, and that is not decoration. It has to be
+ * legible over whatever picture somebody uploads, and 70% black is dark enough
+ * for white on top of it even where the photograph behind is white — while
+ * still reading as something laid *on* the picture rather than a hole punched
+ * in it. A gradient would promise the same and break it over a plate of
+ * polenta.
+ *
+ * **Scrim, not ink.** This was `bg-ink/75 text-page` and it was wrong twice
+ * over. It emitted no background at all, because Tailwind silently drops an
+ * opacity modifier on a colour it cannot parse (tailwind.config.ts), so the
+ * number was sitting bare on the photograph. And the colours it named follow
+ * the scheme, which is right for every surface on the site except this one:
+ * in dark mode it inverted to a white pill with black writing on a picture
+ * that had not changed at all. The scrim tokens do not follow the scheme, for
+ * the reason written beside them in globals.css.
  *
  * Each caller adds its own padding, because one holds an icon and a number and
  * the other holds a number.
  */
 export const photoBadge =
-    'absolute left-2 top-2 flex items-center rounded-full bg-ink/75 text-page';
+    'absolute left-2 top-2 flex items-center rounded-full bg-scrim/70 text-on-scrim';
+
+/**
+ * The round backing under a control that sits on a photograph — the favourite
+ * heart on a tile, the same heart on a recipe's hero image.
+ *
+ * Lighter than `photoBadge` at 55%, because what sits on it is a drawn shape
+ * with a stroke rather than four-point type, and a shape needs 3:1 where text
+ * needs 4.5:1. Written down here because it existed twice, by hand, in two
+ * files, and both copies named the ink.
+ */
+export const photoControl =
+    'flex h-9 w-9 items-center justify-center rounded-full bg-scrim/55 text-on-scrim';

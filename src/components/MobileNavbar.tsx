@@ -160,7 +160,15 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
                 <>
                     {/* The panel used to sit on the page with nothing behind it,
                         so the search field showed through at its edge. This
-                        covers what is underneath and closes on a tap. */}
+                        covers what is underneath and closes on a tap.
+
+                        It did not, until now: `bg-page/80` compiled to nothing
+                        at all, so this element has been an invisible tap
+                        target and the search field has been showing through
+                        the whole time. tailwind.config.ts has the why. Here it
+                        stays the page colour rather than the scrim, because
+                        what it covers *is* the page, and it should follow the
+                        page into dark mode. */}
                     <button
                         type="button"
                         aria-label={t('toggleMenu')}
