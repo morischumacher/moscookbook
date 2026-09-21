@@ -665,10 +665,22 @@ The logic between "the body is valid" and "write a row" lives in
 `src/lib/captureInput.ts` rather than inside the route, so it can be driven
 without a request, a session and a database.
 
-The fixtures are written by hand from the shape of the real thing, because the
-container these tests run in cannot reach the internet. The YouTube watch page
-and the Instagram case are the two worth replacing with real captures —
-`npm run fixtures -- <url>` reduces a real page to the parts that matter.
+The fixtures in that file are written by hand from the shape of the real thing,
+because the container these tests run in cannot reach the internet.
+
+Real pages go in `tests/fixtures/`, collected with `npm run fixtures -- <url>`,
+and **they are picked up on their own** — `tests/fixtures.test.ts` reads every
+file in that folder and drives it through the real import. No registration step
+and no list to keep in step; drop a file in and it is covered from the next
+`npm test`.
+
+Nothing in that suite knows what a particular page contains, which is the only
+way it could work. What it asserts is what must be true whatever the page turned
+out to be: a draft came back, it has a title, the title is not the URL, there
+are ingredients or a method, no cookie banner or subscribe plea survived into
+the method, no "ingredient" is a whole paragraph, the source is kept. A fixture
+that fails one of those has found a real bug, because none of them is a
+statement about a site. An empty folder says so and passes.
 
 ## Testing the import
 
