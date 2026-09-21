@@ -156,14 +156,9 @@ export default function AdminInboxPage() {
         <main className="container mx-auto max-w-3xl px-4 pb-32 pt-10 sm:px-8">
             <div className="mb-8 flex flex-wrap items-baseline justify-between gap-4 border-b border-line pb-6">
                 <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
-                <div className="flex gap-4 text-sm">
-                    <Link href="/admin/devices" className="underline underline-offset-4">
-                        {t('devices')}
-                    </Link>
-                    <Link href="/admin" className="underline underline-offset-4 text-muted">
-                        {tAdmin('backToRecipes')}
-                    </Link>
-                </div>
+                <Link href="/admin/devices" className="text-sm underline underline-offset-4">
+                    {t('devices')}
+                </Link>
             </div>
 
             <p className="mb-8 font-serif text-muted">{t('explanation')}</p>

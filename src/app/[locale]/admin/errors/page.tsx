@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
 
 interface ErrorRow {
     id: number;
@@ -23,7 +22,6 @@ interface ErrorRow {
  */
 export default function AdminErrorsPage() {
     const t = useTranslations('Errors');
-    const tAdmin = useTranslations('Admin');
 
     const [errors, setErrors] = useState<ErrorRow[]>([]);
     const [loading, setLoading] = useState(true);
@@ -53,12 +51,11 @@ export default function AdminErrorsPage() {
 
     return (
         <main className="container mx-auto max-w-3xl px-4 pb-32 pt-10 sm:px-8">
-            <div className="mb-8 flex flex-wrap items-baseline justify-between gap-4 border-b border-line pb-6">
-                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
-                <Link href="/admin" className="text-sm text-muted underline underline-offset-4">
-                    {tAdmin('backToRecipes')}
-                </Link>
-            </div>
+            {/* No "back to recipes" link any more: the row of admin sections
+                above this page is the way back, and it is on every page. */}
+            <h1 className="mb-8 border-b border-line pb-6 text-3xl font-extrabold tracking-tight sm:text-4xl">
+                {t('title')}
+            </h1>
 
             <p className="mb-6 font-serif text-muted">{t('explanation')}</p>
 

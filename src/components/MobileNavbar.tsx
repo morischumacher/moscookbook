@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import Logo from './brand/Logo';
 import LogoutButton from './LogoutButton';
+import { sectionFor, type Section } from '@/lib/navigation';
 
 interface MobileNavbarProps {
     user: { id: number; email: string; name: string; admin: boolean } | null;
@@ -14,25 +16,31 @@ interface MobileNavbarProps {
 /**
  * The navigation.
  *
- * The menu it opens on a phone had three different rules in three lines: the
- * greeting in a blue that appears nowhere else in the design, "Logout" centred
- * while everything around it was left-aligned, and the language switch in the
- * serif face at a different weight. It also did not cover the page, so the
- * search field showed through at the seam.
+ * It used to be a row of up to eight links — Blog, Admin, Inbox, Users,
+ * Invitations, Entries, Errors, Logout — with nothing marked as current and no
+ * link to the recipes at all. You reached the recipes by pressing the logo,
+ * which is a thing designers know and nobody else does; and having pressed
+ * "Blog", there was no way back that said so. "Entries" sat two links from
+ * "Blog" meaning the admin's view of the same thing.
  *
- * The centring had a cause worth writing down: LogoutButton is a <button>, and
- * a button in a `flex-col` stretches to the full width, which centres its
- * label. Every row is a single shared class now, so a new entry cannot invent
- * its own alignment by accident.
+ * Three sections now — Recipes, Blog, Admin — one of which is always marked,
+ * and the admin's six tools moved to a navigation of their own on the pages
+ * they belong to (components/admin/AdminNav.tsx). On a phone the section you
+ * are in is also written beside the logo, so "where am I" is answered without
+ * opening anything.
+ *
+ * One more rule worth keeping: every row in the open menu shares a single class.
+ * LogoutButton is a <button>, and a button in a `flex-col` stretches to the
+ * full width, which centres its label — so the menu used to have one entry
+ * centred among left-aligned ones for no reason anybody could see.
  */
 export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
     const t = useTranslations('Navigation');
-    const tInvites = useTranslations('Invites');
     const tBlog = useTranslations('Blog');
-    const tInbox = useTranslations('Inbox');
-    const tErrors = useTranslations('Errors');
     const [isOpen, setIsOpen] = useState(false);
     const toggleRef = useRef<HTMLButtonElement>(null);
+
+    const current = sectionFor(usePathname());
 
     // Escape closes it and the focus goes back to the button that opened it,
     // or a keyboard user is left standing in a menu that is no longer there.
@@ -51,51 +59,71 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
 
     const close = () => setIsOpen(false);
 
+    /**
+     * The sections. Recipes first and always present, because they are what
+     * the site is; the admin only for an admin.
+     */
+    const sections: { href: string; label: string; section: Section }[] = user
+        ? [
+              { href: '/', label: t('recipes'), section: 'recipes' },
+              { href: '/blog', label: tBlog('nav'), section: 'blog' },
+              ...(user.admin
+                  ? [{ href: '/admin', label: t('admin'), section: 'admin' as Section }]
+                  : []),
+          ]
+        : [];
+
+    const currentLabel = sections.find((entry) => entry.section === current)?.label ?? '';
+
     /** One row, one rule. */
     const row =
-        'py-2 text-base font-medium text-ink text-left hover:opacity-60 transition-opacity';
-    const deskLink = 'text-sm text-ink hover:opacity-60 transition-opacity';
-
-
-    // Shown to anyone with an account, not only to an admin: the entries are
-    // for reading, and only writing them needs rights.
-    const readerLinks = [{ href: '/blog', label: tBlog('nav') }];
-
-    const adminLinks = [
-        { href: '/admin', label: t('admin') },
-        { href: '/admin/inbox', label: tInbox('nav') },
-        { href: '/admin/users', label: t('users') },
-        { href: '/admin/invites', label: tInvites('nav') },
-        { href: '/admin/posts', label: tBlog('adminNav') },
-        { href: '/admin/errors', label: tErrors('nav') },
-    ];
+        'py-2 text-base font-medium text-left hover:opacity-60 transition-opacity';
 
     return (
         <nav className="sticky top-0 z-[100] border-b border-line bg-page py-4">
             <div className="container mx-auto flex items-center justify-between px-4 md:px-8">
-                <Link href="/" onClick={close} className="flex items-center transition-opacity hover:opacity-70">
-                    <Logo height={44} priority />
-                </Link>
+                <div className="flex min-w-0 items-center gap-3">
+                    <Link
+                        href="/"
+                        onClick={close}
+                        className="flex shrink-0 items-center transition-opacity hover:opacity-70"
+                    >
+                        <Logo height={44} priority />
+                    </Link>
 
-                <div className="hidden items-center gap-8 md:flex">
+                    {/* Where you are, on the screen too narrow to show the
+                        sections. Hidden once they are visible, since a marked
+                        link says the same thing better. */}
+                    {currentLabel && (
+                        <span className="truncate text-xs font-semibold uppercase tracking-widest text-faint md:hidden">
+                            {currentLabel}
+                        </span>
+                    )}
+                </div>
+
+                <div className="hidden items-center gap-7 md:flex">
                     {!user ? (
-                        <Link href="/login" className={deskLink}>
+                        <Link href="/login" className="text-sm text-ink hover:opacity-60">
                             {t('login')}
                         </Link>
                     ) : (
                         <>
-                            {readerLinks.map((link) => (
-                                <Link key={link.href} href={link.href} className={deskLink}>
-                                    {link.label}
+                            {sections.map((entry) => (
+                                <Link
+                                    key={entry.href}
+                                    href={entry.href}
+                                    aria-current={entry.section === current ? 'page' : undefined}
+                                    className={`border-b-2 pb-0.5 text-sm transition-colors ${
+                                        entry.section === current
+                                            ? 'border-ink font-semibold text-ink'
+                                            : 'border-transparent text-muted hover:text-ink'
+                                    }`}
+                                >
+                                    {entry.label}
                                 </Link>
                             ))}
-                            {user.admin &&
-                                adminLinks.map((link) => (
-                                    <Link key={link.href} href={link.href} className={deskLink}>
-                                        {link.label}
-                                    </Link>
-                                ))}
-                            <LogoutButton className={deskLink} />
+
+                            <LogoutButton className="text-sm text-muted transition-colors hover:text-ink" />
                         </>
                     )}
 
@@ -147,36 +175,32 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
 
                         <div className="flex w-full flex-col items-start">
                             {!user ? (
-                                <Link href="/login" onClick={close} className={row}>
+                                <Link href="/login" onClick={close} className={`${row} text-ink`}>
                                     {t('login')}
                                 </Link>
                             ) : (
                                 <>
-                                    {readerLinks.map((link) => (
+                                    {sections.map((entry) => (
                                         <Link
-                                            key={link.href}
-                                            href={link.href}
+                                            key={entry.href}
+                                            href={entry.href}
                                             onClick={close}
-                                            className={row}
+                                            aria-current={
+                                                entry.section === current ? 'page' : undefined
+                                            }
+                                            className={`${row} ${
+                                                entry.section === current
+                                                    ? 'font-bold text-ink underline underline-offset-4'
+                                                    : 'text-ink'
+                                            }`}
                                         >
-                                            {link.label}
+                                            {entry.label}
                                         </Link>
                                     ))}
-                                    {user.admin &&
-                                        adminLinks.map((link) => (
-                                            <Link
-                                                key={link.href}
-                                                href={link.href}
-                                                onClick={close}
-                                                className={row}
-                                            >
-                                                {link.label}
-                                            </Link>
-                                        ))}
-                                    <LogoutButton className={row} />
+
+                                    <LogoutButton className={`${row} text-muted`} />
                                 </>
                             )}
-
                         </div>
 
                         <Link

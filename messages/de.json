@@ -9,10 +9,10 @@
     "login": "Anmelden",
     "logout": "Abmelden",
     "admin": "Verwaltung",
-    "users": "Benutzer",
     "greeting": "Hallo {name}",
     "language": "Sprache",
-    "toggleMenu": "Menü öffnen"
+    "toggleMenu": "Menü öffnen",
+    "recipes": "Rezepte"
   },
   "Home": {
     "searchPlaceholder": "Rezepte und Zutaten durchsuchen…",
@@ -149,7 +149,6 @@
     "noRecipes": "Noch keine Rezepte.",
     "deleteFailed": "Das Rezept konnte nicht gelöscht werden.",
     "userManagement": "Benutzer",
-    "backToRecipes": "Zurück zu den Rezepten",
     "columnEmail": "E-Mail",
     "columnRole": "Rolle",
     "roleAdmin": "Verwaltung",
@@ -160,7 +159,9 @@
     "genericError": "Etwas ist schiefgelaufen.",
     "noUsers": "Keine Benutzer gefunden.",
     "columnId": "ID",
-    "viewCount": "{count, plural, one {# Aufruf} other {# Aufrufe}}"
+    "viewCount": "{count, plural, one {# Aufruf} other {# Aufrufe}}",
+    "people": "Menschen",
+    "adminNavLabel": "Admin-Bereiche"
   },
   "RecipeForm": {
     "newRecipe": "Neues Rezept",
@@ -395,7 +396,7 @@
   },
   "Blog": {
     "nav": "Blog",
-    "adminNav": "Beiträge",
+    "adminNav": "Blogbeiträge",
     "adminTitle": "Beiträge",
     "title": "Blog",
     "intro": "Notizen zu dem, was gekocht wurde — und alles andere, was aufschreibenswert ist.",

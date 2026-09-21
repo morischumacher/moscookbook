@@ -9,10 +9,10 @@
     "login": "Login",
     "logout": "Logout",
     "admin": "Admin",
-    "users": "Users",
     "greeting": "Hello {name}",
     "language": "Language",
-    "toggleMenu": "Toggle menu"
+    "toggleMenu": "Toggle menu",
+    "recipes": "Recipes"
   },
   "Home": {
     "searchPlaceholder": "Search recipes and ingredients…",
@@ -149,7 +149,6 @@
     "noRecipes": "No recipes yet.",
     "deleteFailed": "The recipe could not be deleted.",
     "userManagement": "Users",
-    "backToRecipes": "Back to recipes",
     "columnEmail": "E-mail",
     "columnRole": "Role",
     "roleAdmin": "Admin",
@@ -160,7 +159,9 @@
     "genericError": "Something went wrong.",
     "noUsers": "No users found.",
     "columnId": "ID",
-    "viewCount": "{count, plural, one {# view} other {# views}}"
+    "viewCount": "{count, plural, one {# view} other {# views}}",
+    "people": "People",
+    "adminNavLabel": "Admin sections"
   },
   "RecipeForm": {
     "newRecipe": "New recipe",
@@ -395,7 +396,7 @@
   },
   "Blog": {
     "nav": "Blog",
-    "adminNav": "Entries",
+    "adminNav": "Blog posts",
     "adminTitle": "Entries",
     "title": "Blog",
     "intro": "Notes on what was cooked, and everything else worth writing down.",
