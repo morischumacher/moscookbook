@@ -100,6 +100,35 @@ filter could lead to an empty page.
 On a phone the category chips scroll sideways in one line instead of stacking
 four dropdowns down the screen.
 
+## Search
+
+The search box looks at titles, descriptions, ingredient names and the method,
+through Postgres full text search with the `german` configuration. Titles are
+weighted above everything else, so a recipe *called* Zwiebelsuppe comes before
+one that merely lists an onion, and the results are ordered by relevance unless
+you pick a different sort yourself.
+
+German needs two things the database does not provide, both measured rather
+than assumed — `npm run verify:search` is the measurement:
+
+| Typed | Recipe says | Works because |
+| --- | --- | --- |
+| `Kase` | Käse | Postgres' German stemmer folds umlauts itself (`'kas'`) |
+| `Kaese` | Käse | the indexed text carries an ae spelling alongside the original |
+| `Zwiebel` | Zwiebeln | each word is searched as a prefix |
+| `Zwiebeln` | Zwiebel | the query also offers a de-pluralised alternative |
+| `Eis` | — | **not** reduced to `Ei`: a stem must keep four letters, or ice cream starts suggesting eggs |
+
+The indexed text lives in `Recipe.searchTitle` and `Recipe.searchBody`, written
+by `searchFields()` in `src/lib/searchText.ts` — one function, used by every
+writer, with `npm run check:search` failing the build if a new one forgets. The
+`searchVector` column is derived from those two by Postgres, so it cannot fall
+out of step, and a GIN index makes the lookup cheap.
+
+After deploying the search migration, run `npm run reindex` once. The migration
+backfills the columns with the recipes' own wording, so search works
+immediately; the reindex is what adds the ae spellings.
+
 ## Reading a recipe
 
 The recipe page is built for someone standing at the stove:
@@ -176,6 +205,9 @@ they belong to an installation, not to a recipe.
 | `npm run create-admin` | Create or promote an admin user (see above) |
 | `npm run db:push` | Apply the Prisma schema to the database |
 | `npm run check:messages` | Verify the translation catalogues |
+| `npm run check:search` | Verify every recipe writer maintains the search columns |
+| `npm run reindex` | Rebuild the search columns for every recipe |
+| `npm run verify:search` | Check the German search against a real Postgres |
 | `npm test` | Run the logic check suites |
 | `npm run backup` | Write an offline copy, images included |
 | `npm run restore` | Put a backup folder back |

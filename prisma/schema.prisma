@@ -58,6 +58,18 @@ model Recipe {
   cookMinutes  Int?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+
+  /// Search columns. Written by searchFields() in src/lib/searchText.ts, never
+  /// by hand: they hold the recipe's own wording plus an ae/oe/ue spelling of
+  /// every word with an umlaut, so "Kaesespaetzle" finds "Käsespätzle".
+  searchTitle  String     @default("")
+  searchBody   String     @default("")
+
+  /// Maintained by Postgres from the two columns above. Prisma has no tsvector
+  /// type, so it is declared Unsupported and queried through raw SQL; nothing
+  /// writes to it.
+  searchVector Unsupported("tsvector")?
+
   images         Image[]
   ratings        Rating[]
   favorites      Favorite[]

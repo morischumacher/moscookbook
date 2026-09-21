@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError } from '@/lib/recipeSchema';
+import { searchFields } from '@/lib/searchText';
 
 function parseRecipeId(raw: string): number | null {
     const id = Number.parseInt(raw, 10);
@@ -77,6 +78,12 @@ export async function PUT(
                     servings: servings ?? null,
                     prepMinutes: prepMinutes ?? null,
                     cookMinutes: cookMinutes ?? null,
+                    ...searchFields({
+                        title,
+                        description,
+                        instructions,
+                        ingredients: ingredientRows.map((row) => row.name),
+                    }),
                 },
             }),
             prisma.ingredient.deleteMany({ where: { recipeId } }),

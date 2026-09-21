@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { parseArchive, type ArchiveRecipe } from '@/lib/archive';
+import { searchFields } from '@/lib/searchText';
 
 const MAX_BODY_BYTES = 20 * 1024 * 1024;
 
@@ -17,6 +18,12 @@ function recipeData(recipe: ArchiveRecipe) {
         prepMinutes: recipe.prepMinutes,
         cookMinutes: recipe.cookMinutes,
         createdAt: new Date(recipe.createdAt),
+        ...searchFields({
+            title: recipe.title,
+            description: recipe.description,
+            instructions: recipe.instructions,
+            ingredients: recipe.ingredients.map((ingredient) => ingredient.name),
+        }),
         images: { create: recipe.images.map((url) => ({ url })) },
         ingredients: {
             create: recipe.ingredients.map((ingredient, index) => ({

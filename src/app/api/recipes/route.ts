@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError } from '@/lib/recipeSchema';
+import { searchFields } from '@/lib/searchText';
 
 export async function POST(req: NextRequest) {
     const auth = await requireAdmin();
@@ -25,6 +26,8 @@ export async function POST(req: NextRequest) {
             servings, prepMinutes, cookMinutes,
         } = parsed.data;
 
+        const ingredientRows = toStructuredIngredients(ingredients);
+
         const recipe = await prisma.recipe.create({
             data: {
                 title,
@@ -36,9 +39,15 @@ export async function POST(req: NextRequest) {
                 servings: servings ?? null,
                 prepMinutes: prepMinutes ?? null,
                 cookMinutes: cookMinutes ?? null,
+                ...searchFields({
+                    title,
+                    description,
+                    instructions,
+                    ingredients: ingredientRows.map((row) => row.name),
+                }),
                 images: imageUrl ? { create: { url: imageUrl } } : undefined,
                 ingredients: {
-                    create: toStructuredIngredients(ingredients).map((row, index) => ({
+                    create: ingredientRows.map((row, index) => ({
                         ...row,
                         position: index,
                     })),

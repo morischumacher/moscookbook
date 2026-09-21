@@ -15,6 +15,7 @@ import { PrismaClient } from '@prisma/client';
 import { put } from '@vercel/blob';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import 'dotenv/config';
 
 const prisma = new PrismaClient();
@@ -121,6 +122,22 @@ async function main() {
 
     console.log(`\ncreated ${created}, replaced ${replaced}, skipped ${skipped} of ${archive.recipes.length}`);
     if (skipped > 0 && !replace) console.log('Run again with --replace to overwrite the recipes that already exist.');
+
+    // The search columns are built by searchFields() in TypeScript, which this
+    // ESM script cannot import without dragging a build step into a recovery
+    // tool. Rather than keeping a second copy of the rules — the one thing
+    // guaranteed to drift — the restore hands off to the reindex script, which
+    // uses the same single source of truth. Without this, restored recipes
+    // save correctly and then never appear in a search.
+    if (created + replaced > 0) {
+        console.log('\nRebuilding the search index…');
+        await prisma.$disconnect();
+        execFileSync(
+            'npx',
+            ['ts-node', '--transpile-only', '--project', 'tests/tsconfig.json', 'scripts/reindex-search.ts'],
+            { stdio: 'inherit' }
+        );
+    }
 }
 
 main()

@@ -5,6 +5,7 @@ import FilterChips, { type FacetValue } from '@/components/home/FilterChips';
 import RecipeCard from '@/components/RecipeCard';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { buildTsQuery } from '@/lib/searchText';
 
 interface RecipeListRow {
     id: number;
@@ -19,17 +20,10 @@ interface RecipeListRow {
     ratings: { value: number }[];
 }
 
-type TextFilter = { contains: string; mode: 'insensitive' };
-
 interface RecipeWhere {
     category?: string;
     nationality?: string;
     id?: { in: number[] };
-    OR?: Array<{
-        title?: TextFilter;
-        description?: TextFilter;
-        ingredients?: { some: { name: TextFilter } };
-    }>;
 }
 
 type RecipeOrderBy = { createdAt: 'desc' } | { views: 'desc' };
@@ -100,20 +94,53 @@ export default async function HomePage({
     if (category) where.category = category;
     if (nationality) where.nationality = nationality;
 
-    if (search) {
-        // Searching by ingredient is the question people actually have: what
-        // can I cook with the aubergine in the fridge. Possible since
-        // ingredients became rows.
-        where.OR = [
-            { title: { contains: search, mode: 'insensitive' } },
-            { description: { contains: search, mode: 'insensitive' } },
-            { ingredients: { some: { name: { contains: search, mode: 'insensitive' } } } },
-        ];
-    }
-
     if (showFavorites && isLoggedIn) {
         where.id = { in: [...favoriteRecipeIds] };
     }
+
+    /**
+     * Relevance order for the current search, most relevant first.
+     *
+     * The ranking has to come from Postgres — it is the only thing that knows
+     * how the German stemmer folded each word — so this is one raw query, and
+     * everything afterwards works on ids like the rating sort does. That means
+     * loading the ids of every hit rather than one page of them; for a personal
+     * cookbook the list is short, and paying that to keep all the filtering in
+     * one place is the right trade.
+     */
+    let rankById: Map<number, number> | null = null;
+
+    if (search) {
+        const tsquery = buildTsQuery(search);
+
+        if (tsquery !== null) {
+            // Annotated as well as parameterised: $queryRaw takes its type
+            // argument explicitly, so unlike groupBy nothing is inferred
+            // backwards from the assignment, and the annotation still holds
+            // when the generated client is absent.
+            const ranked: { id: number }[] = await prisma.$queryRaw<{ id: number }[]>`
+                SELECT "id"
+                FROM "Recipe"
+                WHERE "searchVector" @@ to_tsquery('german', ${tsquery})
+                ORDER BY ts_rank("searchVector", to_tsquery('german', ${tsquery})) DESC,
+                         "createdAt" DESC
+            `;
+
+            const matchedIds = ranked.map((row) => row.id);
+            rankById = new Map(matchedIds.map((id, index) => [id, index]));
+
+            // Favourites may already have narrowed this; a search on top of it
+            // narrows further rather than replacing it.
+            where.id = where.id
+                ? { in: where.id.in.filter((id) => rankById?.has(id)) }
+                : { in: matchedIds };
+        }
+    }
+
+    // A search sorts by relevance unless the visitor picked a different order
+    // themselves. `sortParam` is read before defaulting precisely so that
+    // "nothing chosen" can be told apart from "chose newest".
+    const sortByRelevance = rankById !== null && sortParam === undefined;
 
     const orderBy: RecipeOrderBy = sort === 'views' ? { views: 'desc' } : { createdAt: 'desc' };
 
@@ -132,9 +159,43 @@ export default async function HomePage({
         prisma.recipe.count(),
     ]);
 
+    /**
+     * Reads one page of recipes in an order the database cannot produce itself.
+     *
+     * Both the rating sort and the relevance sort rank ids in memory and then
+     * need the rows back in that order — which `IN (…)` does not promise — so
+     * the ordering is reapplied after the fetch.
+     */
+    async function pageOf(orderedIds: number[]): Promise<RecipeListRow[]> {
+        const pageIds = orderedIds.slice(skip, skip + PAGE_SIZE);
+        if (pageIds.length === 0) return [];
+
+        const unordered: RecipeListRow[] = await prisma.recipe.findMany({
+            where: { id: { in: pageIds } },
+            include,
+        });
+
+        return pageIds
+            .map((id) => unordered.find((recipe) => recipe.id === id))
+            .filter((recipe): recipe is RecipeListRow => recipe !== undefined);
+    }
+
     let recipes: RecipeListRow[];
 
-    if (sort === 'rating') {
+    if (sortByRelevance && rankById) {
+        // The filters may have removed some hits, so the ids are re-read
+        // through `where` and then put back into the ranking's order.
+        const matching: { id: number }[] = await prisma.recipe.findMany({
+            where,
+            select: { id: true },
+        });
+
+        recipes = await pageOf(
+            matching
+                .map((row) => row.id)
+                .sort((a, b) => (rankById.get(a) ?? 0) - (rankById.get(b) ?? 0))
+        );
+    } else if (sort === 'rating') {
         // Prisma cannot order by an average across a relation. Rather than
         // loading every recipe and sorting in memory, fetch only the ids that
         // match, rank them against a single aggregate query, then read the one
@@ -162,18 +223,11 @@ export default async function HomePage({
             }
         }
 
-        const pageIds = matchingIds
-            .sort((a, b) => (averageById.get(b) ?? 0) - (averageById.get(a) ?? 0) || b - a)
-            .slice(skip, skip + PAGE_SIZE);
-
-        const unordered: RecipeListRow[] =
-            pageIds.length === 0
-                ? []
-                : await prisma.recipe.findMany({ where: { id: { in: pageIds } }, include });
-
-        recipes = pageIds
-            .map((id) => unordered.find((recipe) => recipe.id === id))
-            .filter((recipe): recipe is RecipeListRow => recipe !== undefined);
+        recipes = await pageOf(
+            matchingIds.sort(
+                (a, b) => (averageById.get(b) ?? 0) - (averageById.get(a) ?? 0) || b - a
+            )
+        );
     } else {
         recipes = await prisma.recipe.findMany({ where, orderBy, skip, take: PAGE_SIZE, include });
     }

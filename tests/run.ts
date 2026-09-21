@@ -15,6 +15,7 @@ import ingredientParts from './ingredientParts.test';
 import shoppingList from './shoppingList.test';
 import invite from './invite.test';
 import archive from './archive.test';
+import searchText from './searchText.test';
 
 recipeSchema();
 recipeParser();
@@ -25,5 +26,6 @@ ingredientParts();
 shoppingList();
 invite();
 archive();
+searchText();
 
 process.exit(summary() === 0 ? 0 : 1);
