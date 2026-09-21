@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
+import { useConfirm } from '@/components/ui/useConfirm';
 
 interface User {
     id: number;
@@ -14,6 +15,8 @@ interface User {
 export default function AdminUsersPage() {
     const t = useTranslations('Admin');
     const router = useRouter();
+
+    const [ask, dialog] = useConfirm();
 
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
@@ -52,15 +55,20 @@ export default function AdminUsersPage() {
                     )
                 );
             } else {
-                alert(data.message || t('genericError'));
+                await ask({ title: data.message || t('genericError'), kind: 'alert' });
             }
         } catch {
-            alert(t('genericError'));
+            await ask({ title: t('genericError'), kind: 'alert' });
         }
     };
 
     const handleDeleteUser = async (userId: number) => {
-        if (!confirm(t('confirmDeleteUser'))) return;
+        const sure = await ask({
+            title: t('confirmDeleteUser'),
+            confirmLabel: t('delete'),
+            destructive: true,
+        });
+        if (!sure) return;
 
         try {
             const res = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
@@ -69,10 +77,10 @@ export default function AdminUsersPage() {
             if (res.ok) {
                 setUsers((current) => current.filter((user) => user.id !== userId));
             } else {
-                alert(data.message || t('genericError'));
+                await ask({ title: data.message || t('genericError'), kind: 'alert' });
             }
         } catch {
-            alert(t('genericError'));
+            await ask({ title: t('genericError'), kind: 'alert' });
         }
     };
 
@@ -140,6 +148,8 @@ export default function AdminUsersPage() {
                     ))}
                 </ul>
             )}
+
+            {dialog}
         </main>
     );
 }

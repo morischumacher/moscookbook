@@ -36,11 +36,17 @@ export default function Gallery({
     const hero = variant === 'hero';
 
     return (
-        <div className={hero ? 'relative' : undefined}>
+        /*
+            Full width on a phone, where the screen is the frame. On a laptop it
+            stops at the reading column's width and gains corners: a photograph
+            spanning 1900 pixels is not a hero, it is a wall of food, and the
+            text that follows sits in a 672px column under it looking abandoned.
+        */
+        <div className={hero ? 'relative mx-auto w-full max-w-3xl sm:px-8' : undefined}>
             <div
                 className={
                     hero
-                        ? 'relative h-[300px] w-full overflow-hidden bg-surface sm:h-[420px]'
+                        ? 'relative h-[280px] w-full overflow-hidden bg-surface sm:h-[380px] sm:rounded-2xl'
                         : 'relative aspect-[4/3] w-full overflow-hidden bg-surface shadow-sm sm:aspect-[16/9] sm:rounded-xl'
                 }
             >

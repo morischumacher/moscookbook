@@ -4,6 +4,8 @@ import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
+import { useConfirm } from '@/components/ui/useConfirm';
+import { compressImage, UPLOAD_LIMIT_BYTES } from '@/lib/imageCompression';
 
 export interface CookedPhoto {
     id: number;
@@ -47,8 +49,11 @@ export default function CookedPhotos({
     const t = useTranslations('Cooked');
     const router = useRouter();
     const input = useRef<HTMLInputElement>(null);
+    const [ask, dialog] = useConfirm();
 
     const [busy, setBusy] = useState(false);
+    /** What the button says while it works — preparing, then uploading. */
+    const [stage, setStage] = useState<'preparing' | 'uploading'>('preparing');
     const [error, setError] = useState('');
 
     const dateFormatter = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
@@ -57,11 +62,25 @@ export default function CookedPhotos({
         year: 'numeric',
     });
 
-    const upload = async (file: File) => {
+    const upload = async (chosen: File) => {
         setBusy(true);
+        setStage('preparing');
         setError('');
 
         try {
+            // Made small here rather than sent whole: a picture straight off
+            // a phone is larger than the request body the server is allowed to
+            // receive, and this used to fail with nothing to go on. See
+            // lib/imageCompression.ts.
+            const file = await compressImage(chosen);
+
+            if (file.size > UPLOAD_LIMIT_BYTES) {
+                setError(t('tooLarge'));
+                return;
+            }
+
+            setStage('uploading');
+
             const body = new FormData();
             body.append('file', file);
 
@@ -69,7 +88,10 @@ export default function CookedPhotos({
             const data = await res.json().catch(() => null);
 
             if (!res.ok) {
-                setError(data?.message || t('failed'));
+                // A 413 can come from the platform rather than from us, and
+                // then it is a page of HTML with no message in it — so the
+                // status says what the body could not.
+                setError(data?.message || (res.status === 413 ? t('tooLarge') : t('failed')));
                 return;
             }
 
@@ -102,7 +124,12 @@ export default function CookedPhotos({
     };
 
     const remove = async (photoId: number) => {
-        if (!window.confirm(t('confirmDelete'))) return;
+        const sure = await ask({
+            title: t('confirmDelete'),
+            confirmLabel: t('remove'),
+            destructive: true,
+        });
+        if (!sure) return;
 
         setBusy(true);
         setError('');
@@ -140,7 +167,7 @@ export default function CookedPhotos({
                             className={`cursor-pointer text-sm underline underline-offset-4 ${busy ? 'opacity-50' : ''
                                 }`}
                         >
-                            {busy ? t('uploading') : t('add')}
+                            {busy ? t(stage === 'preparing' ? 'preparing' : 'uploading') : t('add')}
                             <input
                                 ref={input}
                                 type="file"
@@ -161,7 +188,32 @@ export default function CookedPhotos({
                 )}
             </div>
 
-            {error && <p className="mb-4 text-sm text-danger">{error}</p>}
+            {/* A failure used to be one red sentence floating between two
+                headings, which read like part of the page. It is a notice now,
+                and it goes away when it has been read. */}
+            {error && (
+                <div
+                    role="alert"
+                    className="mb-4 flex items-start gap-3 rounded-xl border border-danger-line bg-danger-surface p-3"
+                >
+                    <p className="flex-1 text-sm leading-snug text-danger">{error}</p>
+                    <button
+                        type="button"
+                        onClick={() => setError('')}
+                        aria-label={t('dismiss')}
+                        className="-m-1 shrink-0 rounded p-1 text-danger transition-opacity hover:opacity-60"
+                    >
+                        <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden="true">
+                            <path
+                                d="M4 4l8 8M12 4l-8 8"
+                                stroke="currentColor"
+                                strokeWidth="1.75"
+                                strokeLinecap="round"
+                            />
+                        </svg>
+                    </button>
+                </div>
+            )}
 
             {photos.length === 0 ? (
                 <p className="text-sm text-muted">{t('empty')}</p>
@@ -238,6 +290,8 @@ export default function CookedPhotos({
                     })}
                 </ul>
             )}
+
+            {dialog}
         </section>
     );
 }

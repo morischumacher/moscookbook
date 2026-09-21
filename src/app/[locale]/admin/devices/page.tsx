@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
+import { useConfirm } from '@/components/ui/useConfirm';
 
 interface CaptureTokenRow {
     id: number;
@@ -24,6 +25,7 @@ export default function AdminDevicesPage() {
     const t = useTranslations('Devices');
     const tAdmin = useTranslations('Admin');
 
+    const [ask, dialog] = useConfirm();
     const [tokens, setTokens] = useState<CaptureTokenRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [label, setLabel] = useState('');
@@ -74,7 +76,12 @@ export default function AdminDevicesPage() {
     };
 
     const revoke = async (id: number) => {
-        if (!window.confirm(t('confirmRevoke'))) return;
+        const sure = await ask({
+            title: t('confirmRevoke'),
+            confirmLabel: t('revoke'),
+            destructive: true,
+        });
+        if (!sure) return;
         try {
             const res = await fetch(`/api/capture-tokens/${id}`, { method: 'DELETE' });
             if (!res.ok) {
@@ -232,6 +239,8 @@ export default function AdminDevicesPage() {
 
                 <p className="mt-4 text-sm text-muted">{t('screenshotNote')}</p>
             </section>
+
+            {dialog}
         </main>
     );
 }

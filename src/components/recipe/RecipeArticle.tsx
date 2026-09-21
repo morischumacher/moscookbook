@@ -166,7 +166,7 @@ export default async function RecipeArticle({
                 />
             </div>
 
-            <header className="relative z-10 -mt-7 rounded-t-3xl bg-page px-4 pt-7 sm:mx-auto sm:max-w-2xl sm:px-8 print:mt-0 print:rounded-none print:pt-8">
+            <header className="relative z-10 mx-auto -mt-7 max-w-2xl rounded-t-3xl bg-page px-4 pt-7 sm:-mt-10 sm:px-8 print:mt-0 print:rounded-none print:pt-8">
                 {/* The print stylesheet hides the navigation, and the logo used
                     to go with it — a printed recipe came out unbranded. This is
                     the same mark, shown only on paper. */}

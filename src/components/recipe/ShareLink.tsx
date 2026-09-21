@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
+import { useConfirm } from '@/components/ui/useConfirm';
 
 /**
  * The public link for one recipe or one entry: make one, show it, take it back.
@@ -30,6 +31,7 @@ export default function ShareLink({
 }) {
     const t = useTranslations('Share');
     const router = useRouter();
+    const [ask, dialog] = useConfirm();
 
     // Spelled out rather than built from `kind`, so that every key this
     // component can ask for is visible to the translation checker.
@@ -72,7 +74,12 @@ export default function ShareLink({
     };
 
     const revoke = async () => {
-        if (!window.confirm(t(words.confirm))) return;
+        const sure = await ask({
+            title: t(words.confirm),
+            confirmLabel: t('revoke'),
+            destructive: true,
+        });
+        if (!sure) return;
 
         setBusy(true);
         setError('');
@@ -165,6 +172,8 @@ export default function ShareLink({
             <span role="status" className="sr-only">
                 {copied ? t('copied') : ''}
             </span>
+
+            {dialog}
         </section>
     );
 }

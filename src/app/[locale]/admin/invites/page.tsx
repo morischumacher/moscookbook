@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
+import { useConfirm } from '@/components/ui/useConfirm';
 
 interface Invite {
     id: number;
@@ -21,6 +22,7 @@ export default function AdminInvitesPage() {
     const locale = useLocale();
     const router = useRouter();
 
+    const [ask, dialog] = useConfirm();
     const [invites, setInvites] = useState<Invite[]>([]);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
@@ -79,7 +81,12 @@ export default function AdminInvitesPage() {
     };
 
     const revoke = async (invite: Invite) => {
-        if (!confirm(t('confirmRevoke'))) return;
+        const sure = await ask({
+            title: t('confirmRevoke'),
+            confirmLabel: t('revoke'),
+            destructive: true,
+        });
+        if (!sure) return;
         try {
             const res = await fetch(`/api/invites/${invite.id}`, { method: 'DELETE' });
             if (!res.ok) throw new Error(tAdmin('genericError'));
@@ -181,6 +188,8 @@ export default function AdminInvitesPage() {
                     ))}
                 </ul>
             )}
+
+            {dialog}
         </main>
     );
 }

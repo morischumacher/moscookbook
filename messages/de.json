@@ -215,7 +215,8 @@
     "coverImage": "Titelbild",
     "moveImageEarlier": "Bild {number} nach vorne",
     "moveImageLater": "Bild {number} nach hinten",
-    "removeImageNumber": "Bild {number} entfernen"
+    "removeImageNumber": "Bild {number} entfernen",
+    "uploadTooLarge": "Dieses Bild ist auch verkleinert noch zu groß. Bitte ein kleineres wählen."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
@@ -443,6 +444,14 @@
     "confirmDelete": "Dieses Foto entfernen?",
     "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
     "captionPlaceholder": "Notiz hinzufügen…",
-    "captionLabel": "Notiz zu diesem Foto"
+    "captionLabel": "Notiz zu diesem Foto",
+    "preparing": "Wird vorbereitet…",
+    "tooLarge": "Dieses Bild ist auch verkleinert noch zu groß. Bitte ein kleineres wählen.",
+    "dismiss": "Schließen"
+  },
+  "Dialog": {
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "ok": "OK"
   }
 }

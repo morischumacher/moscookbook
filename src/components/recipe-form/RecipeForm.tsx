@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import Image from 'next/image';
 import { slugify, type Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
-import { compressImage } from '@/lib/imageCompression';
+import { compressImage, looksLikeImage, UPLOAD_LIMIT_BYTES } from '@/lib/imageCompression';
 import QuickImport, { type ImportedDraft } from './QuickImport';
 
 export interface RecipeFormValues {
@@ -64,7 +64,10 @@ function GalleryField({
 
     const upload = useCallback(
         async (files: File[]) => {
-            const usable = files.filter((file) => file.type.startsWith('image/'));
+            // Not `type.startsWith('image/')`: an iPhone hands over a HEIC
+            // with an empty type often enough that the test on its own dropped
+            // real photographs without saying anything.
+            const usable = files.filter(looksLikeImage);
             if (usable.length === 0) return;
 
             setUploading((count) => count + usable.length);
@@ -73,6 +76,15 @@ function GalleryField({
             for (const file of usable) {
                 try {
                     const prepared = await compressImage(file);
+
+                    // The platform refuses a request body over 4.5 MB before
+                    // any of our code runs, and says so in HTML — so what came
+                    // back would have been "upload failed" and nothing else.
+                    if (prepared.size > UPLOAD_LIMIT_BYTES) {
+                        onError(t('uploadTooLarge'));
+                        continue;
+                    }
+
                     const formData = new FormData();
                     formData.append('file', prepared);
 

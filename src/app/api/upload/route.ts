@@ -14,7 +14,15 @@ import { checkImageUpload, looksLikeHeic } from '@/lib/uploadImage';
  * safe file. Only the size limit differs.
  */
 
-const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
+/**
+ * 4 MB, not the 15 this used to claim: a serverless function is handed at most
+ * 4.5 MB of request body and the platform refuses the rest before this file
+ * runs, so a larger number here was a promise made by the wrong party. The
+ * form shrinks a picture in the browser first (lib/imageCompression.ts), which is
+ * both what keeps this from being met and what the site wanted anyway — no
+ * page here displays an image wider than about a thousand pixels.
+ */
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
 
 export async function POST(request: Request) {
     // Uploads write to the project's Blob store and cost money, so this
