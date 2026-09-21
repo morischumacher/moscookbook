@@ -17,12 +17,18 @@ import { readFileSync } from 'node:fs';
 const SCHEMA = 'prisma/schema.prisma';
 
 /**
- * Both of them. The browser export and the offline `npm run backup` are two
- * separate queries over the same tables, and the second one had quietly stayed
- * a version behind while the first moved on — which is the drift this whole
- * file exists to make loud.
+ * All three of them. The browser export, the weekly job and the offline
+ * `npm run backup` are separate queries over the same tables, and one of them
+ * had quietly stayed a version behind while another moved on — which is the
+ * drift this whole file exists to make loud. Three implementations is two more
+ * than anybody wants, and each exists for a reason (a download, a schedule, a
+ * laptop with no time limit); this is the price of that, paid once.
  */
-const EXPORTS = ['src/app/api/export/route.ts', 'scripts/backup.mjs'];
+const EXPORTS = [
+    'src/app/api/export/route.ts',
+    'src/app/api/cron/backup/route.ts',
+    'scripts/backup.mjs',
+];
 
 const ARCHIVE = 'src/lib/archive.ts';
 
@@ -126,6 +132,6 @@ if (problems.length > 0) {
 }
 
 console.log(
-    `check:backup — ${covered} of ${models.length} models in both backups, ` +
+    `check:backup — ${covered} of ${models.length} models in every backup, ` +
     `${NOT_BACKED_UP.size} deliberately not.`
 );

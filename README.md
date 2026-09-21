@@ -445,6 +445,22 @@ message loses an ICU placeholder in translation, or when a value is empty.
 
 ## Backup and restore
 
+**A backup runs by itself every Monday.** `vercel.json` schedules
+`/api/cron/backup`, which writes the archive into the Blob store and keeps the
+newest eight. It is deliberately the *small* backup — the JSON, not the image
+files: those are already in the same store, and copying them weekly would
+multiply the bill to protect against nothing, since a store that loses the
+pictures loses the copies with them.
+
+`npm run backup` on a laptop is still the one that matters, because it takes the
+files somewhere else entirely. This is the one that happens whether or not
+anybody thinks of it, and a backup you have to remember is a backup that
+eventually is not taken.
+
+It needs `CRON_SECRET`. Without one the endpoint refuses every request rather
+than opening: an unauthenticated route that makes the database do work is a way
+to run up a bill.
+
 **Version 2 of the archive carries the blog entries and the cooked photographs
 as well.** It did not, for a while, and that is worth recording rather than
 quietly fixing: the blog and the photographs were built, shipped and used while
@@ -452,12 +468,12 @@ the export kept writing a file with nothing in it but recipes. Nothing broke.
 The backups simply stopped covering the newest thing anybody had written, and
 the way you find that out is by needing one.
 
-`npm run check:backup` now refuses to let it happen again, and it checks **both**
-backups — the browser export and the offline `npm run backup`, which are
-separate queries over the same tables. The offline one had quietly stayed at
+`npm run check:backup` now refuses to let it happen again, and it checks **all three**
+backups — the browser export, the weekly job and the offline `npm run backup`,
+which are separate queries over the same tables. The offline one had quietly stayed at
 archive version 1 while the application moved to 2; the guard compares the two
 declared versions as well, so that cannot recur. Every model in
-`schema.prisma` is either read by both or named in that script's
+`schema.prisma` is either read by all of them or named in that script's
 `NOT_BACKED_UP` list with the reason it is not worth keeping — an account's
 password hash, a reset token that dies in an hour, the inbox queue. A model
 added from now on fails the check until somebody decides which it is. Deciding
