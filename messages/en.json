@@ -288,8 +288,11 @@
       "tiktok": "TikTok",
       "web": "Web page",
       "note": "Note",
-      "photo": "Photo"
-    }
+      "photo": "Photo",
+      "email": "E-mail"
+    },
+    "duplicateLink": "That link is already in the cookbook as",
+    "duplicateTitle": "There may already be"
   },
   "Devices": {
     "title": "Devices",

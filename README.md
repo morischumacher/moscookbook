@@ -121,11 +121,49 @@ survives. So collecting, parsing and deciding are now three separate things:
 | A YouTube link | the video description, which is where "full recipe below" points; chapter markers, subscribe pleas and bare links are stripped first |
 | An Instagram or TikTok link | those sites refuse to be read, so the **caption** that came with the share is parsed instead — which is why the shared text is kept even when a link is present |
 | Plain text | the same rule-based parser as paste-and-parse |
+| An e-mail | subject and body, with forwarding headers, quotes and signatures stripped |
 | A photograph | kept, and marked as needing the AI import or a minute of typing |
 
 Nothing here needs an API key. A video whose recipe is only spoken comes back
 as *needs a minute* with its title and thumbnail, rather than as a confidently
 wrong recipe.
+
+### By e-mail
+
+The channel that works from every device and every app without installing
+anything, and the one a friend can use without being told to install anything.
+
+Gmail cannot call a webhook, and inbound-mail services want a domain in the mail
+path, so the bridge is a Google Apps Script: `scripts/gmail-to-inbox.gs`, living
+in the same account as the mailbox, run by a timer every fifteen minutes. It
+sends only unread mail carrying a Gmail label, and marks a message read once the
+cookbook has accepted it — so a failed send is retried on the next run rather
+than lost, and nothing is ever sent twice. A Gmail filter decides what gets the
+label; a script that swallowed the whole inbox would put every newsletter into
+the cookbook.
+
+What arrives by mail is a mess — forwarding headers, quoted replies,
+signatures, "Gesendet von meinem iPhone", and a subject that has been through
+three clients. `src/lib/email.ts` cleans it, one-sidedly: it cuts only at
+markers that cannot be part of a recipe. A forwarded header block is removed but
+what follows it is kept, because in a forward the recipe comes *after* the
+header. Quoted lines are unquoted rather than dropped, because a recipe replied
+to arrives entirely quoted.
+
+The subject becomes the capture's label, never the start of the body: the recipe
+parser names a dish after the first line it is given, and "Fwd: schau mal" is
+not a dish.
+
+### Duplicates
+
+The inbox says when something looks like it is already in the cookbook. The same
+link that already became a recipe is certain; a matching title is a suspicion.
+
+It is only ever a hint next to the capture, never a refusal — a false warning
+costs a second of reading, a wrongly blocked recipe is a recipe lost. And it
+warns only when two titles say the *same* thing: "Apfelkuchen" does not flag
+"Apfelkuchen mit Streuseln und Vanillesauce", because that is a different cake
+and a warning there teaches you to ignore warnings.
 
 ### Setting it up on an iPhone
 

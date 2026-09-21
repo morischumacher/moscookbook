@@ -19,6 +19,8 @@ import searchText from './searchText.test';
 import capture from './capture.test';
 import youtube from './youtube.test';
 import captureProcess from './captureProcess.test';
+import email from './email.test';
+import duplicates from './duplicates.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
 // they are run in order rather than fired off together.
@@ -36,6 +38,8 @@ async function main() {
     capture();
     youtube();
     await captureProcess();
+    await email();
+    duplicates();
 
     process.exit(summary() === 0 ? 0 : 1);
 }

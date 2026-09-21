@@ -12,6 +12,13 @@ interface DraftSummary {
     imageUrl?: string;
 }
 
+interface DuplicateHint {
+    id: number;
+    title: string;
+    slug: string;
+    reason: 'link' | 'title';
+}
+
 interface Capture {
     id: number;
     kind: string;
@@ -24,6 +31,8 @@ interface Capture {
     draft: DraftSummary | null;
     recipeId: number | null;
     createdAt: string;
+    /** Worked out when the list is read, against what the cookbook holds now. */
+    duplicateOf: DuplicateHint | null;
 }
 
 /**
@@ -208,6 +217,22 @@ function CaptureRow({
 
             {ingredientCount > 0 && (
                 <p className="mt-1 text-sm text-muted">{t('recognised', { count: ingredientCount })}</p>
+            )}
+
+            {capture.duplicateOf && (
+                <p className="mt-2 text-sm">
+                    <span className="text-muted">
+                        {capture.duplicateOf.reason === 'link'
+                            ? t('duplicateLink')
+                            : t('duplicateTitle')}{' '}
+                    </span>
+                    <Link
+                        href={`/recipe/${capture.duplicateOf.slug}`}
+                        className="underline underline-offset-4"
+                    >
+                        {capture.duplicateOf.title}
+                    </Link>
+                </p>
             )}
 
             {capture.error && <p className="mt-1 text-sm text-muted">{capture.error}</p>}

@@ -4,6 +4,8 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
 import { classifyCapture, tokenFromHeader, hashCaptureToken } from '@/lib/capture';
+import { emailToCapture } from '@/lib/email';
+import { findDuplicate, type ExistingRecipe } from '@/lib/duplicates';
 import { processCapture } from '@/lib/captureProcess';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 
@@ -26,6 +28,10 @@ const captureSchema = z.object({
     url: z.string().trim().max(2048).optional(),
     text: z.string().max(200_000).optional(),
     note: z.string().trim().max(500).optional(),
+    /** Set by the mail bridge; the body then gets its furniture stripped. */
+    via: z.enum(['email']).optional(),
+    /** An e-mail's subject line. */
+    subject: z.string().trim().max(500).optional(),
 });
 
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -68,7 +74,27 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Send a url, some text, or both.' }, { status: 400 });
     }
 
-    const classified = classifyCapture(parsed.data);
+    // A mail arrives wrapped in forwarding headers, quote markers and a
+    // signature, and its subject has been through three clients. Cleaning that
+    // up here rather than in the bridge keeps the rules in one testable place —
+    // the bridge is a twenty-line script living in someone's Google account.
+    const input =
+        parsed.data.via === 'email'
+            ? (() => {
+                const mail = emailToCapture(parsed.data.subject ?? '', parsed.data.text ?? '');
+                return {
+                    url: parsed.data.url,
+                    text: mail.text,
+                    // The subject labels the capture but is kept away from the
+                    // recipe parser, which would otherwise name the dish
+                    // "Fwd: schau mal".
+                    note: parsed.data.note || mail.title || undefined,
+                    via: 'email' as const,
+                };
+            })()
+            : parsed.data;
+
+    const classified = classifyCapture(input);
     if (!classified) {
         return NextResponse.json({ message: 'Nothing usable was sent.' }, { status: 400 });
     }
@@ -129,15 +155,62 @@ export async function POST(req: NextRequest) {
     );
 }
 
-/** The inbox list, for the admin screen. */
+interface CaptureRow {
+    id: number;
+    status: string;
+    sourceUrl: string | null;
+    recipeId: number | null;
+    draft: unknown;
+}
+
+/**
+ * The inbox list, for the admin screen.
+ *
+ * Duplicate hints are worked out here rather than stored on the capture: what
+ * counts as a duplicate depends on what the cookbook holds *now*, and a hint
+ * written at capture time would go stale the moment a recipe is published or
+ * deleted.
+ */
 export async function GET() {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    const captures = await prisma.capture.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 200,
+    // Annotated rather than inferred: without a generated Prisma client these
+    // come back as `any`, and an inbox row silently losing its type is how a
+    // duplicate hint ends up attached to the wrong capture.
+    const [captures, recipes]: [CaptureRow[], ExistingRecipe[]] = await Promise.all([
+        prisma.capture.findMany({ orderBy: { createdAt: 'desc' }, take: 200 }),
+        // The whole list of titles, which for a personal cookbook is a few
+        // kilobytes — cheaper than a query per row in the inbox.
+        prisma.recipe.findMany({ select: { id: true, title: true, slug: true } }) as Promise<
+            ExistingRecipe[]
+        >,
+    ]);
+
+    // Links that already became a recipe. This is the certain signal: the same
+    // video sent twice is the same video.
+    const publishedUrls = new Map<string, ExistingRecipe>();
+    const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]));
+
+    for (const capture of captures) {
+        if (capture.status !== 'published' || !capture.sourceUrl || capture.recipeId === null) {
+            continue;
+        }
+        const recipe = byId.get(capture.recipeId);
+        if (recipe) publishedUrls.set(capture.sourceUrl, recipe);
+    }
+
+    const withHints = captures.map((capture) => {
+        if (capture.status === 'published') return { ...capture, duplicateOf: null };
+
+        const draft = capture.draft as { title?: string } | null;
+        const title = draft?.title ?? '';
+
+        return {
+            ...capture,
+            duplicateOf: findDuplicate(title, capture.sourceUrl, recipes, publishedUrls),
+        };
     });
 
-    return NextResponse.json({ captures });
+    return NextResponse.json({ captures: withHints });
 }

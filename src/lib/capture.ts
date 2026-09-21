@@ -22,7 +22,14 @@ export type CaptureKind = 'url' | 'text' | 'image';
  * a YouTube link needs the video description, a recipe site needs its
  * structured data, and Instagram needs a human with a screenshot.
  */
-export type CaptureSource = 'youtube' | 'instagram' | 'tiktok' | 'web' | 'note' | 'photo';
+export type CaptureSource =
+    | 'youtube'
+    | 'instagram'
+    | 'tiktok'
+    | 'web'
+    | 'note'
+    | 'email'
+    | 'photo';
 
 /**
  * new        → not looked at yet
@@ -155,6 +162,15 @@ export interface CaptureInput {
     url?: string | null;
     text?: string | null;
     note?: string | null;
+    /**
+     * What sent this, when the sender knows and the text cannot say.
+     *
+     * Only consulted for text with no link in it: a link's own host is a
+     * better answer than any hint, because it decides how the capture is read.
+     * So a forwarded YouTube link is handled as YouTube and merely happens to
+     * have arrived by mail.
+     */
+    via?: CaptureSource | null;
 }
 
 export interface ClassifiedCapture {
@@ -191,7 +207,13 @@ export function classifyCapture(input: CaptureInput): ClassifiedCapture | null {
     }
 
     if (text !== '') {
-        return { kind: 'text', source: 'note', sourceUrl: null, rawText: text, note };
+        return {
+            kind: 'text',
+            source: input.via ?? 'note',
+            sourceUrl: null,
+            rawText: text,
+            note,
+        };
     }
 
     return null;
