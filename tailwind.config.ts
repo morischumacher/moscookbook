@@ -27,7 +27,9 @@ export default {
         muted: 'var(--color-muted)',
         faint: 'var(--color-faint)',
         line: 'var(--color-border)',
+        control: 'var(--color-control)',
         surface: 'var(--color-surface)',
+        success: 'var(--color-success)',
         accent: {
           DEFAULT: 'var(--color-accent)',
           text: 'var(--color-accent-text)',

@@ -71,8 +71,10 @@ const RULES = [
     ['muted', 4.5, 'secondary text: meta lines, hints, captions'],
     ['faint', 4.5, 'eyebrows and counts — small, so the text threshold applies'],
     ['danger', 4.5, 'error messages'],
+    ['success', 4.5, 'confirmations'],
     ['accent-text', 4.5, 'links and labels in the brand colour'],
     ['accent', 3.0, 'the oyster and other shapes — a graphic, not words'],
+    ['control', 3.0, 'the outline of a chip, select or field — WCAG 1.4.11'],
 ];
 
 /** Tokens that are meant to be barely there. */

@@ -117,7 +117,7 @@ export default function AdminInvitesPage() {
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
                     placeholder={t('notePlaceholder')}
-                    className="flex-1 rounded-lg border border-line bg-transparent px-3 py-2 outline-none focus:border-ink"
+                    className="flex-1 rounded-lg border border-control bg-transparent px-3 py-2 outline-none focus:border-ink"
                 />
                 <button
                     type="button"

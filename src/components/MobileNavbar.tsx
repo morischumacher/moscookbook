@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import Logo from './brand/Logo';
@@ -12,6 +12,20 @@ interface MobileNavbarProps {
     otherLocale: string;
 }
 
+/**
+ * The navigation.
+ *
+ * The menu it opens on a phone had three different rules in three lines: the
+ * greeting in a blue that appears nowhere else in the design, "Logout" centred
+ * while everything around it was left-aligned, and the language switch in the
+ * serif face at a different weight. It also did not cover the page, so the
+ * search field showed through at the seam.
+ *
+ * The centring had a cause worth writing down: LogoutButton is a <button>, and
+ * a button in a `flex-col` stretches to the full width, which centres its
+ * label. Every row is a single shared class now, so a new entry cannot invent
+ * its own alignment by accident.
+ */
 export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
     const t = useTranslations('Navigation');
     const tShopping = useTranslations('ShoppingList');
@@ -19,11 +33,34 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
     const tInbox = useTranslations('Inbox');
     const { ids, href } = useShoppingSelection();
     const [isOpen, setIsOpen] = useState(false);
+    const toggleRef = useRef<HTMLButtonElement>(null);
+
+    // Escape closes it and the focus goes back to the button that opened it,
+    // or a keyboard user is left standing in a menu that is no longer there.
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return;
+            setIsOpen(false);
+            toggleRef.current?.focus();
+        };
+
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [isOpen]);
+
+    const close = () => setIsOpen(false);
+
+    /** One row, one rule. */
+    const row =
+        'py-2 text-base font-medium text-ink text-left hover:opacity-60 transition-opacity';
+    const deskLink = 'text-sm text-ink hover:opacity-60 transition-opacity';
 
     // Only worth a place in the bar once something is actually on it.
     const shoppingLink =
         ids.length > 0 ? (
-            <Link href={href} onClick={() => setIsOpen(false)}>
+            <Link href={href} onClick={close} className={deskLink}>
                 {tShopping('nav')}
                 <span className="ml-1.5 rounded-full bg-ink px-1.5 py-0.5 text-xs text-page">
                     {ids.length}
@@ -31,100 +68,127 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
             </Link>
         ) : null;
 
+    const adminLinks = [
+        { href: '/admin', label: t('admin') },
+        { href: '/admin/inbox', label: tInbox('nav') },
+        { href: '/admin/users', label: t('users') },
+        { href: '/admin/invites', label: tInvites('nav') },
+    ];
+
     return (
-        <nav className="bg-page border-b border-line py-4 sticky top-0 z-[100]">
-            <div className="container mx-auto px-4 md:px-8 flex items-center justify-between">
-                {/* Logo */}
-                <Link href="/" className="flex items-center hover:opacity-70 transition-opacity">
-                    <Logo height={48} className="object-contain" priority />
+        <nav className="sticky top-0 z-[100] border-b border-line bg-page py-4">
+            <div className="container mx-auto flex items-center justify-between px-4 md:px-8">
+                <Link href="/" onClick={close} className="flex items-center transition-opacity hover:opacity-70">
+                    <Logo height={44} priority />
                 </Link>
 
-                {/* Desktop Nav */}
-                <div className="hidden md:flex items-baseline gap-8">
+                <div className="hidden items-center gap-8 md:flex">
                     {!user ? (
-                        <Link href="/login" className="text-sm text-ink hover:opacity-50 transition-opacity">
-                            {t('login')}
-                        </Link>
-                    ) : (
-                        <div className="flex items-center gap-8">
-                            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                                {t('greeting', { name: user.name })}
-                            </span>
-                            {user.admin && (
-                                <div className="flex gap-8">
-                                    <Link href="/admin" className="text-sm text-ink hover:opacity-50 transition-opacity">
-                                        {t('admin')}
-                                    </Link>
-                                    <Link href="/admin/users" className="text-sm text-ink hover:opacity-50 transition-opacity">
-                                        {t('users')}
-                                    </Link>
-                                    <Link href="/admin/inbox" className="text-sm text-ink hover:opacity-50 transition-opacity">
-                                        {tInbox('nav')}
-                                    </Link>
-                                    <Link href="/admin/invites" className="text-sm text-ink hover:opacity-50 transition-opacity">
-                                        {tInvites('nav')}
-                                    </Link>
-                                </div>
-                            )}
-                            <LogoutButton className="text-sm text-ink hover:opacity-50 transition-opacity" />
-                        </div>
-                    )}
-                    {shoppingLink && (
-                        <span className="text-sm text-ink">{shoppingLink}</span>
-                    )}
-                    <Link href="/" locale={otherLocale} className="text-sm font-medium text-muted hover:text-ink transition-colors">
-                        {otherLocale.toUpperCase()}
-                    </Link>
-                </div>
-
-                {/* Mobile Hamburger Icon */}
-                <button
-                    className="md:hidden flex flex-col items-center justify-center gap-1.5 w-10 h-10"
-                    onClick={() => setIsOpen(!isOpen)}
-                    aria-label={t('toggleMenu')}
-                >
-                    <span className={`block w-6 h-0.5 bg-black dark:bg-white transition-opacity ${isOpen ? 'opacity-50' : ''}`}></span>
-                    <span className={`block w-6 h-0.5 bg-black dark:bg-white transition-opacity ${isOpen ? 'opacity-50' : ''}`}></span>
-                    <span className={`block w-6 h-0.5 bg-black dark:bg-white transition-opacity ${isOpen ? 'opacity-50' : ''}`}></span>
-                </button>
-            </div>
-
-            {/* Mobile Menu Overlay */}
-            {isOpen && (
-                <div className="md:hidden absolute top-[73px] left-0 w-full bg-page border-b border-line shadow-lg px-4 py-6 flex flex-col gap-6">
-                    {!user ? (
-                        <Link href="/login" className="text-base font-medium text-ink" onClick={() => setIsOpen(false)}>
+                        <Link href="/login" className={deskLink}>
                             {t('login')}
                         </Link>
                     ) : (
                         <>
-                            <span className="text-base font-medium text-blue-600 dark:text-blue-400">
-                                {t('greeting', { name: user.name })}
-                            </span>
-                            {user.admin && (
-                                <>
-                                    <Link href="/admin" className="text-base font-medium text-ink" onClick={() => setIsOpen(false)}>
-                                        {t('admin')}
+                            {user.admin &&
+                                adminLinks.map((link) => (
+                                    <Link key={link.href} href={link.href} className={deskLink}>
+                                        {link.label}
                                     </Link>
-                                    <Link href="/admin/users" className="text-base font-medium text-ink" onClick={() => setIsOpen(false)}>
-                                        {t('users')}
-                                    </Link>
-                                    <Link href="/admin/inbox" className="text-base font-medium text-ink" onClick={() => setIsOpen(false)}>
-                                        {tInbox('nav')}
-                                    </Link>
-                                    <Link href="/admin/invites" className="text-base font-medium text-ink" onClick={() => setIsOpen(false)}>
-                                        {tInvites('nav')}
-                                    </Link>
-                                </>
-                            )}
-                            <LogoutButton className="text-base font-medium text-ink" />
+                                ))}
+                            <LogoutButton className={deskLink} />
                         </>
                     )}
-                    <div className="w-full h-px bg-surface my-2"></div>
-                    <Link href="/" locale={otherLocale} className="text-base font-bold text-muted" onClick={() => setIsOpen(false)}>
-                        {t('language')}: {otherLocale.toUpperCase()}
+
+                    {shoppingLink}
+
+                    <Link
+                        href="/"
+                        locale={otherLocale}
+                        className="text-sm font-medium text-muted transition-colors hover:text-ink"
+                    >
+                        {otherLocale.toUpperCase()}
                     </Link>
                 </div>
+
+                <button
+                    ref={toggleRef}
+                    type="button"
+                    className="-mr-2 flex h-11 w-11 flex-col items-center justify-center gap-1.5 rounded md:hidden"
+                    onClick={() => setIsOpen(!isOpen)}
+                    aria-label={t('toggleMenu')}
+                    aria-expanded={isOpen}
+                    aria-controls="mobile-menu"
+                >
+                    <span className={`block h-0.5 w-6 bg-ink transition-opacity ${isOpen ? 'opacity-40' : ''}`} />
+                    <span className={`block h-0.5 w-6 bg-ink transition-opacity ${isOpen ? 'opacity-40' : ''}`} />
+                    <span className={`block h-0.5 w-6 bg-ink transition-opacity ${isOpen ? 'opacity-40' : ''}`} />
+                </button>
+            </div>
+
+            {isOpen && (
+                <>
+                    {/* The panel used to sit on the page with nothing behind it,
+                        so the search field showed through at its edge. This
+                        covers what is underneath and closes on a tap. */}
+                    <button
+                        type="button"
+                        aria-label={t('toggleMenu')}
+                        onClick={close}
+                        className="fixed inset-0 top-[77px] z-40 bg-page/80 backdrop-blur-sm md:hidden"
+                    />
+
+                    <div
+                        id="mobile-menu"
+                        className="absolute left-0 top-full z-50 flex w-full flex-col items-start border-b border-line bg-page px-4 py-4 shadow-lg md:hidden"
+                    >
+                        {user && (
+                            <p className="w-full pb-2 text-xs uppercase tracking-widest text-faint">
+                                {t('greeting', { name: user.name })}
+                            </p>
+                        )}
+
+                        <div className="flex w-full flex-col items-start">
+                            {!user ? (
+                                <Link href="/login" onClick={close} className={row}>
+                                    {t('login')}
+                                </Link>
+                            ) : (
+                                <>
+                                    {user.admin &&
+                                        adminLinks.map((link) => (
+                                            <Link
+                                                key={link.href}
+                                                href={link.href}
+                                                onClick={close}
+                                                className={row}
+                                            >
+                                                {link.label}
+                                            </Link>
+                                        ))}
+                                    <LogoutButton className={row} />
+                                </>
+                            )}
+
+                            {ids.length > 0 && (
+                                <Link href={href} onClick={close} className={row}>
+                                    {tShopping('nav')}
+                                    <span className="ml-1.5 rounded-full bg-ink px-1.5 py-0.5 text-xs text-page">
+                                        {ids.length}
+                                    </span>
+                                </Link>
+                            )}
+                        </div>
+
+                        <Link
+                            href="/"
+                            locale={otherLocale}
+                            onClick={close}
+                            className={`${row} mt-3 w-full border-t border-line pt-3 text-muted`}
+                        >
+                            {t('language')}: {otherLocale.toUpperCase()}
+                        </Link>
+                    </div>
+                </>
             )}
         </nav>
     );

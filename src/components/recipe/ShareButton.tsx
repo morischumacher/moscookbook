@@ -72,7 +72,7 @@ export default function ShareButton({
                     onFocus={(event) => event.currentTarget.select()}
                     // 16px, because anything smaller makes iOS Safari zoom the
                     // page when the field takes focus.
-                    className="w-full min-w-0 rounded border border-line bg-transparent px-2 py-1 text-base"
+                    className="w-full min-w-0 rounded border border-control bg-transparent px-2 py-1 text-base"
                 />
             )}
 

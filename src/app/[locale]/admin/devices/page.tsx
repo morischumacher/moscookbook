@@ -113,7 +113,7 @@ export default function AdminDevicesPage() {
                     value={label}
                     onChange={(event) => setLabel(event.target.value)}
                     placeholder={t('labelPlaceholder')}
-                    className="min-w-0 flex-1 rounded-lg border border-line bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink"
+                    className="min-w-0 flex-1 rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink"
                 />
                 <button
                     type="button"

@@ -50,6 +50,9 @@ jobs:
       - name: Colour contrast
         run: npm run check:contrast
 
+      - name: Colours stay inside the design tokens
+        run: npm run check:design
+
       - name: Lint
         run: npm run lint
 

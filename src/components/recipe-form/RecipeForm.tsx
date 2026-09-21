@@ -31,7 +31,7 @@ const CATEGORIES = ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Snack', 'Drink']
 const NATIONALITIES = ['German', 'Italian', 'Asian', 'Mexican', 'French', 'Greek', 'Indian'];
 
 const fieldClass =
-    'w-full rounded-lg border border-line bg-transparent px-3 py-2 outline-none focus:border-ink transition-colors';
+    'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none focus:border-ink transition-colors';
 const labelClass = 'block text-sm font-bold uppercase tracking-widest text-muted mb-2';
 
 /* ------------------------------------------------------------------ image */

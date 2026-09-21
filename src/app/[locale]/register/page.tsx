@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 
 const fieldClass =
-    'w-full rounded-lg border border-line bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
+    'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
 const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-muted';
 
 export default function RegisterPage() {

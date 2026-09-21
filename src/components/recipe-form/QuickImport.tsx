@@ -201,7 +201,7 @@ export default function QuickImport({
                         onChange={(event) => setText(event.target.value)}
                         rows={8}
                         placeholder={t('pastePlaceholder')}
-                        className="w-full rounded-lg border border-line bg-transparent p-3 font-mono text-sm outline-none focus:border-ink"
+                        className="w-full rounded-lg border border-control bg-transparent p-3 font-mono text-sm outline-none focus:border-ink"
                     />
                     <div className="flex flex-wrap items-center gap-3">
                         <button
@@ -241,7 +241,7 @@ export default function QuickImport({
                             }
                         }}
                         placeholder={t('urlPlaceholder')}
-                        className="flex-1 rounded-lg border border-line bg-transparent px-3 py-2 outline-none focus:border-ink"
+                        className="flex-1 rounded-lg border border-control bg-transparent px-3 py-2 outline-none focus:border-ink"
                     />
                     <button
                         type="button"
@@ -276,7 +276,7 @@ export default function QuickImport({
             )}
 
             {error && <p className="mt-3 text-sm text-danger">{error}</p>}
-            {note && !error && <p className="mt-3 text-sm text-green-700 dark:text-green-400">{note}</p>}
+            {note && !error && <p className="mt-3 text-sm text-success">{note}</p>}
         </section>
     );
 }

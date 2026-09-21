@@ -285,6 +285,7 @@ they belong to an installation, not to a recipe.
 | `npm run check:messages` | Verify the translation catalogues |
 | `npm run check:search` | Verify every recipe writer maintains the search columns |
 | `npm run check:contrast` | Verify the colour tokens meet WCAG AA, in both themes |
+| `npm run check:design` | Refuse colours that bypass the design tokens |
 | `npm run reindex` | Rebuild the search columns for every recipe |
 | `npm run verify:search` | Check the German search against a real Postgres |
 | `npm test` | Run the logic check suites |
@@ -442,6 +443,19 @@ That check was not written for its own sake. `--color-faint` was `#9CA3AF`,
 which is **2.41:1** on the page — below even the 3:1 asked of a graphic, while
 carrying every uppercase label on the site. It is 4.59:1 now, `--color-muted`
 moved with it to keep the hierarchy, and dark mode needed its own fix.
+
+There are two line tokens, and the difference matters. `--color-border` is the
+hairline between rows: decorative, almost invisible, and exempt from the check.
+`--color-control` is the outline of something you operate — a chip, a select, a
+field — which WCAG asks to be 3:1, and which was previously drawn with the
+hairline. That is why the filter row read as one black pill and a few loose
+words rather than as a row of buttons.
+
+Underneath that was a better bug still: `globals.css` reset every button with
+`border: none`. The shorthand also sets `border-style`, and Tailwind's `border`
+utility only sets the width — so **no outlined button in the application could
+ever draw its outline**. It was found by building a static preview of these
+pages and looking at the result, which is a habit worth keeping.
 
 The brand orange has two tokens on purpose. `--color-accent` (#ff4a0e, the
 logo's orange) is 3.2:1 on the page: enough for a shape, not for words. Text
