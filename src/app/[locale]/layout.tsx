@@ -51,6 +51,20 @@ export async function generateMetadata({
         metadataBase: new URL(getSiteUrl()),
         title: { default: t('title'), template: '%s' },
         description: t('description'),
+
+        // The name under the icon once this is saved to a home screen, and
+        // the promise that it opens without Safari's address bar. The icons
+        // themselves are app/icon.png and app/apple-icon.png, which Next
+        // wires up by their filenames.
+        manifest: '/manifest.webmanifest',
+        appleWebApp: {
+            capable: true,
+            title: "Mo'sCookbook",
+            // The page is cream and the status bar should be too; `default`
+            // draws it as an opaque light bar rather than letting the content
+            // run under it.
+            statusBarStyle: 'default',
+        },
     };
 }
 
@@ -78,7 +92,7 @@ export default async function LocaleLayout({
                 <NextIntlClientProvider messages={messages}>
                     <Navbar locale={locale} />
                     <VerifyBanner />
-                    <div style={{ minHeight: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ minHeight: 'calc(100dvh - 140px)', display: 'flex', flexDirection: 'column' }}>
                         {children}
                     </div>
                     <Footer />
