@@ -31,58 +31,66 @@ export default function RecipeCard({ id, title, description, imageUrl, slug, cat
     return (
         <Link
             href={`/recipe/${slug}`}
-            className="group flex flex-row items-start justify-between gap-5 py-7 sm:py-8"
+            className="group flex flex-row items-start gap-5 py-6 sm:py-7"
         >
-            {/* Left Content */}
             <div className="flex min-w-0 flex-1 flex-col">
-                <h3 className="mb-2 text-xl font-bold leading-tight tracking-tight decoration-1 underline-offset-4 group-hover:underline sm:text-2xl">
+                <h3 className="text-xl font-bold leading-snug tracking-tight decoration-1 underline-offset-4 group-hover:underline sm:text-2xl">
                     {title}
                 </h3>
-                <p className="mb-4 line-clamp-2 font-serif text-base leading-relaxed text-muted">
-                    {description}
-                </p>
+
                 {/*
-                    Two rows, not one. Words and oysters were strung together
-                    with bullets, and on a phone the oysters wrapped to the next
-                    line — leaving a bullet dangling at the end of the labels
-                    with nothing after it, and the heart adrift from both.
+                    Directly under the title, where it reads as what this dish
+                    is. It used to be a line of uppercase with wide tracking
+                    below the description, which made the least important thing
+                    in the card the loudest after the title.
+
+                    On its own line rather than beside the rating: the column is
+                    about 260px on a phone, and the rating and the heart leave
+                    the words roughly a hundred of them — enough to truncate
+                    "Hauptgericht" into "Hauptgeric…", which is worse than the
+                    row it would have saved.
                 */}
-                <div className="mt-auto flex flex-col gap-2">
-                    {(categoryLabel || cuisineLabel) && (
-                        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-widest text-muted">
-                            {categoryLabel && <span>{categoryLabel}</span>}
-                            {categoryLabel && cuisineLabel && <span aria-hidden="true">•</span>}
-                            {cuisineLabel && <span>{cuisineLabel}</span>}
-                        </p>
-                    )}
+                {(categoryLabel || cuisineLabel) && (
+                    <p className="mt-1.5 text-sm text-faint">
+                        {[categoryLabel, cuisineLabel].filter(Boolean).join(' · ')}
+                    </p>
+                )}
 
-                    <div className="flex items-center justify-between gap-4">
-                        <Rating value={rating} readonly />
+                {description && (
+                    <p className="mt-3 line-clamp-2 font-serif text-base leading-relaxed text-muted">
+                        {description}
+                    </p>
+                )}
 
-                        {/* Inside the card's Link, so the click must not navigate. */}
-                        <div onClick={(event) => event.preventDefault()}>
-                            <FavoriteButton
-                                recipeId={id}
-                                initialFavorited={isFavorited}
-                                disabled={!isLoggedIn}
-                            />
-                        </div>
+                <div className="mt-4 flex items-center justify-between gap-4">
+                    <Rating value={rating} readonly />
+
+                    {/* Inside the card's Link, so the click must not navigate. */}
+                    <div className="shrink-0" onClick={(event) => event.preventDefault()}>
+                        <FavoriteButton
+                            recipeId={id}
+                            initialFavorited={isFavorited}
+                            disabled={!isLoggedIn}
+                        />
                     </div>
                 </div>
             </div>
 
-            {/* Right Image Thumbnail */}
-            <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-lg border border-line bg-black/[0.04] transition-transform duration-200 group-hover:scale-[1.02] dark:bg-white/[0.06] sm:w-32">
-                {imageUrl ? (
+            {/*
+                Bigger, and without the outline. A 96px square in a box read as
+                an icon standing in for a photograph; this reads as the
+                photograph. The tinted square is only what shows through when
+                there is no picture yet.
+            */}
+            <div className="relative aspect-square w-28 shrink-0 overflow-hidden rounded-xl bg-surface transition-transform duration-200 group-hover:scale-[1.02] sm:w-36">
+                {imageUrl && (
                     <Image
                         src={imageUrl}
                         alt={title}
                         fill
-                        sizes="(min-width: 640px) 128px, 96px"
+                        sizes="(min-width: 640px) 144px, 112px"
                         className="object-cover"
                     />
-                ) : (
-                    <div className="absolute inset-0" />
                 )}
             </div>
         </Link>

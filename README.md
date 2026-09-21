@@ -80,6 +80,30 @@ upload.
 
 ## The home page
 
+The page used to open with the site's name in 48px, forty pixels under a
+navigation bar that already said the same words. That was the whole first
+screen of a phone spent on the name of the site the person was already looking
+at. The heading is now what the page is *about*, and the recipes start where
+the second "mo'scookbook" used to be — about 130px higher.
+
+In a card, the category and cuisine used to be a line of uppercase with wide
+tracking, which made the least important thing in the card the loudest after
+the title. They are context, so they now read as context, directly under the
+title where they say what the dish is.
+
+They stayed on a line of their own, though, and the reason is worth recording:
+folded in beside the rating they had about a hundred pixels on a phone, which
+is enough to truncate "Hauptgericht" into "Hauptgeric…". A saved row is not
+worth a clipped word. (The two-row split was originally there for a different
+reason — oysters and words strung together with bullets wrapped, leaving a
+dangling bullet. That cannot happen now: the rating never shrinks.)
+
+The thumbnail went from 96px in an outlined box to 112px, rounded, with no
+outline. A small square in a frame reads as an icon standing in for a
+photograph; this reads as the photograph. The tint is only what shows through
+when a recipe has no picture yet.
+
+
 Twenty-four recipes per page, with older ones behind a next link that keeps the
 active filters. "Best rated" paginates too: Prisma cannot order by an average
 across a relation, so the page fetches the matching ids, ranks them against one
