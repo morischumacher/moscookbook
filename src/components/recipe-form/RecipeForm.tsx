@@ -336,10 +336,18 @@ export default function RecipeForm({
     mode,
     initial,
     aiEnabled,
+    captureId,
 }: {
     mode: 'create' | 'edit';
     initial?: Partial<RecipeFormValues>;
     aiEnabled: boolean;
+    /**
+     * Set when this form was opened from the inbox. Passed back on save so the
+     * capture is marked done in the same request — otherwise finishing a
+     * recipe by hand would leave its capture sitting in the queue, and a queue
+     * with stale entries stops being read.
+     */
+    captureId?: number;
 }) {
     const t = useTranslations('RecipeForm');
     const router = useRouter();
@@ -502,6 +510,7 @@ export default function RecipeForm({
                     servings: toOptionalNumber(servings),
                     prepMinutes: toOptionalNumber(prepMinutes),
                     cookMinutes: toOptionalNumber(cookMinutes),
+                    ...(mode === 'create' && captureId ? { captureId } : {}),
                 }),
             });
 
@@ -512,7 +521,7 @@ export default function RecipeForm({
             }
 
             clearDraft();
-            router.push('/admin');
+            router.push(captureId ? '/admin/inbox' : '/admin');
             router.refresh();
         } catch {
             setError(t('saveFailed'));

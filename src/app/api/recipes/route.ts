@@ -11,7 +11,15 @@ export async function POST(req: NextRequest) {
     if ('response' in auth) return auth.response;
 
     try {
-        const parsed = recipeInputSchema.safeParse(await req.json());
+        const body = await req.json();
+        const parsed = recipeInputSchema.safeParse(body);
+
+        // Optional and outside the schema on purpose: it is not part of a
+        // recipe, only of where this one came from.
+        const rawCaptureId = (body as { captureId?: unknown })?.captureId;
+        const captureId = typeof rawCaptureId === 'number' && Number.isInteger(rawCaptureId)
+            ? rawCaptureId
+            : null;
 
         if (!parsed.success) {
             return NextResponse.json(
@@ -54,6 +62,16 @@ export async function POST(req: NextRequest) {
                 },
             },
         });
+
+        // Closing the loop from the inbox. updateMany rather than update so a
+        // capture someone deleted in another tab cannot fail a save that has
+        // already happened.
+        if (captureId !== null) {
+            await prisma.capture.updateMany({
+                where: { id: captureId },
+                data: { status: 'published', recipeId: recipe.id, error: null },
+            });
+        }
 
         return NextResponse.json(recipe, { status: 201 });
     } catch (error) {

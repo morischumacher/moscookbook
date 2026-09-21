@@ -100,6 +100,46 @@ filter could lead to an empty page.
 On a phone the category chips scroll sideways in one line instead of stacking
 four dropdowns down the screen.
 
+## The inbox
+
+Adding a recipe used to mean a laptop, a form and ten minutes, which no evening
+survives. So collecting, parsing and deciding are now three separate things:
+
+1. **Collecting** has to be instant — one tap in a share sheet while standing in
+   a shop. A capture is written to the database raw, before anything is parsed.
+2. **Parsing** runs straight afterwards and is allowed to fail. A capture that
+   could not be read keeps everything that was sent and can be retried later,
+   against a better parser.
+3. **Deciding** waits for a free evening. `/admin/inbox` shows one row per
+   capture with one decision each: take it, finish it, read it again, bin it.
+
+### What can be read
+
+| Shared | What happens |
+| --- | --- |
+| A recipe site | schema.org/Recipe data, as the manual link import already did |
+| A YouTube link | the video description, which is where "full recipe below" points; chapter markers, subscribe pleas and bare links are stripped first |
+| An Instagram or TikTok link | those sites refuse to be read, so the **caption** that came with the share is parsed instead — which is why the shared text is kept even when a link is present |
+| Plain text | the same rule-based parser as paste-and-parse |
+| A photograph | kept, and marked as needing the AI import or a minute of typing |
+
+Nothing here needs an API key. A video whose recipe is only spoken comes back
+as *needs a minute* with its title and thumbnail, rather than as a confidently
+wrong recipe.
+
+### Setting it up on an iPhone
+
+iOS cannot add a web page to the share sheet — Web Share Target is an Android
+feature — so a Shortcut does the job instead. `/admin/devices` creates a key and
+walks through the five steps; the key is shown once and stored only as a hash.
+
+The Shortcut needs exactly one field: whatever was shared goes out as `text`,
+and the link is dug out of it on this side. That way a post carrying both a
+caption and a link keeps both.
+
+One key per device, so a lost phone costs one revoke. `lastUsedAt` on a revoked
+key is how you find out whether it was still being used afterwards.
+
 ## Search
 
 The search box looks at titles, descriptions, ingredient names and the method,

@@ -44,6 +44,50 @@ model Invite {
   @@index([expiresAt])
 }
 
+/// The inbox. Everything shared from a phone lands here raw, before anyone
+/// decides whether it becomes a recipe. See src/lib/capture.ts for why the
+/// collecting, the parsing and the deciding are kept apart.
+model Capture {
+  id     Int     @id @default(autoincrement())
+  /// url | text | image
+  kind   String
+  /// youtube | instagram | tiktok | web | note | photo
+  source String
+
+  sourceUrl String?
+  /// Whatever was shared, kept verbatim so a capture survives a parser that
+  /// cannot yet read it and can be retried once the parser improves.
+  rawText   String?
+  imageUrl  String?
+  /// What the sender typed alongside the share.
+  note      String?
+
+  /// new | ready | needsWork | failed | published
+  status String  @default("new")
+  error  String?
+  /// The parsed recipe draft, in the shape the recipe form expects.
+  draft  Json?
+
+  recipe   Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  recipeId Int?
+
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([status, createdAt])
+}
+
+/// A long-lived key that lets one device — an iOS Shortcut, a mail bridge —
+/// post to the capture endpoint. Only the hash is stored.
+model CaptureToken {
+  id         Int       @id @default(autoincrement())
+  label      String
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+}
+
 model Recipe {
   id           Int        @id @default(autoincrement())
   title        String
@@ -74,6 +118,7 @@ model Recipe {
   ratings        Rating[]
   favorites      Favorite[]
   ingredients    Ingredient[]
+  captures       Capture[]
 }
 
 /// One ingredient line, split into the parts a cook actually uses.

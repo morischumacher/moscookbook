@@ -16,6 +16,7 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
     const t = useTranslations('Navigation');
     const tShopping = useTranslations('ShoppingList');
     const tInvites = useTranslations('Invites');
+    const tInbox = useTranslations('Inbox');
     const { ids, href } = useShoppingSelection();
     const [isOpen, setIsOpen] = useState(false);
 
@@ -64,6 +65,9 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
                                     <Link href="/admin/users" className="text-sm text-ink hover:opacity-50 transition-opacity">
                                         {t('users')}
                                     </Link>
+                                    <Link href="/admin/inbox" className="text-sm text-ink hover:opacity-50 transition-opacity">
+                                        {tInbox('nav')}
+                                    </Link>
                                     <Link href="/admin/invites" className="text-sm text-ink hover:opacity-50 transition-opacity">
                                         {tInvites('nav')}
                                     </Link>
@@ -111,6 +115,9 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
                                     </Link>
                                     <Link href="/admin/users" className="text-base font-medium text-ink" onClick={() => setIsOpen(false)}>
                                         {t('users')}
+                                    </Link>
+                                    <Link href="/admin/inbox" className="text-base font-medium text-ink" onClick={() => setIsOpen(false)}>
+                                        {tInbox('nav')}
                                     </Link>
                                     <Link href="/admin/invites" className="text-base font-medium text-ink" onClick={() => setIsOpen(false)}>
                                         {tInvites('nav')}
