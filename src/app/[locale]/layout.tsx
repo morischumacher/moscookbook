@@ -7,6 +7,7 @@ import { getSiteUrl } from '@/lib/siteUrl';
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import VerifyBanner from "@/components/auth/VerifyBanner";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -76,6 +77,7 @@ export default async function LocaleLayout({
             <body className={`${geistSans.variable} ${geistMono.variable}`}>
                 <NextIntlClientProvider messages={messages}>
                     <Navbar locale={locale} />
+                    <VerifyBanner />
                     <div style={{ minHeight: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column' }}>
                         {children}
                     </div>

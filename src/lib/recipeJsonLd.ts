@@ -64,7 +64,7 @@ export function buildRecipeJsonLd(recipe: JsonLdRecipeInput): Record<string, unk
         name: recipe.title,
         url: recipe.url,
         datePublished: recipe.createdAt.toISOString(),
-        // One string per ingredient, the way it is written on a shopping list.
+        // One string per ingredient, amount and name together.
         // toDisplayIngredient splits the amount from the name for the page's
         // two-column layout; schema.org wants them back together, and an array
         // of {amount, item} objects is markup no importer can read — which the

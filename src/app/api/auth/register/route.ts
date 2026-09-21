@@ -6,12 +6,16 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import { sessionOptions, SessionData } from '@/lib/session';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
 import prisma from '@/lib/prisma';
+import { fullName } from '@/lib/personName';
+import { issueToken } from '@/lib/issueToken';
 
 const registerSchema = z.object({
     email: z.string().trim().email().max(320),
-    name: z.string().trim().min(1, 'Name is required').max(100),
+    firstName: z.string().trim().min(1, 'First name is required').max(80),
+    lastName: z.string().trim().min(1, 'Last name is required').max(80),
     password: z.string().min(8, 'Password must be at least 8 characters').max(200),
     invite: z.string().trim().min(1, 'An invitation is required').max(200),
+    locale: z.enum(['en', 'de']).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -33,7 +37,7 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    const { email, name, password, invite } = parsed.data;
+    const { email, firstName, lastName, password, invite, locale = 'en' } = parsed.data;
 
     // Claim the invite before creating anything. updateMany with the conditions
     // in the WHERE clause makes this atomic: if two people redeem the same link
@@ -71,7 +75,10 @@ export async function POST(req: NextRequest) {
         const user = await prisma.user.create({
             data: {
                 email,
-                name,
+                firstName,
+                lastName,
+                // One rule for how the parts join, so no read site has to know.
+                name: fullName({ firstName, lastName }),
                 password: hashedPassword,
                 admin: false, // Admin rights are only ever granted by another admin.
             },
@@ -82,7 +89,13 @@ export async function POST(req: NextRequest) {
             data: { usedById: user.id },
         });
 
-        const res = NextResponse.json({ success: true });
+        // Deliberately not awaited for its outcome beyond logging, and never
+        // allowed to fail the registration: the account exists, the invitation
+        // is burned, and a mail server that is down must not undo either. The
+        // address can be confirmed later from the banner on the site.
+        const mailed = await issueToken(user, 'verify', locale).catch(() => 'failed' as const);
+
+        const res = NextResponse.json({ success: true, verificationMail: mailed });
         const session = await getIronSession<SessionData>(req, res, sessionOptions);
 
         session.user = {

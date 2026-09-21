@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
+import { destinationFrom } from '@/lib/loginDestination';
 
 const fieldClass =
     'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
 const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-muted';
 
-export default function LoginPage() {
+function LoginForm() {
     const t = useTranslations('Auth');
     const router = useRouter();
+    const next = useSearchParams().get('next');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -34,7 +37,7 @@ export default function LoginPage() {
                 // The locale-aware router adds the language prefix itself, so
                 // the destination is written plainly. refresh() throws away the
                 // cached server render so the new session is picked up.
-                router.push(data.admin ? '/admin' : '/');
+                router.push(destinationFrom(next, data.admin ? '/admin' : '/'));
                 router.refresh();
                 return;
             }
@@ -48,9 +51,7 @@ export default function LoginPage() {
     };
 
     return (
-        <main className="container mx-auto max-w-sm px-4 pb-32 pt-16 sm:pt-24">
-            <h1 className="mb-8 text-3xl font-extrabold tracking-tight">{t('loginTitle')}</h1>
-
+        <>
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 {error && (
                     <p className="rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
@@ -92,6 +93,12 @@ export default function LoginPage() {
                     {t('submitLogin')}
                 </button>
 
+                <p className="text-center text-sm">
+                    <Link href="/forgot" className="text-muted underline underline-offset-4">
+                        {t('forgotLink')}
+                    </Link>
+                </p>
+
                 <p className="text-center text-sm text-muted">
                     {t('needAccount')}{' '}
                     <Link href="/register" className="underline underline-offset-4">
@@ -99,6 +106,21 @@ export default function LoginPage() {
                     </Link>
                 </p>
             </form>
+        </>
+    );
+}
+
+export default function LoginPage() {
+    const t = useTranslations('Auth');
+
+    return (
+        <main className="container mx-auto max-w-sm px-4 pb-32 pt-16 sm:pt-24">
+            <h1 className="mb-8 text-3xl font-extrabold tracking-tight">{t('loginTitle')}</h1>
+            {/* useSearchParams reads something only the browser knows, so the
+                subtree has to be allowed to render later than the page. */}
+            <Suspense fallback={null}>
+                <LoginForm />
+            </Suspense>
         </main>
     );
 }

@@ -29,12 +29,21 @@ async function main() {
         throw new Error('ADMIN_PASSWORD must be at least 8 characters long.');
     }
 
+    // Split at the last space, matching migration 0006 rather than the fuller
+    // rule in src/lib/personName.ts — this script is plain JS and importing
+    // the TypeScript module would drag a build step into a bootstrap tool. An
+    // admin's own name is the one most likely to be corrected by hand anyway.
+    const trimmed = name.trim();
+    const lastSpace = trimmed.lastIndexOf(' ');
+    const firstName = lastSpace === -1 ? trimmed : trimmed.slice(0, lastSpace).trim();
+    const lastName = lastSpace === -1 ? '' : trimmed.slice(lastSpace + 1).trim();
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.upsert({
         where: { email },
-        update: { password: hashedPassword, admin: true },
-        create: { email, name, password: hashedPassword, admin: true },
+        update: { password: hashedPassword, admin: true, firstName, lastName },
+        create: { email, name, firstName, lastName, password: hashedPassword, admin: true },
     });
 
     console.log(`Admin ready: ${user.email} (id ${user.id})`);

@@ -11,9 +11,21 @@ datasource db {
 model User {
   id             Int        @id @default(autoincrement())
   email          String     @unique
+  /// Written from firstName and lastName by fullName(); the display name
+  /// everything else reads. Kept as its own column so that no read site has
+  /// to know how the two parts join.
   name           String
+  firstName      String     @default("")
+  lastName       String     @default("")
   password       String
   admin          Boolean    @default(false)
+  /// Set once the address has been confirmed by following a mailed link.
+  /// Null means unconfirmed, which is allowed — registration is by invitation,
+  /// so the address is an identifier before it is a credential. It only
+  /// becomes a credential when a password can be reset through it.
+  emailVerifiedAt DateTime?
+
+  tokens         AuthToken[]
   ratings        Rating[]
   favorites      Favorite[]
   invitesCreated Invite[]   @relation("InviteCreatedBy")
@@ -41,6 +53,25 @@ model Invite {
   usedById    Int?
   usedBy      User?     @relation("InviteUsedBy", fields: [usedById], references: [id], onDelete: SetNull)
 
+  @@index([expiresAt])
+}
+
+/// A single-use token sent to an address: a password reset or an address
+/// confirmation. Only the hash is stored — for the minutes it lives, a reset
+/// token is as good as the password, and hashing passwords while keeping a
+/// live skeleton key in the next table would be strange.
+model AuthToken {
+  id        Int       @id @default(autoincrement())
+  tokenHash String    @unique
+  /// reset | verify
+  purpose   String
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  @@index([userId, purpose])
   @@index([expiresAt])
 }
 
@@ -124,6 +155,12 @@ model Recipe {
   cookMinutes  Int?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+
+  /// The public link, or null when the recipe is only for people who are
+  /// logged in. Unguessable rather than a flag on the normal address: a secret
+  /// URL can be handed to one person and withdrawn again without renaming the
+  /// recipe, and revoking is setting this back to null.
+  shareToken   String?    @unique
 
   /// Search columns. Written by searchFields() in src/lib/searchText.ts, never
   /// by hand: they hold the recipe's own wording plus an ae/oe/ue spelling of

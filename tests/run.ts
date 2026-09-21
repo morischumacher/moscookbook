@@ -12,7 +12,6 @@ import recipeFromHtml from './recipeFromHtml.test';
 import amount from './amount.test';
 import siteUrl from './siteUrl.test';
 import ingredientParts from './ingredientParts.test';
-import shoppingList from './shoppingList.test';
 import invite from './invite.test';
 import archive from './archive.test';
 import searchText from './searchText.test';
@@ -24,6 +23,9 @@ import duplicates from './duplicates.test';
 import recipeJsonLd from './recipeJsonLd.test';
 import errorReport from './errorReport.test';
 import importVariants from './importVariants.test';
+import personName from './personName.test';
+import authTokens from './authTokens.test';
+import access from './access.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
 // they are run in order rather than fired off together.
@@ -34,7 +36,6 @@ async function main() {
     amount();
     siteUrl();
     ingredientParts();
-    shoppingList();
     invite();
     archive();
     searchText();
@@ -46,6 +47,9 @@ async function main() {
     recipeJsonLd();
     errorReport();
     importVariants();
+    personName();
+    authTokens();
+    access();
 
     process.exit(summary() === 0 ? 0 : 1);
 }

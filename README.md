@@ -293,24 +293,6 @@ they belong to an installation, not to a recipe.
 | `npm run backup` | Write an offline copy, images included |
 | `npm run restore` | Put a backup folder back |
 
-## Shopping list
-
-Add recipes from their pages, then `/shopping-list` merges their ingredients
-into one list you can tick off and print.
-
-Two lines are merged only when the name **and** the unit match. `200 g` and
-`300 g` of flour become `500 g`; `2 Zwiebeln` and `100 g Zwiebeln` stay apart,
-because adding them would produce a number that means nothing. Lines without a
-quantity are listed once, never as "2 Salz".
-
-Names are matched exactly, apart from case and spacing. An earlier version
-stripped German plural endings so `Zwiebeln` and `Zwiebel` would merge — but
-that also turns `Eis` into `Ei`, and a list that quietly adds ice cream to eggs
-is worse than one that lists onions twice. Being slightly redundant is the safe
-failure, and the tests pin that decision down.
-
-The selection lives in `localStorage` and is mirrored into the URL, so a list
-can be sent to whoever is going to the shop.
 
 ## On a phone
 
@@ -404,6 +386,109 @@ a different and much less tidy set. It fetches pages you would really import and
 keeps only the parts the extractor reads, so a fixture is a few kilobytes and
 readable in a diff. See `tests/fixtures/README.md`.
 
+## Accounts and e-mail
+
+Registration is by invitation. What has been added is the pair of things that
+make an address worth having: **password reset** and **address confirmation**.
+
+Both use the same mechanism, because they have identical security needs: a
+long random string mailed to an address, stored only as a hash, usable once,
+expiring on its own. `src/lib/authTokens.ts` holds it, and `tokenState()` is
+the single place that decides whether a token may be redeemed — one function
+rather than a condition at each call site, because "expired" and "already
+used" are exactly the checks that get forgotten in the second place they are
+needed.
+
+Only the hash is stored. For the minutes it lives, a reset token is as good as
+the password, and it would be strange to hash passwords and then keep a live
+skeleton key in the next table.
+
+The two differ only in how long they last. A reset link is a live key to an
+account, so it lasts an hour; a confirmation link grants nothing, so it can
+afford to be patient with someone who reads mail on Sunday, and lasts a week.
+
+A few decisions worth knowing:
+
+- **`/api/auth/forgot` always answers the same way**, whether or not the
+  address belongs to an account — even for an address that is malformed.
+  Anything else turns it into a way of asking "is this person a member of this
+  cookbook", and for an invite-only site that is a question worth not
+  answering. It is limited per IP *and* per address: the first stops someone
+  walking a list, the second stops this cookbook being used to fill a
+  stranger's inbox.
+- **Asking again invalidates the previous link.** Three taps on "forgot my
+  password" should not leave three live keys sitting in a mailbox. Old ones are
+  marked used rather than deleted, so a second tap on an old link says "this
+  link has expired" instead of "unknown link".
+- **Redeeming is a single conditional `UPDATE`**, not a read followed by a
+  write. Mail clients and link scanners follow URLs in messages, and two
+  requests must not both come away holding a valid token.
+- **A completed reset confirms the address too**, and sweeps every other
+  outstanding token for that account. Following a link sent to the address is
+  proof the address works; asking for that proof again in a separate mail would
+  be ceremony.
+- **An unconfirmed address is not locked out.** Somebody already vouched for
+  this person; locking them out because a mail went to spam would punish them
+  for something that is not theirs to fix. There is a banner, and what
+  confirming buys is the ability to reset their own password later.
+
+Sending goes through `src/lib/mailer.ts` — Gmail SMTP with an app password,
+which is two minutes of setup on an account that already exists and costs
+nothing. Set `GMAIL_USER` and `GMAIL_APP_PASSWORD` (see `.env.example`; the app
+password is created at <https://myaccount.google.com/apppasswords> and is *not*
+the account password). Without them the cookbook works exactly as before and
+`sendMail` reports `notConfigured` rather than throwing — a cookbook whose
+password reset is not set up should still serve recipes.
+
+The messages are plain functions in `src/lib/authMail.ts`, returning subject,
+text and HTML, so the things that actually go wrong with transactional mail — a
+link that is not in the body, a German message signed in English, an expiry the
+text contradicts — are all testable without a mail server. Plain text is the
+real message and HTML the decoration; a reset link that only exists inside a
+styled table is a reset link some people cannot use.
+
+## Who can see what
+
+The cookbook is private. Every page needs an account except five: the two
+sign-in pages, the three that arrive as a link in an e-mail, and the share
+links. The rule is written the safe way round in `src/lib/accessRules.ts` — a
+localised page needs an account *unless* it is named as open — so a page added
+next month is private until somebody decides otherwise, rather than public
+until somebody notices. `proxy.ts` does nothing but ask that function and act
+on the answer, and `tests/access.test.ts` is the only place the rule is
+actually checked, because this is the one piece of the application where a
+mistyped character breaks nothing visibly: it just quietly publishes a private
+cookbook.
+
+A single recipe can be let out through a **public link**: `/de/r/<token>`,
+where the token is 128 bits of randomness stored in `Recipe.shareToken`.
+Unguessable rather than a `public: true` flag, because the two answer different
+questions. A flag makes a recipe visible to everyone at its normal address for
+as long as it is set; a token makes one link that can be handed to one person,
+and withdrawing it is setting the column back to null — the recipe never
+changes its own name, and people who have an account never notice anything.
+
+The control sits on the recipe page for admins, under *Visibility*. It is
+deliberately not a switch: a switch invites a tap to see what it does, and what
+it does is put a recipe on the open internet. Two differently worded buttons,
+the state written out in words above them, and withdrawing asks first, because
+it breaks a link somebody may already have sent to their mother.
+
+The shared page offers nothing that needs an account — no favourite, no rating,
+no view counter — rather than offering it and then refusing. It is `noindex`:
+the link is secret, and a page in Google's index is not. Preview cards still
+work, because WhatsApp, Signal and iMessage fetch the page when a link is
+pasted; they do not consult an index. `src/app/robots.ts` disallows everything
+for the same reason.
+
+The export does not carry share tokens, so restoring a backup does not
+silently republish anything — recipes come back private and are shared again
+deliberately.
+
+Recipes existing before this change were **not** made public by the migration.
+That is the safe direction: a recipe that should be shared can be shared again
+in one click, while a recipe wrongly left public cannot be un-read.
+
 ## Sharing a recipe
 
 The share button opens the phone's own share sheet through `navigator.share`,
@@ -415,13 +500,24 @@ button that silently does nothing is worse than no button.
 Cancelling the share sheet is not treated as a failure. It rejects with
 `AbortError`, and falling back to the clipboard there would be rude.
 
+What it hands over is the public link when the recipe has one, so that it
+reaches somebody without an account. Otherwise it is the address of the page
+itself — fine between two people who both have an account, and for anyone else
+the login form now carries them on to the recipe once they are in, through the
+`?next=` that `proxy.ts` attaches. `destinationFrom()` in
+`src/lib/loginDestination.ts` refuses anything that is not a path of our own,
+because a login form that forwards wherever it is told is an open redirect.
+
 What the person on the other end sees comes from the page's OpenGraph data. A
 recipe with a photograph shows the photograph; one without used to show a bare
 link, which reads like spam, and now falls back to a branded card.
 
-Every recipe page also carries **schema.org/Recipe** markup — the same markup
-this application reads out of other people's pages when importing. That makes
-the recipes legible to Google and to anyone else's importer, and it means the
+The shared page also carries **schema.org/Recipe** markup — the same markup
+this application reads out of other people's pages when importing. It is only
+emitted there: the private page is behind a login, so nothing is there to read
+it, and publishing a machine-readable copy of a recipe that is supposed to need
+an account would be an odd thing to do. The markup makes a shared recipe
+legible to anyone else's importer, and it means the
 cookbook can import from itself, which is exactly what the round-trip test
 does: build the markup, feed it to our own extractor, and check that nothing
 was lost. That test earned its keep on the first run by catching
@@ -575,6 +671,12 @@ npx prisma migrate deploy
 
 **On a fresh database**, `npx prisma migrate deploy` is enough.
 
+`0007_auth_and_visibility` is the one to read before deploying: it adds the
+token table and `User.emailVerifiedAt` (backfilled to now, because accounts
+that already existed were created by somebody who was standing there), and it
+adds `Recipe.shareToken` **without** backfilling it — which is what turns every
+existing recipe private.
+
 The baseline SQL was written by hand, so confirm it matches the schema exactly
 before relying on it — this prints nothing if they agree:
 
@@ -594,7 +696,16 @@ npx prisma migrate diff \
   Blob storage.
 - The admin area is guarded twice: in `proxy.ts` and again server-side in
   `src/app/[locale]/admin/layout.tsx`.
-- Login and registration are rate limited per IP.
+- Login, registration, password reset and address confirmation are all rate
+  limited; `forgot` is limited per address as well as per IP.
+- Reset and confirmation tokens are stored only as SHA-256 hashes, are single
+  use, expire on their own, and are compared in constant time. A token of one
+  purpose is refused at the other's endpoint.
+- The login form only ever redirects to a path of its own site, so `?next=`
+  cannot be used to build a phishing link that starts on this domain.
+- Everything except the sign-in pages, the mailed links and the share links
+  needs an account; the rule lives in `src/lib/accessRules.ts` and is tested.
+- Share tokens are 128 bits, unique, and revoked by setting the column to null.
 - The URL importer refuses loopback and private address ranges, so it cannot be
   pointed at internal services.
 - Recipe image URLs are restricted to `http(s)`.

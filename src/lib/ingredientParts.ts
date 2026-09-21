@@ -6,7 +6,7 @@ import type { Ingredient } from './recipe';
  *
  * The raw string is always stored alongside, so a line this parser reads
  * differently than intended still displays exactly as the author typed it.
- * Structure buys scaling, shopping lists and search; it never costs wording.
+ * Structure buys scaling and searching by ingredient; it never costs wording.
  */
 
 export interface AmountParts {
