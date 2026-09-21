@@ -9,6 +9,7 @@ import { slugify, type Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
 import { compressImage, looksLikeImage, UPLOAD_LIMIT_BYTES } from '@/lib/imageCompression';
 import QuickImport, { type ImportedDraft } from './QuickImport';
+import { buttonPrimary } from '@/lib/ui';
 
 export interface RecipeFormValues {
     id?: number;
@@ -192,7 +193,20 @@ function GalleryField({
                 </ul>
             )}
 
-            <div
+            {/*
+                A <label> wrapping the file input, not a <div onClick>.
+                The drop zone used to be a div with a click handler and a
+                `display: none` input inside it — a div cannot be focused, and
+                a hidden input cannot either, so adding a picture to a recipe
+                was reachable with a mouse or a finger and by nothing else. A
+                label is focusable through the control it labels, and `sr-only`
+                keeps that control in the accessibility tree instead of
+                removing it from the page.
+
+                The drag handlers stay: dropping a file is a pointer gesture by
+                nature, and nothing else depends on them.
+            */}
+            <label
                 onDragOver={(event) => {
                     event.preventDefault();
                     setDragging(true);
@@ -203,8 +217,7 @@ function GalleryField({
                     setDragging(false);
                     upload(Array.from(event.dataTransfer.files ?? []));
                 }}
-                onClick={() => inputRef.current?.click()}
-                className={`cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-colors ${dragging ? 'border-ink bg-surface' : 'border-control'
+                className={`block cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-colors focus-within:border-ink focus-within:ring-2 focus-within:ring-ink/20 ${dragging ? 'border-ink bg-surface' : 'border-control'
                     }`}
             >
                 <p className="py-6 text-sm text-muted">
@@ -216,23 +229,23 @@ function GalleryField({
                     type="file"
                     accept="image/*"
                     multiple
-                    className="hidden"
+                    className="sr-only"
                     onChange={(event) => {
                         upload(Array.from(event.target.files ?? []));
                         event.target.value = '';
                     }}
                 />
-            </div>
+            </label>
 
             <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
                 {/* On a phone this opens the camera directly. */}
-                <label className="cursor-pointer text-muted underline underline-offset-2">
+                <label className="cursor-pointer text-muted underline underline-offset-4 focus-within:text-ink">
                     {t('takePhoto')}
                     <input
                         type="file"
                         accept="image/*"
                         capture="environment"
-                        className="hidden"
+                        className="sr-only"
                         onChange={(event) => {
                             upload(Array.from(event.target.files ?? []));
                             event.target.value = '';
@@ -311,7 +324,7 @@ function IngredientEditor({
                 <button
                     type="button"
                     onClick={() => setShowBulk((open) => !open)}
-                    className="text-sm text-muted underline underline-offset-2"
+                    className="text-sm text-muted underline underline-offset-4"
                 >
                     {showBulk ? t('closeList') : t('pasteList')}
                 </button>
@@ -649,10 +662,10 @@ export default function RecipeForm({
             {draftFound && (
                 <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-black/[0.03] p-3 text-sm dark:bg-white/[0.05]">
                     <span>{t('draftFound')}</span>
-                    <button type="button" onClick={restoreDraft} className="underline underline-offset-2">
+                    <button type="button" onClick={restoreDraft} className="underline underline-offset-4">
                         {t('restoreDraft')}
                     </button>
-                    <button type="button" onClick={clearDraft} className="text-muted underline underline-offset-2">
+                    <button type="button" onClick={clearDraft} className="text-muted underline underline-offset-4">
                         {t('discardDraft')}
                     </button>
                 </div>
@@ -708,7 +721,7 @@ export default function RecipeForm({
                                     setSlugTouched(false);
                                     setSlug(slugify(title));
                                 }}
-                                className="shrink-0 text-sm text-muted underline underline-offset-2"
+                                className="shrink-0 text-sm text-muted underline underline-offset-4"
                             >
                                 {t('slugFromTitle')}
                             </button>
@@ -826,7 +839,7 @@ export default function RecipeForm({
                         <button
                             type="button"
                             onClick={() => setPreview((open) => !open)}
-                            className="text-sm text-muted underline underline-offset-2"
+                            className="text-sm text-muted underline underline-offset-4"
                         >
                             {preview ? t('backToEdit') : t('preview')}
                         </button>
@@ -853,14 +866,14 @@ export default function RecipeForm({
                     <button
                         type="submit"
                         disabled={saving}
-                        className="rounded-full bg-ink px-6 py-3 font-medium text-page disabled:opacity-50"
+                        className={buttonPrimary}
                     >
                         {saving ? t('saving') : mode === 'create' ? t('create') : t('save')}
                     </button>
                     <button
                         type="button"
                         onClick={() => router.push('/admin')}
-                        className="text-sm text-muted underline underline-offset-2"
+                        className="text-sm text-muted underline underline-offset-4"
                     >
                         {t('cancel')}
                     </button>

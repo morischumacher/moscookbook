@@ -1,5 +1,6 @@
 /**
- * Refuses colours that bypass the design tokens.
+ * Refuses colours that bypass the design tokens, and buttons that bypass the
+ * shapes.
  *
  *   npm run check:design
  *
@@ -51,6 +52,25 @@ function walk(dir) {
     return out;
 }
 
+/**
+ * A hand-rolled primary button.
+ *
+ * There were five, and none of it was a decision: `px-6 py-3` here,
+ * `px-4 py-2 text-sm` there, `px-5 py-2` on exactly one page, and two admin
+ * pages under the same navigation with visibly different-sized buttons. It is
+ * what happens when a class list is copied from whichever file was open —
+ * invisible to whoever writes the page, obvious to whoever looks at two of
+ * them. src/lib/ui.ts holds the four shapes now.
+ *
+ * Matched on the filled pill with a label on it, because that is the one that
+ * was drifting: `rounded-full`, a solid `bg-ink`, and `text-page` for the
+ * words. A bordered button is not a shape people copy wrongly, and `bg-ink/55`
+ * with a slash is a translucent overlay — the corner the heart sits in, the
+ * pill the rating sits in — which is a different thing that happens to be
+ * round.
+ */
+const HAND_ROLLED_BUTTON = /rounded-full[^"'`]*\bbg-ink(?!\/)\b[^"'`]*\btext-page\b/;
+
 const problems = [];
 let scanned = 0;
 
@@ -61,6 +81,20 @@ for (const file of walk('src')) {
 
     scanned += 1;
     const lines = readFileSync(file, 'utf8').split('\n');
+
+    // src/lib/ui.ts is where the shapes are allowed to be written out — it is
+    // the file that defines them.
+    if (!file.endsWith(join('lib', 'ui.ts'))) {
+        lines.forEach((line, index) => {
+            if (!HAND_ROLLED_BUTTON.test(line)) return;
+
+            problems.push(
+                `${relative('.', file)}:${index + 1}  a primary button written out by hand\n` +
+                '    Use buttonPrimary, buttonPrimarySmall or buttonDanger from src/lib/ui.ts,\n' +
+                '    or add the shape there if this one is genuinely different.'
+            );
+        });
+    }
 
     lines.forEach((line, index) => {
         for (const match of line.matchAll(LITERAL)) {
@@ -78,4 +112,7 @@ if (problems.length > 0) {
     process.exit(1);
 }
 
-console.log(`check:design — ${scanned} files, no colours outside the tokens.`);
+console.log(
+    `check:design — ${scanned} files, no colours outside the tokens ` +
+    'and no primary buttons outside lib/ui.'
+);

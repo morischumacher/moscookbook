@@ -103,7 +103,7 @@ export default async function BlogIndex({
     return (
         <main className="container mx-auto max-w-2xl px-4 pb-32 sm:px-8">
             <header className="border-b border-line pb-6 pt-12 sm:pt-16">
-                <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">{t('title')}</h1>
+                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
                 <p className="mt-3 font-serif text-lg leading-relaxed text-muted">{t('intro')}</p>
 
                 <form action="" className="mt-6 flex items-center gap-3 border-b border-line pb-2">

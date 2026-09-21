@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import Oyster from '@/components/brand/Oyster';
+import { buttonPrimary } from '@/lib/ui';
 
 /**
  * A page that is not there.
@@ -37,7 +38,7 @@ export default async function NotFound() {
 
             <Link
                 href="/"
-                className="rounded-full bg-ink px-6 py-3 font-medium text-page transition-opacity hover:opacity-85"
+                className={buttonPrimary}
             >
                 {t('toRecipes')}
             </Link>

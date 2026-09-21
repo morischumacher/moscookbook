@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import InlineConfirm from '@/components/ui/InlineConfirm';
 import { formatDate } from '@/lib/formatDate';
+import { buttonPrimarySmall } from '@/lib/ui';
 
 interface Invite {
     id: number;
@@ -112,13 +113,16 @@ export default function InvitationList() {
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
                     placeholder={t('notePlaceholder')}
+                    // A placeholder is not a label: it vanishes the moment
+                    // somebody types, taking the only explanation with it.
+                    aria-label={t('notePlaceholder')}
                     className="flex-1 rounded-lg border border-control bg-transparent px-3 py-2 outline-none focus:border-ink"
                 />
                 <button
                     type="button"
                     onClick={create}
                     disabled={creating}
-                    className="h-10 shrink-0 rounded-full bg-ink px-4 text-sm font-medium text-page disabled:opacity-50"
+                    className={buttonPrimarySmall}
                 >
                     {creating ? t('creating') : t('create')}
                 </button>

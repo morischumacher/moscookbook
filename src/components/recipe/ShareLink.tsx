@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { useConfirm } from '@/components/ui/useConfirm';
+import { buttonPrimarySmall } from '@/lib/ui';
 
 /**
  * The public link for one recipe or one entry: make one, show it, take it back.
@@ -163,7 +164,7 @@ export default function ShareLink({
                     type="button"
                     onClick={create}
                     disabled={busy}
-                    className="mt-3 rounded-full bg-ink px-4 py-2 text-sm font-medium text-page disabled:opacity-50"
+                    className={`mt-3 ${buttonPrimarySmall}`}
                 >
                     {t('createLink')}
                 </button>

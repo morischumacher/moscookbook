@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { useConfirm } from '@/components/ui/useConfirm';
+import { buttonPrimarySmall } from '@/lib/ui';
 
 /**
  * Downloading a copy of everything, and putting one back.
@@ -106,7 +107,7 @@ export default function BackupPanel() {
                 <a
                     href="/api/export"
                     download
-                    className="flex h-10 items-center rounded-full bg-ink px-4 font-medium text-page"
+                    className={buttonPrimarySmall}
                 >
                     {t('download')}
                 </a>

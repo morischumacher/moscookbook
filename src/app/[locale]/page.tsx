@@ -8,6 +8,7 @@ import { collectionFacets } from '@/lib/collectionFacets';
 import { getCurrentUser } from '@/lib/auth';
 import { buildTsQuery } from '@/lib/searchText';
 import { parseIngredientQuery, variantsOf } from '@/lib/ingredientSearch';
+import { pageContainer } from '@/lib/ui';
 
 interface RecipeListRow {
     id: number;
@@ -323,7 +324,7 @@ export default async function HomePage({
     }));
 
     return (
-        <main className="container mx-auto max-w-3xl px-4 pb-32 md:px-8">
+        <main className={`${pageContainer} pb-32`}>
             {/*
                 The navigation already says what this place is called, in the
                 same words, forty pixels higher up. Saying it again in 48px was

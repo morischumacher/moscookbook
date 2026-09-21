@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { slugify } from '@/lib/recipe';
 import { useLocalDraft } from '@/lib/useLocalDraft';
+import { buttonPrimary } from '@/lib/ui';
 
 const fieldClass =
     'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
@@ -248,7 +249,7 @@ export default function PostForm({
                     type="button"
                     onClick={() => void save(true)}
                     disabled={busy}
-                    className="rounded-full bg-ink px-6 py-3 font-medium text-page disabled:opacity-50"
+                    className={buttonPrimary}
                 >
                     {initial.published ? t('savePublished') : t('publish')}
                 </button>

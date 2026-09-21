@@ -60,7 +60,10 @@ export default async function PostArticle({
                     <Logo height={32} />
                 </div>
 
-                <h1 className="mb-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-ink sm:text-5xl">
+                {/* The same scale as a recipe's title. These are the two article
+                    pages of the site, at the same depth, and they were one step
+                    apart for no reason anybody chose. */}
+                <h1 className="mb-6 text-3xl font-extrabold leading-[1.12] tracking-tight text-ink sm:text-4xl">
                     {post.title}
                 </h1>
 

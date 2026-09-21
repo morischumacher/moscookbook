@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/lib/formatDate';
+import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
 
 interface ErrorRow {
     id: number;
@@ -75,10 +76,10 @@ export default function AdminErrorsPage() {
     };
 
     return (
-        <main className="container mx-auto max-w-3xl px-4 pb-32 pt-10 sm:px-8">
+        <main className={`${pageContainer} pb-32`}>
             {/* No "back to recipes" link any more: the row of admin sections
                 above this page is the way back, and it is on every page. */}
-            <h1 className="mb-8 border-b border-line pb-6 text-3xl font-extrabold tracking-tight sm:text-4xl">
+            <h1 className={`mb-8 ${pageTop} ${pageHeading}`}>
                 {t('title')}
             </h1>
 

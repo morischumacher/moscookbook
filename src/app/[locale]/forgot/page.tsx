@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
+import { buttonPrimary } from '@/lib/ui';
 
 const fieldClass =
     'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
@@ -80,7 +81,7 @@ export default function ForgotPage() {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="rounded-full bg-ink px-6 py-3 font-medium text-page disabled:opacity-50"
+                        className={buttonPrimary}
                     >
                         {t('forgotSubmit')}
                     </button>

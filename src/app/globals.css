@@ -290,6 +290,39 @@ body {
 
 /* ----------------------------------------------------------------- print */
 
+/* ------------------------------------------------------------------ focus */
+
+/*
+ * A visible focus ring, once, for everything.
+ *
+ * There was none. Not a weak one — none at all: no :focus-visible rule
+ * anywhere in this file, and four fields (the two on the front page, the blog
+ * search and the photo caption) carrying `outline-none` with nothing put back.
+ * Tab into the main search box and there was no indication whatsoever that it
+ * had focus, which makes the site unusable without a pointing device.
+ *
+ * :focus-visible rather than :focus, so a ring appears for a keyboard and not
+ * for a mouse click — which is the reason people reach for `outline: none` in
+ * the first place, and the reason they no longer need to.
+ *
+ * Two colours, because one is never enough: the ink ring is what you see, and
+ * the page-coloured second ring keeps it visible where the first one sits on
+ * something dark. The components that carry their own ring (Rating) are left
+ * alone by being more specific than this.
+ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-fg);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* A label whose control is visually hidden — a file picker — shows the ring on
+   the label instead, since that is the thing on screen. */
+:where(label):has(> input.sr-only:focus-visible) {
+  outline: 2px solid var(--color-fg);
+  outline-offset: 2px;
+}
+
 @media print {
   nav,
   footer,
