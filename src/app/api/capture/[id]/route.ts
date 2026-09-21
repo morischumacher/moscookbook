@@ -7,6 +7,7 @@ import { searchFields } from '@/lib/searchText';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { processCapture } from '@/lib/captureProcess';
 import type { ImportedRecipe } from '@/lib/recipeFromHtml';
+import { toJsonObject } from '@/lib/json';
 
 const actionSchema = z.object({ action: z.enum(['retry', 'publish']) });
 
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
             data: {
                 status: result.status,
                 error: result.error,
-                draft: result.draft ?? undefined,
+                draft: result.draft ? toJsonObject(result.draft) : undefined,
                 processedAt: new Date(),
             },
         });
