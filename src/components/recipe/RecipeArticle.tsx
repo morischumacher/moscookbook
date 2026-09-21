@@ -261,13 +261,17 @@ export default async function RecipeArticle({
                     instructions={recipe.instructions}
                     baseServings={recipe.servings}
                     title={recipe.title}
-                    // What the share sheet hands over: the public link when one
-                    // exists, so that it reaches someone without an account.
-                    // Left undefined otherwise, which shares the address of the
-                    // page itself — fine between two people who both have an
-                    // account, and for anyone else the login form now carries
-                    // them on to the recipe once they are in.
+                    // What the share sheet hands over: the public link, so
+                    // that it reaches someone without an account. When there is
+                    // none yet and this person may publish, the button makes
+                    // one in the same tap rather than quietly sharing an
+                    // address that ends at a sign-in form.
                     shareUrl={mode === 'shared' ? url : publicUrl ?? undefined}
+                    shareCreateUrl={
+                        mode === 'private' && isAdmin && !publicUrl
+                            ? `/api/recipes/${recipe.id}/share?locale=${locale}`
+                            : undefined
+                    }
                 />
 
                 {mode === 'private' && (

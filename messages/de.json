@@ -367,7 +367,8 @@
     "statePrivatePost": "Privat — diesen Beitrag lesen nur Leute mit einem Konto.",
     "statePublicPost": "Öffentlicher Link aktiv — wer den Link hat, kann den Beitrag lesen, ganz ohne Konto.",
     "revokeConfirmPost": "Link zurückziehen? Wer ihn schon bekommen hat, kann den Beitrag dann nicht mehr öffnen.",
-    "sharedPostNotice": "Ein Beitrag aus mo'scookbook, mit dir geteilt."
+    "sharedPostNotice": "Ein Beitrag aus mo'scookbook, mit dir geteilt.",
+    "preparing": "Link wird erstellt…"
   },
   "Errors": {
     "title": "Fehler",

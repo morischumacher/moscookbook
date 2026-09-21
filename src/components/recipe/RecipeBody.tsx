@@ -15,6 +15,7 @@ export default function RecipeBody({
     baseServings,
     title,
     shareUrl,
+    shareCreateUrl,
 }: {
     ingredients: StructuredIngredient[];
     instructions: string;
@@ -23,6 +24,12 @@ export default function RecipeBody({
     title: string;
     /** The public link, when the recipe has one. */
     shareUrl?: string;
+    /**
+     * Where to make one when it has none. Only passed for somebody allowed to
+     * publish, so that sharing produces a link the other person can open
+     * rather than a sign-in form.
+     */
+    shareCreateUrl?: string;
 }) {
     const [servings, setServings] = useState(baseServings ?? 0);
     const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
@@ -152,6 +159,7 @@ export default function RecipeBody({
                 <ShareButton
                     title={title}
                     url={shareUrl}
+                    createUrl={shareCreateUrl}
                     className="text-sm text-muted underline underline-offset-4 hover:text-ink"
                 />
 

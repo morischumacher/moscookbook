@@ -367,7 +367,8 @@
     "statePrivatePost": "Private — only people with an account can read this entry.",
     "statePublicPost": "Public link active — anyone with this link can read the entry, no account needed.",
     "revokeConfirmPost": "Withdraw this link? Anyone you have already sent it to will no longer be able to open the entry.",
-    "sharedPostNotice": "An entry from mo'scookbook, shared with you."
+    "sharedPostNotice": "An entry from mo'scookbook, shared with you.",
+    "preparing": "Preparing link…"
   },
   "Errors": {
     "title": "Errors",
