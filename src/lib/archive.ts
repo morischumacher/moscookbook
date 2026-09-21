@@ -12,7 +12,14 @@ import { z } from 'zod';
  * older build.
  */
 
-export const ARCHIVE_VERSION = 2;
+/**
+ * 3: cooking logs. 2 added entries and cooked photographs.
+ *
+ * A reader of an older archive still works — every new array defaults to empty
+ * — and an archive from a newer version is refused with the numbers in the
+ * message rather than half-read.
+ */
+export const ARCHIVE_VERSION = 3;
 
 const archiveIngredientSchema = z.object({
     position: z.number().int().min(0),
@@ -73,6 +80,23 @@ const archiveCookPhotoSchema = z.object({
     author: z.string().nullable().default(null),
 });
 
+/**
+ * A cooking log entry.
+ *
+ * In the archive because it is writing: "half the chilli next time" is the
+ * kind of thing that is only ever written once and would be missed by exactly
+ * the person who wrote it. The date is the other half of it.
+ *
+ * By slug and by name, like everything else here: an archive is restored into
+ * a database where every id is new, and accounts are not in an archive.
+ */
+const archiveCookLogSchema = z.object({
+    recipeSlug: z.string().min(1),
+    cookedAt: z.string().default(() => new Date().toISOString()),
+    note: z.string().nullable().default(null),
+    author: z.string().nullable().default(null),
+});
+
 export const archiveSchema = z.object({
     version: z.number().int(),
     exportedAt: z.string(),
@@ -80,11 +104,13 @@ export const archiveSchema = z.object({
     recipes: z.array(archiveRecipeSchema),
     posts: z.array(archivePostSchema).default([]),
     cookPhotos: z.array(archiveCookPhotoSchema).default([]),
+    cookLogs: z.array(archiveCookLogSchema).default([]),
 });
 
 export type ArchiveRecipe = z.infer<typeof archiveRecipeSchema>;
 export type ArchivePost = z.infer<typeof archivePostSchema>;
 export type ArchiveCookPhoto = z.infer<typeof archiveCookPhotoSchema>;
+export type ArchiveCookLog = z.infer<typeof archiveCookLogSchema>;
 export type Archive = z.infer<typeof archiveSchema>;
 
 export interface ParseResult {
@@ -170,6 +196,13 @@ export interface ExportableCookPhoto {
     user: { name: string } | null;
 }
 
+export interface ExportableCookLog {
+    cookedAt: Date;
+    note: string | null;
+    recipe: { slug: string };
+    user: { name: string } | null;
+}
+
 /*
  * One row, converted.
  *
@@ -227,11 +260,21 @@ export function toArchiveCookPhoto(photo: ExportableCookPhoto): Archive['cookPho
     };
 }
 
+export function toArchiveCookLog(entry: ExportableCookLog): Archive['cookLogs'][number] {
+    return {
+        recipeSlug: entry.recipe.slug,
+        cookedAt: entry.cookedAt.toISOString(),
+        note: entry.note,
+        author: entry.user?.name ?? null,
+    };
+}
+
 export function buildArchive(
     recipes: ExportableRecipe[],
     now = new Date(),
     posts: ExportablePost[] = [],
-    cookPhotos: ExportableCookPhoto[] = []
+    cookPhotos: ExportableCookPhoto[] = [],
+    cookLogs: ExportableCookLog[] = []
 ): Archive {
     return {
         version: ARCHIVE_VERSION,
@@ -240,6 +283,7 @@ export function buildArchive(
         recipes: recipes.map(toArchiveRecipe),
         posts: posts.map(toArchivePost),
         cookPhotos: cookPhotos.map(toArchiveCookPhoto),
+        cookLogs: cookLogs.map(toArchiveCookLog),
     };
 }
 

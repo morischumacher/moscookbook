@@ -34,7 +34,8 @@
     "nextPage": "Older →",
     "pageOf": "Page {page} of {pages}",
     "havePlaceholder": "I have… e.g. zucchini, feta",
-    "haveLabel": "Ingredients you have, all of which a recipe must use"
+    "haveLabel": "Ingredients you have, all of which a recipe must use",
+    "sortForgotten": "Not made in a while"
   },
   "Categories": {
     "Breakfast": "Breakfast",
@@ -76,7 +77,11 @@
     "totalTime": "Total",
     "imageOf": "Picture {number} of {total}: {title}",
     "showImage": "Show picture {number}",
-    "similar": "Recipes like this"
+    "similar": "Recipes like this",
+    "openImage": "See the photo in full",
+    "closeImage": "Close",
+    "previousImage": "Previous photo",
+    "nextImage": "Next photo"
   },
   "Rating": {
     "rate": "Rate",
@@ -457,7 +462,21 @@
     "captionLabel": "A note about this photo",
     "preparing": "Preparing…",
     "tooLarge": "That picture is too large to send, even after shrinking it. Try a smaller one.",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "neverCooked": "Not cooked yet",
+    "logIt": "I've cooked this",
+    "logging": "Noting it…",
+    "undoLog": "Remove",
+    "notePlaceholder": "Next time…",
+    "noteLabel": "What to do differently next time",
+    "since": {
+      "today": "Cooked today",
+      "yesterday": "Cooked yesterday",
+      "days": "{count, plural, one {Cooked # day ago} other {Cooked # days ago}}",
+      "weeks": "{count, plural, one {Cooked # week ago} other {Cooked # weeks ago}}",
+      "months": "{count, plural, one {Cooked # month ago} other {Cooked # months ago}}",
+      "years": "{count, plural, one {Cooked # year ago} other {Cooked # years ago}}"
+    }
   },
   "Dialog": {
     "cancel": "Cancel",

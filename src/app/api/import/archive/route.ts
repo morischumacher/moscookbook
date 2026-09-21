@@ -241,6 +241,38 @@ export async function POST(req: NextRequest) {
         // A restore can bring in a whole cookbook's worth of categories.
         forgetCollectionFacets();
 
+        // Cooking logs last, for the same reason the photographs are: they
+        // point at a recipe by slug, and the recipes have to exist first.
+        // Authorship is dropped, like everywhere else here — accounts are not
+        // in an archive, and a note attributed to the wrong person is worse
+        // than one attributed to nobody. Which means a restored log needs
+        // somebody to own it, and the admin doing the restoring is the only
+        // account this code can be sure exists.
+        let logs = 0;
+        for (const entry of result.archive.cookLogs) {
+            const recipeId = slugToId.get(entry.recipeSlug);
+            if (recipeId === undefined) continue;
+
+            const cookedAt = safeDate(entry.cookedAt) ?? new Date();
+
+            try {
+                // The date and the recipe are what make an entry unique, so
+                // restoring the same archive twice does not double the log.
+                const already = await prisma.cookLog.findFirst({
+                    where: { recipeId, cookedAt, userId: auth.user.id },
+                    select: { id: true },
+                });
+                if (already) continue;
+
+                await prisma.cookLog.create({
+                    data: { recipeId, userId: auth.user.id, cookedAt, note: entry.note },
+                });
+                logs += 1;
+            } catch (error) {
+                console.error(`Archive import: cook log for ${entry.recipeSlug} failed`, error);
+            }
+        }
+
         return NextResponse.json({
             created,
             replaced,
@@ -248,6 +280,7 @@ export async function POST(req: NextRequest) {
             total: result.archive.recipes.length,
             posts,
             photos,
+            logs,
             // Reported rather than thrown: the rest of the archive is in, and
             // the admin needs to know exactly what is not.
             failed,

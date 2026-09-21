@@ -8,6 +8,7 @@ import Gallery from '@/components/recipe/Gallery';
 import ShareLink from '@/components/recipe/ShareLink';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import CookedPhotos, { type CookedPhoto } from '@/components/recipe/CookedPhotos';
+import CookLog, { type CookLogEntry } from '@/components/recipe/CookLog';
 import SimilarRecipes from '@/components/recipe/SimilarRecipes';
 import type { SimilarRecipe } from '@/lib/similarRecipes';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
@@ -86,6 +87,11 @@ export interface RecipeArticleProps {
      * private cookbook.
      */
     similar: SimilarRecipe[];
+    /**
+     * Who cooked this and when. Empty on the shared page, for the same reason
+     * the notes are: a kitchen diary is not part of a link you send somebody.
+     */
+    cookLog: CookLogEntry[];
 }
 
 export default async function RecipeArticle({
@@ -103,6 +109,7 @@ export default async function RecipeArticle({
     cooked,
     currentUserId,
     similar,
+    cookLog,
 }: RecipeArticleProps) {
     const t = await getTranslations('Recipe');
     const tCategory = await getTranslations('Categories');
@@ -289,6 +296,16 @@ export default async function RecipeArticle({
 
                 {mode === 'private' && (
                     <>
+                        {/* Before the pictures: the fact comes first and the
+                            photograph is the thing you sometimes also took. */}
+                        <CookLog
+                            recipeId={recipe.id}
+                            entries={cookLog}
+                            canLog={isLoggedIn}
+                            currentUserId={currentUserId}
+                            locale={locale}
+                        />
+
                         <CookedPhotos
                             recipeId={recipe.id}
                             photos={cooked}

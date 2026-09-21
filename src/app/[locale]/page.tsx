@@ -288,6 +288,48 @@ export default async function HomePage({
                 (a, b) => (averageById.get(b) ?? 0) - (averageById.get(a) ?? 0) || b - a
             )
         );
+    } else if (sort === 'forgotten') {
+        /*
+         * "Not made in a while", which is the question a cookbook is actually
+         * for once it has more recipes than anybody can hold in their head.
+         *
+         * Same shape as the rating sort, and for the same reason: Prisma cannot
+         * order by an aggregate across a relation, so the matching ids are
+         * ranked against one grouped query and only the page shown is read.
+         *
+         * A recipe nobody has ever cooked sorts first, because it is the most
+         * forgotten thing there is — and that is the difference between this
+         * and "oldest": a recipe added in 2023 and made last week is not
+         * waiting for anybody.
+         */
+        const matching: { id: number }[] = await prisma.recipe.findMany({
+            where,
+            select: { id: true },
+        });
+        const matchingIds = matching.map((row) => row.id);
+
+        const lastCookedById = new Map<number, number>();
+
+        if (matchingIds.length > 0) {
+            const lastCooked = await prisma.cookLog.groupBy({
+                by: ['recipeId'],
+                where: { recipeId: { in: matchingIds } },
+                _max: { cookedAt: true },
+            });
+
+            for (const entry of lastCooked) {
+                const at = entry._max.cookedAt;
+                if (at) lastCookedById.set(entry.recipeId, new Date(at).getTime());
+            }
+        }
+
+        recipes = await pageOf(
+            matchingIds.sort(
+                (a, b) =>
+                    // Never cooked is 0, which sorts before every real date.
+                    (lastCookedById.get(a) ?? 0) - (lastCookedById.get(b) ?? 0) || a - b
+            )
+        );
     } else {
         recipes = await prisma.recipe.findMany({ where, orderBy, skip, take: PAGE_SIZE, include });
     }

@@ -282,6 +282,9 @@ export default function FilterChips({
                         <option value="recent">{t('sortRecent')}</option>
                         <option value="views">{t('sortViews')}</option>
                         <option value="rating">{t('sortRating')}</option>
+                        {/* The question a cookbook is for once it has more
+                            recipes than anybody can hold in their head. */}
+                        <option value="forgotten">{t('sortForgotten')}</option>
                     </select>
                 </label>
             </div>

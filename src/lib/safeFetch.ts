@@ -1,4 +1,6 @@
+import { lookup } from 'node:dns/promises';
 import { isSafePublicUrl } from './recipeFromHtml';
+import { isPrivateAddress } from './privateAddress';
 
 /**
  * Fetching a URL somebody else chose, without following it somewhere private.
@@ -15,11 +17,18 @@ import { isSafePublicUrl } from './recipeFromHtml';
  * every hop. Nothing else changes for the callers — they get a Response, or an
  * error saying where it stopped.
  *
- * What this still does not do is resolve the hostname. A name whose A record
- * points at 10.0.0.5 passes every test above, because the test is on the text
- * of the address. Closing that properly means resolving and pinning the
- * address, which Node's fetch does not offer without a custom agent; it is
- * written down here rather than left as a silent gap.
+ * The hostname is resolved as well, at every hop. A name is not an address:
+ * `https://recipes.example` passes every text test there is and can have an A
+ * record pointing at 10.0.0.5 — which is a domain anybody can register, so the
+ * text test alone stops somebody typing an address and nothing else.
+ *
+ * What remains, and cannot be closed without replacing the HTTP agent: between
+ * the name being resolved here and the runtime resolving it again to open the
+ * connection, an answer with a one-second lifetime can change. Closing that
+ * means pinning the connection to the address that was checked, which Node's
+ * fetch does not offer. Written down rather than left as a silent gap; the
+ * attack it leaves needs control of a DNS server and a race against a request
+ * that has already been made.
  */
 
 const MAX_REDIRECTS = 5;
@@ -38,6 +47,30 @@ export interface SafeFetchOptions {
     maxRedirects?: number;
 }
 
+/**
+ * Refuses a host whose name resolves to somewhere private.
+ *
+ * Every address is checked, not the first: a name can answer with several, and
+ * one private answer among them is an open door.
+ *
+ * A name that will not resolve is allowed through, because a fetch to it is
+ * about to fail anyway and failing at the fetch says something truer than
+ * "refused" would.
+ */
+async function resolvesPublicly(hostname: string): Promise<boolean> {
+    // An address typed directly has already been checked by isSafePublicUrl,
+    // and asking a resolver about it would be asking a question with no answer.
+    const bare = hostname.replace(/^\[|\]$/g, '');
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(bare) || bare.includes(':')) return true;
+
+    try {
+        const answers = await lookup(hostname, { all: true });
+        return !answers.some((answer) => isPrivateAddress(answer.address, answer.family));
+    } catch {
+        return true;
+    }
+}
+
 export async function safeFetch(
     target: string,
     options: SafeFetchOptions = {}
@@ -48,6 +81,11 @@ export async function safeFetch(
 
     for (let hop = 0; hop <= maxRedirects; hop += 1) {
         if (!isSafePublicUrl(url)) throw new UnsafeUrlError(url);
+
+        // The name, not only the text. See resolvesPublicly.
+        if (!(await resolvesPublicly(new URL(url).hostname))) {
+            throw new UnsafeUrlError(url);
+        }
 
         const response = await fetch(url, {
             signal,

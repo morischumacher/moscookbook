@@ -9,6 +9,7 @@ import {
     type ExportableRecipe,
     type ExportablePost,
     type ExportableCookPhoto,
+    type ExportableCookLog,
 } from '@/lib/archive';
 
 /**
@@ -106,7 +107,19 @@ export async function GET(req: NextRequest) {
             },
         });
 
-        const archive = buildArchive(recipes, new Date(), posts, cookPhotos);
+        // Writing, and the only copy of it: "half the chilli next time" is a
+        // line written once and missed by the person who wrote it.
+        const cookLogs: ExportableCookLog[] = await prisma.cookLog.findMany({
+            orderBy: { cookedAt: 'asc' },
+            select: {
+                cookedAt: true,
+                note: true,
+                recipe: { select: { slug: true } },
+                user: { select: { name: true } },
+            },
+        });
+
+        const archive = buildArchive(recipes, new Date(), posts, cookPhotos, cookLogs);
 
         // Housekeeping, attached to the one thing that already runs weekly.
         // Nothing depends on it — a closed rate-limit window is reused in

@@ -34,7 +34,8 @@
     "nextPage": "Älter →",
     "pageOf": "Seite {page} von {pages}",
     "havePlaceholder": "Ich habe… z. B. Zucchini, Feta",
-    "haveLabel": "Zutaten, die du hast — ein Rezept muss alle davon verwenden"
+    "haveLabel": "Zutaten, die du hast — ein Rezept muss alle davon verwenden",
+    "sortForgotten": "Lange nicht gemacht"
   },
   "Categories": {
     "Breakfast": "Frühstück",
@@ -76,7 +77,11 @@
     "totalTime": "Gesamt",
     "imageOf": "Bild {number} von {total}: {title}",
     "showImage": "Bild {number} anzeigen",
-    "similar": "Ähnliche Rezepte"
+    "similar": "Ähnliche Rezepte",
+    "openImage": "Foto ganz ansehen",
+    "closeImage": "Schließen",
+    "previousImage": "Vorheriges Foto",
+    "nextImage": "Nächstes Foto"
   },
   "Rating": {
     "rate": "Bewerten",
@@ -457,7 +462,21 @@
     "captionLabel": "Notiz zu diesem Foto",
     "preparing": "Wird vorbereitet…",
     "tooLarge": "Dieses Bild ist auch verkleinert noch zu groß. Bitte ein kleineres wählen.",
-    "dismiss": "Schließen"
+    "dismiss": "Schließen",
+    "neverCooked": "Noch nie gekocht",
+    "logIt": "Habe ich gekocht",
+    "logging": "Wird notiert…",
+    "undoLog": "Entfernen",
+    "notePlaceholder": "Nächstes Mal…",
+    "noteLabel": "Was beim nächsten Mal anders soll",
+    "since": {
+      "today": "Heute gekocht",
+      "yesterday": "Gestern gekocht",
+      "days": "{count, plural, one {Vor # Tag gekocht} other {Vor # Tagen gekocht}}",
+      "weeks": "{count, plural, one {Vor # Woche gekocht} other {Vor # Wochen gekocht}}",
+      "months": "{count, plural, one {Vor # Monat gekocht} other {Vor # Monaten gekocht}}",
+      "years": "{count, plural, one {Vor # Jahr gekocht} other {Vor # Jahren gekocht}}"
+    }
   },
   "Dialog": {
     "cancel": "Abbrechen",

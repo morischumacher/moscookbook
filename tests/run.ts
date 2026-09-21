@@ -36,6 +36,8 @@ import navigation from './navigation.test';
 import cookProgress from './cookProgress.test';
 import safeFetch from './safeFetch.test';
 import similarRecipes from './similarRecipes.test';
+import privateAddress from './privateAddress.test';
+import sinceCooked from './sinceCooked.test';
 import fixtures from './fixtures.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
@@ -71,6 +73,8 @@ async function main() {
     cookProgress();
     await safeFetch();
     similarRecipes();
+    privateAddress();
+    sinceCooked();
     await fixtures();
 
     process.exit(summary() === 0 ? 0 : 1);

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import Lightbox from './Lightbox';
 
 /**
  * A recipe's pictures.
@@ -14,6 +15,11 @@ import { useTranslations } from 'next-intl';
  *
  * The large image keeps its box whichever picture is selected, so choosing a
  * thumbnail does not make the page jump under your thumb.
+ *
+ * Tapping it opens the picture whole. Everything on this page is
+ * `object-cover` inside a fixed box, which is right for a layout and wrong the
+ * one time somebody wants to look at the dish — a tall portrait shot was never
+ * visible in full anywhere. See Lightbox.
  */
 export default function Gallery({
     images,
@@ -31,6 +37,7 @@ export default function Gallery({
 }) {
     const t = useTranslations('Recipe');
     const [selected, setSelected] = useState(0);
+    const [zoomed, setZoomed] = useState<number | null>(null);
 
     const current = images[selected] ?? images[0];
     const hero = variant === 'hero';
@@ -51,19 +58,29 @@ export default function Gallery({
                 }
             >
                 {current ? (
-                    <Image
-                        src={current}
-                        alt={
-                            images.length > 1
-                                ? t('imageOf', { number: selected + 1, total: images.length, title })
-                                : title
-                        }
-                        fill
-                        sizes="(max-width: 640px) 100vw, 672px"
-                        className="object-cover"
-                        // Only the first one is worth blocking the render for.
-                        priority={selected === 0}
-                    />
+                    // A button, not an image with a click handler: this opens
+                    // something, and a thing that opens something is a button
+                    // whether or not it looks like one.
+                    <button
+                        type="button"
+                        onClick={() => setZoomed(selected)}
+                        aria-label={t('openImage')}
+                        className="absolute inset-0 block h-full w-full cursor-zoom-in"
+                    >
+                        <Image
+                            src={current}
+                            alt={
+                                images.length > 1
+                                    ? t('imageOf', { number: selected + 1, total: images.length, title })
+                                    : title
+                            }
+                            fill
+                            sizes="(max-width: 640px) 100vw, 672px"
+                            className="object-cover"
+                            // Only the first one is worth blocking the render for.
+                            priority={selected === 0}
+                        />
+                    </button>
                 ) : (
                     <div className="absolute inset-0 bg-surface" />
                 )}
@@ -96,6 +113,19 @@ export default function Gallery({
                     ))}
                 </ul>
             )}
+
+            <Lightbox
+                images={images}
+                title={title}
+                openAt={zoomed}
+                // Both, so closing it leaves the gallery on the picture that
+                // was being looked at.
+                onIndex={(next) => {
+                    setZoomed(next);
+                    setSelected(next);
+                }}
+                onClose={() => setZoomed(null)}
+            />
 
             {/* On paper there is no clicking, so every picture is printed. */}
             {images.length > 1 && (

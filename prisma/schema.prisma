@@ -28,6 +28,7 @@ model User {
   tokens         AuthToken[]
   posts          Post[]
   cookPhotos     CookPhoto[]
+  cookLogs       CookLog[]
   ratings        Rating[]
   favorites      Favorite[]
   invitesCreated Invite[]   @relation("InviteCreatedBy")
@@ -266,6 +267,7 @@ model Recipe {
   captures       Capture[]
   posts          Post[]
   cookPhotos     CookPhoto[]
+  cookLogs       CookLog[]
 
   /// This table had no index at all beyond the two unique columns and the
   /// search vector, while being the table everything sorts and groups by.
@@ -379,4 +381,40 @@ model RateLimit {
   expiresAt DateTime
 
   @@index([expiresAt])
+}
+
+/// "I cooked this", with what you would do differently.
+///
+/// Two ideas that turned out to be one. "When did I last make this" and "note
+/// to self: half the chilli next time" are the same moment — you cook it, and
+/// what you learned is worth a line. Two features would have meant two buttons
+/// and two lists for one act.
+///
+/// Separate from CookPhoto, which is the picture: a photograph is a thing you
+/// took and this is a thing that happened, and most cooking produces the second
+/// without the first.
+///
+/// The note is optional and added afterwards, like a photograph's caption, so
+/// that recording the cooking is one tap and nothing else.
+model CookLog {
+  id       Int      @id @default(autoincrement())
+
+  recipeId Int
+  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  /// Whose log this is. Cascades, unlike a photograph's author: a picture on a
+  /// shared wall outlives the account that put it there, a private note about
+  /// what to change next time does not.
+  userId   Int
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  cookedAt DateTime @default(now())
+  /// Short on purpose. A paragraph about a recipe is an entry on the blog.
+  note     String?
+
+  /// "When was this last cooked", which is a lookup by recipe, newest first —
+  /// and the home page's "not made in a while" order.
+  @@index([recipeId, cookedAt])
+  /// One person's own cooking, newest first.
+  @@index([userId, cookedAt])
 }
