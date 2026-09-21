@@ -47,6 +47,9 @@ jobs:
       - name: Recipe writers maintain the search columns
         run: npm run check:search
 
+      - name: Colour contrast
+        run: npm run check:contrast
+
       - name: Lint
         run: npm run lint
 

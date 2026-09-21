@@ -8,10 +8,13 @@
   /* Page background */
   --color-fg: #111111;
   /* Body text and headings */
-  --color-muted: #6B7280;
-  /* Secondary text: meta lines, hints, captions */
-  --color-faint: #9CA3AF;
-  /* Tertiary: eyebrows, counts, placeholder icons */
+  --color-muted: #4B5563;
+  /* Secondary text: meta lines, hints, captions. 7.2:1 on the page. */
+  --color-faint: #6B7280;
+  /* Tertiary: eyebrows, counts, placeholder icons. 4.6:1 — was #9CA3AF at
+     2.4:1, which fails even the 3:1 asked of a graphic, and that colour was
+     carrying every uppercase label on the site. npm run check:contrast now
+     refuses to let it drift back. */
   --color-border: #EAEAEE;
   /* Hairline rules and input borders */
   --color-surface: rgba(0, 0, 0, 0.04);
@@ -20,6 +23,13 @@
   /* Destructive actions only */
   --color-danger-surface: #FEF2F2;
   --color-danger-line: #FCA5A5;
+
+  /* The brand orange, taken from the logo (#ff4a0e). It is 3.2:1 on the page —
+     enough for a shape, not for words — so text and links use the darker
+     --color-accent-text, and the two are separate tokens precisely so that
+     nobody has to remember the difference. */
+  --color-accent: #ff4a0e;
+  --color-accent-text: #C73500;
 
   --color-neutral: var(--color-muted);
   /* Legacy alias, kept for the plain-CSS classes below */
@@ -49,12 +59,15 @@
     --color-bg: #000000;
     --color-fg: #EEEEEE;
     --color-muted: #9CA3AF;
-    --color-faint: #6B7280;
+    --color-faint: #767E8C;
     --color-border: #333333;
     --color-surface: rgba(255, 255, 255, 0.06);
     --color-danger: #F87171;
     --color-danger-surface: rgba(127, 29, 29, 0.35);
     --color-danger-line: #7F1D1D;
+    /* On black the brand orange is 6.2:1, so one token does both jobs. */
+    --color-accent: #ff4a0e;
+    --color-accent-text: #ff4a0e;
   }
 }
 

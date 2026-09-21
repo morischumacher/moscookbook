@@ -284,6 +284,7 @@ they belong to an installation, not to a recipe.
 | `npm run db:push` | Apply the Prisma schema to the database |
 | `npm run check:messages` | Verify the translation catalogues |
 | `npm run check:search` | Verify every recipe writer maintains the search columns |
+| `npm run check:contrast` | Verify the colour tokens meet WCAG AA, in both themes |
 | `npm run reindex` | Rebuild the search columns for every recipe |
 | `npm run verify:search` | Check the German search against a real Postgres |
 | `npm test` | Run the logic check suites |
@@ -379,6 +380,45 @@ already drifted apart in places.
 The admin tables became lists. A table of four columns on a 375px screen scrolls
 sideways and is miserable to use on the phone you are actually holding when you
 want to fix a typo in a recipe.
+
+## The oyster
+
+The mark in the logo is what a recipe is rated in, so it is one shape in one
+place: `src/components/brand/Oyster.tsx`, drawn, taking its colour from
+`currentColor`.
+
+It used to be a 482 KB photograph drawn at 24 pixels and tinted with
+
+```css
+filter: invert(53%) sepia(85%) saturate(3029%) hue-rotate(346deg) …
+```
+
+which made a muddy blur out of a photographic shell, could not follow dark
+mode, and printed as a grey smudge — and, worst of it, an empty shell and a
+full one looked almost the same, so you could not read a rating at a glance.
+Drawn, it is about a kilobyte, scales, prints, and has two growth rings rather
+than four because four turn to mush at the size it is actually used.
+
+The wordmark is still `public/logo.png`, deliberately: redrawing it is a
+decision about the brand, not a technical one. It goes through
+`src/components/brand/Logo.tsx` so the navigation and the printed masthead use
+the same mark — the print stylesheet hides `nav`, and a printed recipe used to
+come out unbranded.
+
+## Colour and contrast
+
+Colours are tokens in `globals.css`, one set per theme, and `npm run
+check:contrast` measures every one of them against the page background in both.
+
+That check was not written for its own sake. `--color-faint` was `#9CA3AF`,
+which is **2.41:1** on the page — below even the 3:1 asked of a graphic, while
+carrying every uppercase label on the site. It is 4.59:1 now, `--color-muted`
+moved with it to keep the hierarchy, and dark mode needed its own fix.
+
+The brand orange has two tokens on purpose. `--color-accent` (#ff4a0e, the
+logo's orange) is 3.2:1 on the page: enough for a shape, not for words. Text
+and links use `--color-accent-text`, which is darker in light mode and the
+brand orange in dark mode, where it already passes.
 
 ## Continuous integration
 

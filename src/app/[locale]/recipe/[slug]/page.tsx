@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import RatingDisplay from '@/components/RatingDisplay';
 import FavoriteButton from '@/components/FavoriteButton';
 import ViewTracker from '@/components/ViewTracker';
+import Logo from '@/components/brand/Logo';
 import RecipeBody from '@/components/recipe/RecipeBody';
 import AddToListButton from '@/components/shopping/AddToListButton';
 import prisma from '@/lib/prisma';
@@ -156,6 +157,13 @@ export default async function RecipePage({
             <ViewTracker recipeId={recipeData.id} />
 
             <header className="container mx-auto max-w-2xl px-4 pt-8 sm:px-8 sm:pt-16">
+                {/* The print stylesheet hides the navigation, and the logo used
+                    to go with it — a printed recipe came out unbranded. This is
+                    the same mark, shown only on paper. */}
+                <div className="hidden print:mb-6 print:block">
+                    <Logo height={32} />
+                </div>
+
                 <h1 className="mb-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-ink sm:text-5xl md:text-6xl">
                     {recipeData.title}
                     <span className="print:hidden ml-4 inline-block align-middle">

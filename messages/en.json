@@ -79,12 +79,10 @@
     "summary": "{count, plural, =0 {Not rated yet} one {# person rated this {average}/5} other {# people rated this {average}/5}}",
     "submitYours": "Submit your rating",
     "screenReader": "Average {average} out of {max}",
-    "emptyIcon": "Empty rating",
-    "yourRating": "Your rating",
-    "averageRating": "Average rating",
     "loginRequired": "You must be logged in to rate recipes.",
     "failed": "Rating could not be saved.",
-    "error": "Something went wrong while saving your rating."
+    "error": "Something went wrong while saving your rating.",
+    "rateN": "{value, number} of {max}"
   },
   "Favorite": {
     "add": "Add to favourites",

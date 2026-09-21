@@ -28,6 +28,10 @@ export default {
         faint: 'var(--color-faint)',
         line: 'var(--color-border)',
         surface: 'var(--color-surface)',
+        accent: {
+          DEFAULT: 'var(--color-accent)',
+          text: 'var(--color-accent-text)',
+        },
         danger: {
           DEFAULT: 'var(--color-danger)',
           surface: 'var(--color-danger-surface)',

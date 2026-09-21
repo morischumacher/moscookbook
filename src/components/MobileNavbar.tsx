@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import Image from 'next/image';
+import Logo from './brand/Logo';
 import LogoutButton from './LogoutButton';
 import { useShoppingSelection } from './shopping/useShoppingSelection';
 
@@ -36,14 +36,7 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
             <div className="container mx-auto px-4 md:px-8 flex items-center justify-between">
                 {/* Logo */}
                 <Link href="/" className="flex items-center hover:opacity-70 transition-opacity">
-                    <Image
-                        src="/logo.png"
-                        alt="mo'scookbook Logo"
-                        width={288}
-                        height={48}
-                        className="object-contain h-12 w-auto"
-                        priority
-                    />
+                    <Logo height={48} className="object-contain" priority />
                 </Link>
 
                 {/* Desktop Nav */}

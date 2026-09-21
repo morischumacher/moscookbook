@@ -45,12 +45,12 @@ export default function RecipeCard({ id, title, description, imageUrl, slug, cat
                     <span>{categoryLabel}</span>
                     {cuisineLabel && (
                         <>
-                            <span>•</span>
+                            <span aria-hidden="true">•</span>
                             <span>{cuisineLabel}</span>
                         </>
                     )}
-                    <span>•</span>
-                    <Rating value={rating} hideTitle />
+                    <span aria-hidden="true">•</span>
+                    <Rating value={rating} readonly />
 
                     {/* Favorite Button (Stop Propagation to avoid triggering the Link) */}
                     <div onClick={(e) => e.preventDefault()} className="ml-auto sm:ml-4">

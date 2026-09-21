@@ -13,6 +13,7 @@
     "db:push": "prisma db push",
     "check:messages": "node scripts/check-messages.mjs",
     "check:search": "node scripts/check-search-writers.mjs",
+    "check:contrast": "node scripts/check-contrast.mjs",
     "reindex": "ts-node --transpile-only --project tests/tsconfig.json scripts/reindex-search.ts",
     "verify:search": "ts-node --transpile-only --project tests/tsconfig.json scripts/verify-search.ts",
     "test": "ts-node --transpile-only --project tests/tsconfig.json tests/run.ts",

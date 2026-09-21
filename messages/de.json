@@ -79,12 +79,10 @@
     "summary": "{count, plural, =0 {Noch nicht bewertet} one {# Person bewertete dies mit {average}/5} other {# Personen bewerteten dies mit {average}/5}}",
     "submitYours": "Deine Bewertung abgeben",
     "screenReader": "Durchschnitt {average} von {max}",
-    "emptyIcon": "Leere Bewertung",
-    "yourRating": "Deine Bewertung",
-    "averageRating": "Durchschnittliche Bewertung",
     "loginRequired": "Zum Bewerten musst du angemeldet sein.",
     "failed": "Die Bewertung konnte nicht gespeichert werden.",
-    "error": "Beim Speichern der Bewertung ist etwas schiefgelaufen."
+    "error": "Beim Speichern der Bewertung ist etwas schiefgelaufen.",
+    "rateN": "{value, number} von {max}"
   },
   "Favorite": {
     "add": "Zu Favoriten hinzufügen",
