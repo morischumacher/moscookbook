@@ -423,7 +423,11 @@
     "markdownHint": "Markdown: # for a heading, - for a list, **bold**.",
     "publish": "Publish",
     "savePublished": "Save",
-    "saveDraft": "Save as draft"
+    "saveDraft": "Save as draft",
+    "searchLabel": "Search entries",
+    "searchPlaceholder": "Search entries",
+    "noResults": "Nothing written about “{search}”.",
+    "alsoInBlog": "{count, plural, one {One entry in the blog matches too} other {# entries in the blog match too}}"
   },
   "Cooked": {
     "title": "Cooked by",

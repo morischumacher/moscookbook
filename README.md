@@ -272,6 +272,25 @@ key is how you find out whether it was still being used afterwards.
 
 ## Search
 
+**Entries are in the index too, as of migration 0010** — the same German
+configuration, the same weighting, the same two application-written columns and
+a tsvector Postgres derives from them. An entry *called* Zwetschgen outranks one
+that merely mentions them, exactly as with a recipe.
+
+They are not mixed into the recipe grid: a blog post is not a recipe and a tile
+is not what it looks like. But somebody who searched from the front page should
+not have to know the answer might be one page over, so a search that also
+matches writing says so in a line above the results and links to
+`/blog?search=…`. The blog has its own field, a plain GET form — a search is
+then a URL you can keep, and the page needs no JavaScript to answer it.
+
+`check:search` grew with it. It now walks two tables rather than one, and its
+exemptions are keyed by table *and* file, because one file can write both: the
+archive restore does, and exempting it wholesale would have taken the recipe
+check with it. Removing the helper from a post writer fails it, which is the
+whole point.
+
+
 The search box looks at titles, descriptions, ingredient names and the method,
 through Postgres full text search with the `german` configuration. Titles are
 weighted above everything else, so a recipe *called* Zwiebelsuppe comes before

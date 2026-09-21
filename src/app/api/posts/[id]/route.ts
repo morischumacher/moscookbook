@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { slugify } from '@/lib/recipe';
 import { postInputSchema, formatPostError } from '@/lib/postSchema';
+import { postSearchFields } from '@/lib/searchText';
 
 async function postId(params: Promise<{ id: string }>): Promise<number | null> {
     const { id } = await params;
@@ -45,6 +46,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
                 title,
                 slug: slug || existing.slug || slugify(title),
                 body,
+                ...postSearchFields({ title, body }),
                 imageUrl,
                 recipeId: recipeId ?? null,
                 publishedAt,

@@ -5,6 +5,7 @@ import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { excerptOf } from '@/lib/postSchema';
+import { buildTsQuery } from '@/lib/searchText';
 
 export const metadata: Metadata = {
     robots: { index: false, follow: false },
@@ -35,16 +36,45 @@ interface PostListRow {
  */
 export default async function BlogIndex({
     params,
+    searchParams,
 }: {
     params: Promise<{ locale: string }>;
+    searchParams: Promise<{ search?: string }>;
 }) {
     const { locale } = await params;
+    const search = (await searchParams).search?.trim() ?? '';
     const t = await getTranslations('Blog');
     const user = await getCurrentUser();
     const isAdmin = Boolean(user?.admin);
 
+    // Full text, the same German configuration and the same weighting as the
+    // recipes: an entry *called* Zwetschgen outranks one that merely mentions
+    // them. The ids come back ranked and the read below is ordered by that
+    // rank rather than by date.
+    let matchedIds: number[] | null = null;
+
+    if (search) {
+        const tsquery = buildTsQuery(search);
+
+        if (tsquery === null) {
+            matchedIds = [];
+        } else {
+            const ranked: { id: number }[] = await prisma.$queryRaw<{ id: number }[]>`
+                SELECT "id"
+                FROM "Post"
+                WHERE "searchVector" @@ to_tsquery('german', ${tsquery})
+                ORDER BY ts_rank("searchVector", to_tsquery('german', ${tsquery})) DESC,
+                         "createdAt" DESC
+            `;
+            matchedIds = ranked.map((row) => row.id);
+        }
+    }
+
     const posts: PostListRow[] = await prisma.post.findMany({
-        where: isAdmin ? {} : { publishedAt: { not: null } },
+        where: {
+            ...(isAdmin ? {} : { publishedAt: { not: null } }),
+            ...(matchedIds === null ? {} : { id: { in: matchedIds } }),
+        },
         // Nulls first puts an admin's unfinished drafts at the top, where they
         // are a to-do list rather than something buried under last year.
         orderBy: [{ publishedAt: { sort: 'desc', nulls: 'first' } }, { createdAt: 'desc' }],
@@ -61,6 +91,13 @@ export default async function BlogIndex({
         },
     });
 
+    // Relevance beats date when somebody searched, which means reordering here
+    // rather than in the query: `in` does not preserve the order it was given.
+    if (matchedIds !== null) {
+        const rank = new Map(matchedIds.map((id, index) => [id, index]));
+        posts.sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+    }
+
     const dateFormatter = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
         day: 'numeric',
         month: 'long',
@@ -72,10 +109,42 @@ export default async function BlogIndex({
             <header className="border-b border-line pb-6 pt-12 sm:pt-16">
                 <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">{t('title')}</h1>
                 <p className="mt-3 font-serif text-lg leading-relaxed text-muted">{t('intro')}</p>
+
+                <form action="" className="mt-6 flex items-center gap-3 border-b border-line pb-2">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        aria-hidden="true"
+                        className="shrink-0 text-faint"
+                    >
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="m20 20-3.6-3.6" />
+                    </svg>
+
+                    <label htmlFor="blog-search" className="sr-only">
+                        {t('searchLabel')}
+                    </label>
+                    {/* A plain GET form, so a search is a URL somebody can keep
+                        and the page needs no JavaScript to answer it. */}
+                    <input
+                        id="blog-search"
+                        name="search"
+                        type="search"
+                        defaultValue={search}
+                        placeholder={t('searchPlaceholder')}
+                        className="w-full bg-transparent py-1 text-base outline-none placeholder:text-faint"
+                    />
+                </form>
             </header>
 
             {posts.length === 0 ? (
-                <p className="py-20 text-center text-muted">{t('empty')}</p>
+                <p className="py-20 text-center text-muted">
+                    {search ? t('noResults', { search }) : t('empty')}
+                </p>
             ) : (
                 <ul className="divide-y divide-line">
                     {posts.map((post) => (

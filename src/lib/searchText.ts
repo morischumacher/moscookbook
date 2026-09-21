@@ -123,6 +123,21 @@ export function searchFields(recipe: {
 }
 
 /**
+ * The same two columns for a written entry.
+ *
+ * Its own function rather than calling searchFields with `instructions: body`,
+ * which would work and would read as a lie six months from now: a post has a
+ * body, not a method, and the shape a caller passes should be the shape the
+ * thing actually has.
+ */
+export function postSearchFields(post: { title: string; body?: string | null }): SearchFields {
+    return {
+        searchTitle: searchableText(post.title),
+        searchBody: searchableText(post.body),
+    };
+}
+
+/**
  * Turns what someone typed into a tsquery string.
  *
  * Every word becomes a prefix search, because "zwiebel" should find

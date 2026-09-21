@@ -58,6 +58,7 @@ export default async function HomePage({
 }) {
     const t = await getTranslations('Home');
     const tSite = await getTranslations('Site');
+    const tBlog = await getTranslations('Blog');
 
     const {
         sort: sortParam,
@@ -232,6 +233,26 @@ export default async function HomePage({
         recipes = await prisma.recipe.findMany({ where, orderBy, skip, take: PAGE_SIZE, include });
     }
 
+    // Entries are not mixed into the grid — a blog post is not a recipe and a
+    // tile is not what it looks like. But somebody who searched here should not
+    // have to know that the answer might be one page over, so a search that
+    // also matches writing says so.
+    let matchingPosts = 0;
+
+    if (search) {
+        const tsquery = buildTsQuery(search);
+
+        if (tsquery !== null) {
+            const hits: { count: bigint }[] = await prisma.$queryRaw<{ count: bigint }[]>`
+                SELECT count(*)::bigint AS count
+                FROM "Post"
+                WHERE "publishedAt" IS NOT NULL
+                  AND "searchVector" @@ to_tsquery('german', ${tsquery})
+            `;
+            matchingPosts = Number(hits[0]?.count ?? 0);
+        }
+    }
+
     const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
     /** Paging must not drop the filters the visitor set. */
@@ -290,6 +311,17 @@ export default async function HomePage({
                     <p className="border-t border-line pt-4 text-xs uppercase tracking-widest text-faint">
                         {t('resultCount', { count: total })}
                     </p>
+
+                    {matchingPosts > 0 && (
+                        <p className="mt-3 text-sm text-muted">
+                            <Link
+                                href={`/blog?search=${encodeURIComponent(search)}`}
+                                className="underline underline-offset-4"
+                            >
+                                {tBlog('alsoInBlog', { count: matchingPosts })}
+                            </Link>
+                        </p>
+                    )}
                     {/*
                         Two columns on a phone, three once there is room. Not
                         four: a tile that small stops being a photograph and

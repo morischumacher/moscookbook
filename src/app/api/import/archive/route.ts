@@ -120,6 +120,11 @@ export async function POST(req: NextRequest) {
             if (taken && !replace) continue;
             if (taken) await prisma.post.delete({ where: { slug: post.slug } });
 
+            // The search columns are left empty here on purpose. A restore
+            // writes hundreds of rows, and recomputing the expansions row by
+            // row would double its cost for a result `npm run reindex` produces
+            // in one pass — which is the step the restore script already ends
+            // with.
             await prisma.post.create({
                 data: {
                     title: post.title,

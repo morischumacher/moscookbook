@@ -423,7 +423,11 @@
     "markdownHint": "Markdown: # für eine Überschrift, - für eine Liste, **fett**.",
     "publish": "Veröffentlichen",
     "savePublished": "Speichern",
-    "saveDraft": "Als Entwurf speichern"
+    "saveDraft": "Als Entwurf speichern",
+    "searchLabel": "Beiträge durchsuchen",
+    "searchPlaceholder": "Beiträge durchsuchen",
+    "noResults": "Zu „{search}\" ist nichts geschrieben.",
+    "alsoInBlog": "{count, plural, one {Ein Beitrag im Blog passt auch} other {# Beiträge im Blog passen auch}}"
   },
   "Cooked": {
     "title": "Nachgekocht",

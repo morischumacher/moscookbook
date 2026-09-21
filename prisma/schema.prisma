@@ -178,6 +178,12 @@ model Post {
   /// The public link, exactly as on a recipe. See Recipe.shareToken.
   shareToken  String?   @unique
 
+  /// Search columns, the same shape as a recipe's. Written by searchFields()
+  /// in src/lib/searchText.ts, never by hand.
+  searchTitle String    @default("")
+  searchBody  String    @default("")
+  searchVector Unsupported("tsvector")?
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

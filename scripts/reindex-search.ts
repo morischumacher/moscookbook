@@ -1,5 +1,5 @@
 /**
- * Rebuilds the search columns for every recipe.
+ * Rebuilds the search columns for every recipe and every written entry.
  *
  *   npm run reindex
  *
@@ -11,7 +11,7 @@
  * Safe to run repeatedly: it recomputes from the recipe, it does not accumulate.
  */
 import { PrismaClient } from '@prisma/client';
-import { searchFields } from '../src/lib/searchText';
+import { searchFields, postSearchFields } from '../src/lib/searchText';
 
 const prisma = new PrismaClient();
 
@@ -49,7 +49,27 @@ async function main(): Promise<void> {
         changed += 1;
     }
 
-    console.log(`Reindexed ${changed} of ${recipes.length} recipes.`);
+    // Entries too, since version 2 of the search covers them. Same helper
+    // family, same reason to run this after a restore: the archive carries the
+    // words, not their ae/oe/ue expansions.
+    const posts: { id: number; title: string; body: string }[] = await prisma.post.findMany({
+        select: { id: true, title: true, body: true },
+        orderBy: { id: 'asc' },
+    });
+
+    let postsChanged = 0;
+
+    for (const post of posts) {
+        await prisma.post.update({
+            where: { id: post.id },
+            data: postSearchFields({ title: post.title, body: post.body }),
+        });
+        postsChanged += 1;
+    }
+
+    console.log(
+        `Reindexed ${changed} of ${recipes.length} recipes and ${postsChanged} of ${posts.length} entries.`
+    );
 }
 
 main()
