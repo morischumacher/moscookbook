@@ -75,59 +75,109 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         return NextResponse.json({ capture: updated });
     }
 
-    if (capture.status === 'published') {
-        return NextResponse.json(
-            { message: 'This capture has already become a recipe.' },
-            { status: 409 }
-        );
-    }
-
     const draft = capture.draft as unknown as ImportedRecipe | null;
 
-    if (!draft || !draft.title.trim() || !draft.instructions.trim()) {
+    // `draft` is an untyped JSON column that `retry` writes whatever the
+    // processor produced into, so a title is something to check for rather
+    // than something to assume. `draft.title.trim()` on a draft without one
+    // threw a TypeError out of a handler with no catch: an HTML 500, and the
+    // inbox showing only "something went wrong".
+    if (
+        !draft ||
+        typeof draft.title !== 'string' ||
+        typeof draft.instructions !== 'string' ||
+        !draft.title.trim() ||
+        !draft.instructions.trim()
+    ) {
         return NextResponse.json(
             { message: 'This capture has no complete recipe yet. Open it and finish it first.' },
             { status: 422 }
         );
     }
 
+    /*
+     * Claim the capture before creating anything.
+     *
+     * The guard used to be the read above — `capture.status === 'published'` —
+     * and the write that closed it came after the recipe was created. Two
+     * requests could both pass it and both create a recipe, and because
+     * `freeSlug` deliberately never collides, the result was two recipes,
+     * "Zwetschgendatschi" and "zwetschgendatschi-2", with the capture pointing
+     * at whichever finished last. The inbox disables its own row while it
+     * works, which covers one tab and not a retried request after a gateway
+     * timeout, or a second tab.
+     *
+     * updateMany with the condition in the WHERE clause is atomic: exactly one
+     * caller gets count === 1, the same pattern registration and the password
+     * reset already use to redeem a token.
+     */
+    const claimed = await prisma.capture.updateMany({
+        where: { id: captureId, status: { not: 'published' } },
+        data: { status: 'published' },
+    });
+
+    if (claimed.count !== 1) {
+        return NextResponse.json(
+            { message: 'This capture has already become a recipe.' },
+            { status: 409 }
+        );
+    }
+
     const ingredientRows = toStructuredIngredients(draft.ingredients);
 
-    const recipe = await prisma.recipe.create({
-        data: {
-            title: draft.title.trim(),
-            slug: await freeSlug(draft.title),
-            description: draft.description || null,
-            category: draft.category || null,
-            nationality: draft.nationality || null,
-            instructions: draft.instructions,
-            servings: draft.servings ?? null,
-            prepMinutes: draft.prepMinutes ?? null,
-            cookMinutes: draft.cookMinutes ?? null,
-            ...searchFields({
-                title: draft.title,
-                description: draft.description,
+    try {
+        const recipe = await prisma.recipe.create({
+            data: {
+                title: draft.title.trim(),
+                slug: await freeSlug(draft.title),
+                description: draft.description || null,
+                category: draft.category || null,
+                nationality: draft.nationality || null,
                 instructions: draft.instructions,
-                ingredients: ingredientRows.map((row) => row.name),
-            }),
-            images: draft.imageUrl ? { create: { url: draft.imageUrl, position: 0 } } : undefined,
-            ingredients: {
-                create: ingredientRows.map((row, index) => ({ ...row, position: index })),
+                servings: draft.servings ?? null,
+                prepMinutes: draft.prepMinutes ?? null,
+                cookMinutes: draft.cookMinutes ?? null,
+                ...searchFields({
+                    title: draft.title,
+                    description: draft.description,
+                    instructions: draft.instructions,
+                    ingredients: ingredientRows.map((row) => row.name),
+                }),
+                images: draft.imageUrl ? { create: { url: draft.imageUrl, position: 0 } } : undefined,
+                ingredients: {
+                    create: ingredientRows.map((row, index) => ({ ...row, position: index })),
+                },
             },
-        },
-        select: { id: true, slug: true, title: true },
-    });
+            select: { id: true, slug: true, title: true },
+        });
 
-    await prisma.capture.update({
-        where: { id: captureId },
-        data: { status: 'published', recipeId: recipe.id, error: null },
-    });
+        await prisma.capture.update({
+            where: { id: captureId },
+            data: { recipeId: recipe.id, error: null },
+        });
 
-    // Publishing a capture is a recipe appearing, with a category the filter
-    // rail has never seen. See lib/collectionFacets.
-    forgetCollectionFacets();
+        // Publishing a capture is a recipe appearing, with a category the
+        // filter rail has never seen. See lib/collectionFacets.
+        forgetCollectionFacets();
 
-    return NextResponse.json({ recipe }, { status: 201 });
+        return NextResponse.json({ recipe }, { status: 201 });
+    } catch (error) {
+        // The claim is given back, or a capture that failed to become a recipe
+        // would sit in the inbox marked published with nothing to show for it
+        // and no way to try again.
+        await prisma.capture
+            .updateMany({
+                where: { id: captureId, recipeId: null },
+                data: {
+                    status: 'ready',
+                    error: error instanceof Error ? error.message.slice(0, 500) : 'unknown',
+                },
+            })
+            .catch(() => undefined);
+
+        console.error('Publishing a capture failed:', error);
+        return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
+    }
 }
 
 /**

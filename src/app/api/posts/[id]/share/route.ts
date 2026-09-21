@@ -44,10 +44,31 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             );
         }
 
-        const token = post.shareToken ?? generateShareToken();
+        // The same conditional write as the recipe route, for the same reason:
+        // two requests that both read null both minted a token, and the second
+        // one overwrote a link somebody had already been given.
+        let token = post.shareToken;
 
-        if (!post.shareToken) {
-            await prisma.post.update({ where: { id }, data: { shareToken: token } });
+        if (!token) {
+            const minted = generateShareToken();
+            const claimed = await prisma.post.updateMany({
+                where: { id, shareToken: null },
+                data: { shareToken: minted },
+            });
+
+            if (claimed.count === 1) {
+                token = minted;
+            } else {
+                const fresh: { shareToken: string | null } | null = await prisma.post.findUnique({
+                    where: { id },
+                    select: { shareToken: true },
+                });
+                token = fresh?.shareToken ?? null;
+            }
+        }
+
+        if (!token) {
+            return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
         }
 
         return NextResponse.json({

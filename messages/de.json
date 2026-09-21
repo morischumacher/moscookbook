@@ -435,7 +435,10 @@
     "searchLabel": "Beiträge durchsuchen",
     "searchPlaceholder": "Beiträge durchsuchen",
     "noResults": "Zu „{search}\" ist nichts geschrieben.",
-    "alsoInBlog": "{count, plural, one {Ein Beitrag im Blog passt auch} other {# Beiträge im Blog passen auch}}"
+    "alsoInBlog": "{count, plural, one {Ein Beitrag im Blog passt auch} other {# Beiträge im Blog passen auch}}",
+    "draftFound": "In diesem Browser liegt eine ungespeicherte Fassung dieses Beitrags.",
+    "draftRestore": "Wiederherstellen",
+    "draftDiscard": "Verwerfen"
   },
   "Cooked": {
     "title": "Nachgekocht",
@@ -456,5 +459,10 @@
     "confirm": "Bestätigen",
     "ok": "OK",
     "sure": "Sicher?"
+  },
+  "NotFound": {
+    "title": "Hier ist nichts",
+    "explanation": "Diese Seite wurde umbenannt, gelöscht, oder der Link dorthin wurde zurückgezogen. Die Rezepte sind alle noch da, wo sie waren.",
+    "toRecipes": "Zu den Rezepten"
   }
 }

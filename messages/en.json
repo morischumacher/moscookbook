@@ -435,7 +435,10 @@
     "searchLabel": "Search entries",
     "searchPlaceholder": "Search entries",
     "noResults": "Nothing written about “{search}”.",
-    "alsoInBlog": "{count, plural, one {One entry in the blog matches too} other {# entries in the blog match too}}"
+    "alsoInBlog": "{count, plural, one {One entry in the blog matches too} other {# entries in the blog match too}}",
+    "draftFound": "There is an unsaved version of this entry in this browser.",
+    "draftRestore": "Restore it",
+    "draftDiscard": "Discard"
   },
   "Cooked": {
     "title": "Cooked by",
@@ -456,5 +459,10 @@
     "confirm": "Confirm",
     "ok": "OK",
     "sure": "Sure?"
+  },
+  "NotFound": {
+    "title": "Nothing here",
+    "explanation": "This page has been renamed, removed, or the link it came from has been withdrawn. The recipes are all still where they were.",
+    "toRecipes": "To the recipes"
   }
 }
