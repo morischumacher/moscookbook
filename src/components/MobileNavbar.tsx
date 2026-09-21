@@ -31,6 +31,7 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
     const tShopping = useTranslations('ShoppingList');
     const tInvites = useTranslations('Invites');
     const tInbox = useTranslations('Inbox');
+    const tErrors = useTranslations('Errors');
     const { ids, href } = useShoppingSelection();
     const [isOpen, setIsOpen] = useState(false);
     const toggleRef = useRef<HTMLButtonElement>(null);
@@ -73,6 +74,7 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
         { href: '/admin/inbox', label: tInbox('nav') },
         { href: '/admin/users', label: t('users') },
         { href: '/admin/invites', label: tInvites('nav') },
+        { href: '/admin/errors', label: tErrors('nav') },
     ];
 
     return (

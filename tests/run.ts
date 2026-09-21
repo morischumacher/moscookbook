@@ -22,6 +22,8 @@ import captureProcess from './captureProcess.test';
 import email from './email.test';
 import duplicates from './duplicates.test';
 import recipeJsonLd from './recipeJsonLd.test';
+import errorReport from './errorReport.test';
+import importVariants from './importVariants.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
 // they are run in order rather than fired off together.
@@ -42,6 +44,8 @@ async function main() {
     await email();
     duplicates();
     recipeJsonLd();
+    errorReport();
+    importVariants();
 
     process.exit(summary() === 0 ? 0 : 1);
 }

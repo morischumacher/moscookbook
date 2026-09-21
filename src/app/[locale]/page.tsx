@@ -148,7 +148,7 @@ export default async function HomePage({
     const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
     const skip = (page - 1) * PAGE_SIZE;
 
-    const include = { images: { orderBy: { id: 'asc' as const } }, ratings: true };
+    const include = { images: { orderBy: { position: 'asc' as const } }, ratings: true };
 
     // The chips describe the whole collection rather than the current result,
     // because a chip that leads to an empty page is worse than no chip.

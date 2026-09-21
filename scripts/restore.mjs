@@ -105,7 +105,7 @@ async function main() {
                 prepMinutes: recipe.prepMinutes ?? null,
                 cookMinutes: recipe.cookMinutes ?? null,
                 createdAt: new Date(recipe.createdAt ?? Date.now()),
-                images: { create: images.map((url) => ({ url })) },
+                images: { create: images.map((url, index) => ({ url, position: index })) },
                 ingredients: {
                     create: (recipe.ingredients ?? []).map((ingredient, index) => ({
                         position: index,

@@ -88,6 +88,28 @@ model CaptureToken {
   revokedAt  DateTime?
 }
 
+/// Something that went wrong, grouped so that two hundred occurrences of one
+/// bug are one row with a count. See src/lib/errorReport.ts for why this is in
+/// the database rather than in a monitoring service.
+model ErrorLog {
+  id          Int      @id @default(autoincrement())
+  /// Same problem, same fingerprint.
+  fingerprint String   @unique
+  /// client | server
+  source      String
+  message     String
+  stack       String?
+  /// The path it happened on, without the query string.
+  path        String?
+  count       Int      @default(1)
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  /// Set when it has been dealt with; the list hides these.
+  resolvedAt  DateTime?
+
+  @@index([resolvedAt, lastSeenAt])
+}
+
 model Recipe {
   id           Int        @id @default(autoincrement())
   title        String
@@ -147,10 +169,16 @@ model Ingredient {
 }
 
 model Image {
-  id       Int    @id @default(autoincrement())
-  url      String
+  id  Int    @id @default(autoincrement())
+  url String
+  /// The order the author arranged them in. Reading by id instead would
+  /// reshuffle a gallery every time one picture was replaced.
+  position Int @default(0)
+
   recipeId Int
   recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId, position])
 }
 
 model Rating {

@@ -71,7 +71,9 @@
     "views": "{count, plural, one {# Aufruf} other {# Aufrufe}}",
     "notFound": "Rezept nicht gefunden",
     "metaFallback": "Rezept aus mo'scookbook",
-    "totalTime": "Gesamt"
+    "totalTime": "Gesamt",
+    "imageOf": "Bild {number} von {total}: {title}",
+    "showImage": "Bild {number} anzeigen"
   },
   "Rating": {
     "rate": "Bewerten",
@@ -153,12 +155,9 @@
     "servings": "Portionen",
     "prepMinutes": "Vorbereitung",
     "cookMinutes": "Kochzeit",
-    "image": "Bild",
-    "imageDropHint": "Bild hierher ziehen, einfügen (⌘V) oder klicken zum Auswählen",
+    "imageDropHint": "Bilder hierher ziehen, einfügen (⌘V) oder klicken zum Auswählen",
     "imageUploading": "Wird hochgeladen…",
-    "imagePreview": "Vorschau",
     "takePhoto": "Foto aufnehmen",
-    "removeImage": "Bild entfernen",
     "uploadFailed": "Das Bild konnte nicht hochgeladen werden.",
     "ingredients": "Zutaten",
     "pasteList": "Liste einfügen",
@@ -186,7 +185,13 @@
     "saveFailed": "Das Rezept konnte nicht gespeichert werden.",
     "minutes": "Minuten",
     "optional": "optional",
-    "bulkPlaceholder": "200 g Mehl\n2 Eier\n1 Prise Salz"
+    "bulkPlaceholder": "200 g Mehl\n2 Eier\n1 Prise Salz",
+    "images": "Bilder",
+    "imageNumber": "Bild {number}",
+    "coverImage": "Titelbild",
+    "moveImageEarlier": "Bild {number} nach vorne",
+    "moveImageLater": "Bild {number} nach hinten",
+    "removeImageNumber": "Bild {number} entfernen"
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
@@ -332,5 +337,30 @@
     "share": "Teilen",
     "copied": "Link kopiert",
     "linkLabel": "Link zu diesem Rezept"
+  },
+  "Errors": {
+    "title": "Fehler",
+    "nav": "Fehler",
+    "explanation": "Was schiefgegangen ist. Eine Zeile pro Problem, mit der Häufigkeit.",
+    "loading": "Wird geladen…",
+    "allQuiet": "Nichts kaputt.",
+    "noneResolved": "Nichts als erledigt markiert.",
+    "showResolved": "Erledigte anzeigen",
+    "showOpen": "Offene anzeigen",
+    "seen": "{count, plural, one {einmal aufgetreten} other {#-mal aufgetreten}}",
+    "showStack": "Stack anzeigen",
+    "hideStack": "Stack ausblenden",
+    "resolve": "Als erledigt markieren",
+    "source": {
+      "client": "Im Browser",
+      "server": "Auf dem Server"
+    }
+  },
+  "ErrorPage": {
+    "title": "Diese Seite hat nicht geladen.",
+    "explanation": "Auf unserer Seite ist etwas schiefgegangen. Es ist notiert; ein zweiter Versuch hilft oft.",
+    "retry": "Nochmal versuchen",
+    "home": "Zurück zu den Rezepten",
+    "reference": "Kennung {digest}"
   }
 }

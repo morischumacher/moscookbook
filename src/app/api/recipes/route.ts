@@ -3,7 +3,7 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
-import { recipeInputSchema, formatZodError } from '@/lib/recipeSchema';
+import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
 import { searchFields } from '@/lib/searchText';
 
 export async function POST(req: NextRequest) {
@@ -30,9 +30,14 @@ export async function POST(req: NextRequest) {
 
         const {
             title, slug, description, category, nationality,
-            ingredients, instructions, imageUrl,
+            ingredients, instructions,
             servings, prepMinutes, cookMinutes,
         } = parsed.data;
+
+        // Order is the order they were arranged in, and `position` is what
+        // keeps it: an id-ordered read would reshuffle a gallery whenever a
+        // picture was replaced.
+        const imageUrls = resolveImageUrls(parsed.data) ?? [];
 
         const ingredientRows = toStructuredIngredients(ingredients);
 
@@ -53,7 +58,9 @@ export async function POST(req: NextRequest) {
                     instructions,
                     ingredients: ingredientRows.map((row) => row.name),
                 }),
-                images: imageUrl ? { create: { url: imageUrl } } : undefined,
+                images: {
+                    create: imageUrls.map((url, index) => ({ url, position: index })),
+                },
                 ingredients: {
                     create: ingredientRows.map((row, index) => ({
                         ...row,

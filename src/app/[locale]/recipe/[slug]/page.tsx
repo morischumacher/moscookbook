@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
 import { cache } from 'react';
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import { cookies } from 'next/headers';
 import RatingDisplay from '@/components/RatingDisplay';
 import FavoriteButton from '@/components/FavoriteButton';
 import ViewTracker from '@/components/ViewTracker';
 import Logo from '@/components/brand/Logo';
 import RecipeBody from '@/components/recipe/RecipeBody';
+import Gallery from '@/components/recipe/Gallery';
 import AddToListButton from '@/components/shopping/AddToListButton';
 import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
@@ -41,7 +41,7 @@ const loadRecipe = cache(async (slug: string): Promise<RecipeRow | null> => {
     return prisma.recipe.findUnique({
         where: { slug },
         include: {
-            images: { orderBy: { id: 'asc' } },
+            images: { orderBy: { position: 'asc' } },
             ratings: true,
             ingredients: { orderBy: { position: 'asc' } },
         },
@@ -142,7 +142,6 @@ export default async function RecipePage({
         ? (tCuisine.has(recipeData.nationality) ? tCuisine(recipeData.nationality) : recipeData.nationality)
         : '';
 
-    const imageUrl = recipeData.images[0]?.url ?? '';
 
     const totalMinutes = (recipeData.prepMinutes ?? 0) + (recipeData.cookMinutes ?? 0);
     const times = [
@@ -225,20 +224,10 @@ export default async function RecipePage({
             </header>
 
             <div className="container mx-auto max-w-2xl px-0 sm:px-8">
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface shadow-sm sm:aspect-[16/9] sm:rounded-xl">
-                    {imageUrl ? (
-                        <Image
-                            src={imageUrl}
-                            alt={recipeData.title}
-                            fill
-                            sizes="(max-width: 640px) 100vw, 672px"
-                            className="object-cover"
-                            priority
-                        />
-                    ) : (
-                        <div className="absolute inset-0 bg-surface" />
-                    )}
-                </div>
+                <Gallery
+                    images={recipeData.images.map((image) => image.url)}
+                    title={recipeData.title}
+                />
 
                 {recipeData.description && (
                     <p className="mt-8 px-4 text-left font-serif text-xl italic leading-relaxed text-ink sm:px-0 sm:text-2xl">

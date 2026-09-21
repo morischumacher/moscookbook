@@ -286,6 +286,7 @@ they belong to an installation, not to a recipe.
 | `npm run check:search` | Verify every recipe writer maintains the search columns |
 | `npm run check:contrast` | Verify the colour tokens meet WCAG AA, in both themes |
 | `npm run check:design` | Refuse colours that bypass the design tokens |
+| `npm run fixtures` | Collect real pages to test the import against |
 | `npm run reindex` | Rebuild the search columns for every recipe |
 | `npm run verify:search` | Check the German search against a real Postgres |
 | `npm test` | Run the logic check suites |
@@ -382,6 +383,27 @@ The admin tables became lists. A table of four columns on a 375px screen scrolls
 sideways and is miserable to use on the phone you are actually holding when you
 want to fix a typo in a recipe.
 
+## Testing the import
+
+Two layers, because they answer different questions.
+
+`tests/importVariants.test.ts` covers the shapes schema.org *allows*: a yield
+that is `4`, `"4 Portionen"`, `"Für 4 Personen"` or `["4 servings", "4"]`; a
+method that is one HTML blob, an array of `HowToStep`, or nested
+`HowToSection`s; an image that is a string, an array, an `ImageObject`, or an
+`ImageObject` inside an array; a recipe buried in a `@graph` next to two other
+blocks, one of which is malformed.
+
+Writing those found two real bugs on the first run. A step that already read
+`"1. Rühren."` came out as `"1. 1. Rühren."`, and a `recipeIngredient` given as
+a single string — which the specification permits — imported a recipe with no
+ingredients at all.
+
+`npm run fixtures` covers the shapes particular sites actually *emit*, which is
+a different and much less tidy set. It fetches pages you would really import and
+keeps only the parts the extractor reads, so a fixture is a few kilobytes and
+readable in a diff. See `tests/fixtures/README.md`.
+
 ## Sharing a recipe
 
 The share button opens the phone's own share sheet through `navigator.share`,
@@ -409,6 +431,31 @@ importer could have read.
 The JSON is escaped before it goes into the `<script>` block. Recipe titles can
 come from the capture inbox, which means from whatever page a stranger wrote,
 so a title containing `</script>` is not hypothetical.
+
+## Errors
+
+`/admin/errors` lists what has been failing: one row per problem with a count,
+not one row per occurrence. Client errors are reported by the error boundaries,
+server errors through `reportServerError`, and both are grouped by a
+fingerprint that ignores the parts of a message which vary — so "Recipe 7 not
+found" and "Recipe 1284 not found" are one entry.
+
+Deliberately not Sentry. Sentry is better: it symbolicates stacks and can send
+an e-mail when something new appears. But it is a third party, an account and a
+bill, and the rule here has been that nothing essential depends on a
+subscription. Everything in `src/lib/errorReport.ts` would be thrown away
+rather than migrated if that changes, which is the right shape for a decision
+that might be reversed.
+
+The query string is stripped from the reported path before it is stored. An
+error report is not a place to start collecting what people searched for.
+
+## Pictures
+
+A recipe can hold several. The first one is the cover and the one that goes
+into a shared link's preview; the rest appear as thumbnails under it, and all
+of them are printed. Order is stored rather than inferred — read by id, a
+gallery reshuffles itself the moment one picture is replaced.
 
 ## The oyster
 

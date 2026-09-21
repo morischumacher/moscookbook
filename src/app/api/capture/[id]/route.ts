@@ -107,7 +107,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
                 instructions: draft.instructions,
                 ingredients: ingredientRows.map((row) => row.name),
             }),
-            images: draft.imageUrl ? { create: { url: draft.imageUrl } } : undefined,
+            images: draft.imageUrl ? { create: { url: draft.imageUrl, position: 0 } } : undefined,
             ingredients: {
                 create: ingredientRows.map((row, index) => ({ ...row, position: index })),
             },

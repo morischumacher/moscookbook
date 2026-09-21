@@ -71,7 +71,9 @@
     "views": "{count, plural, one {# view} other {# views}}",
     "notFound": "Recipe not found",
     "metaFallback": "Recipe from mo'scookbook",
-    "totalTime": "Total"
+    "totalTime": "Total",
+    "imageOf": "Picture {number} of {total}: {title}",
+    "showImage": "Show picture {number}"
   },
   "Rating": {
     "rate": "Rate",
@@ -153,12 +155,9 @@
     "servings": "Servings",
     "prepMinutes": "Prep time",
     "cookMinutes": "Cooking time",
-    "image": "Picture",
-    "imageDropHint": "Drop a picture here, paste it (⌘V), or click to choose",
+    "imageDropHint": "Drop pictures here, paste them (⌘V), or click to choose",
     "imageUploading": "Uploading…",
-    "imagePreview": "Preview",
     "takePhoto": "Take a photo",
-    "removeImage": "Remove picture",
     "uploadFailed": "The picture could not be uploaded.",
     "ingredients": "Ingredients",
     "pasteList": "Paste a list",
@@ -186,7 +185,13 @@
     "saveFailed": "The recipe could not be saved.",
     "minutes": "Minutes",
     "optional": "optional",
-    "bulkPlaceholder": "200 g flour\n2 eggs\n1 pinch of salt"
+    "bulkPlaceholder": "200 g flour\n2 eggs\n1 pinch of salt",
+    "images": "Pictures",
+    "imageNumber": "Picture {number}",
+    "coverImage": "Cover",
+    "moveImageEarlier": "Move picture {number} earlier",
+    "moveImageLater": "Move picture {number} later",
+    "removeImageNumber": "Remove picture {number}"
   },
   "QuickImport": {
     "heading": "Fill in quickly",
@@ -332,5 +337,30 @@
     "share": "Share",
     "copied": "Link copied",
     "linkLabel": "Link to this recipe"
+  },
+  "Errors": {
+    "title": "Errors",
+    "nav": "Errors",
+    "explanation": "What has been failing. One row per problem, with how often it happened.",
+    "loading": "Loading…",
+    "allQuiet": "Nothing is failing.",
+    "noneResolved": "Nothing has been marked as dealt with.",
+    "showResolved": "Show what has been dealt with",
+    "showOpen": "Show what is still open",
+    "seen": "{count, plural, one {seen once} other {seen # times}}",
+    "showStack": "Show the stack",
+    "hideStack": "Hide the stack",
+    "resolve": "Mark as dealt with",
+    "source": {
+      "client": "In the browser",
+      "server": "On the server"
+    }
+  },
+  "ErrorPage": {
+    "title": "This page did not load.",
+    "explanation": "Something went wrong on our side. It has been recorded; trying again often works.",
+    "retry": "Try again",
+    "home": "Back to the recipes",
+    "reference": "Reference {digest}"
   }
 }

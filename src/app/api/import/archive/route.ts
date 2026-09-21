@@ -24,7 +24,7 @@ function recipeData(recipe: ArchiveRecipe) {
             instructions: recipe.instructions,
             ingredients: recipe.ingredients.map((ingredient) => ingredient.name),
         }),
-        images: { create: recipe.images.map((url) => ({ url })) },
+        images: { create: recipe.images.map((url, index) => ({ url, position: index })) },
         ingredients: {
             create: recipe.ingredients.map((ingredient, index) => ({
                 position: index,

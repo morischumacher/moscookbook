@@ -29,7 +29,7 @@ export default async function AdminDashboard() {
             slug: true,
             category: true,
             views: true,
-            images: { orderBy: { id: 'asc' }, take: 1, select: { url: true } },
+            images: { orderBy: { position: 'asc' }, take: 1, select: { url: true } },
         },
     });
 

@@ -31,7 +31,7 @@ export default async function EditRecipePage({
     const recipe: EditableRecipe | null = await prisma.recipe.findUnique({
         where: { id: recipeId },
         include: {
-            images: { orderBy: { id: 'asc' } },
+            images: { orderBy: { position: 'asc' } },
             ingredients: { orderBy: { position: 'asc' } },
         },
     });
@@ -54,7 +54,7 @@ export default async function EditRecipePage({
                     amount: row.raw,
                     item: row.name,
                 })),
-                imageUrl: recipe.images[0]?.url ?? '',
+                imageUrls: recipe.images.map((image) => image.url),
                 servings: recipe.servings,
                 prepMinutes: recipe.prepMinutes,
                 cookMinutes: recipe.cookMinutes,

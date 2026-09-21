@@ -72,6 +72,38 @@ function firstString(value: unknown): string {
     return '';
 }
 
+/**
+ * Strips a leading enumerator from a step.
+ *
+ * Plenty of sites write their steps as "1. Zwiebeln schneiden." inside a list
+ * that is already ordered. Renumbering those without stripping produces
+ * "1. 1. Zwiebeln schneiden." — which is what the variant suite caught.
+ */
+function withoutLeadingNumber(step: string): string {
+    return step.replace(/^\s*(?:\d{1,2}\s*[.)]|[-*•])\s+/, '');
+}
+
+/**
+ * The lines of a `recipeIngredient` that is a single string.
+ *
+ * schema.org allows Text as well as Text[], and a site that emits one string
+ * usually separates the ingredients with newlines or <br>. Reading only the
+ * array form silently imported a recipe with no ingredients at all.
+ */
+function ingredientLines(value: unknown): string[] {
+    if (Array.isArray(value)) return value.map((entry) => plainText(entry));
+
+    if (typeof value === 'string') {
+        return value
+            .replace(/<\s*br\s*\/?\s*>/gi, '\n')
+            .replace(/<\/\s*li\s*>/gi, '\n')
+            .split('\n')
+            .map((line) => plainText(line));
+    }
+
+    return [];
+}
+
 /** Flattens instruction shapes: string, string[], HowToStep[], HowToSection[]. */
 function collectSteps(value: unknown, depth = 0): string[] {
     if (depth > 4) return [];
@@ -169,11 +201,13 @@ export function extractRecipeFromHtml(html: string, sourceUrl = ''): ImportedRec
         const node = findRecipeNode(data);
         if (!node) continue;
 
-        const ingredients = (Array.isArray(node.recipeIngredient) ? node.recipeIngredient : [])
-            .map((entry) => parseIngredientLine(plainText(entry)))
+        const ingredients = ingredientLines(node.recipeIngredient)
+            .map((line) => parseIngredientLine(line))
             .filter((ingredient) => ingredient.item.trim() !== '');
 
-        const steps = collectSteps(node.recipeInstructions);
+        const steps = collectSteps(node.recipeInstructions)
+            .map(withoutLeadingNumber)
+            .filter((step) => step !== '');
         const instructions =
             steps.length > 1
                 ? steps.map((step, index) => `${index + 1}. ${step}`).join('\n\n')
