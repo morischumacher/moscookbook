@@ -53,6 +53,9 @@ jobs:
       - name: Colours stay inside the design tokens
         run: npm run check:design
 
+      - name: Backup coverage
+        run: npm run check:backup
+
       - name: Lint
         run: npm run lint
 

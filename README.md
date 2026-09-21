@@ -400,6 +400,34 @@ message loses an ICU placeholder in translation, or when a value is empty.
 
 ## Backup and restore
 
+**Version 2 of the archive carries the blog entries and the cooked photographs
+as well.** It did not, for a while, and that is worth recording rather than
+quietly fixing: the blog and the photographs were built, shipped and used while
+the export kept writing a file with nothing in it but recipes. Nothing broke.
+The backups simply stopped covering the newest thing anybody had written, and
+the way you find that out is by needing one.
+
+`npm run check:backup` now refuses to let it happen again. Every model in
+`schema.prisma` is either read by the export or named in that script's
+`NOT_BACKED_UP` list with the reason it is not worth keeping — an account's
+password hash, a reset token that dies in an hour, the inbox queue. A model
+added from now on fails the check until somebody decides which it is. Deciding
+takes a minute; noticing in a year costs everything written in between. A name
+left in the list after its model is renamed fails too, because a stale
+exemption is how something gets exempted by accident.
+
+Entries and photographs point at their recipe **by slug**, not by id: an archive
+is restored into a database where every id is new, and a slug is the one name
+that survives the trip. Authorship travels as a name and is not restored —
+accounts are not in an archive, and a restored entry with no author is better
+than one with the wrong one.
+
+A version 1 archive still reads, with both lists empty. A restore that refused
+last month's file because this month's format grew would be the exact failure a
+backup exists to prevent.
+
+
+
 The cookbook exists in one hosting account. Everything else on this list is an
 annoyance if it goes wrong; this is the only part that cannot be redone.
 
