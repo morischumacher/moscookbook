@@ -290,7 +290,12 @@ export default async function HomePage({
                     <p className="border-t border-line pt-4 text-xs uppercase tracking-widest text-faint">
                         {t('resultCount', { count: total })}
                     </p>
-                    <div className="flex flex-col divide-y divide-line">
+                    {/*
+                        Two columns on a phone, three once there is room. Not
+                        four: a tile that small stops being a photograph and
+                        becomes a swatch.
+                    */}
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
                         {formattedRecipes.map((recipe) => (
                             <RecipeCard key={recipe.id} {...recipe} />
                         ))}

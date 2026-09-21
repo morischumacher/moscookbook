@@ -80,7 +80,35 @@ upload.
 
 ## The home page
 
-The page used to open with the site's name in 48px, forty pixels under a
+The list is a grid of tiles: the picture is the object and the words sit on it.
+A cookbook is usually opened with the question "what do I feel like", and that
+question is answered by looking rather than by reading — six dishes on a screen
+answer it faster than two rows of prose. Two columns on a phone, three once
+there is room; not four, because a tile that small stops being a photograph and
+becomes a swatch.
+
+The tile gives up the description. On a 170px-wide tile, two lines of serif are
+four words and an ellipsis, which is not a summary of anything. It keeps the
+rating, because the oysters are the one mark in this cookbook that is nobody
+else's, and a grid of pictures with no sign of which ones turned out well would
+be a worse list than the one it replaced.
+
+Two details that are not decoration:
+
+- **The title sits on a solid band, not a gradient.** Text over a photograph has
+  to clear 4.5:1 against whatever happens to be underneath, and only an opaque
+  backing can promise that — a fade promises it over a dark sky and breaks it
+  over a plate of polenta.
+- **A recipe with no photograph** gets its title set large across the whole
+  tile, so it reads as a tile without a picture rather than as one that failed
+  to load. That is the weak spot of any photo-led list, and it is worth
+  designing rather than discovering.
+
+The heart moved out of the link and onto the picture. A `<button>` nested inside
+an `<a>` is invalid markup, and it was only there because the old card had no
+free corner.
+
+Before that, the page opened with the site's name in 48px, forty pixels under a
 navigation bar that already said the same words. That was the whole first
 screen of a phone spent on the name of the site the person was already looking
 at. The heading is now what the page is *about*, and the recipes start where
@@ -272,6 +300,28 @@ backfills the columns with the recipes' own wording, so search works
 immediately; the reindex is what adds the ae spellings.
 
 ## Reading a recipe
+
+The page opens with the photograph, full width and edge to edge, and the content
+rides up over its bottom edge on a rounded sheet. A recipe is a picture of a
+dish before it is a list of words. With more than one picture, the thumbnails
+float in the corner *of* the photograph rather than under it, because the sheet
+is about to cover that strip.
+
+Times, servings and the rating became one row of pills. They are the same kind
+of fact — small, countable, glanced at — and they used to be spread across a
+bordered date line, a definition list and a rating row: three typographic voices
+for one paragraph's worth of information. The heart joined the rating's row for
+the same reason.
+
+None of this reaches paper. A printed recipe wants its method on the first page,
+not a photograph filling it, so the hero and the pills are `print:hidden` and the
+facts come back as a plain list.
+
+The tabbed Zutaten/Zubereitung split from the design catalogue was deliberately
+**not** built. Tabs hide the method while you read the ingredients, which is the
+one thing you do not want in a kitchen, and cook mode, serving scaling and the
+checkable steps all assume both are on the page at once.
+
 
 The recipe page is built for someone standing at the stove:
 

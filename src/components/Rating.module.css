@@ -2,6 +2,13 @@
     display: inline-flex;
     flex-direction: column;
     gap: 4px;
+    /* One knob for the shell size, so a tile can carry a smaller rating
+       without a second copy of this file. */
+    --oyster: 24px;
+}
+
+.sm {
+    --oyster: 15px;
 }
 
 .row {
@@ -13,6 +20,11 @@
 /* A bare button: the oyster is the control, so the chrome has to go. The
    padding stays, because a 24px tap target on a phone is a miss waiting to
    happen — 44px is the size a thumb actually hits. */
+.sm .button {
+    padding: 2px 1px;
+    margin: 0;
+}
+
 .button {
     background: none;
     border: none;
@@ -43,8 +55,8 @@
 .oyster {
     position: relative;
     display: inline-block;
-    width: 24px;
-    height: 24px;
+    width: var(--oyster);
+    height: var(--oyster);
     line-height: 0;
 }
 
@@ -52,6 +64,15 @@
     display: block;
     color: var(--color-faint);
     opacity: 0.55;
+}
+
+/* Over a photograph. --color-faint is a colour chosen against the page, and on
+   a dark band it disappears; the empty shells have to come from whatever the
+   band sets as its text colour instead. The filled ones keep the accent, which
+   carries on dark at better than 6:1. */
+.onDark .empty {
+    color: currentColor;
+    opacity: 0.6;
 }
 
 /* The filled shell is clipped to a percentage, which is what lets an average of
@@ -68,8 +89,8 @@
     color: var(--color-accent);
     /* Never shrinks with the clipping container. */
     max-width: none;
-    width: 24px;
-    height: 24px;
+    width: var(--oyster);
+    height: var(--oyster);
 }
 
 .error {

@@ -19,6 +19,10 @@ interface RatingProps {
     recipeId?: number;
     readonly?: boolean;
     onRated?: (result: RatingResult) => void;
+    /** `sm` is the tile's rating: the same mark, smaller. */
+    size?: 'md' | 'sm';
+    /** Set when the oysters sit on a photograph rather than on the page. */
+    onDark?: boolean;
 }
 
 /**
@@ -39,6 +43,8 @@ export default function Rating({
     recipeId,
     readonly = false,
     onRated,
+    size = 'md',
+    onDark = false,
 }: RatingProps) {
     const t = useTranslations('Rating');
     const [hoverValue, setHoverValue] = useState<number | null>(null);
@@ -127,7 +133,9 @@ export default function Rating({
     });
 
     return (
-        <span className={styles.wrapper}>
+        <span
+            className={`${styles.wrapper}${size === 'sm' ? ` ${styles.sm}` : ''}${onDark ? ` ${styles.onDark}` : ''}`}
+        >
             <span
                 className={styles.row}
                 // One label for the group. Without it a screen reader reads five
