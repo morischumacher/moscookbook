@@ -17,7 +17,7 @@
  * none, which is exactly the state this replaces.
  */
 
-export type Section = 'recipes' | 'blog' | 'admin' | null;
+export type Section = 'recipes' | 'collections' | 'blog' | 'admin' | null;
 
 /**
  * Strips `/en` or `/de` from the front, so the rules below are written once.
@@ -40,6 +40,7 @@ export function sectionFor(pathname: string): Section {
 
     if (path === '/admin' || path.startsWith('/admin/')) return 'admin';
     if (path === '/blog' || path.startsWith('/blog/')) return 'blog';
+    if (path === '/collections' || path.startsWith('/collections/')) return 'collections';
 
     // The recipe list is the front page, and a single recipe belongs with it.
     if (path === '/' || path.startsWith('/recipe/')) return 'recipes';
@@ -67,7 +68,7 @@ export function adminSectionFor(pathname: string): string | null {
     const path = withoutLocale(pathname);
     if (!path.startsWith('/admin')) return null;
 
-    for (const candidate of ['/admin/inbox', '/admin/posts', '/admin/users', '/admin/invites', '/admin/errors', '/admin/devices']) {
+    for (const candidate of ['/admin/inbox', '/admin/posts', '/admin/collections', '/admin/users', '/admin/invites', '/admin/errors', '/admin/devices']) {
         if (path === candidate || path.startsWith(`${candidate}/`)) return candidate;
     }
 

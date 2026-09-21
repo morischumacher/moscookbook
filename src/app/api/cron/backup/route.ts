@@ -10,6 +10,7 @@ import {
     type ExportablePost,
     type ExportableCookPhoto,
     type ExportableCookLog,
+    type ExportableCollection,
 } from '@/lib/archive';
 
 /**
@@ -119,7 +120,28 @@ export async function GET(req: NextRequest) {
             },
         });
 
-        const archive = buildArchive(recipes, new Date(), posts, cookPhotos, cookLogs);
+        const collections: ExportableCollection[] = await prisma.collection.findMany({
+            orderBy: { createdAt: 'asc' },
+            select: {
+                title: true,
+                slug: true,
+                description: true,
+                createdAt: true,
+                recipes: {
+                    orderBy: { position: 'asc' },
+                    select: { recipe: { select: { slug: true } } },
+                },
+            },
+        });
+
+        const archive = buildArchive(
+            recipes,
+            new Date(),
+            posts,
+            cookPhotos,
+            cookLogs,
+            collections
+        );
 
         // Housekeeping, attached to the one thing that already runs weekly.
         // Nothing depends on it — a closed rate-limit window is reused in

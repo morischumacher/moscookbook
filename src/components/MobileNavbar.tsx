@@ -23,11 +23,14 @@ interface MobileNavbarProps {
  * "Blog", there was no way back that said so. "Entries" sat two links from
  * "Blog" meaning the admin's view of the same thing.
  *
- * Three sections now — Recipes, Blog, Admin — one of which is always marked,
- * and the admin's six tools moved to a navigation of their own on the pages
- * they belong to (components/admin/AdminNav.tsx). On a phone the section you
- * are in is also written beside the logo, so "where am I" is answered without
- * opening anything.
+ * Four sections now — Recipes, Collections, Blog, Admin — one of which is
+ * always marked, and the admin's tools moved to a navigation of their own on
+ * the pages they belong to (components/admin/AdminNav.tsx). On a phone the
+ * section you are in is also written beside the logo, so "where am I" is
+ * answered without opening anything.
+ *
+ * Four is the ceiling. A fifth would need the bar to start making decisions
+ * about what to hide, and a bar that hides things is the bar this replaced.
  *
  * One more rule worth keeping: every row in the open menu shares a single class.
  * LogoutButton is a <button>, and a button in a `flex-col` stretches to the
@@ -37,6 +40,7 @@ interface MobileNavbarProps {
 export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
     const t = useTranslations('Navigation');
     const tBlog = useTranslations('Blog');
+    const tCollections = useTranslations('Collections');
     const [isOpen, setIsOpen] = useState(false);
     const toggleRef = useRef<HTMLButtonElement>(null);
 
@@ -66,6 +70,7 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
     const sections: { href: string; label: string; section: Section }[] = user
         ? [
               { href: '/', label: t('recipes'), section: 'recipes' },
+              { href: '/collections', label: tCollections('nav'), section: 'collections' },
               { href: '/blog', label: tBlog('nav'), section: 'blog' },
               ...(user.admin
                   ? [{ href: '/admin', label: t('admin'), section: 'admin' as Section }]

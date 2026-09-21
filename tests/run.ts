@@ -13,7 +13,7 @@ import amount from './amount.test';
 import siteUrl from './siteUrl.test';
 import ingredientParts from './ingredientParts.test';
 import invite from './invite.test';
-import archive from './archive.test';
+import archive, { archiveCollectionsTests } from './archive.test';
 import searchText from './searchText.test';
 import capture from './capture.test';
 import youtube from './youtube.test';
@@ -51,6 +51,7 @@ async function main() {
     ingredientParts();
     invite();
     archive();
+    archiveCollectionsTests();
     searchText();
     capture();
     youtube();

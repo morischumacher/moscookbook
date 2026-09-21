@@ -48,6 +48,7 @@ const NOT_BACKED_UP = new Map([
     ['Image', "carried inside each recipe's entry rather than as its own list"],
     ['Ingredient', 'the same'],
     ['RateLimit', 'counters for windows measured in minutes; restoring one would be nonsense'],
+    ['CollectionRecipe', "carried inside each collection's entry, in order, rather than as its own list"],
 ]);
 
 const schema = readFileSync(SCHEMA, 'utf8');

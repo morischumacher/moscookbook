@@ -13,13 +13,13 @@ import { z } from 'zod';
  */
 
 /**
- * 3: cooking logs. 2 added entries and cooked photographs.
+ * 4: collections. 3 added cooking logs, 2 entries and cooked photographs.
  *
  * A reader of an older archive still works — every new array defaults to empty
  * — and an archive from a newer version is refused with the numbers in the
  * message rather than half-read.
  */
-export const ARCHIVE_VERSION = 3;
+export const ARCHIVE_VERSION = 4;
 
 const archiveIngredientSchema = z.object({
     position: z.number().int().min(0),
@@ -97,6 +97,24 @@ const archiveCookLogSchema = z.object({
     author: z.string().nullable().default(null),
 });
 
+/**
+ * A collection: a name, and the recipes it holds in order.
+ *
+ * In the archive because arranging is work. Nobody remembers the order of a
+ * Christmas menu they put together two years ago, and a restore that brought
+ * back every recipe and none of the arranging would have quietly thrown away
+ * the part that took the thinking.
+ *
+ * The recipes by slug, in order, like everything else here.
+ */
+const archiveCollectionSchema = z.object({
+    title: z.string().min(1),
+    slug: z.string().min(1),
+    description: z.string().nullable().default(null),
+    createdAt: z.string().default(() => new Date().toISOString()),
+    recipeSlugs: z.array(z.string()).default([]),
+});
+
 export const archiveSchema = z.object({
     version: z.number().int(),
     exportedAt: z.string(),
@@ -105,12 +123,14 @@ export const archiveSchema = z.object({
     posts: z.array(archivePostSchema).default([]),
     cookPhotos: z.array(archiveCookPhotoSchema).default([]),
     cookLogs: z.array(archiveCookLogSchema).default([]),
+    collections: z.array(archiveCollectionSchema).default([]),
 });
 
 export type ArchiveRecipe = z.infer<typeof archiveRecipeSchema>;
 export type ArchivePost = z.infer<typeof archivePostSchema>;
 export type ArchiveCookPhoto = z.infer<typeof archiveCookPhotoSchema>;
 export type ArchiveCookLog = z.infer<typeof archiveCookLogSchema>;
+export type ArchiveCollection = z.infer<typeof archiveCollectionSchema>;
 export type Archive = z.infer<typeof archiveSchema>;
 
 export interface ParseResult {
@@ -196,6 +216,14 @@ export interface ExportableCookPhoto {
     user: { name: string } | null;
 }
 
+export interface ExportableCollection {
+    title: string;
+    slug: string;
+    description: string | null;
+    createdAt: Date;
+    recipes: { recipe: { slug: string } }[];
+}
+
 export interface ExportableCookLog {
     cookedAt: Date;
     note: string | null;
@@ -269,12 +297,26 @@ export function toArchiveCookLog(entry: ExportableCookLog): Archive['cookLogs'][
     };
 }
 
+export function toArchiveCollection(
+    collection: ExportableCollection
+): Archive['collections'][number] {
+    return {
+        title: collection.title,
+        slug: collection.slug,
+        description: collection.description,
+        createdAt: collection.createdAt.toISOString(),
+        // Already ordered by the query; the array's own order is the order.
+        recipeSlugs: collection.recipes.map((row) => row.recipe.slug),
+    };
+}
+
 export function buildArchive(
     recipes: ExportableRecipe[],
     now = new Date(),
     posts: ExportablePost[] = [],
     cookPhotos: ExportableCookPhoto[] = [],
-    cookLogs: ExportableCookLog[] = []
+    cookLogs: ExportableCookLog[] = [],
+    collections: ExportableCollection[] = []
 ): Archive {
     return {
         version: ARCHIVE_VERSION,
@@ -284,6 +326,7 @@ export function buildArchive(
         posts: posts.map(toArchivePost),
         cookPhotos: cookPhotos.map(toArchiveCookPhoto),
         cookLogs: cookLogs.map(toArchiveCookLog),
+        collections: collections.map(toArchiveCollection),
     };
 }
 

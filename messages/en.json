@@ -381,7 +381,10 @@
     "statePublicPost": "Public link active — anyone with this link can read the entry, no account needed.",
     "revokeConfirmPost": "Withdraw this link? Anyone you have already sent it to will no longer be able to open the entry.",
     "sharedPostNotice": "An entry from mo'scookbook, shared with you.",
-    "preparing": "Preparing link…"
+    "preparing": "Preparing link…",
+    "statePrivateCollection": "This collection is only for people with an account.",
+    "statePublicCollection": "Anyone with this link can see this collection.",
+    "revokeConfirmCollection": "Withdraw this link? Anyone you have already sent it to will no longer be able to open the collection."
   },
   "Errors": {
     "title": "Errors",
@@ -488,5 +491,30 @@
     "title": "Nothing here",
     "explanation": "This page has been renamed, removed, or the link it came from has been withdrawn. The recipes are all still where they were.",
     "toRecipes": "To the recipes"
+  },
+  "Collections": {
+    "title": "Collections",
+    "nav": "Collections",
+    "intro": "A handful of recipes with a name on it — a menu, a week, an evening.",
+    "none": "No collections yet.",
+    "empty": "Nothing in this collection yet.",
+    "createNew": "New collection",
+    "edit": "Edit this collection",
+    "recipeCount": "{count, plural, =0 {No recipes} one {# recipe} other {# recipes}}",
+    "fieldTitle": "Name",
+    "fieldDescription": "One line about it",
+    "pick": "Recipes in this collection",
+    "add": "Add a recipe",
+    "remove": "Remove",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "save": "Save collection",
+    "saving": "Saving…",
+    "saveFailed": "That could not be saved.",
+    "delete": "Delete collection",
+    "confirmDelete": "Delete this collection? The recipes themselves stay.",
+    "newTitle": "New collection",
+    "editTitle": "Edit collection",
+    "sharedBy": "A collection from Mo’sCookbook"
   }
 }

@@ -172,3 +172,78 @@ export default function run() {
         '2026-09-14T00:00:00.000Z'
     );
 }
+
+/**
+ * Collections and cooking logs survive the round trip.
+ *
+ * Appended as its own suite rather than folded into the one above, because
+ * what it is checking is different: not "does the shape hold" but "did the
+ * thing added last month get into the archive" — which is the failure a backup
+ * exists to prevent and the one that announces itself only when you need it.
+ */
+export function archiveCollectionsTests() {
+    suite('archive — collections and cooking logs');
+
+    const archive = buildArchive(
+        [],
+        new Date('2026-09-21T18:00:00Z'),
+        [],
+        [],
+        [
+            {
+                cookedAt: new Date('2026-09-14T18:00:00Z'),
+                note: 'half the chilli',
+                recipe: { slug: 'thai-green-curry' },
+                user: { name: 'Moritz Schumacher' },
+            },
+        ],
+        [
+            {
+                title: 'Weihnachten',
+                slug: 'weihnachten',
+                description: 'Das Menü von 2026',
+                createdAt: new Date('2026-09-01T10:00:00Z'),
+                recipes: [
+                    { recipe: { slug: 'vorspeise' } },
+                    { recipe: { slug: 'hauptgang' } },
+                    { recipe: { slug: 'nachtisch' } },
+                ],
+            },
+        ]
+    );
+
+    equal('the cooking note is carried', archive.cookLogs[0].note, 'half the chilli');
+    equal('by recipe slug', archive.cookLogs[0].recipeSlug, 'thai-green-curry');
+    equal('and by author name', archive.cookLogs[0].author, 'Moritz Schumacher');
+
+    equal('the collection is carried', archive.collections[0].title, 'Weihnachten');
+    equal(
+        'and its order, which is the part that took the thinking',
+        archive.collections[0].recipeSlugs,
+        ['vorspeise', 'hauptgang', 'nachtisch']
+    );
+
+    /* ------------------------------------------------------- reading it back */
+
+    const parsed = parseArchive(JSON.parse(JSON.stringify(archive)));
+
+    check('it parses again', parsed.ok, parsed.error);
+    equal('with the log intact', parsed.archive?.cookLogs.length, 1);
+    equal(
+        'and the order intact',
+        parsed.archive?.collections[0].recipeSlugs,
+        ['vorspeise', 'hauptgang', 'nachtisch']
+    );
+
+    /* -------------------------------------------------------- older archives */
+
+    const older = parseArchive({
+        version: 2,
+        exportedAt: '2026-01-01T00:00:00.000Z',
+        recipes: [],
+    });
+
+    check('an archive from before any of this still reads', older.ok, older.error);
+    equal('with no cooking logs rather than an error', older.archive?.cookLogs, []);
+    equal('and no collections', older.archive?.collections, []);
+}

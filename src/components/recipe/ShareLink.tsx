@@ -25,8 +25,8 @@ export default function ShareLink({
     locale,
 }: {
     id: number;
-    /** Which of the two things has a public link. Decides the wording and the endpoint. */
-    kind: 'recipe' | 'post';
+    /** Which kind of thing has a public link. Decides the wording and the endpoint. */
+    kind: 'recipe' | 'post' | 'collection';
     initialUrl: string | null;
     locale: string;
 }) {
@@ -39,9 +39,20 @@ export default function ShareLink({
     const words =
         kind === 'post'
             ? { private: 'statePrivatePost', public: 'statePublicPost', confirm: 'revokeConfirmPost' }
-            : { private: 'statePrivate', public: 'statePublic', confirm: 'revokeConfirm' };
+            : kind === 'collection'
+              ? {
+                  private: 'statePrivateCollection',
+                  public: 'statePublicCollection',
+                  confirm: 'revokeConfirmCollection',
+              }
+              : { private: 'statePrivate', public: 'statePublic', confirm: 'revokeConfirm' };
 
-    const endpoint = kind === 'post' ? `/api/posts/${id}/share` : `/api/recipes/${id}/share`;
+    const endpoint =
+        kind === 'post'
+            ? `/api/posts/${id}/share`
+            : kind === 'collection'
+              ? `/api/collections/${id}/share`
+              : `/api/recipes/${id}/share`;
 
     const [url, setUrl] = useState(initialUrl);
     const [busy, setBusy] = useState(false);

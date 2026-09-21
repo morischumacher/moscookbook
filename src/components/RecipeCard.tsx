@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Rating from './Rating';
 import Oyster from './brand/Oyster';
 import FavoriteButton from './FavoriteButton';
+import { photoBadge } from '@/lib/ui';
 
 interface RecipeCardProps {
     id: number; // For FavoriteButton
@@ -96,7 +97,7 @@ export default function RecipeCard({
                             white.
                         */}
                         {rating > 0 && (
-                            <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-ink/75 py-1 pl-1.5 pr-2.5 text-page">
+                            <span className={`${photoBadge} gap-1 py-1 pl-1.5 pr-2.5`}>
                                 {/* 16 rather than 14: the shell's two growth rings are drawn
                                     in the page colour on a filled shell, and at
                                     fourteen pixels on a dark pill they close up

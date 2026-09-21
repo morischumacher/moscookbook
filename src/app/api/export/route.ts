@@ -8,10 +8,12 @@ import {
     toArchivePost,
     toArchiveCookPhoto,
     toArchiveCookLog,
+    toArchiveCollection,
     type ExportableRecipe,
     type ExportablePost,
     type ExportableCookPhoto,
     type ExportableCookLog,
+    type ExportableCollection,
 } from '@/lib/archive';
 
 /**
@@ -201,6 +203,29 @@ export async function GET() {
                             },
                         }),
                     toArchiveCookLog
+                );
+
+                write('],\n  "collections": [');
+
+                await writeAll<ExportableCollection & { id: number }, unknown>(
+                    (afterId) =>
+                        prisma.collection.findMany({
+                            where: { id: { gt: afterId } },
+                            orderBy: { id: 'asc' },
+                            take: PAGE,
+                            select: {
+                                id: true,
+                                title: true,
+                                slug: true,
+                                description: true,
+                                createdAt: true,
+                                recipes: {
+                                    orderBy: { position: 'asc' },
+                                    select: { recipe: { select: { slug: true } } },
+                                },
+                            },
+                        }),
+                    toArchiveCollection
                 );
 
                 write(']\n}\n');

@@ -268,6 +268,7 @@ model Recipe {
   posts          Post[]
   cookPhotos     CookPhoto[]
   cookLogs       CookLog[]
+  collections    CollectionRecipe[]
 
   /// This table had no index at all beyond the two unique columns and the
   /// search vector, while being the table everything sorts and groups by.
@@ -417,4 +418,53 @@ model CookLog {
   @@index([recipeId, cookedAt])
   /// One person's own cooking, newest first.
   @@index([userId, cookedAt])
+}
+
+/// A handful of recipes with a name on it: "Weihnachten", "Schnell nach der
+/// Arbeit", "Für Tante Elfi".
+///
+/// Not a second category system. A category says what a dish *is* and there is
+/// one right answer; a collection says what a group of dishes is *for*, and a
+/// recipe belongs to as many as somebody finds useful. That is the whole reason
+/// this is a separate table rather than another column.
+///
+/// Shareable by the same token as a single recipe, and revoked the same way —
+/// which is most of why it is worth building: "here is the Christmas menu" is a
+/// thing people actually want to send.
+model Collection {
+  id          Int      @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  /// One line, shown under the title. Optional.
+  description String?
+
+  /// The public link, or null. Same mechanism as a recipe's, deliberately:
+  /// one way of making something public is one way of taking it back.
+  shareToken  String?  @unique
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  recipes     CollectionRecipe[]
+
+  @@index([createdAt])
+}
+
+/// One recipe in one collection, in the order somebody arranged.
+///
+/// A join table with a position, not an implicit many-to-many: the order of a
+/// menu is the point of a menu, and an implicit relation has no room to keep it.
+model CollectionRecipe {
+  collectionId Int
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  recipeId     Int
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  position     Int
+
+  @@id([collectionId, recipeId])
+  @@index([collectionId, position])
+  /// Deleting a recipe cascades through here; without this that is a scan.
+  @@index([recipeId])
 }

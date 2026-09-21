@@ -381,7 +381,10 @@
     "statePublicPost": "Öffentlicher Link aktiv — wer den Link hat, kann den Beitrag lesen, ganz ohne Konto.",
     "revokeConfirmPost": "Link zurückziehen? Wer ihn schon bekommen hat, kann den Beitrag dann nicht mehr öffnen.",
     "sharedPostNotice": "Ein Beitrag aus mo'scookbook, mit dir geteilt.",
-    "preparing": "Link wird erstellt…"
+    "preparing": "Link wird erstellt…",
+    "statePrivateCollection": "Diese Sammlung sehen nur Leute mit Konto.",
+    "statePublicCollection": "Wer diesen Link hat, kann die Sammlung sehen.",
+    "revokeConfirmCollection": "Diesen Link zurückziehen? Wer ihn schon bekommen hat, kann die Sammlung dann nicht mehr öffnen."
   },
   "Errors": {
     "title": "Fehler",
@@ -488,5 +491,30 @@
     "title": "Hier ist nichts",
     "explanation": "Diese Seite wurde umbenannt, gelöscht, oder der Link dorthin wurde zurückgezogen. Die Rezepte sind alle noch da, wo sie waren.",
     "toRecipes": "Zu den Rezepten"
+  },
+  "Collections": {
+    "title": "Sammlungen",
+    "nav": "Sammlungen",
+    "intro": "Ein paar Rezepte mit einem Namen darauf — ein Menü, eine Woche, ein Abend.",
+    "none": "Noch keine Sammlungen.",
+    "empty": "In dieser Sammlung ist noch nichts.",
+    "createNew": "Neue Sammlung",
+    "edit": "Sammlung bearbeiten",
+    "recipeCount": "{count, plural, =0 {Keine Rezepte} one {# Rezept} other {# Rezepte}}",
+    "fieldTitle": "Name",
+    "fieldDescription": "Eine Zeile dazu",
+    "pick": "Rezepte in dieser Sammlung",
+    "add": "Rezept hinzufügen",
+    "remove": "Entfernen",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "save": "Sammlung speichern",
+    "saving": "Wird gespeichert…",
+    "saveFailed": "Das konnte nicht gespeichert werden.",
+    "delete": "Sammlung löschen",
+    "confirmDelete": "Diese Sammlung löschen? Die Rezepte selbst bleiben.",
+    "newTitle": "Neue Sammlung",
+    "editTitle": "Sammlung bearbeiten",
+    "sharedBy": "Eine Sammlung aus Mo’sCookbook"
   }
 }

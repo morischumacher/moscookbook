@@ -273,6 +273,54 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        // Collections last: they point at recipes by slug, so the recipes
+        // have to exist. A collection whose recipes are not all in the archive
+        // is restored with the ones that are rather than skipped — half a menu
+        // is more use than none, and the missing ones are missing either way.
+        let collections = 0;
+        for (const collection of result.archive.collections) {
+            const recipeIds = collection.recipeSlugs
+                .map((slug) => slugToId.get(slug))
+                .filter((id): id is number => id !== undefined);
+
+            try {
+                const taken = await prisma.collection.findUnique({
+                    where: { slug: collection.slug },
+                    select: { id: true },
+                });
+
+                if (taken && !replace) continue;
+
+                await prisma.$transaction([
+                    ...(taken
+                        ? [prisma.collection.deleteMany({ where: { slug: collection.slug } })]
+                        : []),
+                    prisma.collection.create({
+                        data: {
+                            title: collection.title,
+                            slug: collection.slug,
+                            description: collection.description,
+                            createdAt: safeDate(collection.createdAt) ?? new Date(),
+                            recipes: {
+                                create: recipeIds.map((recipeId, index) => ({
+                                    recipeId,
+                                    position: index,
+                                })),
+                            },
+                        },
+                    }),
+                ]);
+
+                collections += 1;
+            } catch (error) {
+                failed.push({
+                    slug: collection.slug,
+                    reason: error instanceof Error ? error.message : 'unknown',
+                });
+                console.error(`Archive import: collection ${collection.slug} failed`, error);
+            }
+        }
+
         return NextResponse.json({
             created,
             replaced,
@@ -281,6 +329,7 @@ export async function POST(req: NextRequest) {
             posts,
             photos,
             logs,
+            collections,
             // Reported rather than thrown: the rest of the archive is in, and
             // the admin needs to know exactly what is not.
             failed,

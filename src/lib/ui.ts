@@ -53,3 +53,20 @@ export const pageTop = 'pt-10 sm:pt-14';
 /** A page heading, with the rule under it that most of them had. */
 export const pageHeading =
     'border-b border-line pb-6 text-3xl font-extrabold tracking-tight sm:text-4xl';
+
+/**
+ * A small thing sitting on a photograph: the rating on a tile, the position in
+ * a collection.
+ *
+ * Translucent ink rather than solid, and that is not decoration. It has to be
+ * legible over whatever picture somebody uploads, and 75% of the ink is dark
+ * enough for the page colour on top of it even where the photograph behind is
+ * white — while still reading as something laid *on* the picture rather than a
+ * hole punched in it. A gradient would promise the same and break it over a
+ * plate of polenta.
+ *
+ * Each caller adds its own padding, because one holds an icon and a number and
+ * the other holds a number.
+ */
+export const photoBadge =
+    'absolute left-2 top-2 flex items-center rounded-full bg-ink/75 text-page';
