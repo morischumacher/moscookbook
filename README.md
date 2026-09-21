@@ -122,11 +122,40 @@ survives. So collecting, parsing and deciding are now three separate things:
 | An Instagram or TikTok link | those sites refuse to be read, so the **caption** that came with the share is parsed instead — which is why the shared text is kept even when a link is present |
 | Plain text | the same rule-based parser as paste-and-parse |
 | An e-mail | subject and body, with forwarding headers, quotes and signatures stripped |
-| A photograph | kept, and marked as needing the AI import or a minute of typing |
+| A screenshot or a photograph | stored first, then read by the AI import when a key is configured; kept with a clear note when it is not |
 
-Nothing here needs an API key. A video whose recipe is only spoken comes back
-as *needs a minute* with its title and thumbnail, rather than as a confidently
-wrong recipe.
+A video whose recipe is only spoken comes back as *needs a minute* with its
+title and thumbnail, rather than as a confidently wrong recipe.
+
+### Screenshots
+
+A screenshot is how most people actually save a recipe on a phone. It is one
+button, it works on an app that refuses to be read any other way, and it is
+what somebody standing in a kitchen with a cookbook does.
+
+It arrives as base64 in the same JSON body as everything else — not multipart,
+because an iOS Shortcut has a "Base64 Encode" block and cannot build a
+multipart request at all. A third more bytes on the wire, which for one
+screenshot is nothing.
+
+The picture is **stored before anything is read out of it**. A screenshot taken
+in a kitchen is the only copy of that moment, and losing it to a parser having
+a bad day would be the one unforgivable failure in this pipeline. It is also
+read back out of our own store rather than kept from the request, so that the
+retry button in the inbox takes exactly the same path as the first attempt.
+
+This is the only place the AI import is reached from the capture pipeline, and
+it is the honest exception to *nothing here needs an API key*: a screenshot is
+pixels, and there is no rule that reads pixels. Without a key the capture still
+lands, with the picture attached and a note saying what it needs. **Nothing is
+ever refused for want of a key.**
+
+A picture is carried whatever else was sent, so it is never the thing that got
+lost, and the order is deliberate: a link is tried first, because a page can be
+read; then the text, because reading words is exact and reading a picture of
+words is a guess; the picture last. But if the first two come to nothing and a
+screenshot is there, it gets one more attempt — which is exactly the Instagram
+case, where the link is a login wall and the caption is "so gut 😍".
 
 ### By e-mail
 
@@ -174,6 +203,17 @@ walks through the five steps; the key is shown once and stored only as a hash.
 The Shortcut needs exactly one field: whatever was shared goes out as `text`,
 and the link is dug out of it on this side. That way a post carrying both a
 caption and a link keeps both.
+
+A second Shortcut, accepting **images**, sends a screenshot: *Base64 Encode* the
+input, then post
+
+```json
+{ "image": { "base64": "<the encoded image>", "mediaType": "image/png" } }
+```
+
+to the same endpoint with the same key. `text` and `note` may travel alongside
+it. Set it as the Photos share sheet action and a screenshot goes into the
+inbox in two taps.
 
 One key per device, so a lost phone costs one revoke. `lastUsedAt` on a revoked
 key is how you find out whether it was still being used afterwards.

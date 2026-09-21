@@ -32,6 +32,8 @@ async function share(body: {
     note?: string;
     via?: 'email';
     subject?: string;
+    /** Already stored by the route by the time the pipeline sees it. */
+    imageUrl?: string;
 }) {
     const classified = captureInputFrom(body);
     if (!classified) return { classified: null, result: null };
@@ -309,6 +311,100 @@ Gesendet von meinem iPhone`,
     // photograph, and saying so is more useful than a confident guess.
     equal('waits for a human rather than failing', photo.status, 'needsWork');
     check('and says what it needs', (photo.error ?? '').length > 0, photo.error);
+
+
+    // ── 8b. A screenshot ────────────────────────────────────────────────────
+    suite('channel: a screenshot');
+
+    const PICTURE = 'https://blob.test/capture_1.png';
+    const pixels = Buffer.from('89504e470d0a1a0a' + '00'.repeat(64), 'hex');
+
+    // What the model would answer, in the shape aiImport expects back.
+    const aiAnswer = {
+        content: [
+            {
+                type: 'text',
+                text: JSON.stringify({
+                    title: 'Ofengemüse mit Feta',
+                    description: '',
+                    category: '',
+                    nationality: '',
+                    ingredients: [
+                        { amount: '1', item: 'Zucchini' },
+                        { amount: '200 g', item: 'Feta' },
+                    ],
+                    instructions: 'Alles in den Ofen, 25 Minuten bei 200 °C.',
+                    servings: 2,
+                    prepMinutes: null,
+                    cookMinutes: 25,
+                }),
+            },
+        ],
+    };
+
+    const previousKey = process.env.ANTHROPIC_API_KEY;
+
+    // Without a key. This is the case that has to keep working, because the
+    // whole cookbook is built so that AI is never required.
+    delete process.env.ANTHROPIC_API_KEY;
+    restore = stubFetch({});
+
+    const noKey = await share({ imageUrl: PICTURE });
+
+    equal('a screenshot on its own is a picture', noKey.classified?.kind, 'image');
+    equal('and is labelled a photo', noKey.classified?.source, 'photo');
+    equal('with no key it waits for a human rather than failing', noKey.result?.status, 'needsWork');
+    equal('and the picture is still there', noKey.result?.draft?.imageUrl, PICTURE);
+    check(
+        'the message says what it needs rather than what went wrong',
+        (noKey.result?.error ?? '').includes('saved'),
+        noKey.result?.error
+    );
+    restore();
+
+    // With a key.
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    restore = stubFetch({
+        [PICTURE]: { html: '', bytes: pixels, contentType: 'image/png' },
+        'https://api.anthropic.com/v1/messages': { html: '', json: aiAnswer },
+    });
+
+    const read = await share({ imageUrl: PICTURE });
+
+    equal('with a key the picture is read', read.result?.status, 'ready');
+    equal('and gets a real title', read.result?.draft?.title, 'Ofengemüse mit Feta');
+    equal('with its ingredients', read.result?.draft?.ingredients.length, 2);
+    // A screenshot of a post is also a perfectly good photograph of the dish.
+    equal('the screenshot becomes the recipe picture', read.result?.draft?.imageUrl, PICTURE);
+    restore();
+
+    // The Instagram case from the other side: the link cannot be read, the
+    // caption is not the recipe, but a screenshot came with the share.
+    restore = stubFetch({
+        [PICTURE]: { html: '', bytes: pixels, contentType: 'image/png' },
+        'https://api.anthropic.com/v1/messages': { html: '', json: aiAnswer },
+    });
+
+    const rescued = await share({
+        url: 'https://www.instagram.com/p/C8xKqRstUvW/',
+        text: 'so gut 😍',
+        imageUrl: PICTURE,
+    });
+
+    equal('a dead link with a screenshot falls back to the picture', rescued.result?.status, 'ready');
+    equal('and gets the dish from it', rescued.result?.draft?.title, 'Ofengemüse mit Feta');
+    restore();
+
+    // A picture that cannot be fetched back is still not a lost capture.
+    restore = stubFetch({ 'https://api.anthropic.com/v1/messages': { html: '', json: aiAnswer } });
+
+    const unreadable = await share({ imageUrl: PICTURE });
+    equal('a picture that cannot be read back still waits', unreadable.result?.status, 'needsWork');
+    equal('with the link to it kept', unreadable.result?.draft?.imageUrl, PICTURE);
+    restore();
+
+    if (previousKey === undefined) delete process.env.ANTHROPIC_API_KEY;
+    else process.env.ANTHROPIC_API_KEY = previousKey;
 
     // ── 9. What the inbox calls each of them ────────────────────────────────
     suite('channel: labels in the inbox');

@@ -339,7 +339,14 @@
     "body": "Request Body",
     "field": "Field",
     "shortcutInput": "Shortcut Input",
-    "nav": "Devices"
+    "nav": "Devices",
+    "screenshotHeading": "A second shortcut, for screenshots",
+    "screenshotIntro": "A screenshot is one button, and it works on apps that cannot be read any other way. Same key, same endpoint — only the body differs.",
+    "screenshotStep1": "A new shortcut, named something like \"Screenshot to the cookbook\". Under its settings (ⓘ) turn on \"Show in Share Sheet\" and accept Images only.",
+    "screenshotStep2": "Add the action \"Base64 Encode\" with the shortcut input as its input.",
+    "screenshotStep3": "Then \"Get Contents of URL\", same method, same header as above, and this as the body — the Base64 result goes in place of the placeholder:",
+    "screenshotStep4": "Share a screenshot from Photos and pick the shortcut. It appears in the inbox with the picture attached.",
+    "screenshotNote": "Without an AI key the picture is still kept and the inbox says what it needs. With one, the recipe is read out of the picture. Nothing is ever refused for want of a key."
   },
   "Share": {
     "share": "Share",

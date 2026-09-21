@@ -15,6 +15,8 @@ import { emailToCapture } from './email';
  *     inside it and a caption around it
  *   - the mail bridge: `via: "email"` with a `subject` and the plain-text body
  *   - the Notes app, or anything else that shares plain text
+ *   - a screenshot from the share sheet or the photo library, which arrives as
+ *     base64 and has already been stored by the time it gets here
  */
 export interface CaptureBody {
     url?: string;
@@ -22,6 +24,12 @@ export interface CaptureBody {
     note?: string;
     via?: 'email';
     subject?: string;
+    /**
+     * A screenshot, already stored — the route uploads it before calling here,
+     * so that what is about to be classified is the same thing that will still
+     * be there tomorrow.
+     */
+    imageUrl?: string;
 }
 
 export function captureInputFrom(body: CaptureBody): ClassifiedCapture | null {
@@ -36,6 +44,7 @@ export function captureInputFrom(body: CaptureBody): ClassifiedCapture | null {
 
     return classifyCapture({
         url: body.url,
+        imageUrl: body.imageUrl,
         text: mail.text,
         // The subject labels the capture but is kept away from the recipe
         // parser, which would otherwise name the dish "Fwd: schau mal".

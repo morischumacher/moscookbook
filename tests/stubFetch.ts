@@ -2,6 +2,10 @@ type Fetch = typeof globalThis.fetch;
 
 export interface StubbedPage {
     html: string;
+    /** For a request that reads bytes rather than text — a picture. */
+    bytes?: Buffer;
+    /** A canned JSON answer, for the one endpoint that is not a web page. */
+    json?: unknown;
     status?: number;
     /** Where the request ended up, when the stub is standing in for a redirect. */
     finalUrl?: string;
@@ -31,7 +35,9 @@ export function stubFetch(pages: Record<string, StubbedPage>): () => void {
                 url,
                 headers: new Headers({ 'content-type': 'text/html' }),
                 text: async () => '',
-            } as Response;
+                arrayBuffer: async () => new ArrayBuffer(0),
+                json: async () => ({}),
+            } as unknown as Response;
         }
 
         return {
@@ -42,7 +48,15 @@ export function stubFetch(pages: Record<string, StubbedPage>): () => void {
                 'content-type': page.contentType ?? 'text/html; charset=utf-8',
             }),
             text: async () => page.html,
-        } as Response;
+            arrayBuffer: async () => {
+                const bytes = page.bytes ?? Buffer.from(page.html, 'utf8');
+                return bytes.buffer.slice(
+                    bytes.byteOffset,
+                    bytes.byteOffset + bytes.byteLength
+                ) as ArrayBuffer;
+            },
+            json: async () => page.json ?? JSON.parse(page.html),
+        } as unknown as Response;
     }) as Fetch;
 
     return () => {

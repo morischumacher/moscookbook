@@ -211,6 +211,26 @@ export default function AdminDevicesPage() {
                 </ol>
 
                 <p className="mt-6 text-sm text-muted">{t('shortcutNote')}</p>
+
+                {/* A second Shortcut, because a screenshot is how most people
+                    actually save a recipe on a phone — one button, and it works
+                    on an app that refuses to be read any other way. */}
+                <h3 className="mt-10 text-base font-bold tracking-tight">{t('screenshotHeading')}</h3>
+                <p className="mt-2 text-sm leading-relaxed">{t('screenshotIntro')}</p>
+
+                <ol className="mt-4 flex list-decimal flex-col gap-3 pl-5 text-sm leading-relaxed">
+                    <li>{t('screenshotStep1')}</li>
+                    <li>{t('screenshotStep2')}</li>
+                    <li>
+                        {t('screenshotStep3')}
+                        <pre className="mt-2 overflow-x-auto rounded border border-line p-3 font-mono text-xs">
+{`{ "image": { "base64": <Base64>, "mediaType": "image/png" } }`}
+                        </pre>
+                    </li>
+                    <li>{t('screenshotStep4')}</li>
+                </ol>
+
+                <p className="mt-4 text-sm text-muted">{t('screenshotNote')}</p>
             </section>
         </main>
     );

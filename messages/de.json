@@ -339,7 +339,14 @@
     "body": "Anfrage-Inhalt",
     "field": "Feld",
     "shortcutInput": "Kurzbefehl-Eingabe",
-    "nav": "Geräte"
+    "nav": "Geräte",
+    "screenshotHeading": "Ein zweiter Kurzbefehl, für Screenshots",
+    "screenshotIntro": "Ein Screenshot ist ein Knopfdruck und funktioniert auch bei Apps, die sich anders nicht auslesen lassen. Gleicher Schlüssel, gleiche Adresse — nur der Inhalt ist ein anderer.",
+    "screenshotStep1": "Neuer Kurzbefehl, Name zum Beispiel „Screenshot ins Kochbuch\". In den Einstellungen (ⓘ) „Im Teilen-Menü anzeigen\" einschalten und nur Bilder akzeptieren.",
+    "screenshotStep2": "Die Aktion „Base64-codieren\" hinzufügen, mit der Kurzbefehl-Eingabe als Eingabe.",
+    "screenshotStep3": "Danach „Inhalte von URL abrufen\", gleiche Methode und gleicher Header wie oben, und das hier als Anfrage-Inhalt — das Base64-Ergebnis kommt an die Stelle des Platzhalters:",
+    "screenshotStep4": "Aus Fotos einen Screenshot teilen und den Kurzbefehl wählen. Er steht mit Bild im Eingang.",
+    "screenshotNote": "Ohne KI-Schlüssel bleibt das Bild trotzdem erhalten, und im Eingang steht, was fehlt. Mit Schlüssel wird das Rezept aus dem Bild gelesen. Abgelehnt wird nie etwas, nur weil kein Schlüssel da ist."
   },
   "Share": {
     "share": "Teilen",

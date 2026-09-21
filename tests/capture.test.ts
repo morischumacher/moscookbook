@@ -110,8 +110,45 @@ export default function captureTests() {
             sourceUrl: 'https://youtu.be/x',
             rawText: 'irgendein Text',
             note: null,
+            imageUrl: null,
         }
     );
+
+    // A screenshot is carried whatever else was sent, so the picture is never
+    // the thing that got lost.
+    equal(
+        'a link shared with a screenshot keeps both',
+        classifyCapture({ url: 'https://www.instagram.com/p/x/', imageUrl: 'https://blob.test/a.jpg' }),
+        {
+            kind: 'url',
+            source: 'instagram',
+            sourceUrl: 'https://www.instagram.com/p/x/',
+            rawText: null,
+            note: null,
+            imageUrl: 'https://blob.test/a.jpg',
+        }
+    );
+
+    // Words beat a picture of words: reading text is exact, reading pixels is
+    // a guess. The picture stays attached in case the caption was not it.
+    equal(
+        'a caption shared with a screenshot is handled as the caption',
+        classifyCapture({ text: 'Ofengemüse\n1 Zucchini', imageUrl: 'https://blob.test/a.jpg' })?.kind,
+        'text'
+    );
+    equal(
+        'and a screenshot on its own is a picture',
+        classifyCapture({ imageUrl: 'https://blob.test/a.jpg' }),
+        {
+            kind: 'image',
+            source: 'photo',
+            sourceUrl: null,
+            rawText: null,
+            note: null,
+            imageUrl: 'https://blob.test/a.jpg',
+        }
+    );
+    equal('an empty share is still nothing', classifyCapture({ imageUrl: '  ' }), null);
 
     // This is the Instagram case: a link plus the whole recipe in the caption.
     // Neither may be dropped, because the link cannot be read and the caption can.
