@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { rateLimit, clientKey } from '@/lib/rateLimit';
 
 export async function POST(
     req: NextRequest,
@@ -14,6 +15,19 @@ export async function POST(
 
         if (Number.isNaN(recipeId)) {
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
+        }
+
+        // The one write on this site that needs no account, so the one write
+        // anybody can repeat. The cookie below is the real deduplication, but
+        // a cookie is set by the caller and a caller who declines to keep it
+        // can count the same recipe as often as it likes — a loop with no
+        // cookie jar was an unbounded stream of UPDATEs against the production
+        // pool, and a view count that means nothing.
+        const limit = rateLimit(clientKey(req, 'view'), 120, 60 * 1000);
+        if (!limit.ok) {
+            // Quietly: a view is not something the reader asked for, so a
+            // refusal is not something they need told about.
+            return NextResponse.json({ message: 'Too many views' }, { status: 200 });
         }
 
         const user = await getCurrentUser();

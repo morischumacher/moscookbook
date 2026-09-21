@@ -12,7 +12,7 @@
  * is. Deciding takes a minute; noticing in a year takes everything written in
  * between.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
 const SCHEMA = 'prisma/schema.prisma';
 
@@ -122,6 +122,62 @@ for (const model of NOT_BACKED_UP.keys()) {
             `${model} is listed as deliberately not backed up, but there is no such model.\n` +
             '    Remove it from NOT_BACKED_UP in scripts/check-backup.mjs.'
         );
+    }
+}
+
+/* ------------------------------------------------- the sweep and the backups */
+
+/**
+ * The sweep must leave the backups alone.
+ *
+ * Nothing in the database points at a backup — that is the whole nature of a
+ * backup — which makes one look exactly like the orphaned file the sweep is
+ * built to delete. Without an explicit exemption, `npm run sweep -- --delete`
+ * removes every automated backup in one batch, and the thing that would have
+ * saved you is the thing that went first.
+ *
+ * Both files take the prefix from src/lib/backupPrefix.mjs, so this checks that
+ * neither has quietly gone back to a literal of its own, and that the sweep
+ * still skips it.
+ */
+const SWEEP = 'scripts/sweep-blobs.mjs';
+const PREFIX_FILE = 'src/lib/backupPrefix.mjs';
+const BACKUP_ROUTE = 'src/app/api/cron/backup/route.ts';
+
+const sweepSource = readFileSync(SWEEP, 'utf8');
+const routeSource = readFileSync(BACKUP_ROUTE, 'utf8');
+
+if (!existsSync(PREFIX_FILE)) {
+    problems.push(
+        `${PREFIX_FILE} is gone. It is the one place that says where backups live,\n` +
+        '    and both the cron route and the sweep read it from there.'
+    );
+} else {
+    const prefix = /BACKUP_PREFIX\s*=\s*'([^']+)'/.exec(readFileSync(PREFIX_FILE, 'utf8'))?.[1];
+
+    if (!prefix) {
+        problems.push(`${PREFIX_FILE} no longer exports a plain BACKUP_PREFIX string.`);
+    } else {
+        if (!sweepSource.includes('BACKUP_PREFIX')) {
+            problems.push(
+                `${SWEEP} does not mention BACKUP_PREFIX, so it no longer knows which files\n` +
+                '    are backups. One --delete would take every one of them.'
+            );
+        }
+
+        if (!/startsWith\(\s*BACKUP_PREFIX\s*\)/.test(sweepSource)) {
+            problems.push(
+                `${SWEEP} does not skip anything whose pathname starts with BACKUP_PREFIX.\n` +
+                '    Backups are unreferenced by definition; without that test they are orphans.'
+            );
+        }
+
+        if (!routeSource.includes('BACKUP_PREFIX')) {
+            problems.push(
+                `${BACKUP_ROUTE} writes its backups to a literal of its own rather than to\n` +
+                `    BACKUP_PREFIX. When the two strings disagree, the sweep deletes the backups.`
+            );
+        }
     }
 }
 

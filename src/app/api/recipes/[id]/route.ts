@@ -57,6 +57,25 @@ export async function PUT(
             position: index,
         }));
 
+        // Which files this edit is about to stop pointing at. Read before the
+        // write, because after it there is nothing left to ask. Deleting a
+        // recipe has always taken its pictures with it; editing one quietly did
+        // not, so every photograph ever removed or reordered out of a recipe
+        // stayed in the store, unreachable and still paid for.
+        const droppedUrls: string[] = [];
+
+        if (replaceImages) {
+            const before: { url: string }[] = await prisma.image.findMany({
+                where: { recipeId },
+                select: { url: true },
+            });
+
+            const kept = new Set(imageUrls ?? []);
+            for (const image of before) {
+                if (!kept.has(image.url)) droppedUrls.push(image.url);
+            }
+        }
+
         const [updatedRecipe] = await prisma.$transaction([
             prisma.recipe.update({
                 where: { id: recipeId },
@@ -92,6 +111,11 @@ export async function PUT(
                 ]
                 : []),
         ]);
+
+        // After the transaction, never inside it: a file cannot be un-deleted
+        // if the write rolls back, and a row pointing at a missing picture is a
+        // worse outcome than a file nobody points at.
+        if (droppedUrls.length > 0) await deleteBlobs(droppedUrls);
 
         return NextResponse.json(updatedRecipe, { status: 200 });
     } catch (error) {

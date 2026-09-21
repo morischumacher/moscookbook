@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put, list, del } from '@vercel/blob';
 import prisma from '@/lib/prisma';
+import { BACKUP_PREFIX } from '@/lib/backupPrefix.mjs';
 import {
     buildArchive,
     archiveFilename,
@@ -28,7 +29,10 @@ import {
  */
 
 const KEEP = 8;
-const PREFIX = 'backups/';
+
+// Imported rather than written out again: the sweep script needs the same
+// string, and when the two disagreed the sweep deleted every backup.
+const PREFIX = BACKUP_PREFIX;
 
 /**
  * Vercel sends `Authorization: Bearer $CRON_SECRET` when the secret is set.

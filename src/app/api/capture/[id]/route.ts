@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
+import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
 import { slugify } from '@/lib/recipe';
 import { searchFields } from '@/lib/searchText';
@@ -140,6 +141,21 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
         return NextResponse.json({ message: 'Invalid capture id' }, { status: 400 });
     }
 
-    await prisma.capture.deleteMany({ where: { id: captureId } });
+    // The screenshot goes with it. Discarding is how most captures end — far
+    // more of them than are ever published — so this was the largest of the
+    // three places that left files in the store with nothing pointing at them.
+    // A published capture's picture is not touched: by then the recipe owns it.
+    const doomed: { imageUrl: string | null; status: string } | null =
+        await prisma.capture.findUnique({
+            where: { id: captureId },
+            select: { imageUrl: true, status: true },
+        });
+
+    const removed = await prisma.capture.deleteMany({ where: { id: captureId } });
+
+    if (removed.count === 1 && doomed?.imageUrl && doomed.status !== 'published') {
+        await deleteBlobs([doomed.imageUrl]);
+    }
+
     return NextResponse.json({ ok: true });
 }
