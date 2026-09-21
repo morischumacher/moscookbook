@@ -14,7 +14,8 @@ export default function RegisterPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const invite = searchParams.get('invite') ?? '';
-    const [name, setName] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -29,7 +30,7 @@ export default function RegisterPage() {
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password, invite }),
+                body: JSON.stringify({ firstName, lastName, email, password, invite }),
             });
 
             if (res.ok) {
@@ -69,17 +70,34 @@ export default function RegisterPage() {
                     </p>
                 )}
 
-                <div>
-                    <label htmlFor="name" className={labelClass}>{t('name')}</label>
-                    <input
-                        type="text"
-                        id="name"
-                        autoComplete="name"
-                        value={name}
-                        onChange={(event) => setName(event.target.value)}
-                        required
-                        className={fieldClass}
-                    />
+                {/* Side by side once there is room; stacked on a phone, where
+                    two half-width fields are two half-width mistakes. */}
+                <div className="flex flex-col gap-6 sm:flex-row sm:gap-4">
+                    <div className="flex-1">
+                        <label htmlFor="firstName" className={labelClass}>{t('firstName')}</label>
+                        <input
+                            type="text"
+                            id="firstName"
+                            autoComplete="given-name"
+                            value={firstName}
+                            onChange={(event) => setFirstName(event.target.value)}
+                            required
+                            className={fieldClass}
+                        />
+                    </div>
+
+                    <div className="flex-1">
+                        <label htmlFor="lastName" className={labelClass}>{t('lastName')}</label>
+                        <input
+                            type="text"
+                            id="lastName"
+                            autoComplete="family-name"
+                            value={lastName}
+                            onChange={(event) => setLastName(event.target.value)}
+                            required
+                            className={fieldClass}
+                        />
+                    </div>
                 </div>
 
                 <div>

@@ -96,7 +96,6 @@
     "registerTitle": "Create an account",
     "email": "E-mail",
     "password": "Password",
-    "name": "Name",
     "submitLogin": "Log in",
     "submitRegister": "Register",
     "needAccount": "Need an account?",
@@ -109,7 +108,9 @@
     "registerFailed": "Registration failed",
     "creatingAccount": "Creating account…",
     "passwordHint": "At least 8 characters.",
-    "inviteRequired": "Registration is by invitation. Ask Mo for a link."
+    "inviteRequired": "Registration is by invitation. Ask Mo for a link.",
+    "firstName": "First name",
+    "lastName": "Last name"
   },
   "Admin": {
     "dashboard": "Recipes",

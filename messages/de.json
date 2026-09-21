@@ -96,7 +96,6 @@
     "registerTitle": "Konto erstellen",
     "email": "E-Mail",
     "password": "Passwort",
-    "name": "Name",
     "submitLogin": "Anmelden",
     "submitRegister": "Registrieren",
     "needAccount": "Noch kein Konto?",
@@ -109,7 +108,9 @@
     "registerFailed": "Registrierung fehlgeschlagen",
     "creatingAccount": "Konto wird erstellt…",
     "passwordHint": "Mindestens 8 Zeichen.",
-    "inviteRequired": "Die Registrierung läuft über Einladungen. Frag Mo nach einem Link."
+    "inviteRequired": "Die Registrierung läuft über Einladungen. Frag Mo nach einem Link.",
+    "firstName": "Vorname",
+    "lastName": "Nachname"
   },
   "Admin": {
     "dashboard": "Rezepte",

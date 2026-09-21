@@ -11,7 +11,12 @@ datasource db {
 model User {
   id             Int        @id @default(autoincrement())
   email          String     @unique
+  /// Written from firstName and lastName by fullName(); the display name
+  /// everything else reads. Kept as its own column so that no read site has
+  /// to know how the two parts join.
   name           String
+  firstName      String     @default("")
+  lastName       String     @default("")
   password       String
   admin          Boolean    @default(false)
   ratings        Rating[]
