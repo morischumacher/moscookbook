@@ -246,6 +246,25 @@ warns only when two titles say the *same* thing: "Apfelkuchen" does not flag
 "Apfelkuchen mit Streuseln und Vanillesauce", because that is a different cake
 and a warning there teaches you to ignore warnings.
 
+### Merging a duplicate
+
+The inbox has always spotted the same dish arriving twice — a link that is
+already a recipe is certain, a title that matches is a suspicion. Until now the
+only answers were to discard the capture, throwing away whatever came with it,
+or to publish it and end up with two copies of one recipe.
+
+**Merge** is the third, and it is deliberately the conservative one. The
+existing recipe's words are never touched: a capture is a guess made by a
+parser, the recipe is something a person wrote, and a merge that overwrote it
+would be the same second disaster the archive restore refuses to be. What it
+does take is a picture the recipe does not already have — appended, so the
+recipe's own first photograph stays the one every list shows — and it files the
+capture against the recipe and marks it published, so it leaves the inbox with
+a record of where it went rather than vanishing.
+
+If the new version is genuinely better, the editor is one click away and takes
+a minute. The merge does not try to decide that.
+
 ### Setting it up on an iPhone
 
 iOS cannot add a web page to the share sheet — Web Share Target is an Android

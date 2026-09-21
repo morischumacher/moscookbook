@@ -305,7 +305,9 @@
       "email": "E-mail"
     },
     "duplicateLink": "That link is already in the cookbook as",
-    "duplicateTitle": "There may already be"
+    "duplicateTitle": "There may already be",
+    "merge": "Merge into it",
+    "confirmMerge": "Merge into “{title}”? Its text stays as it is; a new picture is added and this capture is filed against it."
   },
   "Devices": {
     "title": "Devices",

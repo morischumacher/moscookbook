@@ -305,7 +305,9 @@
       "email": "E-Mail"
     },
     "duplicateLink": "Dieser Link steht schon im Kochbuch als",
-    "duplicateTitle": "Gibt es vielleicht schon:"
+    "duplicateTitle": "Gibt es vielleicht schon:",
+    "merge": "Zusammenführen",
+    "confirmMerge": "Mit „{title}\" zusammenführen? Der Text bleibt, wie er ist; ein neues Bild kommt dazu und dieser Eingang wird dem Rezept zugeordnet."
   },
   "Devices": {
     "title": "Geräte",
