@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 
 const fieldClass =
     'w-full rounded-lg border border-line bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
@@ -11,6 +11,7 @@ const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-
 
 export default function RegisterPage() {
     const t = useTranslations('Auth');
+    const router = useRouter();
     const searchParams = useSearchParams();
     const invite = searchParams.get('invite') ?? '';
     const [name, setName] = useState('');
@@ -32,8 +33,10 @@ export default function RegisterPage() {
             });
 
             if (res.ok) {
-                // Full reload so every server component sees the new session.
-                window.location.href = '/';
+                // refresh() throws away the cached server render, so the pages
+                // below this one are rebuilt with the new session.
+                router.push('/');
+                router.refresh();
                 return;
             }
 

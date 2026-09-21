@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 
 const fieldClass =
     'w-full rounded-lg border border-line bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
@@ -10,6 +10,7 @@ const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-
 
 export default function LoginPage() {
     const t = useTranslations('Auth');
+    const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -30,10 +31,11 @@ export default function LoginPage() {
             const data = await res.json();
 
             if (res.ok) {
-                // Full reload so every server component sees the new session.
-                window.location.href = data.admin
-                    ? window.location.pathname.replace('/login', '/admin')
-                    : window.location.pathname.replace('/login', '');
+                // The locale-aware router adds the language prefix itself, so
+                // the destination is written plainly. refresh() throws away the
+                // cached server render so the new session is picked up.
+                router.push(data.admin ? '/admin' : '/');
+                router.refresh();
                 return;
             }
 
