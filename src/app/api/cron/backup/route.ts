@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put, list, del } from '@vercel/blob';
 import prisma from '@/lib/prisma';
+import { sweepRateLimits } from '@/lib/rateLimitShared';
 import { BACKUP_PREFIX } from '@/lib/backupPrefix.mjs';
 import {
     buildArchive,
@@ -106,6 +107,13 @@ export async function GET(req: NextRequest) {
         });
 
         const archive = buildArchive(recipes, new Date(), posts, cookPhotos);
+
+        // Housekeeping, attached to the one thing that already runs weekly.
+        // Nothing depends on it — a closed rate-limit window is reused in
+        // place — but without it the table grows a row per address that ever
+        // signed in.
+        const sweptLimits = await sweepRateLimits();
+        if (sweptLimits > 0) console.log(`Swept ${sweptLimits} closed rate-limit windows.`);
 
         const blob = await put(
             `${PREFIX}${archiveFilename()}`,

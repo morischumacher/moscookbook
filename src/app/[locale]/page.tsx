@@ -45,6 +45,21 @@ type RecipeOrderBy = { createdAt: 'desc' } | { views: 'desc' };
 /** One screenful. The page never loads the whole collection. */
 const PAGE_SIZE = 24;
 
+/**
+ * How many search hits are ever ranked.
+ *
+ * The raw query below had no LIMIT at all: it returned every matching id, and
+ * those ids then went into `where.id = { in: … }` for the count *and* for the
+ * fetch. A common German stem across a few thousand recipes meant a couple of
+ * thousand bind parameters, twice, sorted in Node, to show twenty-four rows.
+ * Postgres's own ceiling is 65535 parameters; the practical one is far below.
+ *
+ * Six hundred is twenty-five pages. Nobody pages twenty-five screens deep into
+ * a search — they type a better word — and the ranking means the ones that
+ * would fall off the end are the ones that matched least.
+ */
+const SEARCH_MATCH_CAP = 600;
+
 function averageRating(ratings: { value: number }[]): number {
     if (ratings.length === 0) return 0;
     return ratings.reduce((sum, rating) => sum + rating.value, 0) / ratings.length;
@@ -153,6 +168,7 @@ export default async function HomePage({
                 WHERE "searchVector" @@ to_tsquery('german', ${tsquery})
                 ORDER BY ts_rank("searchVector", to_tsquery('german', ${tsquery})) DESC,
                          "createdAt" DESC
+                LIMIT ${SEARCH_MATCH_CAP}
             `;
 
             const matchedIds = ranked.map((row) => row.id);

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
-import { rateLimit, clientKey } from '@/lib/rateLimit';
+import { clientKey } from '@/lib/rateLimit';
+import { rateLimitShared } from '@/lib/rateLimitShared';
 import { issueToken } from '@/lib/issueToken';
 
 const schema = z.object({
@@ -22,7 +23,7 @@ const schema = z.object({
  * cookbook to fill a stranger's inbox with mail they did not ask for.
  */
 export async function POST(req: NextRequest) {
-    const limit = rateLimit(clientKey(req, 'forgot'), 10, 60 * 60 * 1000);
+    const limit = await rateLimitShared(clientKey(req, 'forgot'), 10, 60 * 60 * 1000);
     if (!limit.ok) {
         return NextResponse.json(
             { ok: true },
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     const { email, locale = 'en' } = parsed.data;
 
-    const perAddress = rateLimit(`forgot:address:${email.toLowerCase()}`, 3, 60 * 60 * 1000);
+    const perAddress = await rateLimitShared(`forgot:address:${email.toLowerCase()}`, 3, 60 * 60 * 1000);
     if (!perAddress.ok) return NextResponse.json({ ok: true });
 
     try {

@@ -47,6 +47,7 @@ const NOT_BACKED_UP = new Map([
     ['ErrorLog', 'a log of what broke in this deployment'],
     ['Image', "carried inside each recipe's entry rather than as its own list"],
     ['Ingredient', 'the same'],
+    ['RateLimit', 'counters for windows measured in minutes; restoring one would be nonsense'],
 ]);
 
 const schema = readFileSync(SCHEMA, 'utf8');

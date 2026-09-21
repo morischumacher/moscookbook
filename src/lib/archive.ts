@@ -170,6 +170,63 @@ export interface ExportableCookPhoto {
     user: { name: string } | null;
 }
 
+/*
+ * One row, converted.
+ *
+ * Pulled out of buildArchive so that the streaming export can emit rows one
+ * page at a time without a second copy of the mapping. Two copies of "what an
+ * archived recipe looks like" is precisely how an archive comes to disagree
+ * with the thing that restores it.
+ */
+
+export function toArchiveRecipe(recipe: ExportableRecipe): ArchiveRecipe {
+    return {
+        title: recipe.title,
+        slug: recipe.slug,
+        description: recipe.description,
+        instructions: recipe.instructions,
+        category: recipe.category,
+        nationality: recipe.nationality,
+        servings: recipe.servings,
+        prepMinutes: recipe.prepMinutes,
+        cookMinutes: recipe.cookMinutes,
+        views: recipe.views,
+        createdAt: recipe.createdAt.toISOString(),
+        images: recipe.images.map((image) => image.url),
+        ingredients: recipe.ingredients
+            .slice()
+            .sort((a, b) => a.position - b.position)
+            .map((ingredient, index) => ({ ...ingredient, position: index })),
+    };
+}
+
+export function toArchivePost(post: ExportablePost): Archive['posts'][number] {
+    return {
+        title: post.title,
+        slug: post.slug,
+        body: post.body,
+        imageUrl: post.imageUrl,
+        publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+        createdAt: post.createdAt.toISOString(),
+        // By slug rather than by id: an archive is restored into a database
+        // where every id is new, and a slug is the one name that survives the
+        // trip. The author is a name for the same reason — accounts are not in
+        // an archive.
+        recipeSlug: post.recipe?.slug ?? null,
+        author: post.author?.name ?? null,
+    };
+}
+
+export function toArchiveCookPhoto(photo: ExportableCookPhoto): Archive['cookPhotos'][number] {
+    return {
+        url: photo.url,
+        caption: photo.caption,
+        createdAt: photo.createdAt.toISOString(),
+        recipeSlug: photo.recipe.slug,
+        author: photo.user?.name ?? null,
+    };
+}
+
 export function buildArchive(
     recipes: ExportableRecipe[],
     now = new Date(),
@@ -180,45 +237,9 @@ export function buildArchive(
         version: ARCHIVE_VERSION,
         exportedAt: now.toISOString(),
         recipeCount: recipes.length,
-        recipes: recipes.map((recipe) => ({
-            title: recipe.title,
-            slug: recipe.slug,
-            description: recipe.description,
-            instructions: recipe.instructions,
-            category: recipe.category,
-            nationality: recipe.nationality,
-            servings: recipe.servings,
-            prepMinutes: recipe.prepMinutes,
-            cookMinutes: recipe.cookMinutes,
-            views: recipe.views,
-            createdAt: recipe.createdAt.toISOString(),
-            images: recipe.images.map((image) => image.url),
-            ingredients: recipe.ingredients
-                .slice()
-                .sort((a, b) => a.position - b.position)
-                .map((ingredient, index) => ({ ...ingredient, position: index })),
-        })),
-        posts: posts.map((post) => ({
-            title: post.title,
-            slug: post.slug,
-            body: post.body,
-            imageUrl: post.imageUrl,
-            publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
-            createdAt: post.createdAt.toISOString(),
-            // By slug rather than by id: an archive is restored into a database
-            // where every id is new, and a slug is the one name that survives
-            // the trip. The author is a name for the same reason — accounts are
-            // not in an archive.
-            recipeSlug: post.recipe?.slug ?? null,
-            author: post.author?.name ?? null,
-        })),
-        cookPhotos: cookPhotos.map((photo) => ({
-            url: photo.url,
-            caption: photo.caption,
-            createdAt: photo.createdAt.toISOString(),
-            recipeSlug: photo.recipe.slug,
-            author: photo.user?.name ?? null,
-        })),
+        recipes: recipes.map(toArchiveRecipe),
+        posts: posts.map(toArchivePost),
+        cookPhotos: cookPhotos.map(toArchiveCookPhoto),
     };
 }
 

@@ -66,6 +66,10 @@ export default async function BlogIndex({
                 WHERE "searchVector" @@ to_tsquery('german', ${tsquery})
                 ORDER BY ts_rank("searchVector", to_tsquery('german', ${tsquery})) DESC,
                          "createdAt" DESC
+                -- Bounded for the same reason as the recipe search: these ids
+                -- become an IN list, and an unbounded one is a query that gets
+                -- slower for the person who searched for a common word.
+                LIMIT 300
             `;
             matchedIds = ranked.map((row) => row.id);
         }

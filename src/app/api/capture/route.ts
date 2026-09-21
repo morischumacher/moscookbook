@@ -3,7 +3,8 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
-import { rateLimit, clientKey } from '@/lib/rateLimit';
+import { clientKey } from '@/lib/rateLimit';
+import { rateLimitShared } from '@/lib/rateLimitShared';
 import { tokenFromHeader, hashCaptureToken } from '@/lib/capture';
 import { captureInputFrom } from '@/lib/captureInput';
 import { storeCaptureImage, MAX_CAPTURE_IMAGE_BASE64 } from '@/lib/storeCaptureImage';
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     // Before the token is even looked up: an unauthenticated endpoint that
     // touches the database on every request is a way to run up a bill.
-    const limit = rateLimit(clientKey(req, 'capture'), 60, 10 * 60 * 1000);
+    const limit = await rateLimitShared(clientKey(req, 'capture'), 60, 10 * 60 * 1000);
     if (!limit.ok) {
         return NextResponse.json(
             { message: 'Too many captures. Please wait a moment.' },

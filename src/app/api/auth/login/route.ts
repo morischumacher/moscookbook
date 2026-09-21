@@ -3,7 +3,8 @@ import { getIronSession } from 'iron-session';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { sessionOptions, SessionData } from '@/lib/session';
-import { rateLimit, clientKey } from '@/lib/rateLimit';
+import { clientKey } from '@/lib/rateLimit';
+import { rateLimitShared } from '@/lib/rateLimitShared';
 import prisma from '@/lib/prisma';
 
 const loginSchema = z.object({
@@ -18,7 +19,7 @@ const loginSchema = z.object({
 const DUMMY_HASH = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
 
 export async function POST(req: NextRequest) {
-    const limit = rateLimit(clientKey(req, 'login'), 10, 15 * 60 * 1000);
+    const limit = await rateLimitShared(clientKey(req, 'login'), 10, 15 * 60 * 1000);
 
     if (!limit.ok) {
         return NextResponse.json(

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { forgetVerified } from '@/lib/verifiedFlag';
-import { rateLimit, clientKey } from '@/lib/rateLimit';
+import { clientKey } from '@/lib/rateLimit';
+import { rateLimitShared } from '@/lib/rateLimitShared';
 import { hashToken, tokenState } from '@/lib/authTokens';
 
 const schema = z.object({
@@ -22,7 +23,7 @@ const schema = z.object({
  * first is not their problem.
  */
 export async function POST(req: NextRequest) {
-    const limit = rateLimit(clientKey(req, 'verify'), 20, 60 * 60 * 1000);
+    const limit = await rateLimitShared(clientKey(req, 'verify'), 20, 60 * 60 * 1000);
 
     if (!limit.ok) {
         return NextResponse.json(

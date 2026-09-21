@@ -4,7 +4,8 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { sessionOptions, SessionData } from '@/lib/session';
-import { rateLimit, clientKey } from '@/lib/rateLimit';
+import { clientKey } from '@/lib/rateLimit';
+import { rateLimitShared } from '@/lib/rateLimitShared';
 import prisma from '@/lib/prisma';
 import { fullName } from '@/lib/personName';
 import { issueToken } from '@/lib/issueToken';
@@ -19,7 +20,7 @@ const registerSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-    const limit = rateLimit(clientKey(req, 'register'), 5, 60 * 60 * 1000);
+    const limit = await rateLimitShared(clientKey(req, 'register'), 5, 60 * 60 * 1000);
 
     if (!limit.ok) {
         return NextResponse.json(
