@@ -99,6 +99,9 @@ export default async function SharedRecipePage({
 
             <RecipeArticle
                 recipe={recipe}
+                // A note is a kitchen diary; whoever was sent this link did
+                // not ask for it.
+                notes={[]}
                 locale={locale}
                 mode="shared"
                 isLoggedIn={false}

@@ -6,6 +6,7 @@ import Logo from '@/components/brand/Logo';
 import RecipeBody from '@/components/recipe/RecipeBody';
 import Gallery from '@/components/recipe/Gallery';
 import ShareLink from '@/components/recipe/ShareLink';
+import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
 import { formatMinutes } from '@/lib/amount';
 import { buildRecipeJsonLd } from '@/lib/recipeJsonLd';
@@ -55,6 +56,11 @@ export interface RecipeArticleProps {
     url: string;
     /** The public link, when one exists. Only ever shown to an admin. */
     publicUrl: string | null;
+    /**
+     * Entries written about this recipe. Empty on the shared page: a note is a
+     * kitchen diary, and the person you sent a recipe to did not ask for it.
+     */
+    notes: RecipeNote[];
 }
 
 export default async function RecipeArticle({
@@ -68,6 +74,7 @@ export default async function RecipeArticle({
     views,
     url,
     publicUrl,
+    notes,
 }: RecipeArticleProps) {
     const t = await getTranslations('Recipe');
     const tCategory = await getTranslations('Categories');
@@ -174,7 +181,7 @@ export default async function RecipeArticle({
 
                 {mode === 'private' && isAdmin && (
                     <div className="print:hidden mb-8">
-                        <ShareLink recipeId={recipe.id} initialUrl={publicUrl} locale={locale} />
+                        <ShareLink id={recipe.id} kind="recipe" initialUrl={publicUrl} locale={locale} />
                     </div>
                 )}
             </header>
@@ -218,6 +225,15 @@ export default async function RecipeArticle({
                     // them on to the recipe once they are in.
                     shareUrl={mode === 'shared' ? url : publicUrl ?? undefined}
                 />
+
+                {mode === 'private' && (
+                    <RecipeNotes
+                        notes={notes}
+                        recipeId={recipe.id}
+                        isAdmin={isAdmin}
+                        locale={locale}
+                    />
+                )}
             </div>
         </article>
     );

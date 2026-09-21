@@ -478,6 +478,58 @@ text contradicts — are all testable without a mail server. Plain text is the
 real message and HTML the decoration; a reset link that only exists inside a
 styled table is a reset link some people cannot use.
 
+## The blog
+
+One model, `Post`, for two things that turned out to be the same thing written
+on different days.
+
+An entry with no recipe is an ordinary post. An entry with a recipe attached is
+a dated note on that recipe's page — "made it again with half the sugar,
+better" — and also appears on the blog page like any other entry. The
+difference between them is one nullable column, and keeping them apart would
+have meant two tables, two editors and two lists for it.
+
+**Writing never requires a recipe.** The dropdown opens on "no recipe", which is
+the default, and nothing about an entry changes when it has one except where
+else it shows up. **Writing never requires the AI import either** — there is no
+AI anywhere in this part of the application. This is the one place where the
+words are supposed to be the author's, and a machine offering to write them
+would be answering a question nobody asked.
+
+Markdown, rendered with the same library the recipe method uses. No editor
+toolbar, no blocks, no rich text: the thing being written is a few paragraphs
+about a cake, and every format beyond Markdown is a format that has to be
+migrated later. The prose styles are seven rules in `globals.css`, written out
+rather than pulled in with a typography plugin — a plugin would bring a colour
+palette of its own, which `check:design` exists to keep out.
+
+Drafts and publishing are two buttons rather than a checkbox, so neither can
+happen by accident, and Enter in a field means "save what I have", never
+"publish". The publication date is set once when an entry is first published
+and then left alone: editing something from last year must not move it back to
+the top of the list as if it were new. `updatedAt` already records the other
+thing.
+
+A draft is visible to an admin and to nobody else — `notFound()` rather than a
+403, because somebody without rights has no business knowing an unfinished
+entry exists at that address. Entries share exactly like recipes, at
+`/de/p/<token>`, and a token stops working if the entry goes back to being a
+draft: unpublishing has to mean unpublished, or "draft" is only a label.
+
+Notes under a recipe are shown oldest first, unlike the blog index. A cooking
+log is read as a sequence — what changed, and then what changed after that. They
+appear on the private page only: a note is a kitchen diary, and whoever was sent
+a share link did not ask for it.
+
+Deleting a recipe, or an account, does not delete anything written. Both foreign
+keys are `ON DELETE SET NULL`; a note whose recipe is gone becomes an entry of
+its own. Verified against a real Postgres rather than assumed.
+
+Not yet: entries are not in the search index. `searchFields()` and the
+`searchVector` column are recipe-shaped, and giving posts their own would be a
+second migration for something worth doing once there is enough written to need
+it.
+
 ## Who can see what
 
 The cookbook is private. Every page needs an account except five: the two
@@ -710,6 +762,9 @@ npx prisma migrate deploy
 
 **On a fresh database**, `npx prisma migrate deploy` is enough.
 
+`0008_posts` adds the `Post` table, with both foreign keys `ON DELETE SET NULL`
+so that deleting a recipe or an account never deletes something somebody wrote.
+
 `0007_auth_and_visibility` is the one to read before deploying: it adds the
 token table and `User.emailVerifiedAt` (backfilled to now, because accounts
 that already existed were created by somebody who was standing there), and it
@@ -745,6 +800,7 @@ npx prisma migrate diff \
 - Everything except the sign-in pages, the mailed links and the share links
   needs an account; the rule lives in `src/lib/accessRules.ts` and is tested.
 - Share tokens are 128 bits, unique, and revoked by setting the column to null.
+- A share token on an entry that has gone back to draft stops resolving.
 - The URL importer refuses loopback and private address ranges, so it cannot be
   pointed at internal services.
 - Recipe image URLs are restricted to `http(s)`.

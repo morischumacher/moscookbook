@@ -28,6 +28,7 @@ interface MobileNavbarProps {
 export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
     const t = useTranslations('Navigation');
     const tInvites = useTranslations('Invites');
+    const tBlog = useTranslations('Blog');
     const tInbox = useTranslations('Inbox');
     const tErrors = useTranslations('Errors');
     const [isOpen, setIsOpen] = useState(false);
@@ -56,11 +57,16 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
     const deskLink = 'text-sm text-ink hover:opacity-60 transition-opacity';
 
 
+    // Shown to anyone with an account, not only to an admin: the entries are
+    // for reading, and only writing them needs rights.
+    const readerLinks = [{ href: '/blog', label: tBlog('nav') }];
+
     const adminLinks = [
         { href: '/admin', label: t('admin') },
         { href: '/admin/inbox', label: tInbox('nav') },
         { href: '/admin/users', label: t('users') },
         { href: '/admin/invites', label: tInvites('nav') },
+        { href: '/admin/posts', label: tBlog('adminNav') },
         { href: '/admin/errors', label: tErrors('nav') },
     ];
 
@@ -78,6 +84,11 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
                         </Link>
                     ) : (
                         <>
+                            {readerLinks.map((link) => (
+                                <Link key={link.href} href={link.href} className={deskLink}>
+                                    {link.label}
+                                </Link>
+                            ))}
                             {user.admin &&
                                 adminLinks.map((link) => (
                                     <Link key={link.href} href={link.href} className={deskLink}>
@@ -141,6 +152,16 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
                                 </Link>
                             ) : (
                                 <>
+                                    {readerLinks.map((link) => (
+                                        <Link
+                                            key={link.href}
+                                            href={link.href}
+                                            onClick={close}
+                                            className={row}
+                                        >
+                                            {link.label}
+                                        </Link>
+                                    ))}
                                     {user.admin &&
                                         adminLinks.map((link) => (
                                             <Link

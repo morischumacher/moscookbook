@@ -26,14 +26,14 @@ const ADMIN_PATH = /^\/(?:en|de)\/admin(?:\/|$)/;
 /**
  * The pages that have to work without an account, and why each one does: the
  * two sign-in pages, the three that arrive as a link in an e-mail, and the
- * share links — whose whole point is to be openable by someone who has no
- * account and is not going to make one.
+ * share links — `r` for a recipe, `p` for a written entry — whose whole point
+ * is to be openable by someone who has no account and is not going to make one.
  *
  * Anchored at a path segment boundary on both ends. Without the `(?:\/|$)` a
  * page called `/en/registered-users` would be read as starting with `register`
  * and let through.
  */
-const OPEN_PATH = /^\/(?:en|de)\/(?:login|register|forgot|reset|verify|r)(?:\/|$)/;
+const OPEN_PATH = /^\/(?:en|de)\/(?:login|register|forgot|reset|verify|r|p)(?:\/|$)/;
 
 export function pathAccess(pathname: string): Access {
     if (!LOCALISED.test(pathname)) return 'unmatched';

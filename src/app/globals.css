@@ -229,6 +229,59 @@ body {
   font-weight: 700;
 }
 
+/* ------------------------------------------------------------------ blog */
+
+/*
+ * Markdown in a written entry: the long-form counterpart to .markdown-step.
+ * Written out rather than pulled in with a typography plugin, because the
+ * whole vocabulary an entry uses is these seven rules, and a plugin would
+ * bring a colour palette of its own that check:design exists to keep out.
+ */
+.post-body > :first-child {
+  margin-top: 0;
+}
+
+.post-body p {
+  margin: 0 0 1.25rem;
+}
+
+.post-body h2,
+.post-body h3 {
+  /* Sans, against the serif body: a heading inside an entry should read as a
+     label for what follows, not as a smaller version of the title. */
+  font-family: var(--font-sans);
+  margin: 2.5rem 0 0.75rem;
+}
+
+.post-body ul,
+.post-body ol {
+  margin: 0 0 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.post-body li {
+  margin-bottom: 0.4rem;
+  list-style: revert;
+}
+
+.post-body blockquote {
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--color-border);
+  color: var(--color-muted);
+}
+
+.post-body img {
+  border-radius: 0.5rem;
+  margin: 0 0 1.25rem;
+}
+
+.post-body hr {
+  margin: 2.5rem 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
 /* Cook mode: bigger touch targets for hands that are busy. */
 .cook-mode input[type='checkbox'] {
   width: 1.75rem;

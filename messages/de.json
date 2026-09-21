@@ -354,7 +354,11 @@
     "revokeConfirm": "Link zurückziehen? Wer ihn schon bekommen hat, kann das Rezept dann nicht mehr öffnen.",
     "linkFailed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
     "sharedNotice": "Ein Rezept aus mo'scookbook, mit dir geteilt.",
-    "sharedLogin": "Anmelden"
+    "sharedLogin": "Anmelden",
+    "statePrivatePost": "Privat — diesen Beitrag lesen nur Leute mit einem Konto.",
+    "statePublicPost": "Öffentlicher Link aktiv — wer den Link hat, kann den Beitrag lesen, ganz ohne Konto.",
+    "revokeConfirmPost": "Link zurückziehen? Wer ihn schon bekommen hat, kann den Beitrag dann nicht mehr öffnen.",
+    "sharedPostNotice": "Ein Beitrag aus mo'scookbook, mit dir geteilt."
   },
   "Errors": {
     "title": "Fehler",
@@ -380,5 +384,38 @@
     "retry": "Nochmal versuchen",
     "home": "Zurück zu den Rezepten",
     "reference": "Kennung {digest}"
+  },
+  "Blog": {
+    "nav": "Blog",
+    "adminNav": "Beiträge",
+    "adminTitle": "Beiträge",
+    "title": "Blog",
+    "intro": "Notizen zu dem, was gekocht wurde — und alles andere, was aufschreibenswert ist.",
+    "empty": "Noch nichts geschrieben.",
+    "draft": "Entwurf",
+    "published": "Veröffentlicht",
+    "hasPublicLink": "Öffentlicher Link",
+    "belongsTo": "Geschrieben über",
+    "notesTitle": "Notizen",
+    "addNote": "Notiz schreiben",
+    "noNotes": "Zu diesem Rezept ist noch nichts notiert.",
+    "newPost": "Neuer Beitrag",
+    "editPost": "Beitrag bearbeiten",
+    "view": "Ansehen",
+    "delete": "Löschen",
+    "confirmDelete": "\"{title}\" löschen? Das lässt sich nicht rückgängig machen.",
+    "deleteFailed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
+    "saveFailed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
+    "fieldTitle": "Titel",
+    "fieldBody": "Text",
+    "fieldRecipe": "Rezept",
+    "fieldImage": "Bild",
+    "fieldSlug": "Adresse",
+    "noRecipe": "Kein Rezept — eigenständiger Beitrag",
+    "recipeHint": "Einem Rezept zugeordnet, erscheint der Beitrag dort zusätzlich als datierte Notiz.",
+    "markdownHint": "Markdown: # für eine Überschrift, - für eine Liste, **fett**.",
+    "publish": "Veröffentlichen",
+    "savePublished": "Speichern",
+    "saveDraft": "Als Entwurf speichern"
   }
 }

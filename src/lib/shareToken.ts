@@ -21,7 +21,24 @@ export function generateShareToken(): string {
     return randomBytes(16).toString('base64url');
 }
 
-/** The address to hand out. Built in one place so the API and the page agree. */
-export function shareUrl(baseUrl: string, locale: string, token: string): string {
-    return `${baseUrl.replace(/\/$/, '')}/${locale}/r/${token}`;
+export type ShareKind = 'recipe' | 'post';
+
+/**
+ * One letter each, because these addresses get typed and read aloud.
+ * `/de/r/<token>` and `/de/p/<token>`.
+ */
+const SEGMENT: Record<ShareKind, string> = { recipe: 'r', post: 'p' };
+
+/**
+ * The address to hand out. Built in one place so the API, the page and the
+ * proxy's list of open paths cannot drift apart — `tests/access.test.ts`
+ * checks that what this builds is something the proxy lets through.
+ */
+export function shareUrl(
+    baseUrl: string,
+    locale: string,
+    token: string,
+    kind: ShareKind = 'recipe'
+): string {
+    return `${baseUrl.replace(/\/$/, '')}/${locale}/${SEGMENT[kind]}/${token}`;
 }

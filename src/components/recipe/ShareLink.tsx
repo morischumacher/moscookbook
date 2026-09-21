@@ -5,10 +5,10 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 
 /**
- * The public link for one recipe: make one, show it, take it back.
+ * The public link for one recipe or one entry: make one, show it, take it back.
  *
  * Deliberately not a switch. A switch invites a tap to see what it does, and
- * what this one does is put a recipe on the open internet — so the two
+ * what this one does is put something on the open internet — so the two
  * directions are two separate, differently worded buttons, and the state is
  * always written out in words above them rather than inferred from a knob's
  * position.
@@ -17,16 +17,28 @@ import { useRouter } from '@/i18n/routing';
  * one breaks a link somebody may already have sent to their mother.
  */
 export default function ShareLink({
-    recipeId,
+    id,
+    kind,
     initialUrl,
     locale,
 }: {
-    recipeId: number;
+    id: number;
+    /** Which of the two things has a public link. Decides the wording and the endpoint. */
+    kind: 'recipe' | 'post';
     initialUrl: string | null;
     locale: string;
 }) {
     const t = useTranslations('Share');
     const router = useRouter();
+
+    // Spelled out rather than built from `kind`, so that every key this
+    // component can ask for is visible to the translation checker.
+    const words =
+        kind === 'post'
+            ? { private: 'statePrivatePost', public: 'statePublicPost', confirm: 'revokeConfirmPost' }
+            : { private: 'statePrivate', public: 'statePublic', confirm: 'revokeConfirm' };
+
+    const endpoint = kind === 'post' ? `/api/posts/${id}/share` : `/api/recipes/${id}/share`;
 
     const [url, setUrl] = useState(initialUrl);
     const [busy, setBusy] = useState(false);
@@ -38,10 +50,9 @@ export default function ShareLink({
         setError('');
 
         try {
-            const res = await fetch(
-                `/api/recipes/${recipeId}/share?locale=${encodeURIComponent(locale)}`,
-                { method: 'POST' }
-            );
+            const res = await fetch(`${endpoint}?locale=${encodeURIComponent(locale)}`, {
+                method: 'POST',
+            });
             const data = await res.json();
 
             if (!res.ok || typeof data.url !== 'string') {
@@ -61,13 +72,13 @@ export default function ShareLink({
     };
 
     const revoke = async () => {
-        if (!window.confirm(t('revokeConfirm'))) return;
+        if (!window.confirm(t(words.confirm))) return;
 
         setBusy(true);
         setError('');
 
         try {
-            const res = await fetch(`/api/recipes/${recipeId}/share`, { method: 'DELETE' });
+            const res = await fetch(endpoint, { method: 'DELETE' });
 
             if (!res.ok) {
                 setError(t('linkFailed'));
@@ -103,7 +114,7 @@ export default function ShareLink({
             </h2>
 
             <p className="mt-2 text-sm leading-relaxed">
-                {url ? t('statePublic') : t('statePrivate')}
+                {url ? t(words.public) : t(words.private)}
             </p>
 
             {error && <p className="mt-3 text-sm text-danger">{error}</p>}
