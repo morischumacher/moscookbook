@@ -1,9 +1,10 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import Image from 'next/image';
 import Rating from './Rating';
+import Oyster from './brand/Oyster';
 import FavoriteButton from './FavoriteButton';
 
 interface RecipeCardProps {
@@ -23,18 +24,27 @@ interface RecipeCardProps {
 /**
  * One recipe in the list, as a tile.
  *
- * The picture is the object and the words sit on it. A cookbook is usually
- * opened with the question "what do I feel like", and that question is answered
- * by looking, not by reading — six dishes on a screen answer it faster than two
- * rows of prose.
+ * A cookbook is opened with the question "what do I feel like", and that is
+ * answered by looking rather than by reading, so the picture is the object.
+ * The description is gone: on a 170px tile two lines of serif are four words
+ * and an ellipsis, and the recipe's own page is one tap away.
  *
- * What the tile gives up is the description. On a 170px-wide tile two lines of
- * serif would be four words and an ellipsis, which is not a summary of
- * anything; the recipe's own page is one tap away and has room for it.
+ * The words used to sit *on* the picture, in a dark band — title on one line,
+ * five oysters under it on another. Two things were wrong with that. Half of
+ * every photograph was covered by a black slab, and the oysters, drawn at 14
+ * pixels in the page colour on near-black, lost their growth rings and turned
+ * into five grey smudges. Counting five smudges is not a glance; it is a task,
+ * and a tile is a thing you glance at.
  *
- * What it keeps is the rating, because the oysters are the one mark in this
- * cookbook that is nobody else's, and a grid of pictures with no sign of which
- * ones turned out well would be a worse list than the one before it.
+ * So the photograph is whole again, the title sits on paper under it, and the
+ * rating is one oyster and one number in the corner — read in the time it takes
+ * to see it, and comparable between two tiles without counting anything. The
+ * full five, big enough to have rings, are on the recipe's own page, which is
+ * where somebody is actually deciding rather than browsing.
+ *
+ * What this gives up: with one rating in, "5.0" looks like a verdict. That is
+ * the honest cost of a number, and the page behind it says how many people
+ * voted.
  */
 export default function RecipeCard({
     id,
@@ -49,6 +59,14 @@ export default function RecipeCard({
 }: RecipeCardProps) {
     const tCategory = useTranslations('Categories');
     const tCuisine = useTranslations('Cuisines');
+    const tRating = useTranslations('Rating');
+    const locale = useLocale();
+
+    // One decimal, in the reader's own notation: 4,6 here and 4.6 there.
+    const averageLabel = new Intl.NumberFormat(locale, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+    }).format(rating);
 
     // Both fields are free text, so only the known values get translated.
     const categoryLabel = category && tCategory.has(category) ? tCategory(category) : category;
@@ -56,12 +74,9 @@ export default function RecipeCard({
 
     return (
         <div className="group relative">
-            <Link
-                href={`/recipe/${slug}`}
-                className="block aspect-square w-full overflow-hidden rounded-xl bg-surface"
-            >
+            <Link href={`/recipe/${slug}`} className="block">
                 {imageUrl ? (
-                    <span className="relative block h-full w-full">
+                    <span className="relative block aspect-square w-full overflow-hidden rounded-xl bg-surface">
                         <Image
                             src={imageUrl}
                             alt=""
@@ -69,23 +84,32 @@ export default function RecipeCard({
                             sizes="(min-width: 640px) 320px, 45vw"
                             className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                         />
+
                         {/*
-                            A solid band, not a gradient fading into the picture.
-                            The text has to clear 4.5:1 over whatever photograph
-                            happens to be underneath, and only an opaque backing
-                            can promise that — a fade promises it over a dark
-                            sky and breaks it over a plate of polenta.
+                            A solid pill, not a gradient or a translucent wash.
+                            The number has to clear 4.5:1 over whatever
+                            photograph happens to be underneath, and only an
+                            opaque backing can promise that — a fade promises it
+                            over a dark sky and breaks it over a plate of
+                            polenta. 75% of the ink is dark enough for the page
+                            colour on top of it even where the picture behind is
+                            white.
                         */}
-                        <span className="absolute inset-x-0 bottom-0 block bg-ink/85 px-3 py-2.5">
-                            <span className="block text-[15px] font-bold leading-tight text-page">
-                                {title}
-                            </span>
-                            {rating > 0 && (
-                                <span className="mt-1.5 block text-page">
-                                    <Rating value={rating} readonly size="sm" onDark />
+                        {rating > 0 && (
+                            <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-ink/75 py-1 pl-1.5 pr-2.5 text-page">
+                                {/* 16 rather than 14: the shell's two growth rings are drawn
+                                    in the page colour on a filled shell, and at
+                                    fourteen pixels on a dark pill they close up
+                                    and the oyster becomes a bean. */}
+                                <Oyster variant="solid" size={16} />
+                                <span className="text-xs font-semibold leading-none">
+                                    {averageLabel}
                                 </span>
-                            )}
-                        </span>
+                                <span className="sr-only">
+                                    {tRating('screenReader', { average: averageLabel, max: 5 })}
+                                </span>
+                            </span>
+                        )}
                     </span>
                 ) : (
                     /*
@@ -93,9 +117,11 @@ export default function RecipeCard({
                         none. Rather than a blank square with a caption stuck to
                         the bottom, the title takes the whole tile and becomes
                         the picture — which is what a tile without a photograph
-                        should look like, not like one that failed to load.
+                        should look like, not like one that failed to load. The
+                        five oysters stay here, because on an empty tile there
+                        is room for them to be legible.
                     */
-                    <span className="flex h-full w-full flex-col justify-end p-3">
+                    <span className="flex aspect-square w-full flex-col justify-end overflow-hidden rounded-xl bg-surface p-3">
                         {(categoryLabel || cuisineLabel) && (
                             <span className="block text-[11px] font-semibold uppercase tracking-widest text-faint">
                                 {[categoryLabel, cuisineLabel].filter(Boolean).join(' · ')}
@@ -109,6 +135,16 @@ export default function RecipeCard({
                                 <Rating value={rating} readonly size="sm" />
                             </span>
                         )}
+                    </span>
+                )}
+
+                {/* On paper, under the picture. A title only has to be legible
+                    against one colour here, instead of against every photograph
+                    anybody ever uploads. Repeated on the tile that has no
+                    photograph would be saying it twice, so it is not. */}
+                {imageUrl && (
+                    <span className="mt-2 block text-[15px] font-bold leading-tight text-ink">
+                        {title}
                     </span>
                 )}
             </Link>

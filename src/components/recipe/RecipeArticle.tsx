@@ -166,7 +166,7 @@ export default async function RecipeArticle({
                 />
             </div>
 
-            <header className="relative z-10 -mt-7 rounded-t-3xl bg-page px-4 pt-7 sm:mx-auto sm:max-w-2xl sm:px-8 print:mt-0 print:rounded-none print:pt-8">
+            <header className="relative z-10 mx-auto -mt-7 max-w-2xl rounded-t-3xl bg-page px-4 pt-7 sm:-mt-10 sm:px-8 print:mt-0 print:rounded-none print:pt-8">
                 {/* The print stylesheet hides the navigation, and the logo used
                     to go with it — a printed recipe came out unbranded. This is
                     the same mark, shown only on paper. */}
@@ -261,13 +261,17 @@ export default async function RecipeArticle({
                     instructions={recipe.instructions}
                     baseServings={recipe.servings}
                     title={recipe.title}
-                    // What the share sheet hands over: the public link when one
-                    // exists, so that it reaches someone without an account.
-                    // Left undefined otherwise, which shares the address of the
-                    // page itself — fine between two people who both have an
-                    // account, and for anyone else the login form now carries
-                    // them on to the recipe once they are in.
+                    // What the share sheet hands over: the public link, so
+                    // that it reaches someone without an account. When there is
+                    // none yet and this person may publish, the button makes
+                    // one in the same tap rather than quietly sharing an
+                    // address that ends at a sign-in form.
                     shareUrl={mode === 'shared' ? url : publicUrl ?? undefined}
+                    shareCreateUrl={
+                        mode === 'private' && isAdmin && !publicUrl
+                            ? `/api/recipes/${recipe.id}/share?locale=${locale}`
+                            : undefined
+                    }
                 />
 
                 {mode === 'private' && (

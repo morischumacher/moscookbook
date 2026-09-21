@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import styles from './FavoriteButton.module.css';
+import { useConfirm } from '@/components/ui/useConfirm';
 
 interface FavoriteButtonProps {
     recipeId: number;
@@ -14,6 +15,7 @@ export default function FavoriteButton({ recipeId, initialFavorited, disabled = 
     const t = useTranslations('Favorite');
     const [isFavorited, setIsFavorited] = useState(initialFavorited);
     const [isLoading, setIsLoading] = useState(false);
+    const [ask, dialog] = useConfirm();
 
     const toggleFavorite = async () => {
         if (disabled || isLoading) return;
@@ -32,7 +34,7 @@ export default function FavoriteButton({ recipeId, initialFavorited, disabled = 
                 // Revert
                 setIsFavorited(previousState);
                 if (res.status === 401) {
-                    alert(t('loginRequired'));
+                    await ask({ title: t('loginRequired'), kind: 'alert' });
                 }
             }
         } catch {
@@ -44,6 +46,7 @@ export default function FavoriteButton({ recipeId, initialFavorited, disabled = 
     };
 
     return (
+        <>
         <button
             className={`${styles.button} ${isFavorited ? styles.active : ''}`}
             onClick={toggleFavorite}
@@ -65,5 +68,7 @@ export default function FavoriteButton({ recipeId, initialFavorited, disabled = 
                 {isFavorited ? t('remove') : t('add')}
             </span>
         </button>
+        {dialog}
+        </>
     );
 }

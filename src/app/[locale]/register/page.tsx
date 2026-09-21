@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { Link, useRouter } from '@/i18n/routing';
+import { goAfterAuth } from '@/lib/afterAuth';
+import { Link } from '@/i18n/routing';
 
 const fieldClass =
     'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
@@ -12,7 +13,6 @@ const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-
 export default function RegisterPage() {
     const t = useTranslations('Auth');
     const locale = useLocale();
-    const router = useRouter();
     const searchParams = useSearchParams();
     const invite = searchParams.get('invite') ?? '';
     const [firstName, setFirstName] = useState('');
@@ -35,10 +35,8 @@ export default function RegisterPage() {
             });
 
             if (res.ok) {
-                // refresh() throws away the cached server render, so the pages
-                // below this one are rebuilt with the new session.
-                router.push('/');
-                router.refresh();
+                // A full load, not a client navigation: see afterAuth.ts.
+                goAfterAuth(locale, '/');
                 return;
             }
 

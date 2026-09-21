@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { captureLabel } from '@/lib/capture';
+import { useConfirm } from '@/components/ui/useConfirm';
 
 interface DraftSummary {
     title?: string;
@@ -47,6 +48,7 @@ export default function AdminInboxPage() {
     const tAdmin = useTranslations('Admin');
     const router = useRouter();
 
+    const [ask, dialog] = useConfirm();
     const [captures, setCaptures] = useState<Capture[]>([]);
     const [loading, setLoading] = useState(true);
     const [busyId, setBusyId] = useState<number | null>(null);
@@ -93,7 +95,11 @@ export default function AdminInboxPage() {
     };
 
     const merge = async (id: number, recipeId: number, title: string) => {
-        if (!window.confirm(t('confirmMerge', { title }))) return;
+        const sure = await ask({
+            title: t('confirmMerge', { title }),
+            confirmLabel: t('merge'),
+        });
+        if (!sure) return;
 
         setBusyId(id);
         setError('');
@@ -122,7 +128,12 @@ export default function AdminInboxPage() {
     };
 
     const discard = async (id: number) => {
-        if (!window.confirm(t('confirmDiscard'))) return;
+        const sure = await ask({
+            title: t('confirmDiscard'),
+            confirmLabel: t('discard'),
+            destructive: true,
+        });
+        if (!sure) return;
         setBusyId(id);
         try {
             const res = await fetch(`/api/capture/${id}`, { method: 'DELETE' });
@@ -145,14 +156,9 @@ export default function AdminInboxPage() {
         <main className="container mx-auto max-w-3xl px-4 pb-32 pt-10 sm:px-8">
             <div className="mb-8 flex flex-wrap items-baseline justify-between gap-4 border-b border-line pb-6">
                 <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
-                <div className="flex gap-4 text-sm">
-                    <Link href="/admin/devices" className="underline underline-offset-4">
-                        {t('devices')}
-                    </Link>
-                    <Link href="/admin" className="underline underline-offset-4 text-muted">
-                        {tAdmin('backToRecipes')}
-                    </Link>
-                </div>
+                <Link href="/admin/devices" className="text-sm underline underline-offset-4">
+                    {t('devices')}
+                </Link>
             </div>
 
             <p className="mb-8 font-serif text-muted">{t('explanation')}</p>
@@ -215,6 +221,8 @@ export default function AdminInboxPage() {
                     </ul>
                 </section>
             )}
+
+            {dialog}
         </main>
     );
 }

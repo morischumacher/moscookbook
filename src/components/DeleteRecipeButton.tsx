@@ -3,15 +3,16 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
+import { useConfirm } from '@/components/ui/useConfirm';
+import InlineConfirm from '@/components/ui/InlineConfirm';
 
 export default function DeleteRecipeButton({ recipeId }: { recipeId: number }) {
     const t = useTranslations('Admin');
     const router = useRouter();
     const [isDeleting, setIsDeleting] = useState(false);
+    const [ask, dialog] = useConfirm();
 
     const handleDelete = async () => {
-        if (!confirm(t('confirmDeleteRecipe'))) return;
-
         setIsDeleting(true);
         try {
             const res = await fetch(`/api/recipes/${recipeId}`, { method: 'DELETE' });
@@ -19,24 +20,27 @@ export default function DeleteRecipeButton({ recipeId }: { recipeId: number }) {
             if (res.ok) {
                 router.refresh();
             } else {
-                alert(t('deleteFailed'));
+                await ask({ title: t('deleteFailed'), kind: 'alert' });
             }
         } catch (error) {
             console.error(error);
-            alert(t('genericError'));
+            await ask({ title: t('genericError'), kind: 'alert' });
         } finally {
             setIsDeleting(false);
         }
     };
 
     return (
-        <button
-            type="button"
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="underline underline-offset-4 hover:text-danger disabled:opacity-50"
-        >
-            {isDeleting ? t('deleting') : t('delete')}
-        </button>
+        <>
+            <InlineConfirm
+                label={isDeleting ? t('deleting') : t('delete')}
+                confirmLabel={t('delete')}
+                destructive
+                disabled={isDeleting}
+                onConfirm={handleDelete}
+                className="underline underline-offset-4 hover:text-danger disabled:opacity-50"
+            />
+            {dialog}
+        </>
     );
 }

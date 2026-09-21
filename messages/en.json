@@ -9,10 +9,10 @@
     "login": "Login",
     "logout": "Logout",
     "admin": "Admin",
-    "users": "Users",
     "greeting": "Hello {name}",
     "language": "Language",
-    "toggleMenu": "Toggle menu"
+    "toggleMenu": "Toggle menu",
+    "recipes": "Recipes"
   },
   "Home": {
     "searchPlaceholder": "Search recipes and ingredients…",
@@ -147,22 +147,21 @@
     "delete": "Delete",
     "deleting": "Deleting…",
     "noRecipes": "No recipes yet.",
-    "confirmDeleteRecipe": "Delete this recipe for good? Ratings and favourites will go with it.",
     "deleteFailed": "The recipe could not be deleted.",
     "userManagement": "Users",
-    "backToRecipes": "Back to recipes",
     "columnEmail": "E-mail",
     "columnRole": "Role",
     "roleAdmin": "Admin",
     "roleUser": "User",
     "makeAdmin": "Make admin",
     "revokeAdmin": "Revoke admin",
-    "confirmDeleteUser": "Permanently delete this user? All their ratings and favourites will be lost.",
     "loadingUsers": "Loading users…",
     "genericError": "Something went wrong.",
     "noUsers": "No users found.",
     "columnId": "ID",
-    "viewCount": "{count, plural, one {# view} other {# views}}"
+    "viewCount": "{count, plural, one {# view} other {# views}}",
+    "people": "People",
+    "adminNavLabel": "Admin sections"
   },
   "RecipeForm": {
     "newRecipe": "New recipe",
@@ -215,7 +214,8 @@
     "coverImage": "Cover",
     "moveImageEarlier": "Move picture {number} earlier",
     "moveImageLater": "Move picture {number} later",
-    "removeImageNumber": "Remove picture {number}"
+    "removeImageNumber": "Remove picture {number}",
+    "uploadTooLarge": "That picture is too large to send, even after shrinking it. Try a smaller one."
   },
   "QuickImport": {
     "heading": "Fill in quickly",
@@ -251,7 +251,6 @@
     "copy": "Copy link",
     "copied": "Copied",
     "revoke": "Revoke",
-    "confirmRevoke": "Revoke this invitation? The link stops working immediately.",
     "stateValid": "Open",
     "stateUsed": "Used",
     "stateExpired": "Expired",
@@ -325,7 +324,6 @@
     "copy": "Copy",
     "copied": "Copied",
     "revoke": "Revoke",
-    "confirmRevoke": "Revoke this key? The device stops working immediately.",
     "lastUsed": "Last used {date}",
     "neverUsed": "Never used",
     "shortcutHeading": "Setting up the Shortcut on an iPhone",
@@ -369,7 +367,8 @@
     "statePrivatePost": "Private — only people with an account can read this entry.",
     "statePublicPost": "Public link active — anyone with this link can read the entry, no account needed.",
     "revokeConfirmPost": "Withdraw this link? Anyone you have already sent it to will no longer be able to open the entry.",
-    "sharedPostNotice": "An entry from mo'scookbook, shared with you."
+    "sharedPostNotice": "An entry from mo'scookbook, shared with you.",
+    "preparing": "Preparing link…"
   },
   "Errors": {
     "title": "Errors",
@@ -398,7 +397,7 @@
   },
   "Blog": {
     "nav": "Blog",
-    "adminNav": "Entries",
+    "adminNav": "Blog posts",
     "adminTitle": "Entries",
     "title": "Blog",
     "intro": "Notes on what was cooked, and everything else worth writing down.",
@@ -414,7 +413,6 @@
     "editPost": "Edit entry",
     "view": "View",
     "delete": "Delete",
-    "confirmDelete": "Delete \"{title}\"? This cannot be undone.",
     "deleteFailed": "That did not work. Please try again.",
     "saveFailed": "That did not work. Please try again.",
     "fieldTitle": "Title",
@@ -440,9 +438,17 @@
     "empty": "Nobody has added a photo yet. Be the first.",
     "someone": "Someone",
     "remove": "Remove",
-    "confirmDelete": "Remove this photo?",
     "failed": "That did not work. Please try again.",
     "captionPlaceholder": "Add a note…",
-    "captionLabel": "A note about this photo"
+    "captionLabel": "A note about this photo",
+    "preparing": "Preparing…",
+    "tooLarge": "That picture is too large to send, even after shrinking it. Try a smaller one.",
+    "dismiss": "Dismiss"
+  },
+  "Dialog": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "ok": "OK",
+    "sure": "Sure?"
   }
 }

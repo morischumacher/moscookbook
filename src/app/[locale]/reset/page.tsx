@@ -2,8 +2,9 @@
 
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { Link, useRouter } from '@/i18n/routing';
+import { useLocale, useTranslations } from 'next-intl';
+import { goAfterAuth } from '@/lib/afterAuth';
+import { Link } from '@/i18n/routing';
 
 const fieldClass =
     'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
@@ -11,7 +12,7 @@ const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-
 
 function ResetForm() {
     const t = useTranslations('Auth');
-    const router = useRouter();
+    const locale = useLocale();
     const token = useSearchParams().get('token') ?? '';
 
     const [password, setPassword] = useState('');
@@ -43,8 +44,7 @@ function ResetForm() {
             const data = await res.json();
 
             if (res.ok) {
-                router.push(data.admin ? '/admin' : '/');
-                router.refresh();
+                goAfterAuth(locale, data.admin ? '/admin' : '/');
                 return;
             }
 

@@ -23,8 +23,20 @@ import { deleteBlobs } from '@/lib/blobCleanup';
  * remove anyone's picture is not a shared wall.
  */
 
-/** Smaller than the admin form's 15 MB: these are snapshots, not the recipe's own photography. */
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
+/**
+ * What the platform will actually carry.
+ *
+ * This said 10 MB, and the promise was empty: a serverless function receives at
+ * most 4.5 MB of request body, and anything larger is refused above our heads,
+ * as a page of HTML rather than as a reason. A picture off an iPhone is bigger
+ * than that, which is why adding one worked from a laptop and failed from a
+ * phone with nothing to go on.
+ *
+ * The browser now shrinks a photograph before sending it (lib/imageCompression.ts),
+ * so this limit is the backstop rather than the thing anybody meets, and it
+ * states a number that is true.
+ */
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
 
 /** Enough for a dish cooked several times, few enough that nobody fills a page. */
 const MAX_PER_PERSON_PER_RECIPE = 12;

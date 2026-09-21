@@ -31,6 +31,8 @@ import post from './post.test';
 import uploadImage from './uploadImage.test';
 import ingredientSearch from './ingredientSearch.test';
 import blobCleanup from './blobCleanup.test';
+import imageCompression from './imageCompression.test';
+import navigation from './navigation.test';
 import fixtures from './fixtures.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
@@ -61,6 +63,8 @@ async function main() {
     uploadImage();
     ingredientSearch();
     blobCleanup();
+    imageCompression();
+    navigation();
     await fixtures();
 
     process.exit(summary() === 0 ? 0 : 1);

@@ -9,10 +9,10 @@
     "login": "Anmelden",
     "logout": "Abmelden",
     "admin": "Verwaltung",
-    "users": "Benutzer",
     "greeting": "Hallo {name}",
     "language": "Sprache",
-    "toggleMenu": "Menü öffnen"
+    "toggleMenu": "Menü öffnen",
+    "recipes": "Rezepte"
   },
   "Home": {
     "searchPlaceholder": "Rezepte und Zutaten durchsuchen…",
@@ -147,22 +147,21 @@
     "delete": "Löschen",
     "deleting": "Wird gelöscht…",
     "noRecipes": "Noch keine Rezepte.",
-    "confirmDeleteRecipe": "Dieses Rezept endgültig löschen? Bewertungen und Favoriten gehen mit verloren.",
     "deleteFailed": "Das Rezept konnte nicht gelöscht werden.",
     "userManagement": "Benutzer",
-    "backToRecipes": "Zurück zu den Rezepten",
     "columnEmail": "E-Mail",
     "columnRole": "Rolle",
     "roleAdmin": "Verwaltung",
     "roleUser": "Benutzer",
     "makeAdmin": "Zur Verwaltung machen",
     "revokeAdmin": "Verwaltungsrechte entziehen",
-    "confirmDeleteUser": "Diesen Benutzer endgültig löschen? Alle Bewertungen und Favoriten gehen verloren.",
     "loadingUsers": "Benutzer werden geladen…",
     "genericError": "Etwas ist schiefgelaufen.",
     "noUsers": "Keine Benutzer gefunden.",
     "columnId": "ID",
-    "viewCount": "{count, plural, one {# Aufruf} other {# Aufrufe}}"
+    "viewCount": "{count, plural, one {# Aufruf} other {# Aufrufe}}",
+    "people": "Menschen",
+    "adminNavLabel": "Admin-Bereiche"
   },
   "RecipeForm": {
     "newRecipe": "Neues Rezept",
@@ -215,7 +214,8 @@
     "coverImage": "Titelbild",
     "moveImageEarlier": "Bild {number} nach vorne",
     "moveImageLater": "Bild {number} nach hinten",
-    "removeImageNumber": "Bild {number} entfernen"
+    "removeImageNumber": "Bild {number} entfernen",
+    "uploadTooLarge": "Dieses Bild ist auch verkleinert noch zu groß. Bitte ein kleineres wählen."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
@@ -251,7 +251,6 @@
     "copy": "Link kopieren",
     "copied": "Kopiert",
     "revoke": "Zurückziehen",
-    "confirmRevoke": "Diese Einladung zurückziehen? Der Link funktioniert sofort nicht mehr.",
     "stateValid": "Offen",
     "stateUsed": "Eingelöst",
     "stateExpired": "Abgelaufen",
@@ -325,7 +324,6 @@
     "copy": "Kopieren",
     "copied": "Kopiert",
     "revoke": "Widerrufen",
-    "confirmRevoke": "Schlüssel widerrufen? Das Gerät funktioniert sofort nicht mehr.",
     "lastUsed": "Zuletzt benutzt am {date}",
     "neverUsed": "Nie benutzt",
     "shortcutHeading": "Kurzbefehl auf dem iPhone einrichten",
@@ -369,7 +367,8 @@
     "statePrivatePost": "Privat — diesen Beitrag lesen nur Leute mit einem Konto.",
     "statePublicPost": "Öffentlicher Link aktiv — wer den Link hat, kann den Beitrag lesen, ganz ohne Konto.",
     "revokeConfirmPost": "Link zurückziehen? Wer ihn schon bekommen hat, kann den Beitrag dann nicht mehr öffnen.",
-    "sharedPostNotice": "Ein Beitrag aus mo'scookbook, mit dir geteilt."
+    "sharedPostNotice": "Ein Beitrag aus mo'scookbook, mit dir geteilt.",
+    "preparing": "Link wird erstellt…"
   },
   "Errors": {
     "title": "Fehler",
@@ -398,7 +397,7 @@
   },
   "Blog": {
     "nav": "Blog",
-    "adminNav": "Beiträge",
+    "adminNav": "Blogbeiträge",
     "adminTitle": "Beiträge",
     "title": "Blog",
     "intro": "Notizen zu dem, was gekocht wurde — und alles andere, was aufschreibenswert ist.",
@@ -414,7 +413,6 @@
     "editPost": "Beitrag bearbeiten",
     "view": "Ansehen",
     "delete": "Löschen",
-    "confirmDelete": "\"{title}\" löschen? Das lässt sich nicht rückgängig machen.",
     "deleteFailed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
     "saveFailed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
     "fieldTitle": "Titel",
@@ -440,9 +438,17 @@
     "empty": "Noch kein Foto dabei. Mach das erste.",
     "someone": "Jemand",
     "remove": "Entfernen",
-    "confirmDelete": "Dieses Foto entfernen?",
     "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
     "captionPlaceholder": "Notiz hinzufügen…",
-    "captionLabel": "Notiz zu diesem Foto"
+    "captionLabel": "Notiz zu diesem Foto",
+    "preparing": "Wird vorbereitet…",
+    "tooLarge": "Dieses Bild ist auch verkleinert noch zu groß. Bitte ein kleineres wählen.",
+    "dismiss": "Schließen"
+  },
+  "Dialog": {
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "ok": "OK",
+    "sure": "Sicher?"
   }
 }

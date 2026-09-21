@@ -2,9 +2,10 @@
 
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { Link, useRouter } from '@/i18n/routing';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import { destinationFrom } from '@/lib/loginDestination';
+import { goAfterAuth } from '@/lib/afterAuth';
 
 const fieldClass =
     'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
@@ -12,7 +13,7 @@ const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-
 
 function LoginForm() {
     const t = useTranslations('Auth');
-    const router = useRouter();
+    const locale = useLocale();
     const next = useSearchParams().get('next');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -34,11 +35,10 @@ function LoginForm() {
             const data = await res.json();
 
             if (res.ok) {
-                // The locale-aware router adds the language prefix itself, so
-                // the destination is written plainly. refresh() throws away the
-                // cached server render so the new session is picked up.
-                router.push(destinationFrom(next, data.admin ? '/admin' : '/'));
-                router.refresh();
+                // A full load, not a client-side push: see src/lib/afterAuth.ts
+                // for why the router left the login form on screen under a bar
+                // that already said you were signed in.
+                goAfterAuth(locale, destinationFrom(next, data.admin ? '/admin' : '/'));
                 return;
             }
 

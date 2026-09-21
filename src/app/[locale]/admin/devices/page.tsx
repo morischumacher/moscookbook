@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
+import InlineConfirm from '@/components/ui/InlineConfirm';
 
 interface CaptureTokenRow {
     id: number;
@@ -74,7 +75,6 @@ export default function AdminDevicesPage() {
     };
 
     const revoke = async (id: number) => {
-        if (!window.confirm(t('confirmRevoke'))) return;
         try {
             const res = await fetch(`/api/capture-tokens/${id}`, { method: 'DELETE' });
             if (!res.ok) {
@@ -169,13 +169,15 @@ export default function AdminDevicesPage() {
                                 </p>
                             </div>
                             {!token.revokedAt && (
-                                <button
-                                    type="button"
-                                    onClick={() => revoke(token.id)}
-                                    className="shrink-0 text-sm text-faint underline underline-offset-4 hover:text-danger"
-                                >
-                                    {t('revoke')}
-                                </button>
+                                <span className="shrink-0">
+                                    <InlineConfirm
+                                        label={t('revoke')}
+                                        confirmLabel={t('revoke')}
+                                        destructive
+                                        onConfirm={() => revoke(token.id)}
+                                        className="text-sm text-faint underline underline-offset-4 hover:text-danger"
+                                    />
+                                </span>
                             )}
                         </li>
                     ))}
@@ -232,6 +234,7 @@ export default function AdminDevicesPage() {
 
                 <p className="mt-4 text-sm text-muted">{t('screenshotNote')}</p>
             </section>
+
         </main>
     );
 }
