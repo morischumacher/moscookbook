@@ -8,6 +8,7 @@ import { emailToCapture } from '@/lib/email';
 import { findDuplicate, type ExistingRecipe } from '@/lib/duplicates';
 import { processCapture } from '@/lib/captureProcess';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
+import { toJsonObject } from '@/lib/json';
 
 /**
  * The capture endpoint.
@@ -136,7 +137,9 @@ export async function POST(req: NextRequest) {
         data: {
             status: result.status,
             error: result.error,
-            draft: draft ?? undefined,
+            // Widened before storing: see src/lib/json.ts, and
+            // tests/prismaJsonCompat.ts for why the compiler insists.
+            draft: draft ? toJsonObject(draft) : undefined,
             imageUrl: draft?.imageUrl || null,
             processedAt: new Date(),
         },
