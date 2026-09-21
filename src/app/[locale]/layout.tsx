@@ -8,6 +8,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import VerifyBanner from "@/components/auth/VerifyBanner";
+import ServiceWorker from "@/components/ServiceWorker";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -119,6 +120,10 @@ export default async function LocaleLayout({
         <html lang={locale}>
             <body className={`${geistSans.variable} ${geistMono.variable}`}>
                 <NextIntlClientProvider messages={messages}>
+                    {/* Makes an already-opened recipe readable with no signal.
+                        Registers after load, never blocks anything, and is
+                        network-first — see public/sw.js. */}
+                    <ServiceWorker />
                     <Navbar locale={locale} />
                     <VerifyBanner />
                     <div style={{ minHeight: 'calc(100dvh - 140px)', display: 'flex', flexDirection: 'column' }}>

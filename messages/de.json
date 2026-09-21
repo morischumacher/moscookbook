@@ -75,7 +75,8 @@
     "metaFallback": "Rezept aus mo'scookbook",
     "totalTime": "Gesamt",
     "imageOf": "Bild {number} von {total}: {title}",
-    "showImage": "Bild {number} anzeigen"
+    "showImage": "Bild {number} anzeigen",
+    "similar": "Ähnliche Rezepte"
   },
   "Rating": {
     "rate": "Bewerten",

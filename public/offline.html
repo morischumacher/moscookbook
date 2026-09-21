@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kein Netz — Mo'sCookbook</title>
+<!--
+  Shown only when a page was asked for that has never been opened on this
+  device and the network is not answering. Deliberately a plain file with no
+  build step and no fonts to fetch: it has to work when nothing else does,
+  which rules out anything that needs a request.
+
+  Both languages on one page, because the one thing we do not know here is
+  which one this reader uses — the page that would have told us is the page
+  that did not load.
+-->
+<style>
+  :root { --bg:#FFF8F0; --ink:#111; --muted:#4B5563; --line:#EAEAEE; --accent:#ff4a0e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#000; --ink:#fff; --muted:#9CA3AF; --line:#27272A; }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink); min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  svg { width: 64px; height: 64px; color: var(--muted); margin-bottom: 28px; }
+  h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 12px; }
+  p { color: var(--muted); line-height: 1.6; max-width: 32ch; margin-bottom: 8px; }
+  .en { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 24px; }
+  a {
+    display: inline-block; margin-top: 28px; padding: 12px 24px; border-radius: 999px;
+    background: var(--ink); color: var(--bg); text-decoration: none; font-weight: 500;
+  }
+</style>
+</head>
+<body>
+  <!-- The oyster, drawn rather than fetched. -->
+  <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+       stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round">
+    <g transform="rotate(-14 12 12)">
+      <path d="M2.8 12.4 C2.8 8.8 7 6.2 12.2 6.2 C17.6 6.2 21.4 8.6 21.4 12 C21.4 15.4 17.4 17.9 12 17.9 C6.8 17.9 2.8 15.9 2.8 12.4 Z"/>
+      <path d="M5.4 14.4 C4.7 13.2 5.2 11.6 6.9 10.6 C9 9.3 12.6 9 15.6 9.9 C17.9 10.6 19 11.9 18.7 13.2"/>
+      <path d="M8.6 15.2 C8.2 14.4 8.8 13.5 10.2 13 C11.9 12.4 14.2 12.6 15.6 13.4 C16.4 13.9 16.6 14.5 16.2 15"/>
+    </g>
+  </svg>
+
+  <h1>Kein Netz</h1>
+  <p>Diese Seite war auf diesem Gerät noch nie offen, deshalb gibt es nichts zu zeigen. Rezepte, die du schon einmal geöffnet hast, funktionieren weiter.</p>
+
+  <div class="en">
+    <h1>No connection</h1>
+    <p>This page has never been open on this device, so there is nothing to show. Recipes you have opened before still work.</p>
+  </div>
+
+  <a href="/">Mo'sCookbook</a>
+</body>
+</html>

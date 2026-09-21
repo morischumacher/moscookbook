@@ -75,7 +75,8 @@
     "metaFallback": "Recipe from mo'scookbook",
     "totalTime": "Total",
     "imageOf": "Picture {number} of {total}: {title}",
-    "showImage": "Show picture {number}"
+    "showImage": "Show picture {number}",
+    "similar": "Recipes like this"
   },
   "Rating": {
     "rate": "Rate",

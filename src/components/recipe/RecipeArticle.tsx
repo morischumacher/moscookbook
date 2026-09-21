@@ -8,6 +8,8 @@ import Gallery from '@/components/recipe/Gallery';
 import ShareLink from '@/components/recipe/ShareLink';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import CookedPhotos, { type CookedPhoto } from '@/components/recipe/CookedPhotos';
+import SimilarRecipes from '@/components/recipe/SimilarRecipes';
+import type { SimilarRecipe } from '@/lib/similarRecipes';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
 import { formatMinutes } from '@/lib/amount';
 import { buildRecipeJsonLd } from '@/lib/recipeJsonLd';
@@ -27,6 +29,13 @@ export interface RecipeRow {
     cookMinutes: number | null;
     createdAt: Date;
     shareToken: string | null;
+    /**
+     * The recipe's own searchable wording. Not shown anywhere — it is what
+     * "recipes like this one" is computed from, and it comes with the row
+     * that is already being read rather than costing a second query.
+     */
+    searchTitle: string;
+    searchBody: string;
     images: { url: string }[];
     ratings: { value: number; userId: number }[];
     ingredients: StructuredIngredient[];
@@ -71,6 +80,12 @@ export interface RecipeArticleProps {
     cooked: CookedPhoto[];
     /** Whose pictures are whose. Null for a reader with no account. */
     currentUserId: number | null;
+    /**
+     * Four recipes like this one. Empty on the shared page: somebody holding a
+     * link to one recipe was given that recipe, not a way into the rest of a
+     * private cookbook.
+     */
+    similar: SimilarRecipe[];
 }
 
 export default async function RecipeArticle({
@@ -87,6 +102,7 @@ export default async function RecipeArticle({
     notes,
     cooked,
     currentUserId,
+    similar,
 }: RecipeArticleProps) {
     const t = await getTranslations('Recipe');
     const tCategory = await getTranslations('Categories');
@@ -288,6 +304,8 @@ export default async function RecipeArticle({
                             isAdmin={isAdmin}
                             locale={locale}
                         />
+
+                        <SimilarRecipes recipes={similar} />
                     </>
                 )}
             </div>

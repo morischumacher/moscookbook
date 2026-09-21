@@ -35,6 +35,7 @@ import imageCompression from './imageCompression.test';
 import navigation from './navigation.test';
 import cookProgress from './cookProgress.test';
 import safeFetch from './safeFetch.test';
+import similarRecipes from './similarRecipes.test';
 import fixtures from './fixtures.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
@@ -69,6 +70,7 @@ async function main() {
     navigation();
     cookProgress();
     await safeFetch();
+    similarRecipes();
     await fixtures();
 
     process.exit(summary() === 0 ? 0 : 1);

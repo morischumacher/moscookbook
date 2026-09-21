@@ -8,6 +8,7 @@ import { getSession } from '@/lib/auth';
 import { getTranslations } from 'next-intl/server';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { shareUrl } from '@/lib/shareToken';
+import { similarRecipes } from '@/lib/similarRecipes';
 
 // generateMetadata and the page itself both need the recipe; cache() makes
 // that a single database round trip per request instead of two.
@@ -106,9 +107,14 @@ export default async function RecipePage({
         },
     });
 
+    // Computed from the recipe's own search vector, which already exists and
+    // is already indexed. See lib/similarRecipes.
+    const similar = await similarRecipes(recipe);
+
     return (
         <RecipeArticle
             recipe={recipe}
+            similar={similar}
             notes={notes}
             cooked={cooked}
             currentUserId={session.user?.id ?? null}
