@@ -11,6 +11,7 @@ import CookedPhotos, { type CookedPhoto } from '@/components/recipe/CookedPhotos
 import type { StructuredIngredient } from '@/lib/ingredientParts';
 import { formatMinutes } from '@/lib/amount';
 import { buildRecipeJsonLd } from '@/lib/recipeJsonLd';
+import { formatDate } from '@/lib/formatDate';
 
 export interface RecipeRow {
     id: number;
@@ -119,11 +120,6 @@ export default async function RecipeArticle({
         recipe.servings ? { label: t('servings'), value: String(recipe.servings) } : null,
     ].filter((entry): entry is { label: string; value: string } => entry !== null);
 
-    const dateFormatter = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    });
 
     return (
         <article className="min-h-screen w-full bg-page pb-32">
@@ -176,7 +172,7 @@ export default async function RecipeArticle({
 
                 <p className="text-xs font-semibold uppercase tracking-widest text-faint">
                     {[categoryLabel, cuisineLabel].filter(Boolean).join(' · ') ||
-                        dateFormatter.format(recipe.createdAt)}
+                        formatDate(recipe.createdAt, locale, 'short')}
                 </p>
 
                 <h1 className="mt-2 text-3xl font-extrabold leading-[1.12] tracking-tight text-ink sm:text-4xl">
@@ -257,6 +253,7 @@ export default async function RecipeArticle({
 
             <div className="container mx-auto max-w-2xl px-4 font-serif sm:px-8">
                 <RecipeBody
+                    recipeId={recipe.id}
                     ingredients={recipe.ingredients}
                     instructions={recipe.instructions}
                     baseServings={recipe.servings}

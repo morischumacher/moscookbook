@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { captureLabel } from '@/lib/capture';
 import { useConfirm } from '@/components/ui/useConfirm';
+import { formatDate } from '@/lib/formatDate';
 
 interface DraftSummary {
     title?: string;
@@ -244,6 +245,11 @@ function CaptureRow({
     onMerge?: () => void;
 }) {
     const t = useTranslations('Inbox');
+    // The site's language, not the browser's: this page used
+    // toLocaleDateString() with no argument, so a German reader on an
+    // English-language phone saw 9/21/2026 here and 21. September 2026 on
+    // the blog, in one visit.
+    const locale = useLocale();
 
     const label = capture.draft?.title || captureLabel(capture) || t('untitled');
     const ingredientCount = capture.draft?.ingredients?.length ?? 0;
@@ -259,7 +265,7 @@ function CaptureRow({
                 <StatusBadge status={capture.status} />
                 <span aria-hidden="true">·</span>
                 <time dateTime={capture.createdAt}>
-                    {new Date(capture.createdAt).toLocaleDateString()}
+                    {formatDate(capture.createdAt, locale, 'short')}
                 </time>
             </div>
 

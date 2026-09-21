@@ -1,4 +1,5 @@
 import { isSafePublicUrl } from './recipeFromHtml';
+import { safeFetch } from './safeFetch';
 
 /**
  * Reading a picture back out of our own store, as base64.
@@ -35,7 +36,8 @@ export async function fetchImageAsBase64(url: string): Promise<FetchedImage> {
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
     try {
-        const response = await fetch(url, { signal: controller.signal, redirect: 'follow' });
+        // Every hop re-checked; see lib/safeFetch.
+        const response = await safeFetch(url, { signal: controller.signal });
 
         if (!response.ok) return { ok: false, failure: 'http-error' };
 

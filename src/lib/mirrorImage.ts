@@ -1,5 +1,6 @@
 import { put } from '@vercel/blob';
 import { isSafePublicUrl } from './recipeFromHtml';
+import { safeFetch } from './safeFetch';
 
 /**
  * Copies an imported image into our own Blob store.
@@ -39,9 +40,9 @@ export async function mirrorImageToBlob(sourceUrl: string): Promise<string> {
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
-        const response = await fetch(sourceUrl, {
+        // Every hop re-checked; see lib/safeFetch.
+        const response = await safeFetch(sourceUrl, {
             signal: controller.signal,
-            redirect: 'follow',
             headers: { 'User-Agent': 'Mozilla/5.0 (compatible; moscookbook-import/1.0)' },
         });
 

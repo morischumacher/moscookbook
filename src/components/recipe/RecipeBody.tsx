@@ -6,10 +6,12 @@ import ReactMarkdown from 'react-markdown';
 import { toDisplayIngredient, type StructuredIngredient } from '@/lib/ingredientParts';
 import { splitSteps } from '@/lib/steps';
 import ShareButton from './ShareButton';
+import { cookProgressKey, parseCookProgress, worthSaving } from '@/lib/cookProgress';
 
 const SERVING_STEPS = [1, 2, 3, 4, 6, 8, 10, 12];
 
 export default function RecipeBody({
+    recipeId,
     ingredients,
     instructions,
     baseServings,
@@ -17,6 +19,8 @@ export default function RecipeBody({
     shareUrl,
     shareCreateUrl,
 }: {
+    /** Which recipe's progress is being remembered. */
+    recipeId: number;
     ingredients: StructuredIngredient[];
     instructions: string;
     baseServings: number | null;
@@ -34,6 +38,19 @@ export default function RecipeBody({
     const [servings, setServings] = useState(baseServings ?? 0);
     const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
     const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
+    /**
+     * Whether the stored progress has been looked for yet.
+     *
+     * The page is rendered on the server as well, where there is no storage to
+     * read, so the marks can only arrive after hydration — and until they have,
+     * nothing may be written: the empty starting state saving itself over a
+     * real record is how this would destroy rather than protect.
+     *
+     * A ref rather than state, because nothing on screen depends on it. Effects
+     * run in the order they are declared, so by the time the writing one runs
+     * the reading one has already finished.
+     */
+    const restored = useRef(false);
     const [cookMode, setCookMode] = useState(false);
     const [wakeLockActive, setWakeLockActive] = useState(false);
     const wakeLock = useRef<WakeLockSentinel | null>(null);
@@ -84,6 +101,71 @@ export default function RecipeBody({
         };
     }, [cookMode]);
 
+    /*
+     * What a cook has ticked off survives the tab being thrown away.
+     *
+     * All of this lived in component state only, and on a phone that means it
+     * lived until the next interruption: Safari discards backgrounded tabs as a
+     * matter of routine, so answering a message halfway through a recipe lost
+     * every check mark with nothing to say it had happened. See lib/cookProgress
+     * — including why it expires after twelve hours rather than waiting for you.
+     */
+    useEffect(() => {
+        try {
+            const saved = parseCookProgress(
+                window.localStorage.getItem(cookProgressKey(recipeId))
+            );
+
+            if (saved) {
+                /*
+                 * react-hooks/set-state-in-effect is right about the general
+                 * case and wrong about this one. The values live in the
+                 * browser's storage, this component is rendered on the server
+                 * too, and seeding the state during render would hand the
+                 * client different markup than the server sent — a hydration
+                 * mismatch, which is a worse bug than one extra render.
+                 *
+                 * The usual escape, useSyncExternalStore, derives a value from
+                 * the store on every render. That is right for "does a draft
+                 * exist" and wrong here: these are the starting point for state
+                 * the cook then changes, not a mirror of what is stored.
+                 */
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setCheckedIngredients(new Set(saved.ingredients));
+                setCheckedSteps(new Set(saved.steps));
+                if (saved.servings !== null) setServings(saved.servings);
+            }
+        } catch {
+            // Private window, blocked storage. Cooking still works.
+        }
+
+        restored.current = true;
+    }, [recipeId]);
+
+    useEffect(() => {
+        if (!restored.current) return;
+
+        const key = cookProgressKey(recipeId);
+        const progress = {
+            ingredients: [...checkedIngredients],
+            steps: [...checkedSteps],
+            servings,
+        };
+
+        try {
+            // Nothing ticked and the servings untouched is not progress, it is
+            // a recipe somebody opened — and leaving a record for every one of
+            // those would fill the browser with nothing.
+            if (worthSaving(progress, baseServings)) {
+                window.localStorage.setItem(key, JSON.stringify({ ...progress, at: Date.now() }));
+            } else {
+                window.localStorage.removeItem(key);
+            }
+        } catch {
+            // Storage is a convenience here, never a requirement.
+        }
+    }, [recipeId, checkedIngredients, checkedSteps, servings, baseServings]);
+
     const toggle = (set: Set<number>, index: number) => {
         const next = new Set(set);
         if (next.has(index)) next.delete(index);
@@ -95,6 +177,8 @@ export default function RecipeBody({
         setCheckedIngredients(new Set());
         setCheckedSteps(new Set());
         setServings(baseServings ?? 0);
+        // The effect above then removes the record, because an empty one is
+        // not worth saving.
     };
 
     const textSize = cookMode ? 'text-2xl sm:text-3xl' : 'text-xl';
@@ -113,7 +197,11 @@ export default function RecipeBody({
                                 type="button"
                                 onClick={() => setServings((value) => Math.max(1, value - 1))}
                                 aria-label={t('oneLess')}
-                                className="h-9 w-9 rounded-full border border-line text-lg leading-none hover:border-ink"
+                                // 44px, not 36. This is pressed mid-cook with
+                                // wet hands, and 44 is the size Apple's own
+                                // guidance gives for a target you have to hit
+                                // without looking properly.
+                                className="h-11 w-11 rounded-full border border-line text-lg leading-none hover:border-ink"
                             >
                                 −
                             </button>
@@ -124,18 +212,23 @@ export default function RecipeBody({
                                 type="button"
                                 onClick={() => setServings((value) => Math.min(100, value + 1))}
                                 aria-label={t('oneMore')}
-                                className="h-9 w-9 rounded-full border border-line text-lg leading-none hover:border-ink"
+                                className="h-11 w-11 rounded-full border border-line text-lg leading-none hover:border-ink"
                             >
                                 +
                             </button>
                         </div>
-                        <div className="hidden gap-1 sm:flex">
+                        {/* The shortcuts were `hidden sm:flex`, which put them
+                            on the machine that has a keyboard and took them
+                            away from the one that does not. Going from four
+                            servings to twelve on a phone was eight taps on a
+                            small button; it is one here. */}
+                        <div className="flex gap-1">
                             {SERVING_STEPS.filter((value) => value !== servings).slice(0, 4).map((value) => (
                                 <button
                                     key={value}
                                     type="button"
                                     onClick={() => setServings(value)}
-                                    className="rounded-full px-2 py-0.5 text-sm text-muted hover:text-ink"
+                                    className="h-11 min-w-11 rounded-full px-2 text-sm text-muted hover:text-ink"
                                 >
                                     {value}
                                 </button>
@@ -205,14 +298,23 @@ export default function RecipeBody({
                             const ingredient = toDisplayIngredient(row, factor);
                             return (
                                 <li key={index} className="border-b border-line pb-4">
-                                    <label className="flex cursor-pointer items-baseline gap-3">
+                                    {/* The whole line is the target, with
+                                        enough height that hitting it needs no
+                                        aim — the box itself is only where the
+                                        mark appears. */}
+                                    <label className="flex cursor-pointer items-baseline gap-3 py-1.5">
                                         <input
                                             type="checkbox"
                                             checked={checked}
                                             onChange={() =>
                                                 setCheckedIngredients((set) => toggle(set, index))
                                             }
-                                            className="print:hidden mt-1 h-5 w-5 shrink-0 cursor-pointer accent-black"
+                                            // The box is 24px and the label
+                                            // around it is the real target, so
+                                            // the row has padding rather than
+                                            // the checkbox having a size nobody
+                                            // would draw.
+                                            className="print:hidden mt-1 h-6 w-6 shrink-0 cursor-pointer accent-black"
                                         />
                                         <span
                                             className={`flex flex-1 items-baseline gap-3 transition-opacity ${checked ? 'opacity-40 line-through' : ''
@@ -253,7 +355,9 @@ export default function RecipeBody({
                                     onClick={() => setCheckedSteps((set) => toggle(set, index))}
                                     aria-pressed={checked}
                                     aria-label={t('checkStep', { number: index + 1 })}
-                                    className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border font-sans text-sm font-bold transition-colors ${checked
+                                    // 44px: a step is ticked off with a
+                                    // wooden spoon in the other hand.
+                                    className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border font-sans text-sm font-bold transition-colors ${checked
                                         ? 'border-transparent bg-ink text-page'
                                         : 'border-line text-muted '
                                         }`}

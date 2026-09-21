@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import InlineConfirm from '@/components/ui/InlineConfirm';
+import { formatDate } from '@/lib/formatDate';
 
 interface CaptureTokenRow {
     id: number;
@@ -24,6 +25,11 @@ interface CaptureTokenRow {
 export default function AdminDevicesPage() {
     const t = useTranslations('Devices');
     const tAdmin = useTranslations('Admin');
+    // The site's language, not the browser's: these three pages used
+    // toLocaleDateString() with no argument, so a German reader on an
+    // English-language phone saw 9/21/2026 here and 21. September 2026
+    // on the blog, in one visit.
+    const locale = useLocale();
 
     const [tokens, setTokens] = useState<CaptureTokenRow[]>([]);
     const [loading, setLoading] = useState(true);
@@ -163,7 +169,7 @@ export default function AdminDevicesPage() {
                                 <p className="text-sm text-faint">
                                     {token.lastUsedAt
                                         ? t('lastUsed', {
-                                            date: new Date(token.lastUsedAt).toLocaleDateString(),
+                                            date: formatDate(token.lastUsedAt, locale, 'short'),
                                         })
                                         : t('neverUsed')}
                                 </p>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDateTime } from '@/lib/formatDate';
 
 interface ErrorRow {
     id: number;
@@ -22,6 +23,11 @@ interface ErrorRow {
  */
 export default function AdminErrorsPage() {
     const t = useTranslations('Errors');
+    // The site's language, not the browser's: these three pages used
+    // toLocaleDateString() with no argument, so a German reader on an
+    // English-language phone saw 9/21/2026 here and 21. September 2026
+    // on the blog, in one visit.
+    const locale = useLocale();
 
     const [errors, setErrors] = useState<ErrorRow[]>([]);
     const [loading, setLoading] = useState(true);
@@ -83,7 +89,7 @@ export default function AdminErrorsPage() {
                                 <span>{t('seen', { count: row.count })}</span>
                                 <span aria-hidden="true">·</span>
                                 <time dateTime={row.lastSeenAt}>
-                                    {new Date(row.lastSeenAt).toLocaleString()}
+                                    {formatDateTime(row.lastSeenAt, locale)}
                                 </time>
                             </div>
 

@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { excerptOf } from '@/lib/postSchema';
 import { buildTsQuery } from '@/lib/searchText';
+import { formatDate } from '@/lib/formatDate';
 
 export const metadata: Metadata = {
     robots: { index: false, follow: false },
@@ -98,11 +99,6 @@ export default async function BlogIndex({
         posts.sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
     }
 
-    const dateFormatter = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    });
 
     return (
         <main className="container mx-auto max-w-2xl px-4 pb-32 sm:px-8">
@@ -155,7 +151,7 @@ export default async function BlogIndex({
                             >
                                 <div className="flex min-w-0 flex-1 flex-col">
                                     <p className="mb-2 flex flex-wrap items-center gap-x-2 text-xs font-semibold uppercase tracking-widest text-muted">
-                                        <span>{dateFormatter.format(post.publishedAt ?? post.createdAt)}</span>
+                                        <span>{formatDate(post.publishedAt ?? post.createdAt, locale)}</span>
                                         {post.publishedAt === null && <span>• {t('draft')}</span>}
                                         {post.recipe && <span>• {post.recipe.title}</span>}
                                     </p>

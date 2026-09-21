@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
 import DeletePostButton from '@/components/post/DeletePostButton';
+import { formatDate } from '@/lib/formatDate';
 
 interface AdminPostRow {
     id: number;
@@ -35,11 +36,6 @@ export default async function AdminPosts({
         },
     });
 
-    const dateFormatter = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    });
 
     return (
         <main className="container mx-auto max-w-3xl px-4 pb-32 md:px-8">
@@ -68,7 +64,7 @@ export default async function AdminPosts({
                                 </Link>
 
                                 <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs font-semibold uppercase tracking-widest text-muted">
-                                    <span>{dateFormatter.format(post.publishedAt ?? post.createdAt)}</span>
+                                    <span>{formatDate(post.publishedAt ?? post.createdAt, locale, 'short')}</span>
                                     <span>• {post.publishedAt ? t('published') : t('draft')}</span>
                                     {post.recipe && <span>• {post.recipe.title}</span>}
                                     {post.shareToken && <span>• {t('hasPublicLink')}</span>}

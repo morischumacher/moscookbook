@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import InlineConfirm from '@/components/ui/InlineConfirm';
+import { formatDate } from '@/lib/formatDate';
 
 interface Invite {
     id: number;
@@ -95,11 +96,6 @@ export default function InvitationList() {
         }
     };
 
-    const dateFormat = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    });
 
     const stateLabel = (state: Invite['state']) =>
         state === 'used' ? t('stateUsed') : state === 'expired' ? t('stateExpired') : t('stateValid');
@@ -145,7 +141,7 @@ export default function InvitationList() {
                                 <p className="truncate text-sm text-muted">
                                     {invite.usedByEmail
                                         ? t('usedBy', { email: invite.usedByEmail })
-                                        : t('expiresOn', { date: dateFormat.format(new Date(invite.expiresAt)) })}
+                                        : t('expiresOn', { date: formatDate(invite.expiresAt, locale, 'short') })}
                                 </p>
                             </div>
 
