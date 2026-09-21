@@ -365,6 +365,37 @@ The admin tables became lists. A table of four columns on a 375px screen scrolls
 sideways and is miserable to use on the phone you are actually holding when you
 want to fix a typo in a recipe.
 
+## The channels, tested end to end
+
+`tests/channels.test.ts` drives every way a recipe gets in, from the JSON body
+a real device posts to the draft that lands in the inbox: the share sheet on a
+YouTube video, an Instagram caption whose page cannot be read, TikTok, an
+ordinary recipe page, a typed note, a forwarded e-mail, an e-mail carrying only
+a link, and a photograph. Nothing in between is stubbed except the network.
+
+That boundary is the point. The parsers each have their own tests; what this
+file covers is the joining, which is where the interesting bugs live. Its first
+run found two:
+
+- a YouTube recipe whose last step was `#suppe #linsen`, because the hashtag
+  line every cooking video ends with survived into the method;
+- every forwarded e-mail named after the covering note above the forward —
+  "Schau mal, das ist das Rezept von Tante Elfi." — because the separator was
+  dropped but what came before it was kept.
+
+It also covers the text that real messages are made of: Windows line endings
+from Outlook, and the non-breaking space between number and unit that copying
+from any recipe site produces and that is invisible in every editor.
+
+The logic between "the body is valid" and "write a row" lives in
+`src/lib/captureInput.ts` rather than inside the route, so it can be driven
+without a request, a session and a database.
+
+The fixtures are written by hand from the shape of the real thing, because the
+container these tests run in cannot reach the internet. The YouTube watch page
+and the Instagram case are the two worth replacing with real captures —
+`npm run fixtures -- <url>` reduces a real page to the parts that matter.
+
 ## Testing the import
 
 Two layers, because they answer different questions.
@@ -499,6 +530,14 @@ button that silently does nothing is worse than no button.
 
 Cancelling the share sheet is not treated as a failure. It rejects with
 `AbortError`, and falling back to the clipboard there would be rude.
+
+Only the title and the link are handed over, never a `text` field — see
+`src/lib/sharePayload.ts`. The Web Share API accepts all three, but what a
+receiving app does with them is up to that app, and nothing in the
+specification says a target has to keep them all: Telegram took `text` and
+dropped `url`, so a shared recipe arrived as a paragraph of its own description
+with no link anywhere in it. The description is not lost — it turns up in the
+link preview, which is where a description belongs.
 
 What it hands over is the public link when the recipe has one, so that it
 reaches somebody without an account. Otherwise it is the address of the page

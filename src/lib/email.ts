@@ -63,12 +63,27 @@ const REPLY_ATTRIBUTION = /^\s*(am .+ schrieb .+:|on .+ wrote:)\s*$/i;
 
 export function stripEmailFurniture(body: string): string {
     const lines = body.replace(/\r\n/g, '\n').split('\n');
-    const kept: string[] = [];
+    let kept: string[] = [];
+
+    // What somebody wrote *above* the forward — "Schau mal, das ist das Rezept
+    // von Tante Elfi." — is a covering note, not the recipe. It is kept aside
+    // rather than dropped outright, because a mail whose forwarded part turns
+    // out to be empty should still yield whatever was there.
+    let preamble: string[] = [];
 
     for (const line of lines) {
         if (CUT_AT.some((pattern) => pattern.test(line))) break;
 
-        if (FORWARD_SEPARATOR.test(line)) continue;
+        if (FORWARD_SEPARATOR.test(line)) {
+            // The separator says "the forwarded message starts here", so
+            // everything gathered so far belongs to the forwarder. Without
+            // this, the parser names every forwarded recipe after the first
+            // line of the covering note.
+            preamble = kept;
+            kept = [];
+            continue;
+        }
+
         if (HEADER_LINE.test(line)) continue;
         if (REPLY_ATTRIBUTION.test(line)) continue;
 
@@ -78,7 +93,10 @@ export function stripEmailFurniture(body: string): string {
         kept.push(line.replace(/^\s*>+\s?/, ''));
     }
 
-    return kept.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    const tidy = (block: string[]) => block.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+
+    const forwarded = tidy(kept);
+    return forwarded !== '' ? forwarded : tidy(preamble);
 }
 
 export interface EmailCapture {

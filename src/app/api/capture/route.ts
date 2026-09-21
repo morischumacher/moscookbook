@@ -3,8 +3,8 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
-import { classifyCapture, tokenFromHeader, hashCaptureToken } from '@/lib/capture';
-import { emailToCapture } from '@/lib/email';
+import { tokenFromHeader, hashCaptureToken } from '@/lib/capture';
+import { captureInputFrom } from '@/lib/captureInput';
 import { findDuplicate, type ExistingRecipe } from '@/lib/duplicates';
 import { processCapture } from '@/lib/captureProcess';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
@@ -75,27 +75,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Send a url, some text, or both.' }, { status: 400 });
     }
 
-    // A mail arrives wrapped in forwarding headers, quote markers and a
-    // signature, and its subject has been through three clients. Cleaning that
-    // up here rather than in the bridge keeps the rules in one testable place —
-    // the bridge is a twenty-line script living in someone's Google account.
-    const input =
-        parsed.data.via === 'email'
-            ? (() => {
-                const mail = emailToCapture(parsed.data.subject ?? '', parsed.data.text ?? '');
-                return {
-                    url: parsed.data.url,
-                    text: mail.text,
-                    // The subject labels the capture but is kept away from the
-                    // recipe parser, which would otherwise name the dish
-                    // "Fwd: schau mal".
-                    note: parsed.data.note || mail.title || undefined,
-                    via: 'email' as const,
-                };
-            })()
-            : parsed.data;
-
-    const classified = classifyCapture(input);
+    // Everything between a valid body and a row lives in captureInputFrom, so
+    // that each channel can be driven end to end in a test — see
+    // tests/channels.test.ts.
+    const classified = captureInputFrom(parsed.data);
     if (!classified) {
         return NextResponse.json({ message: 'Nothing usable was sent.' }, { status: 400 });
     }

@@ -210,7 +210,6 @@ export default async function RecipeArticle({
                     instructions={recipe.instructions}
                     baseServings={recipe.servings}
                     title={recipe.title}
-                    description={recipe.description ?? undefined}
                     // What the share sheet hands over: the public link when one
                     // exists, so that it reaches someone without an account.
                     // Left undefined otherwise, which shares the address of the
