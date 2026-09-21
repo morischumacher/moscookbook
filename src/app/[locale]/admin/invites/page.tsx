@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
-import { useConfirm } from '@/components/ui/useConfirm';
+import InlineConfirm from '@/components/ui/InlineConfirm';
 
 interface Invite {
     id: number;
@@ -22,7 +22,6 @@ export default function AdminInvitesPage() {
     const locale = useLocale();
     const router = useRouter();
 
-    const [ask, dialog] = useConfirm();
     const [invites, setInvites] = useState<Invite[]>([]);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
@@ -81,12 +80,6 @@ export default function AdminInvitesPage() {
     };
 
     const revoke = async (invite: Invite) => {
-        const sure = await ask({
-            title: t('confirmRevoke'),
-            confirmLabel: t('revoke'),
-            destructive: true,
-        });
-        if (!sure) return;
         try {
             const res = await fetch(`/api/invites/${invite.id}`, { method: 'DELETE' });
             if (!res.ok) throw new Error(tAdmin('genericError'));
@@ -176,20 +169,19 @@ export default function AdminInvitesPage() {
                                         {copiedId === invite.id ? t('copied') : t('copy')}
                                     </button>
                                 )}
-                                <button
-                                    type="button"
-                                    onClick={() => revoke(invite)}
+                                <InlineConfirm
+                                    label={t('revoke')}
+                                    confirmLabel={t('revoke')}
+                                    destructive
+                                    onConfirm={() => revoke(invite)}
                                     className="underline underline-offset-4 hover:text-danger"
-                                >
-                                    {t('revoke')}
-                                </button>
+                                />
                             </div>
                         </li>
                     ))}
                 </ul>
             )}
 
-            {dialog}
         </main>
     );
 }

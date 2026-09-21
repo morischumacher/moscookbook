@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { useConfirm } from '@/components/ui/useConfirm';
+import InlineConfirm from '@/components/ui/InlineConfirm';
 
 interface CaptureTokenRow {
     id: number;
@@ -25,7 +25,6 @@ export default function AdminDevicesPage() {
     const t = useTranslations('Devices');
     const tAdmin = useTranslations('Admin');
 
-    const [ask, dialog] = useConfirm();
     const [tokens, setTokens] = useState<CaptureTokenRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [label, setLabel] = useState('');
@@ -76,12 +75,6 @@ export default function AdminDevicesPage() {
     };
 
     const revoke = async (id: number) => {
-        const sure = await ask({
-            title: t('confirmRevoke'),
-            confirmLabel: t('revoke'),
-            destructive: true,
-        });
-        if (!sure) return;
         try {
             const res = await fetch(`/api/capture-tokens/${id}`, { method: 'DELETE' });
             if (!res.ok) {
@@ -176,13 +169,15 @@ export default function AdminDevicesPage() {
                                 </p>
                             </div>
                             {!token.revokedAt && (
-                                <button
-                                    type="button"
-                                    onClick={() => revoke(token.id)}
-                                    className="shrink-0 text-sm text-faint underline underline-offset-4 hover:text-danger"
-                                >
-                                    {t('revoke')}
-                                </button>
+                                <span className="shrink-0">
+                                    <InlineConfirm
+                                        label={t('revoke')}
+                                        confirmLabel={t('revoke')}
+                                        destructive
+                                        onConfirm={() => revoke(token.id)}
+                                        className="text-sm text-faint underline underline-offset-4 hover:text-danger"
+                                    />
+                                </span>
                             )}
                         </li>
                     ))}
@@ -240,7 +235,6 @@ export default function AdminDevicesPage() {
                 <p className="mt-4 text-sm text-muted">{t('screenshotNote')}</p>
             </section>
 
-            {dialog}
         </main>
     );
 }

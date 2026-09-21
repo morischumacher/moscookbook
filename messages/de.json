@@ -147,7 +147,6 @@
     "delete": "Löschen",
     "deleting": "Wird gelöscht…",
     "noRecipes": "Noch keine Rezepte.",
-    "confirmDeleteRecipe": "Dieses Rezept endgültig löschen? Bewertungen und Favoriten gehen mit verloren.",
     "deleteFailed": "Das Rezept konnte nicht gelöscht werden.",
     "userManagement": "Benutzer",
     "backToRecipes": "Zurück zu den Rezepten",
@@ -157,7 +156,6 @@
     "roleUser": "Benutzer",
     "makeAdmin": "Zur Verwaltung machen",
     "revokeAdmin": "Verwaltungsrechte entziehen",
-    "confirmDeleteUser": "Diesen Benutzer endgültig löschen? Alle Bewertungen und Favoriten gehen verloren.",
     "loadingUsers": "Benutzer werden geladen…",
     "genericError": "Etwas ist schiefgelaufen.",
     "noUsers": "Keine Benutzer gefunden.",
@@ -252,7 +250,6 @@
     "copy": "Link kopieren",
     "copied": "Kopiert",
     "revoke": "Zurückziehen",
-    "confirmRevoke": "Diese Einladung zurückziehen? Der Link funktioniert sofort nicht mehr.",
     "stateValid": "Offen",
     "stateUsed": "Eingelöst",
     "stateExpired": "Abgelaufen",
@@ -326,7 +323,6 @@
     "copy": "Kopieren",
     "copied": "Kopiert",
     "revoke": "Widerrufen",
-    "confirmRevoke": "Schlüssel widerrufen? Das Gerät funktioniert sofort nicht mehr.",
     "lastUsed": "Zuletzt benutzt am {date}",
     "neverUsed": "Nie benutzt",
     "shortcutHeading": "Kurzbefehl auf dem iPhone einrichten",
@@ -415,7 +411,6 @@
     "editPost": "Beitrag bearbeiten",
     "view": "Ansehen",
     "delete": "Löschen",
-    "confirmDelete": "\"{title}\" löschen? Das lässt sich nicht rückgängig machen.",
     "deleteFailed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
     "saveFailed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
     "fieldTitle": "Titel",
@@ -441,7 +436,6 @@
     "empty": "Noch kein Foto dabei. Mach das erste.",
     "someone": "Jemand",
     "remove": "Entfernen",
-    "confirmDelete": "Dieses Foto entfernen?",
     "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
     "captionPlaceholder": "Notiz hinzufügen…",
     "captionLabel": "Notiz zu diesem Foto",
@@ -452,6 +446,7 @@
   "Dialog": {
     "cancel": "Abbrechen",
     "confirm": "Bestätigen",
-    "ok": "OK"
+    "ok": "OK",
+    "sure": "Sicher?"
   }
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { useConfirm } from '@/components/ui/useConfirm';
+import InlineConfirm from '@/components/ui/InlineConfirm';
 
 interface User {
     id: number;
@@ -63,12 +64,6 @@ export default function AdminUsersPage() {
     };
 
     const handleDeleteUser = async (userId: number) => {
-        const sure = await ask({
-            title: t('confirmDeleteUser'),
-            confirmLabel: t('delete'),
-            destructive: true,
-        });
-        if (!sure) return;
 
         try {
             const res = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
@@ -136,13 +131,13 @@ export default function AdminUsersPage() {
                                 >
                                     {user.admin ? t('revokeAdmin') : t('makeAdmin')}
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleDeleteUser(user.id)}
+                                <InlineConfirm
+                                    label={t('delete')}
+                                    confirmLabel={t('delete')}
+                                    destructive
+                                    onConfirm={() => handleDeleteUser(user.id)}
                                     className="underline underline-offset-4 hover:text-danger"
-                                >
-                                    {t('delete')}
-                                </button>
+                                />
                             </div>
                         </li>
                     ))}

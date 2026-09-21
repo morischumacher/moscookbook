@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
-import { useConfirm } from '@/components/ui/useConfirm';
+import InlineConfirm from '@/components/ui/InlineConfirm';
 import { compressImage, UPLOAD_LIMIT_BYTES } from '@/lib/imageCompression';
 
 export interface CookedPhoto {
@@ -49,7 +49,6 @@ export default function CookedPhotos({
     const t = useTranslations('Cooked');
     const router = useRouter();
     const input = useRef<HTMLInputElement>(null);
-    const [ask, dialog] = useConfirm();
 
     const [busy, setBusy] = useState(false);
     /** What the button says while it works — preparing, then uploading. */
@@ -124,13 +123,6 @@ export default function CookedPhotos({
     };
 
     const remove = async (photoId: number) => {
-        const sure = await ask({
-            title: t('confirmDelete'),
-            confirmLabel: t('remove'),
-            destructive: true,
-        });
-        if (!sure) return;
-
         setBusy(true);
         setError('');
 
@@ -276,14 +268,16 @@ export default function CookedPhotos({
                                 )}
 
                                 {(mine || isAdmin) && (
-                                    <button
-                                        type="button"
-                                        onClick={() => void remove(photo.id)}
-                                        disabled={busy}
-                                        className="mt-1 self-start text-xs text-muted underline underline-offset-4 hover:text-danger disabled:opacity-50"
-                                    >
-                                        {t('remove')}
-                                    </button>
+                                    <span className="mt-1 self-start">
+                                        <InlineConfirm
+                                            label={t('remove')}
+                                            confirmLabel={t('remove')}
+                                            destructive
+                                            disabled={busy}
+                                            onConfirm={() => remove(photo.id)}
+                                            className="text-xs text-muted underline underline-offset-4 hover:text-danger disabled:opacity-50"
+                                        />
+                                    </span>
                                 )}
                             </li>
                         );
@@ -291,7 +285,6 @@ export default function CookedPhotos({
                 </ul>
             )}
 
-            {dialog}
         </section>
     );
 }

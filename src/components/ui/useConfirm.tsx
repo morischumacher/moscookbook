@@ -140,7 +140,14 @@ export function useConfirm(): [(request: ConfirmRequest) => Promise<boolean>, Re
 
     const dialog = request ? (
         <div
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-ink/40 p-4 backdrop-blur-[2px] sm:items-center"
+            // Centred and quiet rather than a sheet rising from the bottom of
+            // the phone. The sheet was the standard gesture and it was still
+            // too much: a full-width slab with a blurred page behind it is the
+            // weight an operating system gives to "delete all data", not to a
+            // question about one photograph. Most of those questions are asked
+            // in place now (InlineConfirm); what is left is a small card and a
+            // dimming light enough to read the page through.
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-ink/25 p-6"
             // A tap outside is a cancel, which is what people expect of a
             // sheet on a phone. Keyboard users have Escape; this is not the
             // only way out, so it needs no role of its own.
@@ -154,9 +161,9 @@ export function useConfirm(): [(request: ConfirmRequest) => Promise<boolean>, Re
                 aria-modal="true"
                 aria-labelledby="confirm-title"
                 aria-describedby={request.body ? 'confirm-body' : undefined}
-                className="w-full max-w-sm rounded-2xl border border-line bg-page p-6 shadow-2xl"
+                className="w-full max-w-xs rounded-2xl border border-line bg-page p-5 shadow-xl"
             >
-                <h2 id="confirm-title" className="text-lg font-bold leading-snug text-ink">
+                <h2 id="confirm-title" className="text-base font-bold leading-snug text-ink">
                     {request.title}
                 </h2>
 
@@ -168,12 +175,12 @@ export function useConfirm(): [(request: ConfirmRequest) => Promise<boolean>, Re
 
                 {/* The confirming button sits on the right, where the thumb is,
                     and cancelling is the quieter of the two. */}
-                <div className="mt-6 flex justify-end gap-2">
+                <div className="mt-5 flex justify-end gap-1">
                     {request.kind !== 'alert' && (
                         <button
                             type="button"
                             onClick={() => answer(false)}
-                            className="rounded-full px-5 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink"
+                            className="rounded-full px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink"
                         >
                             {t('cancel')}
                         </button>
@@ -183,7 +190,7 @@ export function useConfirm(): [(request: ConfirmRequest) => Promise<boolean>, Re
                         ref={confirmButton}
                         type="button"
                         onClick={() => answer(true)}
-                        className={`rounded-full px-5 py-2.5 text-sm font-medium text-page transition-opacity hover:opacity-85 ${
+                        className={`rounded-full px-4 py-2 text-sm font-medium text-page transition-opacity hover:opacity-85 ${
                             request.destructive ? 'bg-danger' : 'bg-ink'
                         }`}
                     >

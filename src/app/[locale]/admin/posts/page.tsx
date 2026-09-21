@@ -79,7 +79,7 @@ export default async function AdminPosts({
                                 <Link href={`/blog/${post.slug}`} className="text-muted underline underline-offset-4">
                                     {t('view')}
                                 </Link>
-                                <DeletePostButton postId={post.id} title={post.title} />
+                                <DeletePostButton postId={post.id} />
                             </div>
                         </li>
                     ))}

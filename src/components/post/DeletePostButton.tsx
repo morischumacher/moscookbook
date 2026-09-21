@@ -4,28 +4,19 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { useConfirm } from '@/components/ui/useConfirm';
+import InlineConfirm from '@/components/ui/InlineConfirm';
 
-export default function DeletePostButton({
-    postId,
-    title,
-}: {
-    postId: number;
-    /** Named in the question, because a list of entries all look alike. */
-    title: string;
-}) {
+export default function DeletePostButton({ postId }: { postId: number }) {
+    // The entry's title used to be repeated in the question, back when the
+    // question appeared in a box in the middle of the screen with no idea
+    // what it had been opened from. It is asked in the row itself now, one
+    // line from the title, so naming it again was only noise.
     const t = useTranslations('Blog');
     const router = useRouter();
     const [busy, setBusy] = useState(false);
     const [ask, dialog] = useConfirm();
 
     const remove = async () => {
-        const sure = await ask({
-            title: t('confirmDelete', { title }),
-            confirmLabel: t('delete'),
-            destructive: true,
-        });
-        if (!sure) return;
-
         setBusy(true);
         try {
             const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' });
@@ -40,14 +31,14 @@ export default function DeletePostButton({
 
     return (
         <>
-            <button
-                type="button"
-                onClick={remove}
+            <InlineConfirm
+                label={t('delete')}
+                confirmLabel={t('delete')}
+                destructive
                 disabled={busy}
+                onConfirm={remove}
                 className="text-muted underline underline-offset-4 hover:text-danger disabled:opacity-50"
-            >
-                {t('delete')}
-            </button>
+            />
             {dialog}
         </>
     );
