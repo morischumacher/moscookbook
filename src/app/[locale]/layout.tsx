@@ -52,6 +52,35 @@ export async function generateMetadata({
         title: { default: t('title'), template: '%s' },
         description: t('description'),
 
+        /*
+         * The preview card every link gets when it is pasted somewhere.
+         *
+         * Only the two shared routes set this before — /r/[token] and
+         * /p/[token] — so every other address on the site travelled as a bare
+         * line of text. The one that mattered most was the invitation: you
+         * send somebody `…/register?invite=…`, and what arrives in their chat
+         * is a title with nothing beside it, which reads like a link somebody
+         * pasted by accident rather than an invitation to a cookbook.
+         *
+         * Set here, so anything without its own card inherits one. The two
+         * shared routes still override it with the photograph of the dish,
+         * which is the better picture when there is one.
+         */
+        openGraph: {
+            type: 'website',
+            siteName: t('title'),
+            title: t('title'),
+            description: t('description'),
+            locale: locale === 'de' ? 'de_DE' : 'en_US',
+            images: [{ url: '/og-default.png', width: 1200, height: 630, alt: t('title') }],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: t('title'),
+            description: t('description'),
+            images: ['/og-default.png'],
+        },
+
         // The name under the icon once this is saved to a home screen, and
         // the promise that it opens without Safari's address bar. The icons
         // themselves are app/icon.png and app/apple-icon.png, which Next

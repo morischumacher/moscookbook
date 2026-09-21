@@ -133,7 +133,9 @@
     "verifyBanner": "Bitte bestätige deine E-Mail-Adresse — nur damit kannst du dein Passwort später selbst zurücksetzen.",
     "verifyResend": "E-Mail noch einmal schicken",
     "verifyResent": "Abgeschickt. Schau in dein Postfach.",
-    "verifyResendFailed": "hat nicht geklappt, bitte später noch einmal"
+    "verifyResendFailed": "hat nicht geklappt, bitte später noch einmal",
+    "inviteShareTitle": "Du bist zu Mo'sCookbook eingeladen",
+    "inviteShareDescription": "Ein privates Kochbuch. Über den Link legst du dein Konto an."
   },
   "Admin": {
     "dashboard": "Rezepte",
@@ -268,7 +270,11 @@
     "result": "Fertig: {created} angelegt, {replaced} ersetzt, {skipped} übersprungen.",
     "notJson": "Diese Datei ist kein gültiges JSON.",
     "failed": "Das Archiv konnte nicht eingelesen werden.",
-    "offlineHint": "Diese Datei verweist auf die Bilder per URL. Für eine Kopie, die auch ohne den Bildspeicher funktioniert, führe npm run backup auf deinem Rechner aus — das lädt die Bilddateien mit herunter."
+    "offlineHint": "Diese Datei verweist auf die Bilder per URL. Für eine Kopie, die auch ohne den Bildspeicher funktioniert, führe npm run backup auf deinem Rechner aus — das lädt die Bilddateien mit herunter.",
+    "confirmReplaceTitle": "Vorhandenes ersetzen?",
+    "confirmReplaceBody": "Jedes Rezept und jeder Beitrag aus diesem Archiv überschreibt das gleichnamige hier. Was du seit dem Backup bearbeitet hast, ist damit weg. Was nicht im Archiv steht, bleibt unberührt.",
+    "confirmReplaceGo": "Ersetzen",
+    "someFailed": "{count, plural, one {# Eintrag konnte nicht wiederhergestellt werden} other {# Einträge konnten nicht wiederhergestellt werden}}"
   },
   "Inbox": {
     "title": "Eingang",

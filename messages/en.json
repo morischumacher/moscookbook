@@ -133,7 +133,9 @@
     "verifyBanner": "Please confirm your e-mail address — it is what lets you reset your password later.",
     "verifyResend": "Send the e-mail again",
     "verifyResent": "Sent. Have a look in your inbox.",
-    "verifyResendFailed": "that did not work, try again later"
+    "verifyResendFailed": "that did not work, try again later",
+    "inviteShareTitle": "You have been invited to Mo'sCookbook",
+    "inviteShareDescription": "A private cookbook. Open the link to create your account."
   },
   "Admin": {
     "dashboard": "Recipes",
@@ -268,7 +270,11 @@
     "result": "Done: {created} added, {replaced} replaced, {skipped} skipped.",
     "notJson": "That file is not valid JSON.",
     "failed": "The archive could not be imported.",
-    "offlineHint": "This file references the images by URL. For a copy that survives the image store going away, run npm run backup on your machine — it downloads the picture files too."
+    "offlineHint": "This file references the images by URL. For a copy that survives the image store going away, run npm run backup on your machine — it downloads the picture files too.",
+    "confirmReplaceTitle": "Replace what is already here?",
+    "confirmReplaceBody": "Every recipe and entry in this archive overwrites the one with the same address here. What you have edited since the backup was made is lost. Anything not in the archive is left alone.",
+    "confirmReplaceGo": "Replace",
+    "someFailed": "{count, plural, one {# entry could not be restored} other {# entries could not be restored}}"
   },
   "Inbox": {
     "title": "Inbox",
