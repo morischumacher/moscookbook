@@ -7,6 +7,7 @@ import { fetchPage } from './fetchPage';
 import { youtubeVideoId, extractYoutubePage, cleanYoutubeDescription } from './youtube';
 import { fetchImageAsBase64 } from './fetchImage';
 import { readableText } from './readableText';
+import { assessDraft, worthAsking } from './draftQuality';
 import {
     assistsText,
     canUseAi,
@@ -51,6 +52,23 @@ export interface ProcessedCapture {
     draft: ImportedRecipe | null;
     /** Shown in the inbox. A reason, not a stack trace. */
     error: string | null;
+    /**
+     * How this draft came to exist, in the inbox's own words.
+     *
+     * Not bookkeeping. A draft produced by rules is a transcription of what a
+     * page said; a draft produced by a model is a *reading* of what a page
+     * said, and the second one can be confidently wrong in ways the first
+     * cannot. Somebody deciding how carefully to check a draft before
+     * publishing it is entitled to know which they are looking at, and until
+     * now the two were indistinguishable once they reached the inbox.
+     *
+     *   rules     — no model was asked. Structured data, or a clean parse.
+     *   rules+ai  — the rules found part of it and a model filled the gaps.
+     *   ai        — a model produced it. A photograph, always.
+     */
+    readBy: 'rules' | 'rules+ai' | 'ai';
+    /** Which provider answered, when one did. */
+    provider: string | null;
 }
 
 export interface ProcessableCapture {
@@ -81,15 +99,29 @@ function emptyDraft(sourceUrl: string): ImportedRecipe {
 /**
  * Enough to publish without opening the editor?
  *
- * A title alone is not a recipe, and neither is a list of ingredients with no
- * method. Anything short of both is `needsWork` — which does not mean broken,
- * only that it wants a human for a minute.
+ * This is now the *scored* question rather than the three-field one it used to
+ * be — see lib/draftQuality.ts for why a title, one ingredient and a non-empty
+ * instructions field turned out to be a bar that "Cook Mode / Servings / Print
+ * Recipe" clears comfortably.
+ *
+ * `good` is what used to be called ready. Everything else wants a human for a
+ * minute, which is what the inbox is.
  */
 function completeness(draft: ImportedRecipe): 'ready' | 'needsWork' {
-    const hasTitle = draft.title.trim() !== '';
-    const hasIngredients = draft.ingredients.length > 0;
-    const hasInstructions = draft.instructions.trim() !== '';
-    return hasTitle && hasIngredients && hasInstructions ? 'ready' : 'needsWork';
+    return assessDraft(draft).quality === 'good' ? 'ready' : 'needsWork';
+}
+
+/**
+ * Is this draft worth spending a model on?
+ *
+ * Deliberately *not* the same question as `completeness`, even though today
+ * they agree. "Is this good enough to publish untouched" and "would asking
+ * again plausibly improve it" are different questions about different risks,
+ * and collapsing them is how a cookbook ends up paying to re-read pages it
+ * read perfectly.
+ */
+function shouldAsk(draft: ImportedRecipe): boolean {
+    return worthAsking(assessDraft(draft));
 }
 
 /** Fills the gaps in `draft` from `fallback`, without overwriting real data. */
@@ -102,6 +134,24 @@ function mergeDrafts(draft: ImportedRecipe, fallback: Partial<ImportedRecipe>): 
         instructions: draft.instructions || (fallback.instructions ?? ''),
         imageUrl: draft.imageUrl || (fallback.imageUrl ?? ''),
     };
+}
+
+/**
+ * One result, built in one place.
+ *
+ * `readBy` and `provider` have to agree with each other and with what actually
+ * happened, at eleven return statements. Spelling them out at each one is how
+ * a draft ends up labelled "rules" because somebody added a branch and copied
+ * the return above it.
+ */
+function outcome(
+    status: ProcessedCapture['status'],
+    draft: ImportedRecipe | null,
+    error: string | null,
+    provider: string | null = null,
+    readBy: ProcessedCapture['readBy'] = provider ? 'rules+ai' : 'rules'
+): ProcessedCapture {
+    return { status, draft, error, readBy, provider };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -130,14 +180,14 @@ async function fillGapsWithAi(
     draft: ImportedRecipe,
     text: string,
     ai: AiCapability
-): Promise<ImportedRecipe> {
+): Promise<{ draft: ImportedRecipe; used: string | null }> {
     // Two lines of boilerplate is not a recipe and is not worth asking about.
-    if (text.trim().length < 80) return draft;
+    if (text.trim().length < 80) return { draft, used: null };
 
     try {
         const parsed = await extractRecipeWithAi({ kind: 'text', text }, ai.keys);
 
-        return {
+        return { used: ai.keys[0]?.provider ?? null, draft: {
             ...mergeDrafts(draft, parsed),
             // These four are not part of `mergeDrafts` because they are not
             // strings and an empty one is null rather than ''. Same rule
@@ -147,13 +197,13 @@ async function fillGapsWithAi(
             servings: draft.servings ?? parsed.servings,
             prepMinutes: draft.prepMinutes ?? parsed.prepMinutes,
             cookMinutes: draft.cookMinutes ?? parsed.cookMinutes,
-        };
+        } };
     } catch (error) {
         // Logged, not raised. The rules' answer is still on the table and the
         // person sharing a link in a supermarket does not care which of three
         // providers was having an afternoon.
         console.error('The AI could not help with this capture:', error);
-        return draft;
+        return { draft, used: null };
     }
 }
 
@@ -168,16 +218,12 @@ async function processYoutube(
 ): Promise<ProcessedCapture> {
     const videoId = youtubeVideoId(url);
     if (!videoId) {
-        return { status: 'failed', draft: null, error: 'Not a YouTube video link.' };
+        return outcome('failed', null, 'Not a YouTube video link.');
     }
 
     const page = await fetchPage(url);
     if (!page.ok) {
-        return {
-            status: 'failed',
-            draft: null,
-            error: `YouTube could not be read (${page.failure}).`,
-        };
+        return outcome('failed', null, `YouTube could not be read (${page.failure}).`);
     }
 
     const video = extractYoutubePage(page.html, videoId);
@@ -215,24 +261,28 @@ async function processYoutube(
      * has nothing to name the dish after and invents something plausible from
      * the ingredients — "Nudelauflauf" for a video called "Mamas Auflauf".
      */
-    if (completeness(merged) !== 'ready' && assistsText(ai)) {
-        merged = await fillGapsWithAi(
+    let usedAi: string | null = null;
+
+    if (shouldAsk(merged) && assistsText(ai)) {
+        const helped = await fillGapsWithAi(
             merged,
             [video.title, description, shared].filter(Boolean).join('\n\n'),
             ai
         );
+        merged = helped.draft;
+        usedAi = helped.used;
     }
 
     const status = completeness(merged);
 
-    return {
+    return outcome(
         status,
-        draft: merged,
-        error:
-            status === 'ready'
-                ? null
-                : 'The description did not hold a full recipe — it may only be spoken in the video.',
-    };
+        merged,
+        status === 'ready'
+            ? null
+            : 'The description did not hold a full recipe — it may only be spoken in the video.',
+        usedAi
+    );
 }
 
 async function processWebPage(
@@ -250,22 +300,22 @@ async function processWebPage(
         if (shared) {
             const parsed = parseRecipeText(shared);
             let draft = { ...emptyDraft(url), ...parsed };
+            let usedAi: string | null = null;
 
-            if (completeness(draft) !== 'ready' && assistsText(ai)) {
-                draft = await fillGapsWithAi(draft, shared, ai);
+            if (shouldAsk(draft) && assistsText(ai)) {
+                const helped = await fillGapsWithAi(draft, shared, ai);
+                draft = helped.draft;
+                usedAi = helped.used;
             }
 
-            return {
-                status: completeness(draft),
+            return outcome(
+                completeness(draft),
                 draft,
-                error: 'The page could not be read; the shared text was used instead.',
-            };
+                'The page could not be read; the shared text was used instead.',
+                usedAi
+            );
         }
-        return {
-            status: 'failed',
-            draft: null,
-            error: `The page could not be read (${page.failure}).`,
-        };
+        return outcome('failed', null, `The page could not be read (${page.failure}).`);
     }
 
     const extracted = extractRecipeFromHtml(page.html, page.finalUrl);
@@ -282,16 +332,21 @@ async function processWebPage(
      * The page is stripped to its words first. See `readableText`: what is sent
      * is the prose, not four hundred kilobytes of markup and script.
      */
-    if (completeness(draft) !== 'ready' && assistsText(ai)) {
-        draft = await fillGapsWithAi(draft, readableText(page.html), ai);
+    let usedAi: string | null = null;
+
+    if (shouldAsk(draft) && assistsText(ai)) {
+        const helped = await fillGapsWithAi(draft, readableText(page.html), ai);
+        draft = helped.draft;
+        usedAi = helped.used;
     }
 
     const status = completeness(draft);
-    return {
+    return outcome(
         status,
         draft,
-        error: status === 'ready' ? null : 'The page held only part of a recipe.',
-    };
+        status === 'ready' ? null : 'The page held only part of a recipe.',
+        usedAi
+    );
 }
 
 /**
@@ -305,27 +360,27 @@ async function processWebPage(
  */
 async function processImage(imageUrl: string | null, ai: AiCapability): Promise<ProcessedCapture> {
     if (!imageUrl) {
-        return { status: 'failed', draft: null, error: 'No picture was stored.' };
+        return outcome('failed', null, 'No picture was stored.');
     }
 
     const withPicture = { ...emptyDraft(''), imageUrl };
 
     if (!canUseAi(ai)) {
-        return {
-            status: 'needsWork',
-            draft: withPicture,
-            error: 'The picture is saved. Reading it needs the AI import, or typing it in.',
-        };
+        return outcome(
+            'needsWork',
+            withPicture,
+            'The picture is saved. Reading it needs the AI import, or typing it in.'
+        );
     }
 
     const image = await fetchImageAsBase64(imageUrl);
 
     if (!image.ok) {
-        return {
-            status: 'needsWork',
-            draft: withPicture,
-            error: `The picture is saved, but could not be read back (${image.failure}).`,
-        };
+        return outcome(
+            'needsWork',
+            withPicture,
+            `The picture is saved, but could not be read back (${image.failure}).`
+        );
     }
 
     try {
@@ -340,20 +395,24 @@ async function processImage(imageUrl: string | null, ai: AiCapability): Promise<
         const draft: ImportedRecipe = { ...withPicture, ...parsed, imageUrl };
         const status = completeness(draft);
 
-        return {
+        // Always 'ai', never 'rules+ai': there were no rules here. A
+        // photograph is the one source with nothing else to read it.
+        return outcome(
             status,
             draft,
-            error: status === 'ready' ? null : 'Only part of a recipe was legible in the picture.',
-        };
+            status === 'ready' ? null : 'Only part of a recipe was legible in the picture.',
+            ai.keys[0]?.provider ?? null,
+            'ai'
+        );
     } catch (error) {
         // A missing key, a rate limit, a bad month at every provider. None of
         // it is worth losing the screenshot over.
         console.error('Reading a picture failed:', error);
-        return {
-            status: 'needsWork',
-            draft: withPicture,
-            error: 'The picture is saved, but reading it did not work. Try again from the inbox.',
-        };
+        return outcome(
+            'needsWork',
+            withPicture,
+            'The picture is saved, but reading it did not work. Try again from the inbox.'
+        );
     }
 }
 
@@ -372,7 +431,7 @@ export async function processCapture(
         if (capture.kind === 'text') {
             const text = withoutBareUrls(capture.rawText ?? '');
             if (text.trim() === '') {
-                return { status: 'failed', draft: null, error: 'Nothing was sent.' };
+                return outcome('failed', null, 'Nothing was sent.');
             }
             let draft = {
                 ...emptyDraft(''),
@@ -386,8 +445,12 @@ export async function processCapture(
             // parser wants a shape — a heading, a list, then steps — and what
             // arrives by e-mail is very often four paragraphs of prose from
             // somebody's aunt, which is exactly what a model is good at.
-            if (completeness(draft) !== 'ready' && assistsText(ai)) {
-                draft = await fillGapsWithAi(draft, text, ai);
+            let usedAi: string | null = null;
+
+            if (shouldAsk(draft) && assistsText(ai)) {
+                const helped = await fillGapsWithAi(draft, text, ai);
+                draft = helped.draft;
+                usedAi = helped.used;
             }
 
             if (completeness(draft) !== 'ready' && capture.imageUrl) {
@@ -395,16 +458,17 @@ export async function processCapture(
                 if (fromPicture.status === 'ready') return fromPicture;
             }
 
-            return {
-                status: completeness(draft),
+            return outcome(
+                completeness(draft),
                 draft,
-                error: completeness(draft) === 'ready' ? null : 'Only part of a recipe was recognised.',
-            };
+                completeness(draft) === 'ready' ? null : 'Only part of a recipe was recognised.',
+                usedAi
+            );
         }
 
         const url = capture.sourceUrl;
         if (!url) {
-            return { status: 'failed', draft: null, error: 'No link to follow.' };
+            return outcome('failed', null, 'No link to follow.');
         }
 
         const source = capture.source as CaptureSource;
@@ -426,6 +490,6 @@ export async function processCapture(
         // The raw capture is still in the database, so this is recoverable:
         // the inbox offers a retry once the cause is fixed.
         console.error('Capture processing error:', error);
-        return { status: 'failed', draft: null, error: 'Something went wrong while reading this.' };
+        return outcome('failed', null, 'Something went wrong while reading this.');
     }
 }

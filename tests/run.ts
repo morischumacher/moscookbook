@@ -45,6 +45,8 @@ import fixtures from './fixtures.test';
 import secretBox from './secretBox.test';
 import readableText from './readableText.test';
 import aiProviders from './aiProviders.test';
+import aiPolish from './aiPolish.test';
+import draftQuality from './draftQuality.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
 // they are run in order rather than fired off together.
@@ -88,6 +90,8 @@ async function main() {
     secretBox();
     readableText();
     await aiProviders();
+    await aiPolish();
+    draftQuality();
     await fixtures();
 
     process.exit(summary() === 0 ? 0 : 1);

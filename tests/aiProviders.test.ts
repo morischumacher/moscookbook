@@ -86,7 +86,7 @@ const RECIPE = JSON.stringify({
 
 const ANTHROPIC = 'https://api.anthropic.com/v1/messages';
 const OPENAI = 'https://api.openai.com/v1/chat/completions';
-const GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 
 const anthropicKey: AiKey = { provider: 'anthropic', apiKey: 'sk-ant-TESTKEY-0000', model: null };
 const openaiKey: AiKey = { provider: 'openai', apiKey: 'sk-TESTKEY-1111', model: null };

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import InlineConfirm from '@/components/ui/InlineConfirm';
+import Disclosure from '@/components/ui/Disclosure';
 import { formatDate } from '@/lib/formatDate';
 import { buttonPrimarySmall, pageContainer, pageHeading, pageTop } from '@/lib/ui';
 
@@ -195,54 +196,82 @@ export default function AdminDevicesPage() {
             )}
 
             <section className="border-t border-line pt-8">
-                <h2 className="mb-2 text-xl font-bold">{t('shortcutHeading')}</h2>
-                <p className="mb-6 font-serif text-muted">{t('shortcutIntro')}</p>
+                <h2 className="mb-2 text-xl font-bold">{t('setupHeading')}</h2>
+                <p className="mb-6 font-serif text-muted">{t('setupIntro')}</p>
 
-                <ol className="flex list-decimal flex-col gap-4 pl-5 marker:text-faint">
-                    <li>{t('step1')}</li>
-                    <li>{t('step2')}</li>
-                    <li>
-                        {t('step3')}
-                        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-lg border border-line p-4 text-sm">
-                            <dt className="text-faint">URL</dt>
-                            <dd className="break-all font-mono">{endpoint}</dd>
-                            <dt className="text-faint">{t('method')}</dt>
-                            <dd className="font-mono">POST</dd>
-                            <dt className="text-faint">{t('header')}</dt>
-                            <dd className="font-mono">Authorization</dd>
-                            <dt className="text-faint">{t('headerValue')}</dt>
-                            <dd className="font-mono">{t('yourToken')}</dd>
-                            <dt className="text-faint">{t('body')}</dt>
-                            <dd className="font-mono">JSON</dd>
-                            <dt className="text-faint">{t('field')}</dt>
-                            <dd className="font-mono">text &rarr; {t('shortcutInput')}</dd>
+                {/*
+                    Folded away, because this page has two jobs with very
+                    different frequencies. Revoking a key is something you do
+                    when a phone goes missing; building the shortcut is
+                    something you do once, and then never read again. Five
+                    hundred words of iOS instructions permanently unrolled
+                    under the list turns the common visit into a scroll.
+                */}
+                <div className="rounded-lg border border-line px-4">
+                    <Disclosure title={t('sc1Title')} subtitle={t('sc1Intro')}>
+                        <ol className="flex list-decimal flex-col gap-3 pl-5 text-sm leading-relaxed marker:text-faint">
+                            <li>{t('sc1Step1')}</li>
+                            <li>
+                                {t('sc1Step2')}
+                                <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-lg border border-line p-3">
+                                    <dt className="text-faint">URL</dt>
+                                    <dd className="break-all font-mono">{endpoint}</dd>
+                                    <dt className="text-faint">{t('method')}</dt>
+                                    <dd className="font-mono">POST</dd>
+                                    <dt className="text-faint">{t('header')}</dt>
+                                    <dd className="font-mono">Authorization</dd>
+                                    <dt className="text-faint">{t('headerValue')}</dt>
+                                    <dd className="font-mono">Bearer {t('yourToken')}</dd>
+                                    <dt className="text-faint">{t('body')}</dt>
+                                    <dd className="font-mono">JSON</dd>
+                                    <dt className="text-faint">{t('field')}</dt>
+                                    <dd className="font-mono">url &rarr; {t('shortcutInput')}</dd>
+                                </dl>
+                            </li>
+                            <li>{t('sc1Step3')}</li>
+                            <li>{t('sc1Step4')}</li>
+                            <li>{t('sc1Step5')}</li>
+                        </ol>
+                    </Disclosure>
+
+                    <Disclosure title={t('sc2Title')} subtitle={t('sc2Intro')}>
+                        <ol className="flex list-decimal flex-col gap-3 pl-5 text-sm leading-relaxed marker:text-faint">
+                            <li>{t('sc2Step1')}</li>
+                            <li>{t('sc2Step2')}</li>
+                            <li>{t('sc2Step3')}</li>
+                            <li>
+                                {t('sc2Step4')}
+                                <pre className="mt-2 overflow-x-auto rounded border border-line p-3 font-mono text-xs">
+{`{ "image": { "base64": <Base64 Encoded>, "mediaType": "image/jpeg" } }`}
+                                </pre>
+                            </li>
+                            <li>{t('sc2Step5')}</li>
+                        </ol>
+                        <p className="mt-4 text-sm text-muted">{t('sc2Note')}</p>
+                    </Disclosure>
+
+                    <Disclosure title={t('sc3Title')} subtitle={t('sc3Intro')}>
+                        <ol className="flex list-decimal flex-col gap-3 pl-5 text-sm leading-relaxed marker:text-faint">
+                            <li>{t('sc3Step1')}</li>
+                            <li>{t('sc3Step2')}</li>
+                            <li>{t('sc3Step3')}</li>
+                            <li>{t('sc3Step4')}</li>
+                        </ol>
+                    </Disclosure>
+
+                    <Disclosure title={t('troubleTitle')} subtitle={t('troubleIntro')}>
+                        <dl className="flex flex-col gap-3 text-sm leading-relaxed">
+                            {(['trouble401a', 'trouble401b', 'trouble400', 'trouble413', 'troubleSilent'] as const).map(
+                                (key) => (
+                                    <div key={key}>
+                                        <dt className="font-mono text-xs text-faint">{t(`${key}Q`)}</dt>
+                                        <dd>{t(`${key}A`)}</dd>
+                                    </div>
+                                )
+                            )}
                         </dl>
-                    </li>
-                    <li>{t('step4')}</li>
-                    <li>{t('step5')}</li>
-                </ol>
-
-                <p className="mt-6 text-sm text-muted">{t('shortcutNote')}</p>
-
-                {/* A second Shortcut, because a screenshot is how most people
-                    actually save a recipe on a phone — one button, and it works
-                    on an app that refuses to be read any other way. */}
-                <h3 className="mt-10 text-base font-bold tracking-tight">{t('screenshotHeading')}</h3>
-                <p className="mt-2 text-sm leading-relaxed">{t('screenshotIntro')}</p>
-
-                <ol className="mt-4 flex list-decimal flex-col gap-3 pl-5 text-sm leading-relaxed">
-                    <li>{t('screenshotStep1')}</li>
-                    <li>{t('screenshotStep2')}</li>
-                    <li>
-                        {t('screenshotStep3')}
-                        <pre className="mt-2 overflow-x-auto rounded border border-line p-3 font-mono text-xs">
-{`{ "image": { "base64": <Base64>, "mediaType": "image/png" } }`}
-                        </pre>
-                    </li>
-                    <li>{t('screenshotStep4')}</li>
-                </ol>
-
-                <p className="mt-4 text-sm text-muted">{t('screenshotNote')}</p>
+                    </Disclosure>
+                </div>
             </section>
 
         </main>

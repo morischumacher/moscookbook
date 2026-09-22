@@ -211,6 +211,8 @@ export async function POST(req: NextRequest) {
             data: {
                 status: result.status,
                 error: result.error,
+                readBy: result.readBy,
+                aiProvider: result.provider,
                 // Widened before storing: see src/lib/json.ts, and
                 // tests/prismaJsonCompat.ts for why the compiler insists.
                 draft: draft ? toJsonObject(draft) : undefined,

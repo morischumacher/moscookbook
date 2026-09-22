@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { slugify, type Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
 import { compressImage, looksLikeImage, UPLOAD_LIMIT_BYTES } from '@/lib/imageCompression';
+import PolishPanel from './PolishPanel';
 import QuickImport, { type ImportedDraft } from './QuickImport';
 import { buttonPrimary } from '@/lib/ui';
 
@@ -858,6 +859,18 @@ export default function RecipeForm({
                             rows={14}
                             placeholder={t('instructionsPlaceholder')}
                             className={fieldClass + ' font-mono text-sm'}
+                        />
+                    )}
+
+                    {/* Under the method, because that is where both buttons
+                        earn their keep: a title has a typo perhaps twice a
+                        year, and a method forwarded from an e-mail is one
+                        paragraph every single time. */}
+                    {aiEnabled && (
+                        <PolishPanel
+                            text={instructions}
+                            onApply={setInstructions}
+                            disabled={preview}
                         />
                     )}
                 </div>

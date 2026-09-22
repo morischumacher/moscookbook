@@ -72,6 +72,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
             data: {
                 status: result.status,
                 error: result.error,
+                readBy: result.readBy,
+                aiProvider: result.provider,
                 draft: result.draft ? toJsonObject(result.draft) : undefined,
                 processedAt: new Date(),
             },

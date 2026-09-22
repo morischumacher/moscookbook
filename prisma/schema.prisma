@@ -110,6 +110,20 @@ model Capture {
   note      String?
 
   /// new | ready | needsWork | failed | published
+  /// rules | rules+ai | ai — how this draft came to exist.
+  ///
+  /// A draft produced by rules is a transcription of what a page said; a draft
+  /// produced by a model is a *reading* of it, and the second can be
+  /// confidently wrong in ways the first cannot. Somebody deciding how
+  /// carefully to check a draft before publishing is entitled to know which
+  /// they are looking at.
+  ///
+  /// Null on every row written before this existed, and shown as nothing
+  /// rather than as a guess.
+  readBy     String?
+  /// Which provider answered, when one did.
+  aiProvider String?
+
   status String  @default("new")
   error  String?
   /// The parsed recipe draft, in the shape the recipe form expects.
