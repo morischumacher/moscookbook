@@ -82,22 +82,38 @@ function decode(text: string): string {
 }
 
 /**
- * The narrowest container that plausibly holds the article.
+ * The largest `<article>` or `<main>` on the page.
  *
- * `<article>` before `<main>` because a page can have one inside the other and
- * the inner one is the recipe. Neither present is the common case on a site
- * that needed this function in the first place, and then the whole body is
- * used — the drop list above is what makes that tolerable.
+ * The first version took the *first* match with a non-greedy body, which is
+ * two bugs in one line and they compound.
+ *
+ * A page whose sections are each an `<article>` — Squarespace does this, one
+ * per recipe component — has many of them. Non-greedy matching pairs the first
+ * opening tag with the first *closing* tag, so on nested or repeated
+ * containers it returns whatever happens to sit before the first `</article>`.
+ * On a real fried-chicken recipe that was the ingredient list and nothing
+ * else: forty-seven ingredients captured, thirteen method steps dropped, and
+ * the model dutifully returned a recipe with no method because it was never
+ * shown one. Eighty-one kilobytes of page reduced to 1478 characters, which is
+ * the number that should have looked wrong.
+ *
+ * Every match is now considered and the longest wins. Still a heuristic, but
+ * one whose failure is "too much page" rather than "half the recipe".
  */
 function narrow(html: string): string {
+    let best = '';
+
     for (const tag of ['article', 'main']) {
-        const match = new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)</${tag}>`, 'i').exec(html);
-        // A container with almost nothing in it is a layout element, not the
-        // article; falling through to the body is better than returning a
-        // heading on its own.
-        if (match && match[1].length > 500) return match[1];
+        for (const match of html.matchAll(
+            new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*)</${tag}>`, 'gi')
+        )) {
+            if (match[1].length > best.length) best = match[1];
+        }
     }
-    return html;
+
+    // A container with almost nothing in it is a layout element, not the
+    // article; falling through to the body is better than a heading on its own.
+    return best.length > 500 ? best : html;
 }
 
 /**
@@ -110,8 +126,15 @@ function narrow(html: string): string {
  */
 export const MAX_READABLE = 12_000;
 
-export function readableText(html: string): string {
-    let text = narrow(html);
+/**
+ * Everything the importer never reads, removed.
+ *
+ * Split out from `readableText` so the same work can be done twice: once on
+ * the narrowed container and once on the whole page, which is how narrowing
+ * can be checked rather than trusted.
+ */
+function strip(html: string): string {
+    let text = html;
 
     for (const tag of DROP) {
         text = text.replace(new RegExp(`<${tag}\\b[\\s\\S]*?</${tag}>`, 'gi'), ' ');
@@ -144,6 +167,32 @@ export function readableText(html: string): string {
         .join('\n')
         // Three blank lines and eighty of them read the same to a model and
         // cost differently.
-        .replace(/\n{3,}/g, '\n\n')
-        .slice(0, MAX_READABLE);
+        .replace(/\n{3,}/g, '\n\n');
+}
+
+/**
+ * How much of the page the narrowed container has to account for.
+ *
+ * Narrowing is a guess about markup, and the fried-chicken page is the proof
+ * that a guess about markup can throw away the half of the recipe that matters.
+ * So the guess is now checked against the thing it claims to improve on: strip
+ * the chosen container, strip the whole page, and if the container holds less
+ * than half the page's words, disbelieve it and send the page.
+ *
+ * Half is deliberately generous. A container that drops a cookie banner, a
+ * related-posts rail and four hundred comments is doing its job and clears this
+ * easily; a container that drops the method does not. The cost of being wrong
+ * in this direction is a few thousand extra characters, bounded by
+ * `MAX_READABLE`. The cost of being wrong in the other direction is a recipe
+ * with no method, which is what this replaces.
+ */
+const KEEP_AT_LEAST = 0.5;
+
+export function readableText(html: string): string {
+    const whole = strip(html);
+    const narrowed = strip(narrow(html));
+
+    const chosen = narrowed.length >= whole.length * KEEP_AT_LEAST ? narrowed : whole;
+
+    return chosen.slice(0, MAX_READABLE);
 }

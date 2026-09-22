@@ -82,6 +82,55 @@ export default function readableTextTests() {
         readableText(tinyArticle)
     );
 
+    /*
+     * The bug this file exists to prevent from coming back.
+     *
+     * Squarespace gives a recipe page one `<article>` per component, so the
+     * ingredients and the method are siblings. The first version of `narrow`
+     * matched non-greedily and took the first hit, which paired the *first*
+     * opening tag with the *first* closing tag — everything from the second
+     * `</article>` onwards was dropped.
+     *
+     * On a real page that meant forty-seven ingredients and no method at all,
+     * and the model was blamed for returning a recipe without one. It never saw
+     * one. The two checks below are the two halves of that page.
+     */
+    const siblings = `<html><body>
+<header>Joshua Weissman</header>
+<article><h2>Ingredients</h2><ul><li>4 chicken thighs</li><li>2 cups buttermilk</li><li>1 tbsp salt</li></ul>${'<p>Plus a note about the brine. </p>'.repeat(20)}</article>
+<article><h2>Method</h2><ol><li>Brine the chicken overnight.</li><li>Dredge in seasoned flour.</li><li>Fry at 175°C until golden.</li></ol>${'<p>Plus a note about the oil. </p>'.repeat(20)}</article>
+</body></html>`;
+
+    const both = readableText(siblings);
+    check('sibling articles: the ingredients survive', both.includes('2 cups buttermilk'), both);
+    check('sibling articles: so does the method', both.includes('Dredge in seasoned flour'), both);
+
+    // Nested containers are the same bug wearing a different hat: `<main>`
+    // around `<article>` around the recipe.
+    const nested = `<html><body><main><article><h2>Zutaten</h2><ul><li>500 g Tomaten</li></ul></article>${'<p>Ein Absatz Vorrede. </p>'.repeat(25)}<article><h2>Zubereitung</h2><p>Alles pürieren und erhitzen.</p></article></main></body></html>`;
+
+    const deep = readableText(nested);
+    check('nested containers: the ingredients survive', deep.includes('500 g Tomaten'), deep);
+    check('nested containers: so does the method', deep.includes('Alles pürieren'), deep);
+
+    /*
+     * And the guard that makes the heuristic checkable rather than trusted: a
+     * container that accounts for almost none of the page is disbelieved, and
+     * the whole page is sent instead. Too much page is a bill; half a recipe is
+     * a wrong recipe.
+     */
+    const misleading = `<html><body>
+<article>${'<p>Ein Teaser für ein anderes Rezept. </p>'.repeat(20)}</article>
+<div><h1>Linsensuppe</h1><ul><li>250 g Linsen</li><li>1 Karotte</li></ul>${'<p>Die Linsen über Nacht einweichen und am nächsten Tag weich kochen. </p>'.repeat(40)}</div>
+</body></html>`;
+
+    const fellBack = readableText(misleading);
+    check(
+        'a container holding almost nothing is disbelieved',
+        fellBack.includes('250 g Linsen'),
+        fellBack.slice(0, 300)
+    );
+
     /* ------------------------------------------------------------ the ceiling */
 
     suite('readableText: the ceiling');
