@@ -2,8 +2,12 @@
  * The oyster.
  *
  * It is the mark in the logo and it is what a recipe is rated in, so it had
- * better be the same oyster in both places. It used to be a 482 KB photograph
- * drawn at 24 pixels, tinted orange with
+ * better be the same oyster in both places. For a long time it was not, and
+ * the person looking at both every day said so: the wordmark carries a proper
+ * shell with concentric growth rings running all the way round it, and this
+ * drew a blob with two short scratches near the top. Two marks, one brand.
+ *
+ * It used to be a 482 KB photograph drawn at 24 pixels, tinted orange with
  *
  *     filter: invert(53%) sepia(85%) saturate(3029%) hue-rotate(346deg) …
  *
@@ -12,21 +16,51 @@
  * colour from `currentColor` like any piece of text, scales to any size, and
  * prints.
  *
- * The line count follows the size. It used to be two everywhere, because 24
- * pixels was the size that mattered when it was written — and then the
- * home-screen icon needed one at 512, where a two-ring shell reads as a bean.
+ * **The rings are the shell.** The previous drawing scaled a short *arc* about
+ * the hinge, which is why five of them bunched into the narrow end and stopped
+ * reading as anything — an attempt recorded here as "the wordmark's spacing is
+ * something this construction cannot do". That was the wrong conclusion from
+ * the right observation. Scaling the **outline** about a point produces exactly
+ * the family a shell has: closed rings, converging where the shell grew from
+ * and spreading across the broad end. Five of them at the sizes that can hold
+ * five.
  *
- * So one drawing with two levels of detail rather than two drawings: three
- * rings once there is room, two below that. The third is the outer ring grown
- * about the hinge — the narrow end the shell actually grows out from — so it
- * stays parallel to the rim instead of looking pasted on.
+ * The outline is pear-shaped rather than an ellipse — a soft point at the
+ * lower left, broad at the upper right — because that asymmetry is most of
+ * what makes the wordmark's shell look like a shell rather than a stone.
  *
- * Five were tried, aiming at the wordmark's own oyster, which is a raster with
- * about seven. They were worse: scaling about one hinge bunches them into the
- * narrow end, and the shell stops being a shell. The wordmark's rings are
- * spaced evenly across the whole shell, which this construction cannot do, and
- * three is where it stops being a simplification and starts being a mess.
+ * The detail follows the size, which is not decoration either: five rings at
+ * sixteen pixels is a smudge, and one ring at 512 is a bean. Rendered at every
+ * size the application actually uses before this was committed.
  */
+
+/**
+ * The shell, drawn once. Everything else here is this path at a smaller scale.
+ */
+const SHELL =
+    'M2.4 14.6 C1.9 10.4 6.8 6.3 12.6 6.2 C18.1 6.1 21.6 8.9 21.5 12.2 ' +
+    'C21.4 15.7 17.0 18.1 11.6 17.9 C6.2 17.7 2.8 17.2 2.4 14.6 Z';
+
+/**
+ * Where the rings converge — the umbo, the point a shell grows out from.
+ *
+ * On the upper right, which is where the wordmark's are. A real oyster's rings
+ * converge at the hinge, which is the pointed end; the wordmark does the
+ * opposite and looks better for it, and matching the brand beats matching the
+ * mollusc.
+ */
+const UMBO_X = 18.6;
+const UMBO_Y = 8.6;
+
+/** How much detail a given size can hold, and how heavy the line has to be. */
+function detail(size: number): { rings: number[]; strokeWidth: number } {
+    if (size >= 64) return { rings: [0.84, 0.68, 0.52, 0.36, 0.21], strokeWidth: 0.75 };
+    if (size >= 32) return { rings: [0.8, 0.6, 0.38], strokeWidth: 1 };
+    if (size >= 20) return { rings: [0.78, 0.52], strokeWidth: 1.3 };
+    // At sixteen pixels a single ring is the difference between a shell and an
+    // olive. Two is already mud.
+    return { rings: [0.74], strokeWidth: 1.6 };
+}
 
 export interface OysterProps {
     /**
@@ -44,13 +78,8 @@ export interface OysterProps {
      * This used to be hard-coded to `var(--color-bg)`, on the assumption that
      * an oyster always sits on the page. On the rating badge it does not: it
      * sits on a dark scrim over a photograph, filled with the scrim's own
-     * foreground — so the fill and the rings resolved to the same colour and
-     * the shell rendered as a featureless blob. In light mode that blob was
-     * cream and nobody looked twice; in dark mode it was a black jellybean in
-     * the corner of a photograph, which is how this was finally noticed.
-     *
-     * The default keeps every existing caller — the logo, the five shells on a
-     * recipe — exactly as it was.
+     * foreground — so fill and rings resolved to the same colour and the shell
+     * rendered as a featureless blob.
      */
     cutColor?: string;
 }
@@ -61,35 +90,10 @@ export default function Oyster({
     className,
     cutColor = 'var(--color-bg)',
 }: OysterProps) {
-    const shell =
-        'M2.8 12.4 C2.8 8.8 7 6.2 12.2 6.2 C17.6 6.2 21.4 8.6 21.4 12 ' +
-        'C21.4 15.4 17.4 17.9 12 17.9 C6.8 17.9 2.8 15.9 2.8 12.4 Z';
+    const { rings, strokeWidth } = detail(size);
 
-    const outer =
-        'M5.4 14.4 C4.7 13.2 5.2 11.6 6.9 10.6 C9 9.3 12.6 9 15.6 9.9 C17.9 10.6 19 11.9 18.7 13.2';
-    const inner =
-        'M8.6 15.2 C8.2 14.4 8.8 13.5 10.2 13 C11.9 12.4 14.2 12.6 15.6 13.4 C16.4 13.9 16.6 14.5 16.2 15';
-
-    // The hinge: the narrow end the growth rings spread out from. Scaling a
-    // ring about this point gives another ring of the same family.
-    const HINGE_X = 4.3;
-    const HINGE_Y = 15.6;
     const about = (factor: number) =>
-        `translate(${HINGE_X} ${HINGE_Y}) scale(${factor}) translate(${-HINGE_X} ${-HINGE_Y})`;
-
-    /**
-     * How much detail this size can hold. 28 is where it was drawn and looked
-     * at, not a formula: below it the third ring closes up against the second
-     * and the three become a smudge.
-     */
-    const rings: { d: string; transform?: string }[] =
-        size >= 28
-            ? [{ d: outer, transform: about(1.12) }, { d: outer }, { d: inner }]
-            : [{ d: outer }, { d: inner }];
-
-    // Thinner lines as the drawing grows: 1.5 at 24 pixels is what makes it
-    // readable there and what would make it a cartoon at 512.
-    const strokeWidth = size >= 96 ? 0.85 : size >= 28 ? 1.2 : 1.5;
+        `translate(${UMBO_X} ${UMBO_Y}) scale(${factor}) translate(${-UMBO_X} ${-UMBO_Y})`;
 
     return (
         <svg
@@ -101,26 +105,29 @@ export default function Oyster({
             aria-hidden="true"
             focusable="false"
         >
+            {/* The tilt is the wordmark's. Upright, the same drawing reads as a
+                dish rather than as something that was picked up. */}
             <g transform="rotate(-14 12 12)">
                 <path
-                    d={shell}
+                    d={SHELL}
                     fill={variant === 'solid' ? 'currentColor' : 'none'}
                     stroke="currentColor"
                     strokeWidth={strokeWidth}
                     strokeLinejoin="round"
                 />
-                {rings.map((ring, index) => (
+
+                {rings.map((factor) => (
                     <path
-                        key={`${index}-${ring.transform ?? ''}`}
-                        d={ring.d}
-                        transform={ring.transform}
+                        key={factor}
+                        d={SHELL}
+                        transform={about(factor)}
                         fill="none"
                         // On a filled shell the rings are cut out of the fill,
-                        // so they take the colour of whatever is behind the
-                        // shell — exactly how the logo reads, white on orange.
+                        // so they take the colour of whatever is behind it —
+                        // exactly how the logo reads, white on orange.
                         stroke={variant === 'solid' ? cutColor : 'currentColor'}
                         strokeWidth={strokeWidth}
-                        strokeLinecap="round"
+                        strokeLinejoin="round"
                     />
                 ))}
             </g>
