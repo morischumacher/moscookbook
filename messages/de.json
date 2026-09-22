@@ -250,7 +250,8 @@
     "pageFailed": "Die Seite konnte nicht gelesen werden.",
     "photoFailed": "Das Foto konnte nicht gelesen werden.",
     "partial": "Die Seite hatte nur Teilangaben — bitte den Rest ergänzen.",
-    "imported": "Rezept übernommen. Bitte vor dem Speichern prüfen."
+    "imported": "Rezept übernommen. Bitte vor dem Speichern prüfen.",
+    "importedWithAi": "Importiert, mit Hilfe der KI."
   },
   "Invites": {
     "title": "Einladungen",
@@ -684,6 +685,9 @@
     "polishNumbers": "Der Vorschlag hat eine Zahl verändert und wurde deshalb verworfen. Es wurde nichts geändert.",
     "polishOff": "Die KI ist ausgeschaltet. Einschalten unter Verwaltung → KI.",
     "askAi": "Mit KI lesen",
-    "usedAiFailed": "KI gefragt, keine Antwort ({provider})"
+    "usedAiFailed": "KI gefragt, keine Antwort ({provider})",
+    "notVerified": "Dieser Schlüssel wurde noch nicht geprüft und wird deshalb nicht benutzt. Einmal „Testen“ drücken — das schickt ein Mini-Rezept durch und kostet Bruchteile eines Cents.",
+    "noneUsable": "Kein Schlüssel ist bisher als funktionierend bestätigt. Bis dahin läuft alles regelbasiert.",
+    "rebuildWithAi": "Rezept mit KI aus der Eingabe erstellen"
   }
 }

@@ -250,7 +250,8 @@
     "pageFailed": "The page could not be read.",
     "photoFailed": "The photo could not be read.",
     "partial": "The page only had partial data — please fill in the rest.",
-    "imported": "Recipe imported. Please check it before saving."
+    "imported": "Recipe imported. Please check it before saving.",
+    "importedWithAi": "Imported, with help from the AI."
   },
   "Invites": {
     "title": "Invitations",
@@ -684,6 +685,9 @@
     "polishNumbers": "The suggestion changed a number, so it was discarded. Nothing has been altered.",
     "polishOff": "The AI is switched off. Turn it on under Admin → AI.",
     "askAi": "Read with AI",
-    "usedAiFailed": "AI asked, no answer ({provider})"
+    "usedAiFailed": "AI asked, no answer ({provider})",
+    "notVerified": "This key has not been checked yet, so it is not used. Press “Test” once — it sends a tiny recipe through and costs a fraction of a cent.",
+    "noneUsable": "No key has been confirmed working yet. Until one is, everything runs on rules.",
+    "rebuildWithAi": "Build the recipe from this with AI"
   }
 }

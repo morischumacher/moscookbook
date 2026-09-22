@@ -5,11 +5,20 @@ import { rateLimit, clientKey } from '@/lib/rateLimit';
 import { extractRecipeFromHtml, isSafePublicUrl } from '@/lib/recipeFromHtml';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { readableText } from '@/lib/readableText';
-import { assistsText, extractRecipeWithAi } from '@/lib/aiImport';
+import { assistsText, canUseAi, extractRecipeWithAi } from '@/lib/aiImport';
 import { aiCapability } from '@/lib/aiConfig';
 
 const importSchema = z.object({
     url: z.string().trim().min(1).max(2048),
+    /**
+     * "Read this with the AI whatever the rules made of it."
+     *
+     * Skips the quality gate and loosens the mode gate from `assistsText` to
+     * `canUseAi`, for the same reason the inbox button does: the gate is about
+     * what happens automatically, and a person pressing a button is not that.
+     * "Nie" still refuses.
+     */
+    force: z.boolean().optional(),
 });
 
 const FETCH_TIMEOUT_MS = 12_000;
@@ -86,8 +95,11 @@ export async function POST(req: NextRequest) {
          */
         const ai = await aiCapability();
         const incomplete = !recipe.title || recipe.ingredients.length === 0 || !recipe.instructions;
+        const force = parsed.data.force === true;
 
-        if (incomplete && assistsText(ai)) {
+        let usedAi = false;
+
+        if ((force && canUseAi(ai)) || (incomplete && assistsText(ai))) {
             try {
                 const read = await extractRecipeWithAi(
                     { kind: 'text', text: readableText(html) },
@@ -107,6 +119,8 @@ export async function POST(req: NextRequest) {
                     prepMinutes: recipe.prepMinutes ?? read.prepMinutes,
                     cookMinutes: recipe.cookMinutes ?? read.cookMinutes,
                 };
+
+                usedAi = true;
             } catch (error) {
                 // The rules' answer is still on the table. An import that
                 // returns less than it might is a far better outcome than one
@@ -134,6 +148,7 @@ export async function POST(req: NextRequest) {
             recipe: { ...recipe, imageUrl },
             // Tell the UI how much it actually got, so it can be honest about it.
             partial: recipe.ingredients.length === 0 || !recipe.instructions,
+            usedAi,
         });
     } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {

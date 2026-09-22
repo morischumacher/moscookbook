@@ -285,11 +285,44 @@ function extractJson(text: string): unknown {
  * ends up in a dump. Three hundred characters is enough to name a model that
  * does not exist, which is what an admin is nearly always reading this for.
  */
+class ProviderError extends Error {
+    constructor(
+        message: string,
+        /** True when trying the same thing again in a moment might work. */
+        readonly transient: boolean
+    ) {
+        super(message);
+        this.name = 'ProviderError';
+    }
+}
+
+/**
+ * Statuses that mean "not now" rather than "not ever".
+ *
+ * 503 is the one that prompted this: Gemini answers it when the model is busy,
+ * and its own message says "spikes in demand are usually temporary, please try
+ * again later" — which the cookbook was reading as a failure and reporting as
+ * one. 429 is a rate limit, 502 and 504 are gateways. None of them is anything
+ * to do with the key, and all of them are usually over within a second.
+ *
+ * 401, 403 and 404 are deliberately not here. A wrong key and a model that
+ * does not exist do not get better by asking twice; they get better by
+ * somebody being told.
+ */
+const TRANSIENT = new Set([429, 500, 502, 503, 504]);
+
 function providerError(provider: AiProvider, status: number, body: string, apiKey: string): Error {
-    return new Error(
-        `${PROVIDER_LABEL[provider]} returned ${status}: ${scrub(body, apiKey).slice(0, 300)}`
+    return new ProviderError(
+        `${PROVIDER_LABEL[provider]} returned ${status}: ${scrub(body, apiKey).slice(0, 300)}`,
+        TRANSIENT.has(status)
     );
 }
+
+function isTransient(error: unknown): boolean {
+    return error instanceof ProviderError && error.transient;
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /* -------------------------------------------------------------------------- */
 /* The three of them                                                           */
@@ -471,8 +504,27 @@ const CALLS: Record<AiProvider, (key: AiKey, source: AiSource) => Promise<string
  * Exported for the "test" button, which wants a single provider's answer or a
  * single provider's error rather than the fallback chain's summary.
  */
+/**
+ * How many times a busy provider is asked again, and how long between.
+ *
+ * Two extra attempts, 700ms then 2s. Small numbers on purpose: this sits
+ * inside a request somebody is waiting on — an iOS Shortcut in a supermarket,
+ * a button on an admin page — and a retry policy generous enough to outlast a
+ * real outage is one that turns a five-second failure into a thirty-second
+ * one. Three seconds of patience covers the spike; anything longer is better
+ * spent falling back to the rules and saying so.
+ */
+const RETRIES = [700, 2000];
+
 export async function completeWithKey(key: AiKey, source: AiSource): Promise<string> {
-    return CALLS[key.provider](key, source);
+    for (let attempt = 0; ; attempt += 1) {
+        try {
+            return await CALLS[key.provider](key, source);
+        } catch (error) {
+            if (attempt >= RETRIES.length || !isTransient(error)) throw error;
+            await sleep(RETRIES[attempt]);
+        }
+    }
 }
 
 export async function extractWithKey(key: AiKey, source: AiSource): Promise<AiExtractionResult> {

@@ -58,6 +58,7 @@ interface CredentialRow {
     model: string | null;
     enabled: boolean;
     priority: number;
+    verifiedAt: Date | null;
 }
 
 /** A row as the admin screen is allowed to see it. Never carries a key. */
@@ -74,6 +75,8 @@ export interface AiCredentialView {
     priority: number;
     checkedAt: string | null;
     checkError: string | null;
+    /** Has this key ever been seen to work? Until it has, it is not used. */
+    verified: boolean;
     /**
      * True when a row exists but its envelope will not open — which means the
      * session secret was rotated. The screen says so and asks for the key
@@ -115,7 +118,14 @@ export async function aiCapability(): Promise<AiCapability> {
             .findMany({
                 where: { enabled: true },
                 orderBy: [{ priority: 'asc' }, { provider: 'asc' }],
-                select: { provider: true, secret: true, model: true, enabled: true, priority: true },
+                select: {
+                    provider: true,
+                    secret: true,
+                    model: true,
+                    enabled: true,
+                    priority: true,
+                    verifiedAt: true,
+                },
             })
             .catch((): CredentialRow[] => []) as Promise<CredentialRow[]>,
     ]);
@@ -128,6 +138,17 @@ export async function aiCapability(): Promise<AiCapability> {
         if (!(AI_PROVIDERS as readonly string[]).includes(row.provider)) continue;
         fromRows.add(row.provider);
 
+        /*
+         * The gate: a key that has never been seen to work is not used.
+         *
+         * Pasting a key in is not evidence that it works. A key with no credit
+         * left, a key for the wrong product, a key with a character missing —
+         * all of them sit there looking configured, and the way anybody finds
+         * out is a share from a supermarket coming back empty. One press of
+         * "test" costs a fraction of a cent and settles it.
+         */
+        if (row.verifiedAt === null) continue;
+
         const apiKey = open(row.secret);
         if (!apiKey) continue;
 
@@ -137,9 +158,18 @@ export async function aiCapability(): Promise<AiCapability> {
         keys.push({ provider: row.provider as AiProvider, apiKey, model });
     }
 
-    // The environment fills in providers that have no row of their own — never
-    // one that has. A row that exists and will not open is still a decision
-    // somebody made about that provider.
+    /*
+     * The environment fills in providers that have no row of their own — never
+     * one that has. A row that exists and will not open is still a decision
+     * somebody made about that provider.
+     *
+     * Environment keys are **not** gated on having been verified, and that is
+     * deliberate rather than an oversight: there is no screen on which to
+     * verify one, setting an environment variable is already a deliberate
+     * deployment act, and a gate nobody can open is a feature that is simply
+     * off. The admin screen says where each key comes from, so a deployment
+     * using one is not left guessing.
+     */
     for (const key of keysFromEnv()) {
         if (!fromRows.has(key.provider)) keys.push(key);
     }
@@ -181,6 +211,7 @@ interface ViewRow {
     priority: number;
     checkedAt: Date | null;
     checkError: string | null;
+    verifiedAt: Date | null;
 }
 
 /**
@@ -205,6 +236,7 @@ export async function listAiCredentials(): Promise<AiCredentialView[]> {
                 priority: true,
                 checkedAt: true,
                 checkError: true,
+                verifiedAt: true,
             },
         })
         .catch((): ViewRow[] => []);
@@ -226,6 +258,7 @@ export async function listAiCredentials(): Promise<AiCredentialView[]> {
                 priority: row.priority,
                 checkedAt: row.checkedAt ? row.checkedAt.toISOString() : null,
                 checkError: row.checkError,
+                verified: row.verifiedAt !== null,
                 unreadable: open(row.secret) === null,
             };
         }
@@ -240,6 +273,8 @@ export async function listAiCredentials(): Promise<AiCredentialView[]> {
             priority: 10,
             checkedAt: null,
             checkError: null,
+            // An environment key is taken on trust; see `aiCapability`.
+            verified: env.has(provider),
             unreadable: false,
         };
     });
@@ -283,9 +318,12 @@ export async function saveAiCredential(input: SaveCredential): Promise<boolean> 
                     hint: hintFor(input.apiKey as string),
                     // A new key makes every previous verdict about this
                     // provider meaningless, so it goes rather than lingering
-                    // as a red line under a key nobody has tested yet.
+                    // as a red line under a key nobody has tested yet — and
+                    // the new key starts unverified, which means unused, until
+                    // somebody presses test.
                     checkedAt: null,
                     checkError: null,
+                    verifiedAt: null,
                 }
                 : {}),
             ...(input.model !== undefined ? { model } : {}),
@@ -322,11 +360,25 @@ export async function setPrimary(provider: AiProvider): Promise<void> {
     ]);
 }
 
+/**
+ * Records what the test said.
+ *
+ * `verifiedAt` moves forward on a success and is *never* cleared here. That
+ * asymmetry is the whole design: the failure this was built for was a Gemini
+ * 503 saying "spikes in demand are usually temporary", and a gate that closes
+ * on a transient error is a gate somebody has to remember to re-open. Once a
+ * key has been seen to work, it has been seen to work; a later failure shows
+ * as a warning next to it and does not take the feature away.
+ */
 export async function recordCheck(provider: AiProvider, error: string | null): Promise<void> {
     await prisma.aiCredential
         .updateMany({
             where: { provider },
-            data: { checkedAt: new Date(), checkError: error },
+            data: {
+                checkedAt: new Date(),
+                checkError: error,
+                ...(error === null ? { verifiedAt: new Date() } : {}),
+            },
         })
         .catch(() => undefined);
 }
