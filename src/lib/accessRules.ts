@@ -59,6 +59,26 @@ const RECIPE_PATH = /^\/(?:en|de)\/recipe\/[^/]+\/?$/;
  */
 const OPEN_PATH = /^\/(?:en|de)\/(?:login|register|forgot|reset|verify|r|p|c|imprint|privacy)(?:\/|$)/;
 
+/**
+ * Whether the proxy lets a request through without looking at the session.
+ *
+ * Three of the five values. `open` and `unmatched` always did. `recipe` was
+ * *defined* above as "the proxy steps aside and the page decides" and
+ * *tested* to be returned for a recipe path — and the proxy's own line
+ * listed only the other two, so `recipe` fell through to the account check.
+ * A public recipe was not reachable at its own address without an account,
+ * only through a share link, and the page's public branch and the JSON-LD
+ * it emits for search engines were unreachable code. The feature that
+ * introduced `recipe` touched the rules and the page and never the proxy.
+ *
+ * The interaction map found it — by walking the edges, not by reading any
+ * one file, since each file was consistent with itself. The decision lives
+ * here now so that a test can hold all five values against it.
+ */
+export function proxyStepsAside(access: Access): boolean {
+    return access === 'unmatched' || access === 'open' || access === 'recipe';
+}
+
 export function pathAccess(pathname: string): Access {
     if (!LOCALISED.test(pathname)) return 'unmatched';
     if (ADMIN_PATH.test(pathname)) return 'admin';

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { sessionOptions, SessionData } from '@/lib/session';
 import { routing } from '@/i18n/routing';
-import { pathAccess, apiAccess, isCrossSiteWrite } from '@/lib/accessRules';
+import { pathAccess, proxyStepsAside, apiAccess, isCrossSiteWrite } from '@/lib/accessRules';
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -31,7 +31,7 @@ export default async function proxy(req: NextRequest) {
     const res = intlMiddleware(req);
 
     const access = pathAccess(pathname);
-    if (access === 'unmatched' || access === 'open') return res;
+    if (proxyStepsAside(access)) return res;
 
     const session = await getIronSession<SessionData>(req, res, sessionOptions);
     const allowed = access === 'admin' ? Boolean(session.user?.admin) : Boolean(session.user);

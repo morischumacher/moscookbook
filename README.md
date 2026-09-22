@@ -580,6 +580,14 @@ that silently overwrites the version you have been editing is a second
 disaster, not a recovery. Views, ratings and favourites are not imported —
 they belong to an installation, not to a recipe.
 
+## Interaction map
+
+Every screen, endpoint, link and call is listed in
+[docs/interaction-map.generated.md](docs/interaction-map.generated.md), read
+from the source by `npm run map` and kept current by CI. The analysis of it —
+dead ends, duplicated labels, the longest paths and what to shorten — is in
+[docs/interaction-map.md](docs/interaction-map.md).
+
 ## Scripts
 
 | Command | What it does |
@@ -594,6 +602,8 @@ they belong to an installation, not to a recipe.
 | `npm run check:search` | Verify every recipe writer maintains the search columns |
 | `npm run check:contrast` | Verify the colour tokens meet WCAG AA, in both themes |
 | `npm run check:design` | Refuse colours that bypass the design tokens |
+| `npm run map` | Regenerate `docs/interaction-map.generated.md` from the source |
+| `npm run check:map` | Fail if that map is stale (runs in CI) |
 | `npm run fixtures` | Collect real pages to test the import against |
 | `npm run reindex` | Rebuild the search columns for every recipe |
 | `npm run verify:search` | Check the German search against a real Postgres |

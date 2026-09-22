@@ -1,5 +1,5 @@
 import { suite, equal, check } from './harness';
-import { pathAccess, apiAccess, isCrossSiteWrite } from '../src/lib/accessRules';
+import { pathAccess, proxyStepsAside, apiAccess, isCrossSiteWrite } from '../src/lib/accessRules';
 import { destinationFrom } from '../src/lib/loginDestination';
 import { generateShareToken, shareUrl } from '../src/lib/shareToken';
 import { sharePayload } from '../src/lib/sharePayload';
@@ -126,6 +126,34 @@ export default function accessTests() {
         'never sends a text field, whatever a target might do with it',
         !('text' in payload),
         payload
+    );
+
+    /* ------------------------------------------------ what the proxy skips */
+
+    /*
+     * `recipe` was defined as "the page decides", tested to be returned, and
+     * then not listed in the proxy's own bypass — so a public recipe needed an
+     * account to open at its own address. Each file agreed with itself; the
+     * disagreement was between them. This holds all five values in one place.
+     */
+    suite('proxyStepsAside');
+
+    check('an open page needs no session at the proxy', proxyStepsAside('open'));
+    check('an unmatched path is left alone', proxyStepsAside('unmatched'));
+    check('one recipe is left to the page, which checks isPublic itself', proxyStepsAside('recipe'));
+    check('an account page is not', !proxyStepsAside('account'));
+    check('an admin page is not', !proxyStepsAside('admin'));
+
+    // And the path that started it, end to end through pathAccess.
+    check(
+        'a public recipe address reaches the page without a session',
+        proxyStepsAside(pathAccess('/de/recipe/kaesespaetzle')),
+        pathAccess('/de/recipe/kaesespaetzle')
+    );
+    check(
+        'while a recipe address with a further segment still needs an account',
+        !proxyStepsAside(pathAccess('/de/recipe/kaesespaetzle/edit')),
+        pathAccess('/de/recipe/kaesespaetzle/edit')
     );
 
     /* ------------------------------------------------------------- the API */
