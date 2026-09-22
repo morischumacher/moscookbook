@@ -82,7 +82,7 @@ async function main() {
     access();
     await channels();
     post();
-    uploadImage();
+    await uploadImage();
     ingredientSearch();
     blobCleanup();
     imageCompression();

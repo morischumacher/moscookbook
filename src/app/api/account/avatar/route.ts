@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
-// @ts-expect-error - heic-convert ships no type declarations
-import convert from 'heic-convert';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { rateLimitShared } from '@/lib/rateLimitShared';
-import { checkImageUpload, looksLikeHeic } from '@/lib/uploadImage';
+import { checkImageUpload, convertHeicToJpeg, normaliseUpload } from '@/lib/uploadImage';
 import { deleteBlobs } from '@/lib/blobCleanup';
 
 /**
@@ -64,20 +62,23 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message }, { status });
         }
 
-        let buffer = Buffer.from(await file.arrayBuffer());
-        let filename = check.filename;
-        let contentType = file.type || 'application/octet-stream';
+        /*
+         * Admitted by its bytes, not by its name or its declared type — both
+         * of which the uploader wrote. See lib/uploadImage: a `photo.jpg`
+         * that is HTML used to be stored as image/jpeg on the word of the
+         * person uploading it.
+         */
+        const normalised = await normaliseUpload(
+            check.filename,
+            Buffer.from(await file.arrayBuffer()),
+            convertHeicToJpeg
+        );
 
-        if (looksLikeHeic(buffer)) {
-            const converted = await convert({
-                buffer: buffer as unknown as ArrayBufferLike,
-                format: 'JPEG',
-                quality: 0.8,
-            });
-            buffer = Buffer.from(converted as ArrayBuffer);
-            filename = filename.replace(/\.(heic|heif)$/i, '') + '.jpg';
-            contentType = 'image/jpeg';
+        if (!normalised.ok) {
+            return NextResponse.json({ message: 'That file is not a picture.' }, { status: 415 });
         }
+
+        const { buffer, filename, contentType } = normalised.image;
 
         // Read before the write, so the file being replaced can be removed
         // afterwards. Not before: a delete that ran first and then failed to

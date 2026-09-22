@@ -4,6 +4,8 @@ import {
     sanitizeFilename,
     extensionOf,
     looksLikeHeic,
+    imageTypeOf,
+    normaliseUpload,
 } from '../src/lib/uploadImage';
 
 const MB = 1024 * 1024;
@@ -13,7 +15,7 @@ function file(name: string, type: string, size = 1000) {
     return { name, type, size };
 }
 
-export default function uploadImageTests() {
+export default async function uploadImageTests() {
     suite('checkImageUpload');
 
     check('accepts an ordinary photograph', checkImageUpload(file('dinner.jpg', 'image/jpeg'), LIMIT).ok);
@@ -112,4 +114,74 @@ export default function uploadImageTests() {
         'only looks at the first bytes',
         !looksLikeHeic(Buffer.concat([Buffer.alloc(200, 1), Buffer.from('ftypheic')]))
     );
+
+    /* --------------------------------------------------- what the bytes are */
+
+    /*
+     * `checkImageUpload` trusts the name and the declared type, and that is
+     * the right first gate. It was also the last one, and both of those are
+     * things the uploader wrote. These are the signatures, and the file that
+     * used to get through.
+     */
+    suite('imageTypeOf');
+
+    const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.from('JFIF'), Buffer.alloc(16)]);
+    const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(16)]);
+    const gif = Buffer.concat([Buffer.from('GIF89a'), Buffer.alloc(16)]);
+    const webp = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBP'), Buffer.alloc(16)]);
+    const avif = Buffer.concat([Buffer.from([0, 0, 0, 0x1c]), Buffer.from('ftypavif'), Buffer.alloc(16)]);
+    const heicFile = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypheic'), Buffer.alloc(16)]);
+
+    equal('a JPEG', imageTypeOf(jpeg), 'jpeg');
+    equal('a PNG', imageTypeOf(png), 'png');
+    equal('a GIF', imageTypeOf(gif), 'gif');
+    equal('a WebP', imageTypeOf(webp), 'webp');
+    equal('an AVIF', imageTypeOf(avif), 'avif');
+    equal('a HEIC', imageTypeOf(heicFile), 'heic');
+
+    // The file that used to be stored as image/jpeg on the word of its name.
+    equal('an HTML page called photo.jpg is not a picture', imageTypeOf(Buffer.from('<!doctype html><html><body>hi</body></html>')), null);
+    equal('a script is not a picture', imageTypeOf(Buffer.from('#!/bin/sh\necho hello world here we go')), null);
+    equal('an SVG is not admitted as a raster picture', imageTypeOf(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>')), null);
+    equal('an empty buffer is nothing', imageTypeOf(Buffer.alloc(0)), null);
+    equal('eleven bytes is not enough to say', imageTypeOf(Buffer.alloc(11, 0xff)), null);
+    // A JPEG is three specific bytes, not one. The sabotage run shortened the
+    // check to the first byte and nothing noticed.
+    equal('0xFF alone is not a JPEG', imageTypeOf(Buffer.concat([Buffer.from([0xff, 0x00, 0x00]), Buffer.alloc(20)])), null);
+    equal('nor is 0xFF 0xD8 without the third marker byte', imageTypeOf(Buffer.concat([Buffer.from([0xff, 0xd8, 0x00]), Buffer.alloc(20)])), null);
+    equal('a RIFF that is not WebP is not a picture', imageTypeOf(Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WAVE'), Buffer.alloc(16)])), null);
+
+    /* ----------------------------------------------- ready to be stored */
+
+    suite('normaliseUpload');
+
+    const converted = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.from('converted')]);
+    const fakeConvert = async () => converted;
+
+    const asJpeg = await normaliseUpload('holiday.JPG', jpeg, fakeConvert);
+    check('a JPEG is stored as a JPEG', asJpeg.ok && asJpeg.image.contentType === 'image/jpeg', asJpeg);
+    check('with a lowercase extension that matches', asJpeg.ok && asJpeg.image.filename === 'holiday.jpg', asJpeg);
+    check('and the bytes untouched', asJpeg.ok && asJpeg.image.buffer === jpeg, asJpeg);
+
+    // The name lied. The bytes win, and the name is corrected to match.
+    const lied = await normaliseUpload('photo.jpg', png, fakeConvert);
+    check('a PNG called .jpg is stored as a PNG', lied.ok && lied.image.contentType === 'image/png', lied);
+    check('and renamed to say so', lied.ok && lied.image.filename === 'photo.png', lied);
+
+    const fromPhone = await normaliseUpload('IMG_0042.HEIC', heicFile, fakeConvert);
+    check('a HEIC is converted', fromPhone.ok && fromPhone.image.buffer === converted, fromPhone);
+    check('to a JPEG', fromPhone.ok && fromPhone.image.contentType === 'image/jpeg', fromPhone);
+    check('named .jpg', fromPhone.ok && fromPhone.image.filename === 'IMG_0042.jpg', fromPhone);
+
+    // A HEIC that arrived with no extension, which is what some apps send.
+    const bare = await normaliseUpload('IMG_0042', heicFile, fakeConvert);
+    check('a HEIC with no extension still gets .jpg', bare.ok && bare.image.filename === 'IMG_0042.jpg', bare);
+
+    const refused = await normaliseUpload('photo.jpg', Buffer.from('<html>not a picture at all</html>'), fakeConvert);
+    check('something that is not a picture is refused', !refused.ok && refused.reason === 'not-an-image', refused);
+
+    // The converter is only ever asked about HEIC.
+    let asked = 0;
+    await normaliseUpload('a.png', png, async (b) => { asked += 1; return b; });
+    equal('a PNG is not sent to the converter', asked, 0);
 }

@@ -94,7 +94,7 @@ function GalleryField({
                     const data = await res.json();
 
                     if (!res.ok || !data.url) {
-                        onError(data.error || t('uploadFailed'));
+                        onError(data.message || t('uploadFailed'));
                     } else {
                         const next = [...current.current, data.url];
                         current.current = next;
