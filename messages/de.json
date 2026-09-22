@@ -682,6 +682,8 @@
     "polishDiscard": "Verwerfen",
     "polishPreview": "Vorschlag — nichts ist geändert, bis du übernimmst:",
     "polishNumbers": "Der Vorschlag hat eine Zahl verändert und wurde deshalb verworfen. Es wurde nichts geändert.",
-    "polishOff": "Die KI ist ausgeschaltet. Einschalten unter Verwaltung → KI."
+    "polishOff": "Die KI ist ausgeschaltet. Einschalten unter Verwaltung → KI.",
+    "askAi": "Mit KI lesen",
+    "usedAiFailed": "KI gefragt, keine Antwort ({provider})"
   }
 }

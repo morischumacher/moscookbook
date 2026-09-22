@@ -12,7 +12,16 @@ import { aiCapability } from '@/lib/aiConfig';
 import type { ImportedRecipe } from '@/lib/recipeFromHtml';
 import { toJsonObject } from '@/lib/json';
 
-const actionSchema = z.object({ action: z.enum(['retry', 'publish']) });
+/**
+ * `askAi` is the button on a draft the scoring called good.
+ *
+ * A separate action rather than a flag on `retry`, because they are separate
+ * decisions: retry means "the parser may do better now", askAi means "I have
+ * looked at this and I want a model's reading of it". The second one costs
+ * money and the first does not, and a name that says which is which is worth
+ * the extra enum member.
+ */
+const actionSchema = z.object({ action: z.enum(['retry', 'askAi', 'publish']) });
 
 function parseId(raw: string): number | null {
     const id = Number.parseInt(raw, 10);
@@ -62,11 +71,17 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         return NextResponse.json({ message: 'Capture not found' }, { status: 404 });
     }
 
-    if (parsed.data.action === 'retry') {
-        // The retry button in the inbox, and the reason it is worth pressing
-        // after a key is pasted in: the same capture, read again with more to
-        // read it with.
-        const result = await processCapture(capture, await aiCapability());
+    if (parsed.data.action === 'retry' || parsed.data.action === 'askAi') {
+        // `retry`: the same capture, read again — worth pressing after a key
+        // has been pasted in, or after the parser has improved.
+        //
+        // `askAi`: the same, except that the quality gate is skipped. The
+        // scoring is a guess about whether asking would help; somebody looking
+        // at the draft knows better, and the scoring exists to save them the
+        // trouble rather than to overrule them.
+        const result = await processCapture(capture, await aiCapability(), {
+            force: parsed.data.action === 'askAi',
+        });
         const updated = await prisma.capture.update({
             where: { id: captureId },
             data: {

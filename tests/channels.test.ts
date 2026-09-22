@@ -584,4 +584,113 @@ Gesendet von meinem iPhone`,
     if (previousImageKey === undefined) delete process.env.ANTHROPIC_API_KEY;
     else process.env.ANTHROPIC_API_KEY = previousImageKey;
 
+
+    // ── 12. Asking anyway ───────────────────────────────────────────────────
+    suite('channel: the button that overrules the scoring');
+
+    /*
+     * The scoring decides whether a model is asked without being told to. It
+     * reads shape alone: it can see that a draft has a title, ingredients with
+     * quantities and a method, and it cannot see that the method belongs to a
+     * different recipe. A person reading the draft can.
+     *
+     * So `force` exists, and what it must do is precise: skip the quality gate
+     * entirely, loosen the mode gate from "assists text" to "is switched on at
+     * all" — and still refuse when somebody has said never.
+     */
+
+    const CLEAN = {
+        kind: 'text',
+        source: 'note',
+        sourceUrl: null,
+        rawText: 'Ofengemüse mit Feta\n\n1 Zucchini\n200 g Feta\n2 EL Olivenöl\n\nGemüse schneiden, mit Öl mischen und 25 Minuten backen.',
+    };
+
+    const aiAnswerText = {
+        content: [
+            {
+                type: 'text',
+                text: JSON.stringify({
+                    title: 'Ofengemüse mit Feta',
+                    description: 'Vom Modell gelesen',
+                    category: 'Dinner',
+                    nationality: 'Greek',
+                    ingredients: [{ amount: '1', item: 'Zucchini' }],
+                    instructions: '1. Backen.',
+                    servings: 2,
+                    prepMinutes: null,
+                    cookMinutes: 25,
+                }),
+            },
+        ],
+    };
+
+    const key = { provider: 'anthropic' as const, apiKey: 'test-key', model: null };
+
+    restore = stubFetch({ 'https://api.anthropic.com/v1/messages': { html: '', json: aiAnswerText } });
+
+    // A clean draft, with the AI fully on: not asked, because it did not need to be.
+    const notAsked = await processCapture(CLEAN, { mode: 'always', keys: [key] });
+    equal('a clean draft is read by the rules alone', notAsked.readBy, 'rules');
+    equal('and no provider is recorded', notAsked.provider, null);
+
+    // The same draft, forced.
+    const forced = await processCapture(CLEAN, { mode: 'always', keys: [key] }, { force: true });
+    equal('forcing asks anyway', forced.readBy, 'rules+ai');
+    equal('and records who answered', forced.provider, 'anthropic');
+    equal(
+        'the rules still win where they found something',
+        forced.draft?.title,
+        'Ofengemüse mit Feta'
+    );
+    check(
+        'and the model fills what they did not',
+        forced.draft?.description === 'Vom Modell gelesen',
+        forced.draft?.description
+    );
+
+    // "Pictures only" is a rule about automatic imports. A button is not one.
+    const imagesOnly = await processCapture(CLEAN, { mode: 'images', keys: [key] }, { force: true });
+    equal('a deliberate press works under "pictures only"', imagesOnly.readBy, 'rules+ai');
+
+    // "Never" means never, button or not.
+    const off = await processCapture(CLEAN, { mode: 'off', keys: [key] }, { force: true });
+    equal('and never still means never', off.readBy, 'rules');
+
+    // With no key at all, forcing is a no-op rather than a failure.
+    const forcedNoKey = await processCapture(CLEAN, { mode: 'always', keys: [] }, { force: true });
+    equal('forcing with no key changes nothing', forcedNoKey.readBy, 'rules');
+    equal('and the draft survives', forcedNoKey.status, 'ready');
+
+    restore();
+
+
+    // The question this suite answers: the setting says ask, and the provider
+    // is down. What then?
+    restore = stubFetch({});   // every request 404s, including the provider
+
+    const THIN = {
+        kind: 'text',
+        source: 'note',
+        sourceUrl: null,
+        // Over the eighty-character floor below which nothing is asked at
+        // all — that floor is a separate behaviour with its own state, and a
+        // test that tripped it would be checking the wrong thing.
+        rawText:
+            'Irgendein Gericht\n\nZwiebel\nKarotte\nSellerie\nPetersilie\nLauch\nKartoffel\nSalz\nPfeffer\nLorbeerblatt\nMuskatnuss',
+    };
+
+    const down = await processCapture(THIN, { mode: 'always', keys: [key] });
+
+    equal('a failed model does not fail the capture', down.status, 'needsWork');
+    check('and the draft the rules found is kept', Boolean(down.draft?.title), down.draft?.title);
+    equal('but the inbox is told it was asked and got nothing', down.readBy, 'rules+ai-failed');
+    equal('with the provider that did not answer', down.provider, 'anthropic');
+
+    // Not asked at all is a different state, and must stay one.
+    const quiet = await processCapture(THIN, { mode: 'off', keys: [key] });
+    equal('never asking is not the same as asking and failing', quiet.readBy, 'rules');
+
+    restore();
+
 }

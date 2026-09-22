@@ -682,6 +682,8 @@
     "polishDiscard": "Discard",
     "polishPreview": "Suggestion — nothing changes until you apply it:",
     "polishNumbers": "The suggestion changed a number, so it was discarded. Nothing has been altered.",
-    "polishOff": "The AI is switched off. Turn it on under Admin → AI."
+    "polishOff": "The AI is switched off. Turn it on under Admin → AI.",
+    "askAi": "Read with AI",
+    "usedAiFailed": "AI asked, no answer ({provider})"
   }
 }
