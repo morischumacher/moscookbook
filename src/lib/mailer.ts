@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { BRAND_MARK_CID, BRAND_MARK_PNG_BASE64 } from './brandMark';
 
 /**
  * Sending mail.
@@ -52,6 +53,33 @@ export interface Mail {
     html?: string;
 }
 
+/**
+ * The wordmark, attached when the message asks for it.
+ *
+ * Decided here rather than by each template, and from the HTML rather than
+ * from a flag: a template that writes `cid:…` into its markup has already said
+ * it wants the picture, and a separate `attachLogo: true` beside it is a
+ * second place to forget. Forgetting it would produce a broken-image icon in
+ * every client, which is worse than no logo at all.
+ *
+ * `contentDisposition: 'inline'` is what keeps it out of the paperclip:
+ * without it, clients list the mark as a downloadable attachment and the
+ * message looks like it is carrying a file.
+ */
+function inlineAttachments(html: string | undefined) {
+    if (!html || !html.includes(`cid:${BRAND_MARK_CID}`)) return undefined;
+
+    return [
+        {
+            filename: 'moscookbook.png',
+            content: Buffer.from(BRAND_MARK_PNG_BASE64, 'base64'),
+            contentType: 'image/png',
+            cid: BRAND_MARK_CID,
+            contentDisposition: 'inline' as const,
+        },
+    ];
+}
+
 export async function sendMail(mail: Mail): Promise<SendResult> {
     const config = settings();
     if (!config) return 'notConfigured';
@@ -68,6 +96,7 @@ export async function sendMail(mail: Mail): Promise<SendResult> {
             subject: mail.subject,
             text: mail.text,
             html: mail.html,
+            attachments: inlineAttachments(mail.html),
         });
 
         return 'sent';

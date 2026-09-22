@@ -1,5 +1,6 @@
 import { TOKEN_LIFETIME_MINUTES } from './authTokens';
 import type { Mail } from './mailer';
+import { BRAND_MARK_CID, BRAND_MARK_WIDTH, BRAND_MARK_HEIGHT } from './brandMark';
 
 /**
  * The two messages this cookbook sends.
@@ -29,9 +30,15 @@ function days(minutes: number): number {
 }
 
 /**
- * Minimal HTML. No images, no external stylesheet, no web font: a message that
- * needs the network to be readable is a message that looks broken in every
- * client that blocks remote content by default, which is most of them.
+ * Minimal HTML. No external stylesheet, no web font, and no image fetched over
+ * the network: a message that needs the network to be readable is a message
+ * that looks broken in every client that blocks remote content by default,
+ * which is most of them.
+ *
+ * The wordmark is the one picture, and it is **attached** rather than linked —
+ * see lib/brandMark.ts. An attachment travels inside the message, so it is
+ * drawn without asking and without a round trip, and the rule above still
+ * holds: nothing here needs the network.
  *
  * The link is also written out as text underneath, because a button whose href
  * a client rewrites or strips leaves nothing to fall back on.
@@ -42,6 +49,10 @@ function wrap(heading: string, body: string, action: string, url: string, footer
 
     return [
         '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#1a1a1a;max-width:34rem;margin:0 auto;padding:24px">',
+        // Half its natural width, so it is sharp on a phone. `alt` carries the
+        // name for anyone whose client draws no images at all, and the block
+        // display stops clients adding a stray baseline gap underneath.
+        `<img src="cid:${BRAND_MARK_CID}" alt="mo'scookbook" width="${BRAND_MARK_WIDTH / 2}" height="${BRAND_MARK_HEIGHT / 2}" style="display:block;width:${BRAND_MARK_WIDTH / 2}px;height:auto;margin:0 0 24px;border:0">`,
         `<h1 style="font-size:20px;margin:0 0 16px">${escape(heading)}</h1>`,
         `<p style="margin:0 0 20px">${escape(body)}</p>`,
         `<p style="margin:0 0 20px"><a href="${escape(url)}" style="display:inline-block;background:#1a1a1a;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:999px">${escape(action)}</a></p>`,
