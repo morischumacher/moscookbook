@@ -3,13 +3,13 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-36 screens · 72 endpoints · 51 link edges · 79 call edges
+36 screens · 76 endpoints · 51 link edges · 83 call edges
 
 ## Screens
 
 | Route | Access | Proxy | Calls | Links to |
 |---|---|---|---|---|
-| `/[locale]/account` | account | requires session | `DELETE /api/account/avatar`<br>`POST /api/account/avatar` | `/[locale]/login` |
+| `/[locale]/account` | account | requires session | `* /api/account`<br>`* /api/account/email`<br>`* /api/account/name`<br>`* /api/account/password`<br>`DELETE /api/account/avatar`<br>`POST /api/account/avatar` | `/[locale]/login` |
 | `/[locale]/admin/ai` | admin | requires admin | `DELETE /api/ai-keys/[id]`<br>`DELETE /api/site-profiles/[id]`<br>`GET /api/ai-keys`<br>`GET /api/site-profiles`<br>`PATCH /api/ai-keys`<br>`POST /api/ai-keys`<br>`POST /api/ai-keys/[id]/test`<br>`POST /api/site-profiles` | `/[locale]/admin/devices` |
 | `/[locale]/admin/collections/[id]` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections/new` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/collections`<br>`/[locale]/collections/[id]` |
@@ -52,6 +52,10 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 |---|---|---|---|---|---|
 | POST | `/api/account/avatar` | user (manual) | — | yes | `account/AvatarForm` |
 | DELETE | `/api/account/avatar` | user (manual) | — | yes | `account/AvatarForm` |
+| POST | `/api/account/email` | user | zod | yes | `account/AccountSettings` |
+| POST | `/api/account/name` | user | zod | — | `account/AccountSettings` |
+| POST | `/api/account/password` | user | zod | yes | `account/AccountSettings` |
+| DELETE | `/api/account` | user | zod | yes | `account/AccountSettings` |
 | DELETE | `/api/ai-keys/[provider]` | admin | — | — | `admin/AiKeys` |
 | POST | `/api/ai-keys/[provider]/test` | admin | — | yes | `admin/AiKeys` |
 | GET | `/api/ai-keys` | admin | zod | — | `admin/AiKeys` |
@@ -244,6 +248,15 @@ flowchart LR
   caccount_AvatarForm --> ePOST_api_account_avatar
   eDELETE_api_account_avatar(["DELETE /api/account/avatar"])
   caccount_AvatarForm --> eDELETE_api_account_avatar
+  ePOST_api_account_email(["POST /api/account/email"])
+  caccount_AccountSettings["account/AccountSettings"]
+  caccount_AccountSettings --> ePOST_api_account_email
+  ePOST_api_account_name(["POST /api/account/name"])
+  caccount_AccountSettings --> ePOST_api_account_name
+  ePOST_api_account_password(["POST /api/account/password"])
+  caccount_AccountSettings --> ePOST_api_account_password
+  eDELETE_api_account(["DELETE /api/account"])
+  caccount_AccountSettings --> eDELETE_api_account
   eDELETE_api_ai_keys__provider_(["DELETE /api/ai-keys/[provider]"])
   cadmin_AiKeys["admin/AiKeys"]
   cadmin_AiKeys --> eDELETE_api_ai_keys__provider_

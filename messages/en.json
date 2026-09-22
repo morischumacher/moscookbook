@@ -13,7 +13,9 @@
     "language": "Language",
     "toggleMenu": "Toggle menu",
     "recipes": "Recipes",
-    "logoutFailed": "Signing out did not work \u2014 you are still signed in."
+    "logoutFailed": "Signing out did not work \u2014 you are still signed in.",
+    "accountMenu": "Your account and settings",
+    "account": "Your account"
   },
   "Home": {
     "searchPlaceholder": "Search recipes and ingredients…",
@@ -651,7 +653,29 @@
     "remove": "Remove",
     "working": "Just a moment…",
     "failed": "That did not work. Please try again.",
-    "nav": "Account"
+    "nav": "Account",
+    "change": "Change",
+    "close": "Close",
+    "save": "Save",
+    "nameTitle": "Your name",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "nameSaved": "Your name has been changed.",
+    "emailTitle": "E-mail address",
+    "newEmail": "New address",
+    "yourPassword": "Your password",
+    "emailBody": "The new address has to be confirmed, so a link goes to it straight away. The old address is told about the change.",
+    "emailSaved": "The address has been changed. Check the new one for the confirmation link.",
+    "passwordTitle": "Password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "passwordSaved": "Your password has been changed.",
+    "deleteTitle": "Delete your account",
+    "deleteExplain": "Your ratings, favourites and sign-ins go with it. Notes and photographs of what you cooked stay in the cookbook without your name on them, and the recipes are the household’s.",
+    "deleteConfirm": "Delete your account?",
+    "deleteBody": "This cannot be undone.",
+    "deleteAction": "Delete my account",
+    "deleted": "Your account has been deleted."
   },
   "Ai": {
     "nav": "AI",

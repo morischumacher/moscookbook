@@ -6,10 +6,13 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import Logo from './brand/Logo';
 import LogoutButton from './LogoutButton';
+import ProfileMenu from './ProfileMenu';
 import { sectionFor, type Section } from '@/lib/navigation';
 
 interface MobileNavbarProps {
     user: { id: number; email: string; name: string; admin: boolean } | null;
+    /** Name and picture as they are now. Null when nobody is signed in. */
+    profile: { name: string; avatarUrl: string | null } | null;
     otherLocale: string;
 }
 
@@ -37,7 +40,7 @@ interface MobileNavbarProps {
  * full width, which centres its label — so the menu used to have one entry
  * centred among left-aligned ones for no reason anybody could see.
  */
-export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
+export default function MobileNavbar({ user, profile, otherLocale }: MobileNavbarProps) {
     const t = useTranslations('Navigation');
     const tBlog = useTranslations('Blog');
     const tCollections = useTranslations('Collections');
@@ -128,29 +131,29 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
                                 </Link>
                             ))}
 
-                            {/* The account page had exactly one link to it in
-                                the whole application, inside the mobile menu
-                                — so on a desktop there was no way to reach it
-                                at all. The greeting leads there here as it
-                                does there. */}
-                            <Link
-                                href="/account"
-                                className="text-sm text-muted transition-colors hover:text-ink"
-                            >
-                                {t('greeting', { name: user.name })}
-                            </Link>
-
-                            <LogoutButton className="text-sm text-muted transition-colors hover:text-ink" />
+                            {/* Your account, the language and signing out were
+                                three items strung along this row, one of which
+                                — the account — existed only inside the mobile
+                                menu, so on a desktop there was no way to reach
+                                it at all. One control in the corner now. */}
+                            <ProfileMenu
+                                user={profile ?? { name: user.name, avatarUrl: null }}
+                                otherLocale={otherLocale}
+                            />
                         </>
                     )}
 
-                    <Link
-                        href="/"
-                        locale={otherLocale}
-                        className="text-sm font-medium text-muted transition-colors hover:text-ink"
-                    >
-                        {otherLocale.toUpperCase()}
-                    </Link>
+                    {/* Signed out, the language still needs somewhere to live:
+                        there is no profile menu to put it in. */}
+                    {!user && (
+                        <Link
+                            href="/"
+                            locale={otherLocale}
+                            className="text-sm font-medium text-muted transition-colors hover:text-ink"
+                        >
+                            {otherLocale.toUpperCase()}
+                        </Link>
+                    )}
                 </div>
 
                 <button

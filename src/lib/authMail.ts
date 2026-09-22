@@ -94,6 +94,70 @@ export function resetMail(to: string, name: string, url: string, localeCode: str
     };
 }
 
+/**
+ * A message with nothing to press.
+ *
+ * `wrap` builds every other message in this file around a button, because
+ * every other message exists to get somebody to follow a link. This one
+ * exists to tell somebody something — and a notice that "your address was
+ * changed" carrying a large dark button would be teaching the one habit this
+ * application should not teach, which is that mail from it is a thing you
+ * click.
+ */
+function wrapPlain(heading: string, body: string, footer: string): string {
+    const escape = (value: string) =>
+        value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    return [
+        '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#1a1a1a;max-width:34rem;margin:0 auto;padding:24px">',
+        `<img src="cid:${BRAND_MARK_CID}" alt="mo'scookbook" width="${BRAND_MARK_WIDTH / 2}" height="${BRAND_MARK_HEIGHT / 2}" style="display:block;width:${BRAND_MARK_WIDTH / 2}px;height:auto;margin:0 0 24px;border:0">`,
+        `<h1 style="font-size:20px;margin:0 0 16px">${escape(heading)}</h1>`,
+        `<p style="margin:0 0 20px">${escape(body)}</p>`,
+        `<p style="margin:0;font-size:13px;color:#4B5563">${escape(footer)}</p>`,
+        '</div>',
+    ].join('');
+}
+
+/**
+ * "The address on this account was changed."
+ *
+ * Sent to the address that is losing the account, before it loses it — an
+ * address quietly changed to somebody else's is how an account stops being
+ * yours, and this is the one message that reaches the person who would want
+ * to know while they can still do something about it.
+ *
+ * It names the new address. Half a notice — "something changed" — sends
+ * somebody hunting through a cookbook for what; naming it means they can see
+ * at a glance whether it was them.
+ */
+export function emailChangedMail(to: string, name: string, next: string, localeCode: string): Mail {
+    const language = locale(localeCode);
+
+    if (language === 'de') {
+        const heading = 'Die E-Mail-Adresse wurde geändert';
+        const body = `Hallo ${name}, die Adresse deines Kontos bei mo'scookbook wurde auf ${next} geändert. Diese Nachricht geht an die bisherige Adresse.`;
+        const footer = 'Warst du das nicht, melde dich bitte umgehend bei Mo.';
+
+        return {
+            to,
+            subject: "mo'scookbook: E-Mail-Adresse geändert",
+            text: `${heading}\n\n${body}\n\n${footer}\n`,
+            html: wrapPlain(heading, body, footer),
+        };
+    }
+
+    const heading = 'The e-mail address was changed';
+    const body = `Hello ${name}, the address on your mo'scookbook account was changed to ${next}. This message is going to the previous address.`;
+    const footer = 'If that was not you, please tell Mo straight away.';
+
+    return {
+        to,
+        subject: "mo'scookbook: e-mail address changed",
+        text: `${heading}\n\n${body}\n\n${footer}\n`,
+        html: wrapPlain(heading, body, footer),
+    };
+}
+
 export function verifyMail(to: string, name: string, url: string, localeCode: string): Mail {
     const language = locale(localeCode);
     const validFor = days(TOKEN_LIFETIME_MINUTES.verify);

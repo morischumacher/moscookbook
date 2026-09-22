@@ -13,7 +13,9 @@
     "language": "Sprache",
     "toggleMenu": "Menü öffnen",
     "recipes": "Rezepte",
-    "logoutFailed": "Das Abmelden hat nicht geklappt \u2014 du bist weiterhin angemeldet."
+    "logoutFailed": "Das Abmelden hat nicht geklappt \u2014 du bist weiterhin angemeldet.",
+    "accountMenu": "Dein Konto und Einstellungen",
+    "account": "Dein Konto"
   },
   "Home": {
     "searchPlaceholder": "Rezepte und Zutaten durchsuchen…",
@@ -651,7 +653,29 @@
     "remove": "Entfernen",
     "working": "Einen Moment…",
     "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
-    "nav": "Konto"
+    "nav": "Konto",
+    "change": "Ändern",
+    "close": "Schließen",
+    "save": "Speichern",
+    "nameTitle": "Dein Name",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "nameSaved": "Dein Name wurde geändert.",
+    "emailTitle": "E-Mail-Adresse",
+    "newEmail": "Neue Adresse",
+    "yourPassword": "Dein Passwort",
+    "emailBody": "Die neue Adresse muss bestätigt werden, deshalb geht sofort ein Link dorthin. Die alte Adresse wird über die Änderung informiert.",
+    "emailSaved": "Die Adresse wurde geändert. Im neuen Postfach liegt der Bestätigungslink.",
+    "passwordTitle": "Passwort",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "passwordSaved": "Dein Passwort wurde geändert.",
+    "deleteTitle": "Konto löschen",
+    "deleteExplain": "Deine Bewertungen, Favoriten und Anmeldungen gehen mit. Notizen und Fotos von dem, was du gekocht hast, bleiben ohne deinen Namen im Kochbuch, und die Rezepte gehören dem Haushalt.",
+    "deleteConfirm": "Dein Konto löschen?",
+    "deleteBody": "Das lässt sich nicht rückgängig machen.",
+    "deleteAction": "Mein Konto löschen",
+    "deleted": "Dein Konto wurde gelöscht."
   },
   "Ai": {
     "nav": "KI",

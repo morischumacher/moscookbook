@@ -53,6 +53,7 @@ import routeParams from './routeParams.test';
 import prismaErrors from './prismaErrors.test';
 import htmlMeta from './htmlMeta.test';
 import apiMessage from './apiMessage.test';
+import account from './account.test';
 import aiProviders from './aiProviders.test';
 import aiPolish from './aiPolish.test';
 import draftQuality from './draftQuality.test';
@@ -116,6 +117,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['prismaErrors', prismaErrors],
     ['htmlMeta', htmlMeta],
     ['apiMessage', apiMessage],
+    ['account', account],
     ['draftQuality', draftQuality],
     ['fixtures', fixtures],
     ['pageTitle', pageTitle],
