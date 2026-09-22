@@ -42,7 +42,7 @@ function walk(dir) {
 
         // A file that reaches models through an accessor rather than off
         // `prisma.` directly must not use the array form of $transaction.
-        const indirect = /\)\[name\]|\)\.siteProfile|Record<string, Delegate/.test(text);
+        const indirect = /optionalTable<|transactionTable<|Record<string, Delegate/.test(text);
         if (indirect && /\$transaction\(\s*\[/.test(text)) {
             problems.push(
                 `${path} uses $transaction([...]) while reaching models through a\n` +

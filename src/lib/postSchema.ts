@@ -75,6 +75,6 @@ export function excerptOf(body: string, limit = 180): string {
     return `${(lastSpace > limit * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
 }
 
-export function formatPostError(error: z.ZodError): string {
-    return error.issues[0]?.message ?? 'Invalid input data';
-}
+// The one formatter, which names the field. `formatPostError` was the same
+// one-liner as its sibling and dropped the field name.
+export { formatZodError as formatPostError } from './zodMessage';

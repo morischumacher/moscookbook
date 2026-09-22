@@ -71,12 +71,4 @@ export function resolveImageUrls(input: {
 
 export type RecipeInput = z.infer<typeof recipeInputSchema>;
 
-/** Turns a ZodError into a single readable sentence for the client. */
-export function formatZodError(error: z.ZodError): string {
-    return error.issues
-        .map((issue) => {
-            const path = issue.path.join('.');
-            return path ? `${path}: ${issue.message}` : issue.message;
-        })
-        .join('; ');
-}
+export { formatZodError } from './zodMessage';

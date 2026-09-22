@@ -1,4 +1,5 @@
 import prisma from './prisma';
+import { optionalTable, transactionTable } from './prismaTable';
 import { canSeal, hintFor, open, seal } from './secretBox';
 import {
     AI_PROVIDERS,
@@ -39,28 +40,9 @@ import {
 const ASSIST_KEY = 'ai.assist';
 
 /* -------------------------------------------------------------------------- */
-/* A client that may not know about these tables yet                           */
+/* A client that may not know about these tables yet — see lib/prismaTable    */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Prisma's client is generated from the schema, and the generated file is not
- * in the repository — it is built by `postinstall`. So there is a window, on
- * every machine, between pulling a branch that adds a model and running
- * `prisma generate`: the schema has `AppSetting`, the database has
- * `AppSetting`, and `prisma.appSetting` is `undefined`.
- *
- * `undefined.findUnique()` throws a `TypeError` **synchronously**, before any
- * promise exists — so the `.catch()` on every query in this file, written to
- * make it fail soft, never ran. The whole module was documented as failing
- * soft "all the way through" and did not, which is worse than not claiming it:
- * it crashed the diagnose script with a stack trace about `findMany` on a
- * machine where the only thing wrong was a missing build step.
- *
- * On Vercel this cannot happen (postinstall runs on every deploy). It happens
- * locally, constantly, to whoever pulls the branch — which is exactly the
- * person least equipped to read `TypeError: Cannot read properties of
- * undefined`.
- */
 type Delegate = {
     findUnique: (args: unknown) => Promise<unknown>;
     findMany: (args: unknown) => Promise<unknown>;
@@ -69,24 +51,12 @@ type Delegate = {
     deleteMany: (args: unknown) => Promise<unknown>;
 };
 
-let warned = false;
-
 function table(name: 'appSetting' | 'aiCredential'): Delegate | null {
-    const model = (prisma as unknown as Record<string, Delegate | undefined>)[name];
-
-    if (!model || typeof model.findMany !== 'function') {
-        if (!warned) {
-            warned = true;
-            console.warn(
-                `The Prisma client does not know about "${name}" yet. ` +
-                'Run `npx prisma generate`. The AI features are switched off until you do; ' +
-                'everything else works.'
-            );
-        }
-        return null;
-    }
-
-    return model;
+    return optionalTable<Delegate>(
+        name,
+        'findMany',
+        'The AI features are switched off until you do; everything else works.'
+    );
 }
 
 /**
@@ -457,7 +427,7 @@ export async function setPrimary(provider: AiProvider): Promise<void> {
      * which would look identical and be exactly the bug this guards against.
      */
     await prisma.$transaction(async (tx: unknown) => {
-        const inside = (tx as unknown as Record<string, Delegate | undefined>).aiCredential;
+        const inside = transactionTable<Delegate>(tx, 'aiCredential');
         if (!inside) return;
 
         await inside.updateMany({ where: {}, data: { priority: 10 } });

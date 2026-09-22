@@ -39,6 +39,7 @@
 
 import { completeWithKey, type AiExtractionResult, type AiKey } from './aiImport';
 import { readableBlocks } from './readableText';
+import { metaTagsPresent } from './htmlMeta';
 import {
     applyProfile,
     isUsefulProfile,
@@ -100,16 +101,7 @@ const MAX_BLOCK_TEXT = 300;
 const META_OFFERED = ['og:title', 'og:image', 'og:description', 'description', 'og:site_name'];
 
 function metaSummary(html: string): string {
-    const found: string[] = [];
-
-    for (const property of META_OFFERED) {
-        const pattern = new RegExp(
-            `<meta[^>]+(?:property|name)\\s*=\\s*["']${property}["'][^>]*>`,
-            'i'
-        );
-        if (pattern.test(html)) found.push(property);
-    }
-
+    const found = metaTagsPresent(html, META_OFFERED);
     return found.length === 0 ? 'META: none' : `META: ${found.join(', ')}`;
 }
 

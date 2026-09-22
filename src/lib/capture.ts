@@ -1,4 +1,4 @@
-import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
+import { hashToken, randomToken } from './tokens';
 
 /**
  * Captures: the inbox everything arrives in before it becomes a recipe.
@@ -58,31 +58,12 @@ export const CAPTURE_STATUSES: CaptureStatus[] = [
  * so it is longer than the invite codes, which are at least single-use.
  */
 export function generateCaptureToken(): string {
-    return randomBytes(32).toString('base64url');
+    return randomToken(32);
 }
 
-/**
- * Only the hash is stored. A database dump should not hand someone a working
- * key, and the token is high-entropy and random, so a plain SHA-256 is right
- * here — there is nothing to brute-force and no need for a slow KDF.
- */
+/** Only the hash is stored; the route looks the token up by it. See lib/tokens. */
 export function hashCaptureToken(token: string): string {
-    return createHash('sha256').update(token, 'utf8').digest('hex');
-}
-
-/** Constant-time compare, so a wrong token leaks nothing through timing. */
-export function captureTokenMatches(token: string, expectedHash: string): boolean {
-    const actual = Buffer.from(hashCaptureToken(token), 'hex');
-    let expected: Buffer;
-
-    try {
-        expected = Buffer.from(expectedHash, 'hex');
-    } catch {
-        return false;
-    }
-
-    if (actual.length !== expected.length) return false;
-    return timingSafeEqual(actual, expected);
+    return hashToken(token);
 }
 
 /**

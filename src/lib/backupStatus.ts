@@ -1,4 +1,4 @@
-import prisma from './prisma';
+import { optionalTable } from './prismaTable';
 
 /**
  * When the scheduled backup last ran, and how it went.
@@ -25,14 +25,12 @@ export interface BackupStatus {
 }
 
 type Delegate = {
-    findMany(args: unknown): Promise<{ key: string; value: string }[]>;
-    upsert(args: unknown): Promise<unknown>;
+    findMany: (args: unknown) => Promise<unknown>;
+    upsert: (args: unknown) => Promise<unknown>;
 };
 
-/** The same defensive access as aiConfig, for the same reason. */
 function settings(): Delegate | null {
-    const model = (prisma as unknown as Record<string, Delegate | undefined>).appSetting;
-    return model && typeof model.findMany === 'function' ? model : null;
+    return optionalTable<Delegate>('appSetting', 'findMany', 'The backup date on the dashboard is blank until you do.');
 }
 
 export async function recordBackupRun(result: string, ok: boolean): Promise<void> {
@@ -52,9 +50,9 @@ export async function backupStatus(): Promise<BackupStatus> {
     const model = settings();
     if (!model) return { lastRunAt: null, lastResult: null };
 
-    const rows = await model
+    const rows = (await model
         .findMany({ where: { key: { in: [LAST_RUN, LAST_RESULT] } } })
-        .catch(() => [] as { key: string; value: string }[]);
+        .catch(() => [])) as { key: string; value: string }[];
 
     const byKey = new Map(rows.map((row) => [row.key, row.value]));
     const raw = byKey.get(LAST_RUN);

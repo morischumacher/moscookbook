@@ -1,7 +1,8 @@
 import type { CaptureSource, CaptureStatus } from './capture';
 import { withoutBareUrls } from './capture';
 import type { ImportedRecipe } from './recipeFromHtml';
-import { extractRecipeFromHtml, metaContent, metaLines } from './recipeFromHtml';
+import { extractRecipeFromHtml } from './recipeFromHtml';
+import { metaContent, metaLines } from './htmlMeta';
 import { parseRecipeText, parseIngredientLine } from './recipeParser';
 import { fetchPage } from './fetchPage';
 import { youtubeVideoId, extractYoutubePage, cleanYoutubeDescription } from './youtube';

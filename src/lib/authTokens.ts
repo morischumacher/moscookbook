@@ -1,4 +1,4 @@
-import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
+import { randomToken, localeUrl } from './tokens';
 
 /**
  * The single-use tokens that arrive by e-mail.
@@ -31,27 +31,10 @@ export const TOKEN_LIFETIME_MINUTES: Record<TokenPurpose, number> = {
 
 /** 256 bits, URL-safe. It travels in a link, so it must survive being pasted. */
 export function generateToken(): string {
-    return randomBytes(32).toString('base64url');
+    return randomToken(32);
 }
 
-export function hashToken(token: string): string {
-    return createHash('sha256').update(token, 'utf8').digest('hex');
-}
-
-/** Constant-time, so a wrong token leaks nothing through how long it takes. */
-export function tokenMatches(token: string, expectedHash: string): boolean {
-    const actual = Buffer.from(hashToken(token), 'hex');
-
-    let expected: Buffer;
-    try {
-        expected = Buffer.from(expectedHash, 'hex');
-    } catch {
-        return false;
-    }
-
-    if (actual.length !== expected.length) return false;
-    return timingSafeEqual(actual, expected);
-}
+export { hashToken, tokenMatches } from './tokens';
 
 export function expiryFor(purpose: TokenPurpose, now = new Date()): Date {
     return new Date(now.getTime() + TOKEN_LIFETIME_MINUTES[purpose] * 60 * 1000);
@@ -91,5 +74,5 @@ export function tokenUrl(
     path: 'reset' | 'verify',
     token: string
 ): string {
-    return `${baseUrl.replace(/\/$/, '')}/${locale}/${path}?token=${encodeURIComponent(token)}`;
+    return localeUrl(baseUrl, locale, `${path}?token=${encodeURIComponent(token)}`);
 }

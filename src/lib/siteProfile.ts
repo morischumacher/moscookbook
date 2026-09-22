@@ -45,7 +45,7 @@ import { z } from 'zod';
 import { parse as parseHtml } from 'node-html-parser';
 
 import { readableBlocks, withoutNoise, type Block } from './readableText';
-import { metaContent } from './recipeFromHtml';
+import { jsonLdDocuments, metaContent } from './htmlMeta';
 
 /* -------------------------------------------------------------------------- */
 /*  The vocabulary                                                            */
@@ -265,18 +265,7 @@ function atPath(value: unknown, path: string): unknown {
 }
 
 function jsonLdValue(html: string, path: string): unknown {
-    const blocks = html.matchAll(
-        /<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
-    );
-
-    for (const block of blocks) {
-        let data: unknown;
-        try {
-            data = JSON.parse(block[1].replace(/^\s*<!\[CDATA\[/, '').replace(/\]\]>\s*$/, ''));
-        } catch {
-            continue;
-        }
-
+    for (const data of jsonLdDocuments(html)) {
         const found = atPath(data, path);
         if (found !== undefined && found !== null && found !== '') return found;
     }

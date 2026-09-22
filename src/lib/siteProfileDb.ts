@@ -11,7 +11,7 @@
  * redaction and nothing that must stay out of a log.
  */
 
-import prisma from './prisma';
+import { optionalTable } from './prismaTable';
 import {
     FAILURES_BEFORE_STALE,
     profileFromStored,
@@ -32,45 +32,22 @@ interface Row {
     lastError: string | null;
 }
 
-interface Delegate {
-    findUnique(args: unknown): Promise<Row | null>;
-    findMany(args?: unknown): Promise<Row[]>;
-    upsert(args: unknown): Promise<unknown>;
-    update(args: unknown): Promise<unknown>;
-    delete(args: unknown): Promise<unknown>;
-}
+// `Promise<unknown>` throughout, like aiConfig: without a generated client
+// there is nothing truer to say, and the reads below annotate what they get.
+type Delegate = {
+    findUnique: (args: unknown) => Promise<unknown>;
+    findMany: (args?: unknown) => Promise<unknown>;
+    upsert: (args: unknown) => Promise<unknown>;
+    update: (args: unknown) => Promise<unknown>;
+    delete: (args: unknown) => Promise<unknown>;
+};
 
-let warned = false;
-
-/**
- * The table, or null if the generated client has never heard of it.
- *
- * `prisma.siteProfile` is `undefined` until `prisma generate` has run against
- * a schema containing it — which is the state of every checkout that has just
- * merged this branch. Calling a method on it throws a *synchronous*
- * `TypeError`, so a `.catch()` does not help and the whole import dies. This
- * has happened once already, with `appSetting`, and cost an evening.
- *
- * So: warn once, return null, and let the import behave exactly as it does on
- * a site nothing has been learned about. Profiles are an optimisation; nothing
- * may depend on them existing.
- */
 function table(): Delegate | null {
-    const model = (prisma as unknown as Record<string, Delegate | undefined>).siteProfile;
-
-    if (!model || typeof model.findUnique !== 'function') {
-        if (!warned) {
-            warned = true;
-            console.warn(
-                'The Prisma client does not know about "siteProfile" yet. ' +
-                'Run `npx prisma generate`. Imports still work; they just ask a model ' +
-                'every time instead of remembering how a site is laid out.'
-            );
-        }
-        return null;
-    }
-
-    return model;
+    return optionalTable<Delegate>(
+        'siteProfile',
+        'findUnique',
+        'Imports still work; they just ask a model every time instead of remembering how a site is laid out.'
+    );
 }
 
 function toStored(row: Row): StoredProfile | null {
@@ -93,7 +70,7 @@ export const siteProfiles: SiteProfileStore = {
         const model = table();
         if (!model) return null;
 
-        const row = await model.findUnique({ where: { host } });
+        const row = (await model.findUnique({ where: { host } })) as Row | null;
         if (!row || row.stale) return null;
 
         return toStored(row);
@@ -141,7 +118,7 @@ export const siteProfiles: SiteProfileStore = {
             return;
         }
 
-        const row = await model.findUnique({ where: { host } }).catch(() => null);
+        const row = (await model.findUnique({ where: { host } }).catch(() => null)) as Row | null;
         if (!row) return;
 
         const failures = row.failures + 1;
@@ -179,7 +156,7 @@ export async function listSiteProfiles(): Promise<SiteProfileView[]> {
     const model = table();
     if (!model) return [];
 
-    const rows = await model.findMany({ orderBy: { host: 'asc' } });
+    const rows = (await model.findMany({ orderBy: { host: 'asc' } })) as Row[];
 
     return rows.map((row) => ({
         host: row.host,
