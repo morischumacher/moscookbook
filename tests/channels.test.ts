@@ -751,4 +751,133 @@ Gesendet von meinem iPhone`,
     equal('a blank url field disappears', blank.classified?.kind, 'text');
     equal('and does not become a title', blank.result?.draft?.title, 'Tomatensuppe');
 
+
+    // ── 14. A page that renders itself ──────────────────────────────────────
+    suite('channel: Instagram, where the recipe is in the title');
+
+    /*
+     * Two real reels, from his inbox, and both went past the AI untouched.
+     *
+     * The scoring called them `poor` — no ingredients, no method — and the
+     * diagnose output said "would ask a model: yes". Then: "Nothing. No
+     * provider was called." Because `readableText` on a page that renders
+     * itself in JavaScript is the empty string, and the eighty-character floor
+     * below which nothing is asked did the rest.
+     *
+     * Meanwhile the entire recipe — ingredients, six numbered steps — was
+     * sitting in the page's `og:title`, two thousand characters of it, and was
+     * also being used as the recipe's *name*.
+     */
+
+    const REEL = `<!DOCTYPE html><html><head>
+<meta property="og:title" content="Maxime auf Instagram: &quot;PORCHETTA &amp; POLENTA — Ingr&eacute;dients : Poitrine de porc avec couenne, Persil, Romarin, Ail confit, Zeste de citron, Sel, poivre. Polenta : Polenta, Lait, Parmesan, Beurre. Pr&eacute;paration : 1 Ouvrez la poitrine de porc en deux dans l&rsquo;&eacute;paisseur. 2 Assaisonnez l&rsquo;int&eacute;rieur. 3 Enroulez fermement et ficelez. 4 Enfournez environ 2h30 &agrave; 160&deg;C. 5 Passez la couenne 15 minutes sous le grill. 6 Pr&eacute;parez une polenta cr&eacute;meuse au parmesan.&quot;">
+<meta property="og:image" content="https://instagram.example/porchetta.jpg">
+<title>Instagram</title>
+</head><body><div id="root"></div></body></html>`;
+
+    const aiReadReel = {
+        content: [
+            {
+                type: 'text',
+                text: JSON.stringify({
+                    title: 'Porchetta mit Parmesan-Polenta',
+                    description: '',
+                    category: 'Dinner',
+                    nationality: 'Italian',
+                    ingredients: [
+                        { amount: '', item: 'Poitrine de porc avec couenne' },
+                        { amount: '', item: 'Persil' },
+                        { amount: '', item: 'Parmesan' },
+                    ],
+                    instructions: '1. Ouvrez la poitrine.\n\n2. Enfournez 2h30 à 160°C.',
+                    servings: null,
+                    prepMinutes: null,
+                    cookMinutes: 150,
+                }),
+            },
+        ],
+    };
+
+    const reelUrl = 'https://www.instagram.com/reel/DdgWLGaMvdx/';
+
+    // With no AI: the rules keep what they can, and the title is the caption.
+    restore = stubFetch({ [reelUrl]: { html: REEL } });
+
+    const bare = await processCapture(
+        { kind: 'url', source: 'instagram', sourceUrl: reelUrl, rawText: null },
+        { mode: 'off', keys: [] }
+    );
+
+    check(
+        'without a model the caption is still the title',
+        (bare.draft?.title ?? '').length > 120,
+        (bare.draft?.title ?? '').slice(0, 60)
+    );
+    restore();
+
+    // With one: it is asked, because the input now includes what the rules
+    // scraped rather than only the page's (empty) prose.
+    restore = stubFetch({
+        [reelUrl]: { html: REEL },
+        'https://api.anthropic.com/v1/messages': { html: '', json: aiReadReel },
+    });
+
+    const reelRead = await processCapture(
+        { kind: 'url', source: 'instagram', sourceUrl: reelUrl, rawText: null },
+        { mode: 'always', keys: [key] }
+    );
+
+    equal('the model is asked', reelRead.readBy, 'rules+ai');
+    equal('and the recipe comes out', reelRead.draft?.ingredients.length, 3);
+    equal(
+        'with a name rather than a caption',
+        reelRead.draft?.title,
+        'Porchetta mit Parmesan-Polenta'
+    );
+    check(
+        'the page keeps its own picture',
+        (reelRead.draft?.imageUrl ?? '').includes('porchetta.jpg'),
+        reelRead.draft?.imageUrl
+    );
+    restore();
+
+    // And the rule that a good title is never overruled still holds.
+    const GOOD = `<!DOCTYPE html><html><head>
+<meta property="og:title" content="Ofengemüse mit Feta">
+</head><body><article>${'Ein langer Fließtext über das Gericht. '.repeat(20)}</article></body></html>`;
+
+    restore = stubFetch({
+        'https://kochblog.example/g': { html: GOOD },
+        'https://api.anthropic.com/v1/messages': {
+            html: '',
+            json: {
+                content: [
+                    {
+                        type: 'text',
+                        text: JSON.stringify({
+                            title: 'Etwas ganz anderes',
+                            description: '',
+                            category: '',
+                            nationality: '',
+                            ingredients: [{ amount: '1', item: 'Zucchini' }],
+                            instructions: '1. Backen.',
+                            servings: null,
+                            prepMinutes: null,
+                            cookMinutes: null,
+                        }),
+                    },
+                ],
+            },
+        },
+    });
+
+    const kept = await processCapture(
+        { kind: 'url', source: 'web', sourceUrl: 'https://kochblog.example/g', rawText: null },
+        { mode: 'always', keys: [key] }
+    );
+
+    equal('a title the rules found properly is not replaced', kept.draft?.title, 'Ofengemüse mit Feta');
+    equal('but the gaps are still filled', kept.draft?.ingredients.length, 1);
+    restore();
+
 }

@@ -144,12 +144,32 @@ export function countSteps(instructions: string): number {
     return Math.max(1, sentences.length);
 }
 
-/** A title that is the page rather than the dish. */
-function titleProblem(title: string): string | null {
+/**
+ * A title that is the page rather than the dish.
+ *
+ * Exported because the merge needs it: when the rules' title is one of these,
+ * a model's title should be allowed to *replace* it rather than merely fill a
+ * gap. Everywhere else in the pipeline what the rules found wins, and that is
+ * right — except where what they found is not a title.
+ */
+export function titleProblem(title: string): string | null {
     const text = title.trim();
 
     if (text === '') return 'no title';
     if (text.length < 3) return 'the title is one or two characters';
+
+    /*
+     * An upper bound, learned from an Instagram reel.
+     *
+     * Its `og:title` was two thousand characters: the poster's name, the
+     * caption, an ingredient list, six numbered steps and a row of hashtags —
+     * and all of it went into the recipe's title, where it appeared on the
+     * tile, in the search index and at the top of the printed page.
+     *
+     * A hundred and twenty is generous for a dish. "Ofengemüse mit Feta und
+     * Za'atar-Joghurt, dazu geröstete Kichererbsen" is seventy.
+     */
+    if (text.length > 120) return 'the title is a paragraph, not a name';
     if (/^https?:\/\//i.test(text)) return 'the title is a link';
     if (isFurniture(text)) return 'the title is a button on the page';
     // "Rezept", "Recipe", "Zutaten" on their own: the heading above the recipe

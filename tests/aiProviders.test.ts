@@ -336,17 +336,17 @@ export default async function aiProviderTests() {
      */
 
     let attempts = 0;
-    const busyThenFine = (status: number) => {
+    const busyThenFine = (status: number, body = 'high demand', failFor = 1) => {
         const original = globalThis.fetch;
         attempts = 0;
 
         globalThis.fetch = (async () => {
             attempts += 1;
-            if (attempts < 3) {
+            if (attempts <= failFor) {
                 return {
                     ok: false,
                     status,
-                    text: async () => `{"error":{"code":${status},"message":"high demand"}}`,
+                    text: async () => `{"error":{"code":${status},"message":"${body}"}}`,
                     json: async () => ({}),
                 } as unknown as Response;
             }
@@ -363,13 +363,50 @@ export default async function aiProviderTests() {
 
     let undo = busyThenFine(503);
     recipe = await extractWithKey(anthropicKey, TEXT);
-    equal('a 503 is retried until it works', recipe.title, 'Ofengemüse mit Feta');
-    equal('and it took three attempts', attempts, 3);
+    equal('a 503 is retried and then works', recipe.title, 'Ofengemüse mit Feta');
+    equal('and it took exactly two attempts', attempts, 2);
     undo();
 
-    undo = busyThenFine(429);
+    // Two extra attempts was the first version, and a real run showed why it
+    // was too many: Gemini's own 503 took five seconds to arrive, then four,
+    // then three — twelve and a half seconds of standing in a supermarket for
+    // an answer that never came.
+    undo = busyThenFine(503, 'high demand', 5);
+    threw = '';
+    try {
+        await extractWithKey(anthropicKey, TEXT);
+    } catch (error) {
+        threw = error instanceof Error ? error.message : '';
+    }
+    equal('a provider that stays down is given up on after two', attempts, 2);
+    check('and the failure names it', threw.includes('503'), threw);
+    undo();
+
+    undo = busyThenFine(429, 'rate limit exceeded, try again');
     recipe = await extractWithKey(anthropicKey, TEXT);
-    equal('a rate limit is retried too', recipe.title, 'Ofengemüse mit Feta');
+    equal('a rate limit is retried', recipe.title, 'Ofengemüse mit Feta');
+    equal('once', attempts, 2);
+    undo();
+
+    /*
+     * The distinction that a real run forced. 429 is two errors wearing one
+     * number: a *rate* limit is a second of patience, and a *quota* is a wall.
+     * Seen on a free Gemini tier as 503, 503, then a quota 429 — and retrying
+     * that third answer would have added nothing but seconds.
+     */
+    undo = busyThenFine(
+        429,
+        'You exceeded your current quota, please check your plan and billing details',
+        5
+    );
+    threw = '';
+    try {
+        await extractWithKey(anthropicKey, TEXT);
+    } catch (error) {
+        threw = error instanceof Error ? error.message : '';
+    }
+    equal('an exhausted quota is not retried at all', attempts, 1);
+    check('and says so', threw.includes('quota'), threw);
     undo();
 
     // A wrong key does not get better by asking again, and asking again is

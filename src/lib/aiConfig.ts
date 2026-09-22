@@ -38,6 +38,57 @@ import {
 
 const ASSIST_KEY = 'ai.assist';
 
+/* -------------------------------------------------------------------------- */
+/* A client that may not know about these tables yet                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Prisma's client is generated from the schema, and the generated file is not
+ * in the repository — it is built by `postinstall`. So there is a window, on
+ * every machine, between pulling a branch that adds a model and running
+ * `prisma generate`: the schema has `AppSetting`, the database has
+ * `AppSetting`, and `prisma.appSetting` is `undefined`.
+ *
+ * `undefined.findUnique()` throws a `TypeError` **synchronously**, before any
+ * promise exists — so the `.catch()` on every query in this file, written to
+ * make it fail soft, never ran. The whole module was documented as failing
+ * soft "all the way through" and did not, which is worse than not claiming it:
+ * it crashed the diagnose script with a stack trace about `findMany` on a
+ * machine where the only thing wrong was a missing build step.
+ *
+ * On Vercel this cannot happen (postinstall runs on every deploy). It happens
+ * locally, constantly, to whoever pulls the branch — which is exactly the
+ * person least equipped to read `TypeError: Cannot read properties of
+ * undefined`.
+ */
+type Delegate = {
+    findUnique: (args: unknown) => Promise<unknown>;
+    findMany: (args: unknown) => Promise<unknown>;
+    upsert: (args: unknown) => Promise<unknown>;
+    updateMany: (args: unknown) => Promise<unknown>;
+    deleteMany: (args: unknown) => Promise<unknown>;
+};
+
+let warned = false;
+
+function table(name: 'appSetting' | 'aiCredential'): Delegate | null {
+    const model = (prisma as unknown as Record<string, Delegate | undefined>)[name];
+
+    if (!model || typeof model.findMany !== 'function') {
+        if (!warned) {
+            warned = true;
+            console.warn(
+                `The Prisma client does not know about "${name}" yet. ` +
+                'Run `npx prisma generate`. The AI features are switched off until you do; ' +
+                'everything else works.'
+            );
+        }
+        return null;
+    }
+
+    return model;
+}
+
 /**
  * What the assist mode is when nobody has chosen one.
  *
@@ -87,15 +138,21 @@ export interface AiCredentialView {
 }
 
 export async function assistMode(): Promise<AssistMode> {
-    const row: { value: string } | null = await prisma.appSetting
+    const settings = table('appSetting');
+    if (!settings) return DEFAULT_ASSIST;
+
+    const row = (await settings
         .findUnique({ where: { key: ASSIST_KEY }, select: { value: true } })
-        .catch(() => null);
+        .catch(() => null)) as { value: string } | null;
 
     return row && isAssistMode(row.value) ? row.value : DEFAULT_ASSIST;
 }
 
 export async function setAssistMode(mode: AssistMode): Promise<void> {
-    await prisma.appSetting.upsert({
+    const settings = table('appSetting');
+    if (!settings) return;
+
+    await settings.upsert({
         where: { key: ASSIST_KEY },
         update: { value: mode },
         create: { key: ASSIST_KEY, value: mode },
@@ -112,9 +169,12 @@ export async function setAssistMode(mode: AssistMode): Promise<void> {
  * quietly does the ordinary thing beats an import that 500s.
  */
 export async function aiCapability(): Promise<AiCapability> {
+    const credentials = table('aiCredential');
+    if (!credentials) return { mode: 'off', keys: keysFromEnv() };
+
     const [mode, rows] = await Promise.all([
         assistMode(),
-        prisma.aiCredential
+        credentials
             .findMany({
                 where: { enabled: true },
                 orderBy: [{ priority: 'asc' }, { provider: 'asc' }],
@@ -127,7 +187,7 @@ export async function aiCapability(): Promise<AiCapability> {
                     verifiedAt: true,
                 },
             })
-            .catch((): CredentialRow[] => []) as Promise<CredentialRow[]>,
+            .catch(() => []) as Promise<CredentialRow[]>,
     ]);
 
     const keys: AiKey[] = [];
@@ -185,9 +245,13 @@ export async function aiCapability(): Promise<AiCapability> {
  * that button.
  */
 export async function keyFor(provider: AiProvider): Promise<AiKey | null> {
-    const row: { secret: string; model: string | null } | null = await prisma.aiCredential
-        .findUnique({ where: { provider }, select: { secret: true, model: true } })
-        .catch(() => null);
+    const credentials = table('aiCredential');
+
+    const row = credentials
+        ? ((await credentials
+            .findUnique({ where: { provider }, select: { secret: true, model: true } })
+            .catch(() => null)) as { secret: string; model: string | null } | null)
+        : null;
 
     if (row) {
         const apiKey = open(row.secret);
@@ -222,8 +286,11 @@ interface ViewRow {
  * answered here is "what can I set up".
  */
 export async function listAiCredentials(): Promise<AiCredentialView[]> {
-    const rows: ViewRow[] = await prisma.aiCredential
-        .findMany({
+    const credentials = table('aiCredential');
+
+    const rows: ViewRow[] = credentials
+        ? ((await credentials
+            .findMany({
             select: {
                 provider: true,
                 hint: true,
@@ -239,7 +306,8 @@ export async function listAiCredentials(): Promise<AiCredentialView[]> {
                 verifiedAt: true,
             },
         })
-        .catch((): ViewRow[] => []);
+            .catch(() => [])) as ViewRow[])
+        : [];
 
     const byProvider = new Map(rows.map((row) => [row.provider, row]));
     const env = new Set(keysFromEnv().map((key) => key.provider));
@@ -302,6 +370,9 @@ export interface SaveCredential {
  * screen says so rather than storing something it cannot read back.
  */
 export async function saveAiCredential(input: SaveCredential): Promise<boolean> {
+    const credentials = table('aiCredential');
+    if (!credentials) return false;
+
     if (input.apiKey !== undefined && !canSeal()) return false;
 
     const model = input.model?.trim() ? input.model.trim() : null;
@@ -309,7 +380,7 @@ export async function saveAiCredential(input: SaveCredential): Promise<boolean> 
 
     const sealed = input.apiKey !== undefined ? seal(input.apiKey) : undefined;
 
-    await prisma.aiCredential.upsert({
+    await credentials.upsert({
         where: { provider: input.provider },
         update: {
             ...(sealed !== undefined
@@ -354,9 +425,12 @@ export async function saveAiCredential(input: SaveCredential): Promise<boolean> 
  * half-applied version of this is two primaries.
  */
 export async function setPrimary(provider: AiProvider): Promise<void> {
+    const credentials = table('aiCredential');
+    if (!credentials) return;
+
     await prisma.$transaction([
-        prisma.aiCredential.updateMany({ where: {}, data: { priority: 10 } }),
-        prisma.aiCredential.updateMany({ where: { provider }, data: { priority: 0 } }),
+        credentials.updateMany({ where: {}, data: { priority: 10 } }),
+        credentials.updateMany({ where: { provider }, data: { priority: 0 } }),
     ]);
 }
 
@@ -371,7 +445,10 @@ export async function setPrimary(provider: AiProvider): Promise<void> {
  * as a warning next to it and does not take the feature away.
  */
 export async function recordCheck(provider: AiProvider, error: string | null): Promise<void> {
-    await prisma.aiCredential
+    const credentials = table('aiCredential');
+    if (!credentials) return;
+
+    await credentials
         .updateMany({
             where: { provider },
             data: {
@@ -384,5 +461,8 @@ export async function recordCheck(provider: AiProvider, error: string | null): P
 }
 
 export async function deleteAiCredential(provider: AiProvider): Promise<void> {
-    await prisma.aiCredential.deleteMany({ where: { provider } });
+    const credentials = table('aiCredential');
+    if (!credentials) return;
+
+    await credentials.deleteMany({ where: { provider } });
 }
