@@ -1,3 +1,31 @@
+/*
+ * The heart.
+ *
+ * **It has no colour of its own, and that is the fix.** This file used to set
+ * `color: var(--color-neutral)` and `.active { color: var(--color-fg) }` —
+ * colours that follow the colour scheme — on a button that spends most of its
+ * life sitting on a dark circle over somebody's photograph. In light mode
+ * `--color-fg` is #111111, so a favourited recipe showed a black heart on a
+ * near-black disc: 1.04:1, which is not low contrast, it is invisible.
+ *
+ * Measured before choosing, because "orange?" was the obvious suggestion and
+ * it is measurably wrong. On the 55% scrim over a **white** photograph the
+ * circle is rgb(115,115,115), and against that:
+ *
+ *     orange  1.41:1     white  4.74:1     ink  3.98:1
+ *
+ * and over a dark photograph ink collapses to 1.04:1. White is the only one
+ * that holds on every photograph anybody can upload, which is the whole job.
+ *
+ * So the heart inherits. On a picture its wrapper is `photoControl`, which is
+ * white-on-scrim; on the recipe page it sits in the meta row and takes that
+ * row's colour. One shape, coloured by where it is.
+ *
+ * And the state is the **fill**, not a hue. A filled heart against an outlined
+ * one is legible at sixteen pixels on a photograph of anything, which no pair
+ * of colours can promise.
+ */
+
 .button {
     background: transparent;
     border: none;
@@ -6,28 +34,21 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-neutral);
-    /* Default unliked state */
     transition: all 0.2s ease;
     border-radius: 50%;
 }
 
 .button:hover:not(:disabled) {
-    color: var(--color-fg);
-    /* --color-bg-hover was never defined anywhere, so this line did nothing
-       for as long as it has existed and the heart had no hover fill at all.
-       --color-surface is the token for exactly this: a barely-there fill. */
+    /* No colour change on hover either: on a photograph there is no colour to
+       change to that is better than the one it already has. `--color-bg-hover`
+       was never defined anywhere, so this line did nothing for as long as it
+       existed; `--color-surface` is the token for a barely-there fill. */
     background-color: var(--color-surface);
     transform: scale(1.1);
 }
 
 .button:active:not(:disabled) {
     transform: scale(0.95);
-}
-
-.button.active {
-    color: var(--color-fg);
-    /* Bright black when active */
 }
 
 .button:disabled {

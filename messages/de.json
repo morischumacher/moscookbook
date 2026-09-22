@@ -427,9 +427,8 @@
         "published": "Veröffentlicht",
         "hasPublicLink": "Öffentlicher Link",
         "belongsTo": "Geschrieben über",
-        "notesTitle": "Notizen",
-        "addNote": "Notiz schreiben",
-        "noNotes": "Zu diesem Rezept ist noch nichts notiert.",
+        "notesTitle": "Aus dem Blog",
+        "addNote": "Blogeintrag zu diesem Rezept schreiben",
         "newPost": "Neuer Beitrag",
         "editPost": "Beitrag bearbeiten",
         "view": "Ansehen",
@@ -574,7 +573,7 @@
         "kind_other": "Sonstiges",
         "bodyLabel": "Beschreibung",
         "bodyPlaceholder": "Zum Beispiel: Beim Hinzufügen eines Fotos muss ich jedes Mal zweimal tippen.",
-        "fromPage": "Kommt von:",
+        "fromPage": "Diese Seite wird mitgeschickt, damit klar ist, worum es geht:",
         "send": "Ticket aufmachen",
         "sending": "Wird gesendet…",
         "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
@@ -595,7 +594,8 @@
         "copyTicket": "Als Ticket kopieren",
         "copied": "Kopiert",
         "copyFailed": "Kopieren ging nicht.",
-        "ticketHint": "Kopiert einen fertigen Text mit Seite, Datum und Beschreibung — zum Einfügen dort, wo es behoben wird."
+        "ticketHint": "Kopiert einen fertigen Text mit Seite, Datum und Beschreibung — zum Einfügen dort, wo es behoben wird.",
+        "dropPage": "Nicht mitschicken"
     },
     "Account": {
         "title": "Dein Konto",

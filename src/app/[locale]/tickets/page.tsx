@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { buttonPrimary, chip, pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import { safeTicketPath } from '@/lib/ticketPath';
 
 /** idea | problem | other. Three, because a chooser with eight is a form. */
 const KINDS = ['idea', 'problem', 'other'] as const;
@@ -26,33 +28,31 @@ const KINDS = ['idea', 'problem', 'other'] as const;
  * invites a second one and says nothing about the first; what somebody wants
  * to know here is that it arrived.
  */
-export default function TicketsPage() {
+function TicketForm() {
     const t = useTranslations('Tickets');
 
     const [kind, setKind] = useState<(typeof KINDS)[number]>('idea');
     const [body, setBody] = useState('');
-    const [path, setPath] = useState<string | null>(null);
+    /*
+     * Where they were, handed over by the link rather than guessed.
+     *
+     * This read `document.referrer` and that was wrong in a way that only
+     * showed up in use: the referrer belongs to the document, the App Router
+     * changes pages without loading a new document, and the home-screen icon
+     * starts a fresh one at the front page. So a ticket opened from the home
+     * screen arrived stamped with whatever recipe had been open when the app
+     * was last cold-started — which is worse than an empty field, because an
+     * empty field is ignored and a confident wrong one is followed.
+     *
+     * components/TicketLink.tsx puts the real path in the query string.
+     */
+    const fromQuery = useSearchParams().get('from');
+
+    // The same rule the route applies, so what is shown is what is stored.
+    const [path, setPath] = useState<string | null>(safeTicketPath(fromQuery));
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [sent, setSent] = useState(false);
-
-    // Same-origin only, and the path alone. A referrer from somewhere else is
-    // not where they were in this application, and the query string can carry
-    // a token — a reset link is the obvious one.
-    useEffect(() => {
-        try {
-            const referrer = document.referrer;
-            if (!referrer) return;
-
-            const url = new URL(referrer);
-            if (url.origin !== window.location.origin) return;
-            if (url.pathname.includes('/tickets')) return;
-
-            setPath(url.pathname);
-        } catch {
-            /* a referrer that will not parse is simply no referrer */
-        }
-    }, []);
 
     const send = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -149,9 +149,34 @@ export default function TicketsPage() {
                     />
                 </div>
 
+                {/*
+                    Explained, and removable.
+                    
+                    This was one word and a path — "Kommt von:
+                    /de/recipe/green-curry" — which is the system describing
+                    itself to somebody who did not ask. The first person to see
+                    it asked what it meant, which is the only review this kind
+                    of line ever gets.
+                    
+                    It says what it is for now, and it can be taken off. The
+                    page is genuinely useful for fixing things, but somebody
+                    writing "the search is slow" while standing on a recipe
+                    should not have to send that recipe along with it.
+                */}
                 {path && (
-                    <p className="text-sm text-muted">
-                        {t('fromPage')} <code className="font-mono text-ink">{path}</code>
+                    <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-muted">
+                        <span>
+                            {t('fromPage')}{' '}
+                            <code className="font-mono text-ink">{path}</code>
+                        </span>
+
+                        <button
+                            type="button"
+                            onClick={() => setPath(null)}
+                            className="underline underline-offset-4 hover:text-ink"
+                        >
+                            {t('dropPage')}
+                        </button>
                     </p>
                 )}
 
@@ -160,5 +185,17 @@ export default function TicketsPage() {
                 </button>
             </form>
         </main>
+    );
+}
+
+/**
+ * `useSearchParams` reads something only the browser knows, so the subtree
+ * that uses it has to be allowed to render later than the page itself.
+ */
+export default function TicketsPage() {
+    return (
+        <Suspense fallback={null}>
+            <TicketForm />
+        </Suspense>
     );
 }

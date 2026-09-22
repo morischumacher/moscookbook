@@ -241,7 +241,11 @@ export default async function RecipeArticle({
                     />
 
                     {mode === 'private' && (
-                        <span className="shrink-0">
+                        // On paper, so it takes the page's own ink rather than
+                        // the muted colour of the meta line it stands in: this
+                        // is the heart somebody actually presses, and it
+                        // should not look like a caption.
+                        <span className="shrink-0 text-ink">
                             <FavoriteButton
                                 recipeId={recipe.id}
                                 initialFavorited={isFavorited}

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { getCurrentUser, requireAdmin } from '@/lib/auth';
 import { rateLimitShared } from '@/lib/rateLimitShared';
+import { safeTicketPath } from '@/lib/ticketPath';
 
 /**
  * What somebody thinks is wrong with the tool, or wants it to do.
@@ -30,19 +31,8 @@ const MAX_BODY = 2000;
 const schema = z.object({
     kind: z.enum(KINDS),
     body: z.string().trim().min(1, 'Say something').max(MAX_BODY),
-    /**
-     * Where they were. A path of our own only — anything else is either a
-     * mistake or somebody seeing whether this field is echoed back into a page
-     * later, and neither is worth storing.
-     */
-    path: z
-        .string()
-        .trim()
-        .max(300)
-        .optional()
-        .transform((value) =>
-            value && value.startsWith('/') && !value.startsWith('//') ? value : null
-        ),
+    /** Where they were. See lib/ticketPath for what is refused and why. */
+    path: z.string().trim().optional().transform(safeTicketPath),
 });
 
 export async function POST(req: NextRequest) {

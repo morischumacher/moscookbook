@@ -34,6 +34,7 @@ import blobCleanup from './blobCleanup.test';
 import imageCompression from './imageCompression.test';
 import navigation from './navigation.test';
 import ownership from './ownership.test';
+import ticketPath from './ticketPath.test';
 import cookProgress from './cookProgress.test';
 import safeFetch from './safeFetch.test';
 import similarRecipes from './similarRecipes.test';
@@ -73,6 +74,7 @@ async function main() {
     imageCompression();
     navigation();
     ownership();
+    ticketPath();
     cookProgress();
     await safeFetch();
     similarRecipes();
