@@ -48,7 +48,10 @@ export default function FavoriteButton({ recipeId, initialFavorited, disabled = 
     return (
         <>
         <button
-            className={`${styles.button} ${isFavorited ? styles.active : ''}`}
+            // No `active` class any more: the state is the fill below, and
+            // a class that only ever set a colour is a class that can only
+            // ever set the wrong one on a photograph.
+            className={styles.button}
             onClick={toggleFavorite}
             disabled={disabled}
             title={disabled ? t('loginRequired') : isFavorited ? t('remove') : t('add')}
