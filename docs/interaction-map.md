@@ -94,9 +94,14 @@ failure looks identical to success:
 | `ShareButton` | If minting the `/r/` token fails it falls through to `window.location.href` — the share *appears* to work but hands out a link that lands on the login form, which is the failure the component exists to prevent. | Say so instead of falling through, or fall through only for public recipes. |
 | `RecipeForm` Cancel | `router.push('/admin')` without `clearDraft()`, so the abandoned draft silently reappears next time. | Ask, or clear. Not both, not neither. |
 
-Each of these components carries its own `fetch` + `catch`. A shared client
-helper (one `postJson`, one error line) is the deferred item from the code
-audit; wiring it in would close this table in one change.
+**Closed.** `src/lib/apiMessage.ts` is the one reader of a failed response —
+it returns the route's own `{ message }` or the caller's sentence, and never
+throws. `useAction()` wraps a request in it and shows the failure in the
+dialog the application already had. Components that already owned a place to
+put a message (`AiKeys`, `SiteProfiles`) use that instead of a second one.
+Every row above now says something when it fails; `ShareButton` stops rather
+than sharing an address the recipient cannot open, and Cancel clears the
+draft it abandoned.
 
 ### 4. Same action, different labels
 
@@ -145,7 +150,7 @@ one click that could be a redirect.
 ## Recommendations, in order
 
 1. ~~Make the proxy honour `'recipe'` access.~~ Done — `proxyStepsAside()`, commit f6b1ea1.
-2. One shared client error toast, then wire the seven silent actions to it.
+2. ~~One shared client error path, then wire the silent actions to it.~~ Done — `messageFrom()` and `useAction()`; the eight sites in the table above all say so now.
 3. Collapse the four share labels to two verbs and drop one of the two share
    components on the recipe page.
 4. After Accept in the inbox, go to the recipe.

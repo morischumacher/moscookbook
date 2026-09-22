@@ -52,6 +52,7 @@ import drafts from './drafts.test';
 import routeParams from './routeParams.test';
 import prismaErrors from './prismaErrors.test';
 import htmlMeta from './htmlMeta.test';
+import apiMessage from './apiMessage.test';
 import aiProviders from './aiProviders.test';
 import aiPolish from './aiPolish.test';
 import draftQuality from './draftQuality.test';
@@ -114,6 +115,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['routeParams', routeParams],
     ['prismaErrors', prismaErrors],
     ['htmlMeta', htmlMeta],
+    ['apiMessage', apiMessage],
     ['draftQuality', draftQuality],
     ['fixtures', fixtures],
     ['pageTitle', pageTitle],

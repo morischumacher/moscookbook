@@ -121,6 +121,10 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | DELETE | `/api/users/[id]` | admin | — | — | `admin/UserList` |
 | GET | `/api/users` | admin | — | — | `admin/UserList` |
 
+Calls the map could not match to an endpoint (a URL built elsewhere, or a path the regex misread):
+
+- `POST /api/…  (from ui/useAction)`
+
 ## Always present
 
 Rendered by a layout rather than a page, so they are on every screen (or every admin screen) and are listed once rather than drawn as forty edges.

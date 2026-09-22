@@ -12,7 +12,8 @@
     "greeting": "Hallo {name}",
     "language": "Sprache",
     "toggleMenu": "Menü öffnen",
-    "recipes": "Rezepte"
+    "recipes": "Rezepte",
+    "logoutFailed": "Das Abmelden hat nicht geklappt \u2014 du bist weiterhin angemeldet."
   },
   "Home": {
     "searchPlaceholder": "Rezepte und Zutaten durchsuchen…",
@@ -97,7 +98,8 @@
   "Favorite": {
     "add": "Zu Favoriten hinzufügen",
     "remove": "Aus Favoriten entfernen",
-    "loginRequired": "Zum Merken anmelden"
+    "loginRequired": "Zum Merken anmelden",
+    "notSaved": "Der Favorit konnte nicht gespeichert werden."
   },
   "Auth": {
     "loginTitle": "Anmelden",
@@ -416,7 +418,9 @@
     "preparing": "Link wird erstellt…",
     "statePrivateCollection": "Diese Sammlung sehen nur Leute mit Konto.",
     "statePublicCollection": "Wer diesen Link hat, kann die Sammlung sehen.",
-    "revokeConfirmCollection": "Diesen Link zurückziehen? Wer ihn schon bekommen hat, kann die Sammlung dann nicht mehr öffnen."
+    "revokeConfirmCollection": "Diesen Link zurückziehen? Wer ihn schon bekommen hat, kann die Sammlung dann nicht mehr öffnen.",
+    "copyFailed": "Kopieren hat nicht geklappt \u2014 der Link steht im Feld darüber.",
+    "linkFailed": "Der Link konnte nicht erstellt werden \u2014 es wurde nichts geteilt."
   },
   "Errors": {
     "title": "Fehler",

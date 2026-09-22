@@ -55,6 +55,7 @@ export default function Visibility({
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [copied, setCopied] = useState(false);
+    const [copyFailed, setCopyFailed] = useState(false);
 
     const set = async (next: boolean) => {
         setBusy(true);
@@ -82,13 +83,18 @@ export default function Visibility({
     };
 
     const copy = async () => {
+        setCopyFailed(false);
+
         try {
             await navigator.clipboard.writeText(url);
             setCopied(true);
             window.setTimeout(() => setCopied(false), 2500);
         } catch {
-            // The field is readable and selectable, so the address can still be
-            // got out; nothing needs to be said.
+            // The field is readable and selectable, so the address can still
+            // be got out — but only by somebody who knows the copy failed.
+            // `copyFailed` has been in the translations, unused, since this
+            // component was written.
+            setCopyFailed(true);
         }
     };
 
@@ -166,7 +172,7 @@ export default function Visibility({
             )}
 
             <span role="status" className="sr-only">
-                {copied ? t('copied') : ''}
+                {copied ? t('copied') : copyFailed ? t('copyFailed') : ''}
             </span>
         </section>
     );

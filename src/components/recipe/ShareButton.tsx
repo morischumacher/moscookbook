@@ -63,7 +63,7 @@ export default function ShareButton({
 }) {
     const t = useTranslations('Share');
     const router = useRouter();
-    const [state, setState] = useState<'idle' | 'copied' | 'manual' | 'working'>('idle');
+    const [state, setState] = useState<'idle' | 'copied' | 'manual' | 'working' | 'failed'>('idle');
     const [url, setUrl] = useState('');
     // Remembered for the rest of the visit, so the second share of the same
     // recipe is synchronous and gets the system sheet.
@@ -100,9 +100,30 @@ export default function ShareButton({
                     setMade(data.url);
                 }
             } catch {
-                // Falls through to the page's own address, which is what this
-                // did before there was a link to make.
+                // Handled below, with the non-ok case, because from here the
+                // two are the same thing: no link was made.
             }
+
+            /*
+             * This used to fall through to `window.location.href` — "which is
+             * what this did before there was a link to make". That was wrong
+             * in the one way that matters: the share *appeared* to work and
+             * handed over `/recipe/<slug>`, an address the recipient cannot
+             * open without an account. They get a sign-in form, which is
+             * exactly the failure this component exists to prevent, and the
+             * sender has no way of knowing.
+             *
+             * A share that could not be prepared now says so and stops. The
+             * page's own address is still the right thing to share when
+             * nobody asked for a link to be made — that is the `!createUrl`
+             * case below, and it is unaffected.
+             */
+            if (!current) {
+                setState('failed');
+                window.setTimeout(() => setState('idle'), 4000);
+                return;
+            }
+
             setState('idle');
         }
 
@@ -157,7 +178,9 @@ export default function ShareButton({
                     ? t('copied')
                     : state === 'working'
                       ? t('preparing')
-                      : t('share')}
+                      : state === 'failed'
+                        ? t('linkFailed')
+                        : t('share')}
             </button>
 
             {state === 'manual' && (
@@ -176,7 +199,7 @@ export default function ShareButton({
             {/* Announced rather than only shown, since the button's own label
                 changes back after a moment. */}
             <span role="status" className="sr-only">
-                {state === 'copied' ? t('copied') : ''}
+                {state === 'copied' ? t('copied') : state === 'failed' ? t('linkFailed') : ''}
             </span>
         </span>
     );

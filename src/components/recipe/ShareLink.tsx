@@ -69,6 +69,7 @@ export default function ShareLink({
     const [url, setUrl] = useState(initialUrl);
     const [busy, setBusy] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [copyFailed, setCopyFailed] = useState(false);
     const [error, setError] = useState('');
 
     const create = async () => {
@@ -128,13 +129,20 @@ export default function ShareLink({
     const copy = async () => {
         if (!url) return;
 
+        setCopyFailed(false);
+
         try {
             await navigator.clipboard.writeText(url);
             setCopied(true);
             window.setTimeout(() => setCopied(false), 2500);
         } catch {
-            // The field below is readable and selectable, so there is still a
-            // way to get the link out; nothing needs to be said.
+            /*
+             * The field below is readable and selectable, so the link can
+             * still be got out — but a button that does nothing when pressed
+             * does not tell anybody to go and look at the field. Saying so is
+             * the difference between a fallback and a dead button.
+             */
+            setCopyFailed(true);
         }
     };
 
@@ -194,7 +202,7 @@ export default function ShareLink({
             )}
 
             <span role="status" className="sr-only">
-                {copied ? t('copied') : ''}
+                {copied ? t('copied') : copyFailed ? t('copyFailed') : ''}
             </span>
 
             {dialog}

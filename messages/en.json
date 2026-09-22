@@ -12,7 +12,8 @@
     "greeting": "Hello {name}",
     "language": "Language",
     "toggleMenu": "Toggle menu",
-    "recipes": "Recipes"
+    "recipes": "Recipes",
+    "logoutFailed": "Signing out did not work \u2014 you are still signed in."
   },
   "Home": {
     "searchPlaceholder": "Search recipes and ingredients…",
@@ -97,7 +98,8 @@
   "Favorite": {
     "add": "Add to favourites",
     "remove": "Remove from favourites",
-    "loginRequired": "Log in to save favourites"
+    "loginRequired": "Log in to save favourites",
+    "notSaved": "The favourite could not be saved."
   },
   "Auth": {
     "loginTitle": "Login",
@@ -416,7 +418,9 @@
     "preparing": "Preparing link…",
     "statePrivateCollection": "This collection is only for people with an account.",
     "statePublicCollection": "Anyone with this link can see this collection.",
-    "revokeConfirmCollection": "Withdraw this link? Anyone you have already sent it to will no longer be able to open the collection."
+    "revokeConfirmCollection": "Withdraw this link? Anyone you have already sent it to will no longer be able to open the collection.",
+    "copyFailed": "Could not copy \u2014 the link is in the field above.",
+    "linkFailed": "The link could not be made \u2014 nothing was shared."
   },
   "Errors": {
     "title": "Errors",
