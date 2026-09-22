@@ -1,11 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="512" height="512">
   <rect width="24" height="24" fill="#ff4a0e"/>
-  <g transform="translate(3.120000000000001 3.120000000000001) scale(0.74)">
+  <g transform="translate(3.6 3.6) scale(0.70)">
     <g transform="rotate(-14 12 12)">
-      <path d="M2.8 12.4 C2.8 8.8 7 6.2 12.2 6.2 C17.6 6.2 21.4 8.6 21.4 12 C21.4 15.4 17.4 17.9 12 17.9 C6.8 17.9 2.8 15.9 2.8 12.4 Z" fill="#FFF8F0" stroke="#FFF8F0" stroke-width="0.85" stroke-linejoin="round"/>
-      <path d="M5.4 14.4 C4.7 13.2 5.2 11.6 6.9 10.6 C9 9.3 12.6 9 15.6 9.9 C17.9 10.6 19 11.9 18.7 13.2" transform="translate(4.3 15.6) scale(1.12) translate(-4.3 -15.6)" fill="none" stroke="#ff4a0e" stroke-width="0.85" stroke-linecap="round"/>
-      <path d="M5.4 14.4 C4.7 13.2 5.2 11.6 6.9 10.6 C9 9.3 12.6 9 15.6 9.9 C17.9 10.6 19 11.9 18.7 13.2" transform="translate(4.3 15.6) scale(1) translate(-4.3 -15.6)" fill="none" stroke="#ff4a0e" stroke-width="0.85" stroke-linecap="round"/>
-      <path d="M8.6 15.2 C8.2 14.4 8.8 13.5 10.2 13 C11.9 12.4 14.2 12.6 15.6 13.4 C16.4 13.9 16.6 14.5 16.2 15" transform="translate(4.3 15.6) scale(1) translate(-4.3 -15.6)" fill="none" stroke="#ff4a0e" stroke-width="0.85" stroke-linecap="round"/>
+      <path d="M2.4 14.6 C1.9 10.4 6.8 6.3 12.6 6.2 C18.1 6.1 21.6 8.9 21.5 12.2 C21.4 15.7 17.0 18.1 11.6 17.9 C6.2 17.7 2.8 17.2 2.4 14.6 Z" fill="#FFF8F0" stroke="#FFF8F0" stroke-width="0.75" stroke-linejoin="round"/>
+      <path d="M2.4 14.6 C1.9 10.4 6.8 6.3 12.6 6.2 C18.1 6.1 21.6 8.9 21.5 12.2 C21.4 15.7 17.0 18.1 11.6 17.9 C6.2 17.7 2.8 17.2 2.4 14.6 Z" transform="translate(18.6 8.6) scale(0.84) translate(-18.6 -8.6)" fill="none" stroke="#ff4a0e" stroke-width="0.75" stroke-linejoin="round"/>
+      <path d="M2.4 14.6 C1.9 10.4 6.8 6.3 12.6 6.2 C18.1 6.1 21.6 8.9 21.5 12.2 C21.4 15.7 17.0 18.1 11.6 17.9 C6.2 17.7 2.8 17.2 2.4 14.6 Z" transform="translate(18.6 8.6) scale(0.68) translate(-18.6 -8.6)" fill="none" stroke="#ff4a0e" stroke-width="0.75" stroke-linejoin="round"/>
+      <path d="M2.4 14.6 C1.9 10.4 6.8 6.3 12.6 6.2 C18.1 6.1 21.6 8.9 21.5 12.2 C21.4 15.7 17.0 18.1 11.6 17.9 C6.2 17.7 2.8 17.2 2.4 14.6 Z" transform="translate(18.6 8.6) scale(0.52) translate(-18.6 -8.6)" fill="none" stroke="#ff4a0e" stroke-width="0.75" stroke-linejoin="round"/>
+      <path d="M2.4 14.6 C1.9 10.4 6.8 6.3 12.6 6.2 C18.1 6.1 21.6 8.9 21.5 12.2 C21.4 15.7 17.0 18.1 11.6 17.9 C6.2 17.7 2.8 17.2 2.4 14.6 Z" transform="translate(18.6 8.6) scale(0.36) translate(-18.6 -8.6)" fill="none" stroke="#ff4a0e" stroke-width="0.75" stroke-linejoin="round"/>
+      <path d="M2.4 14.6 C1.9 10.4 6.8 6.3 12.6 6.2 C18.1 6.1 21.6 8.9 21.5 12.2 C21.4 15.7 17.0 18.1 11.6 17.9 C6.2 17.7 2.8 17.2 2.4 14.6 Z" transform="translate(18.6 8.6) scale(0.21) translate(-18.6 -8.6)" fill="none" stroke="#ff4a0e" stroke-width="0.75" stroke-linejoin="round"/>
     </g>
   </g>
 </svg>
