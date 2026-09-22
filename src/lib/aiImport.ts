@@ -228,9 +228,24 @@ Rules:
 
 export type AiSource =
     | { kind: 'text'; text: string }
-    | { kind: 'image'; base64: string; mediaType: string };
+    | { kind: 'image'; base64: string; mediaType: string }
+    /**
+     * Some text, a system prompt of the caller's own, and no recipe schema.
+     *
+     * Added for the two "revise what I wrote" buttons, which want a piece of
+     * text back rather than a recipe object. It goes through this module
+     * rather than round it so that the provider envelopes, the key handling
+     * and the fallback chain have exactly one implementation — the alternative
+     * is a second set of three provider calls that drift from these.
+     */
+    | { kind: 'raw'; system: string; text: string };
+
+function systemFor(source: AiSource): string {
+    return source.kind === 'raw' ? source.system : SYSTEM_PROMPT;
+}
 
 function promptFor(source: AiSource): string {
+    if (source.kind === 'raw') return source.text;
     return source.kind === 'text'
         ? `Extract the recipe from this text:\n\n${source.text}`
         : 'Extract the recipe shown in this image.';
@@ -279,15 +294,15 @@ interface AnthropicBlock {
 
 async function callAnthropic(key: AiKey, source: AiSource): Promise<string> {
     const content =
-        source.kind === 'text'
-            ? [{ type: 'text', text: promptFor(source) }]
-            : [
+        source.kind === 'image'
+            ? [
                 {
                     type: 'image',
                     source: { type: 'base64', media_type: source.mediaType, data: source.base64 },
                 },
                 { type: 'text', text: promptFor(source) },
-            ];
+            ]
+            : [{ type: 'text', text: promptFor(source) }];
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -299,7 +314,7 @@ async function callAnthropic(key: AiKey, source: AiSource): Promise<string> {
         body: JSON.stringify({
             model: key.model || DEFAULT_MODEL.anthropic,
             max_tokens: 4096,
-            system: SYSTEM_PROMPT,
+            system: systemFor(source),
             messages: [{ role: 'user', content }],
         }),
     });
@@ -326,9 +341,8 @@ interface OpenAiPayload {
 
 async function callOpenAi(key: AiKey, source: AiSource): Promise<string> {
     const content =
-        source.kind === 'text'
-            ? [{ type: 'text', text: promptFor(source) }]
-            : [
+        source.kind === 'image'
+            ? [
                 { type: 'text', text: promptFor(source) },
                 {
                     type: 'image_url',
@@ -336,7 +350,8 @@ async function callOpenAi(key: AiKey, source: AiSource): Promise<string> {
                     // separate field — the same bytes, a different envelope.
                     image_url: { url: `data:${source.mediaType};base64,${source.base64}` },
                 },
-            ];
+            ]
+            : [{ type: 'text', text: promptFor(source) }];
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -351,9 +366,12 @@ async function callOpenAi(key: AiKey, source: AiSource): Promise<string> {
             // a request that fails on an *argument* rather than on the work is
             // the worst kind of thing to debug from a recipe import. What comes
             // back here is a small object either way.
-            response_format: { type: 'json_object' },
+            // JSON mode only when JSON is wanted. Asking for it while handing
+            // the model a proof-reading job produces `{"text": "..."}` — or a
+            // refusal, since the prompt never mentions JSON.
+            ...(source.kind === 'raw' ? {} : { response_format: { type: 'json_object' } }),
             messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'system', content: systemFor(source) },
                 { role: 'user', content },
             ],
         }),
@@ -388,12 +406,12 @@ async function callGoogle(key: AiKey, source: AiSource): Promise<string> {
     }
 
     const parts =
-        source.kind === 'text'
-            ? [{ text: promptFor(source) }]
-            : [
+        source.kind === 'image'
+            ? [
                 { text: promptFor(source) },
                 { inline_data: { mime_type: source.mediaType, data: source.base64 } },
-            ];
+            ]
+            : [{ text: promptFor(source) }];
 
     const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
@@ -407,9 +425,11 @@ async function callGoogle(key: AiKey, source: AiSource): Promise<string> {
                 'x-goog-api-key': key.apiKey,
             },
             body: JSON.stringify({
-                systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+                systemInstruction: { parts: [{ text: systemFor(source) }] },
                 contents: [{ role: 'user', parts }],
-                generationConfig: { responseMimeType: 'application/json' },
+                ...(source.kind === 'raw'
+                    ? {}
+                    : { generationConfig: { responseMimeType: 'application/json' } }),
             }),
         }
     );
@@ -443,8 +463,12 @@ const CALLS: Record<AiProvider, (key: AiKey, source: AiSource) => Promise<string
  * Exported for the "test" button, which wants a single provider's answer or a
  * single provider's error rather than the fallback chain's summary.
  */
+export async function completeWithKey(key: AiKey, source: AiSource): Promise<string> {
+    return CALLS[key.provider](key, source);
+}
+
 export async function extractWithKey(key: AiKey, source: AiSource): Promise<AiExtractionResult> {
-    const text = await CALLS[key.provider](key, source);
+    const text = await completeWithKey(key, source);
 
     const parsed = aiRecipeSchema.safeParse(extractJson(text));
     if (!parsed.success) {

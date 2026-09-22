@@ -22,6 +22,20 @@ interface DuplicateHint {
     reason: 'link' | 'title';
 }
 
+/**
+ * The provider's own name, for a line that says who read a draft.
+ *
+ * Not translated: "Anthropic" is "Anthropic" in both languages, and a
+ * translation key per provider would be three keys that can only ever hold the
+ * same string.
+ */
+function providerLabel(provider: string | null): string {
+    if (provider === 'anthropic') return 'Anthropic';
+    if (provider === 'openai') return 'OpenAI';
+    if (provider === 'google') return 'Gemini';
+    return '—';
+}
+
 interface Capture {
     id: number;
     kind: string;
@@ -31,6 +45,9 @@ interface Capture {
     note: string | null;
     status: string;
     error: string | null;
+    /** 'rules' | 'rules+ai' | 'ai', or null on a row from before this existed. */
+    readBy: string | null;
+    aiProvider: string | null;
     draft: DraftSummary | null;
     recipeId: number | null;
     createdAt: string;
@@ -246,6 +263,7 @@ function CaptureRow({
     onMerge?: () => void;
 }) {
     const t = useTranslations('Inbox');
+    const tAi = useTranslations('Ai');
     // The site's language, not the browser's: this page used
     // toLocaleDateString() with no argument, so a German reader on an
     // English-language phone saw 9/21/2026 here and 21. September 2026 on
@@ -265,6 +283,27 @@ function CaptureRow({
                 <span aria-hidden="true">·</span>
                 <StatusBadge status={capture.status} />
                 <span aria-hidden="true">·</span>
+
+                {/* Whether a model was involved, on the same line as where it
+                    came from and what state it is in — the three things you
+                    want before deciding how hard to read a draft. Nothing is
+                    shown for a capture from before this was recorded, because
+                    the alternative is labelling it with a guess. */}
+                {capture.readBy && (
+                    <>
+                        <span className={capture.readBy === 'rules' ? undefined : 'text-accent-text'}>
+                            {capture.readBy === 'rules'
+                                ? tAi('usedRules')
+                                : capture.readBy === 'ai'
+                                    ? tAi('usedAi', { provider: providerLabel(capture.aiProvider) })
+                                    : tAi('usedRulesAndAi', {
+                                        provider: providerLabel(capture.aiProvider),
+                                    })}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                    </>
+                )}
+
                 <time dateTime={capture.createdAt}>
                     {formatDate(capture.createdAt, locale, 'short')}
                 </time>
