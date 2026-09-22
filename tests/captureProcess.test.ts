@@ -438,3 +438,216 @@ export async function siteProfilePipelineTests() {
         close();
     }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/*  A page with nothing in it but a caption                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Instagram, TikTok, Threads.
+ *
+ * The page body is an empty mount point; the whole recipe is in `og:title`.
+ * These were the one import that did not work at all without a key, and a
+ * great many of those captions are already written the way the rules
+ * understand.
+ *
+ * The check that matters is not the one where it works. It is the one where a
+ * caption is a joke and a link, and the parser dutifully turns it into
+ * something — a draft with an "ingredient" that is a sentence. Left in, that
+ * is a recipe in the cookbook that reads like a recipe and is not one, which
+ * is the failure nothing downstream can detect.
+ */
+export async function captionTests() {
+    suite('processCapture — a page that is only a caption');
+
+    const shell = (caption: string, description = '') => `<!DOCTYPE html><html><head>
+<meta property="og:title" content="${caption}">
+${description ? `<meta property="og:description" content="${description}">` : ''}
+<meta property="og:image" content="https://instagram.example/p.jpg">
+</head><body><div id="mount"></div></body></html>`;
+
+    const REEL = 'https://www.instagram.com/reel/abc123/';
+
+    /*
+     * `&#10;` rather than a newline, because that is how a newline survives an
+     * HTML attribute — and getting this wrong is the whole reason the first
+     * version of this feature did not work. `metaContent` collapses all
+     * whitespace, which is right for a title and destroys a caption: the
+     * parser is line-based, so a flattened ingredient list parses to nothing.
+     * The first draft of this test had the caption as one sentence with
+     * commas, which is not how anybody writes one, and it hid the bug by
+     * failing for the wrong reason.
+     */
+    const nl = '&#10;';
+    const recipeCaption =
+        `Ben Slater auf Instagram: «Creamy tomato pasta.${nl}${nl}` +
+        `Zutaten:${nl}400 g Spaghetti${nl}2 Dosen Tomaten${nl}200 g Sahne${nl}3 Zehen Knoblauch${nl}50 g Parmesan${nl}${nl}` +
+        `Zubereitung:${nl}Knoblauch in Öl anschwitzen.${nl}Tomaten zugeben und 15 Minuten einkochen.${nl}` +
+        `Sahne unterrühren und die Nudeln untermischen.${nl}Mit Parmesan servieren.»`;
+
+    let restore = stubFetch({ [REEL]: { html: shell(recipeCaption) } });
+
+    try {
+        const capture = classifyCapture({ url: REEL })!;
+        const read = await processCapture(capture, { mode: 'off', keys: [] });
+
+        check('a caption with a recipe in it is read', (read.draft?.ingredients.length ?? 0) >= 4, read.draft?.ingredients);
+        check('with quantities', read.draft?.ingredients.some((i) => i.amount.includes('400')), read.draft?.ingredients);
+        check('and the method', (read.draft?.instructions ?? '').includes('einkochen'), read.draft?.instructions);
+        check('the picture comes along', read.draft?.imageUrl === 'https://instagram.example/p.jpg', read.draft?.imageUrl);
+
+        // No model was involved, and the capture must not suggest otherwise.
+        equal('no model was asked', read.readBy, 'rules');
+        equal('and none is named', read.provider, null);
+
+        // The author and the platform are not part of the recipe.
+        check(
+            'the platform wrapper does not become an ingredient',
+            !(read.draft?.ingredients ?? []).some((i) => i.item.includes('Slater')),
+            read.draft?.ingredients
+        );
+    } finally {
+        restore();
+    }
+
+    /*
+     * The one that matters. A caption that is a sentence and a link parses
+     * into something, and that something must be thrown away — it can only
+     * make the draft worse, and a draft that is worse but complete-looking is
+     * the one outcome the scoring exists to prevent.
+     */
+    const chatter =
+        'Ben Slater auf Instagram: «POV: you have twenty minutes and exactly one pan and absolutely ' +
+        'no intention of washing up afterwards. Full recipe is in my newsletter, link in bio, ' +
+        'go and get it before I take it down again like last time.»';
+
+    restore = stubFetch({ [REEL]: { html: shell(chatter) } });
+
+    try {
+        const capture = classifyCapture({ url: REEL })!;
+        const read = await processCapture(capture, { mode: 'off', keys: [] });
+
+        check(
+            'a caption with no recipe in it produces no ingredients',
+            (read.draft?.ingredients.length ?? 0) === 0,
+            read.draft?.ingredients
+        );
+        check('and nothing is published as ready', read.status !== 'ready', read.status);
+    } finally {
+        restore();
+    }
+
+    /* --------------------------------------------------------- the split one */
+
+    // Some platforms put half the caption in each tag, and the two together
+    // are the caption.
+    restore = stubFetch({
+        [REEL]: {
+            html: shell(
+                `Ben Slater auf Instagram: «Linsensuppe${nl}${nl}Zutaten:${nl}250 g rote Linsen${nl}1 Karotte${nl}1 Zwiebel${nl}1 EL Olivenöl»`,
+                `Zubereitung:${nl}Zwiebel und Karotte würfeln und anschwitzen.${nl}Linsen zugeben, aufgießen und zwanzig Minuten köcheln.`
+            ),
+        },
+    });
+
+    try {
+        const capture = classifyCapture({ url: REEL })!;
+        const read = await processCapture(capture, { mode: 'off', keys: [] });
+
+        check('a caption split across two tags is read as one', (read.draft?.ingredients.length ?? 0) >= 3, read.draft?.ingredients);
+        check('including the half in the description', (read.draft?.instructions ?? '').includes('köcheln'), read.draft?.instructions);
+    } finally {
+        restore();
+    }
+
+    /* ----------------------------------------------------- the guard, properly */
+
+    /*
+     * The three checks below exist because the sabotage run found the first
+     * versions of them worthless: deleting the damage comparison, the length
+     * floor and the wrapper stripping each changed nothing any test could see.
+     *
+     * The reason was the same every time — the caption I had written was
+     * either obviously good or obviously empty, and both of those take the
+     * same path whether the guard is there or not. A guard is only tested by
+     * the case that sits on its edge.
+     */
+
+    // Parses into something, and that something is no better than nothing:
+    // three ingredients with no quantities and no method scores exactly what
+    // an empty draft scores, so it must be discarded.
+    const junkCaption =
+        `Ben Slater auf Instagram: «Mein Sonntag${nl}${nl}` +
+        `Zutaten:${nl}Liebe${nl}Geduld${nl}ein sehr gutes Gespräch${nl}Zeit und noch mehr Zeit»`;
+
+    restore = stubFetch({ [REEL]: { html: shell(junkCaption) } });
+
+    try {
+        const capture = classifyCapture({ url: REEL })!;
+        const read = await processCapture(capture, { mode: 'off', keys: [] });
+
+        check(
+            'a caption that parses into something no better is thrown away',
+            (read.draft?.ingredients.length ?? 0) === 0,
+            read.draft?.ingredients
+        );
+    } finally {
+        restore();
+    }
+
+    /*
+     * Thirty-six characters, and a real recipe.
+     *
+     * This one killed the length floor. It was 120 at first, then 40, and both
+     * numbers threw this away — two ingredients with real quantities — because
+     * both were guesses about how much text a recipe needs. The damage
+     * comparison measures instead, so the floor is gone and this is the check
+     * that keeps it gone.
+     */
+    restore = stubFetch({
+        [REEL]: { html: shell(`Ben Slater auf Instagram: «Pasta${nl}${nl}Zutaten:${nl}400 g Nudeln${nl}2 EL Öl»`) },
+    });
+
+    try {
+        const capture = classifyCapture({ url: REEL })!;
+        const read = await processCapture(capture, { mode: 'off', keys: [] });
+        check(
+            'a short caption with a real list in it is kept',
+            (read.draft?.ingredients.length ?? 0) === 2,
+            read.draft?.ingredients
+        );
+    } finally {
+        restore();
+    }
+
+    restore = stubFetch({ [REEL]: { html: shell('Ben Slater auf Instagram: «Pasta.»') } });
+
+    try {
+        const capture = classifyCapture({ url: REEL })!;
+        const read = await processCapture(capture, { mode: 'off', keys: [] });
+        check(
+            'a caption with nothing in it still yields nothing',
+            (read.draft?.ingredients.length ?? 0) === 0,
+            read.draft
+        );
+    } finally {
+        restore();
+    }
+
+    // What stripping the wrapper actually buys: the closing quotation mark not
+    // being glued to the last step of the method.
+    restore = stubFetch({ [REEL]: { html: shell(recipeCaption) } });
+
+    try {
+        const capture = classifyCapture({ url: REEL })!;
+        const read = await processCapture(capture, { mode: 'off', keys: [] });
+        check(
+            'the wrapper\'s closing quote does not end up in the method',
+            !(read.draft?.instructions ?? '').includes('»'),
+            read.draft?.instructions
+        );
+    } finally {
+        restore();
+    }
+}

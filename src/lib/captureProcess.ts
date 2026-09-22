@@ -1,13 +1,14 @@
 import type { CaptureSource, CaptureStatus } from './capture';
 import { withoutBareUrls } from './capture';
 import type { ImportedRecipe } from './recipeFromHtml';
-import { extractRecipeFromHtml } from './recipeFromHtml';
+import { extractRecipeFromHtml, metaContent, metaLines } from './recipeFromHtml';
 import { parseRecipeText, parseIngredientLine } from './recipeParser';
 import { fetchPage } from './fetchPage';
 import { youtubeVideoId, extractYoutubePage, cleanYoutubeDescription } from './youtube';
 import { fetchImageAsBase64 } from './fetchImage';
 import { readableText } from './readableText';
 import { assessDraft, titleProblem, worthAsking } from './draftQuality';
+import { withoutPlatformWrapper } from './pageTitle';
 import {
     assistsText,
     canUseAi,
@@ -573,6 +574,39 @@ async function processWebPage(
     }
 
     /*
+     * The caption, read by the rules.
+     *
+     * Instagram, TikTok and Threads send a page with nothing in it — the body
+     * is an empty mount point and the recipe is entirely in `og:title`. Until
+     * now the only thing that could read it was a model, which made those
+     * shares the one import that simply did not work without a key.
+     *
+     * But a great many of those captions are already written the way the rules
+     * understand: a line of ingredients, the word Zutaten or Ingredients, a
+     * couple of steps. `parseRecipeText` is the same parser that reads a shared
+     * note, and pointing it at the caption costs nothing and needs no model.
+     *
+     * Deliberately not a site profile. A profile would have to be learned
+     * first, which needs a key, on a site where the learning would fail anyway
+     * for want of anything to anchor to. Meta tags are on every page from the
+     * first request, so this works on the first import from a site nobody has
+     * ever visited.
+     *
+     * The same rule as everything else here decides whether it is used: it has
+     * to leave the draft *better* than it found it. A caption that is one
+     * sentence of prose parses into something with no quantities and no
+     * method, which scores worse, and is discarded.
+     */
+    if (shouldAsk(draft, options)) {
+        const fromCaption = captionDraft(page.html, page.finalUrl);
+
+        if (fromCaption) {
+            const merged = mergeDrafts(draft, fromCaption);
+            if (damageOf(merged) < damageOf(draft)) draft = merged;
+        }
+    }
+
+    /*
      * This is the gap that was worth closing. A recipe site with schema.org
      * markup has always imported perfectly; a food blog that writes its
      * ingredients in a `<ul>` with no markup at all has always imported as a
@@ -838,4 +872,77 @@ async function rememberThisSite(
         learnedFrom: sourceUrl,
         learnedBy: `${key.provider}${key.model ? `/${key.model}` : ''}`,
     });
+}
+
+/* -------------------------------------------------------------------------- */
+/* The caption of a page that has no body                                      */
+/* -------------------------------------------------------------------------- */
+
+
+/**
+ * What a platform page says about itself.
+ *
+ * `og:title` first, because that is where Instagram puts the caption, with the
+ * platform's own wrapper taken off — `Ben Slater auf Instagram: "…"` is the
+ * author and the platform around the thing we want.
+ *
+ * Worth being precise about what that buys, because it is less than it looks:
+ * the parser reads the first line as a title and we do not take the title from
+ * a caption, so the author's name never reaches a field either way. What the
+ * stripping actually fixes is the closing quotation mark, which otherwise ends
+ * up glued to the last step of the method.
+ *
+ * `og:description` after it rather than instead: some platforms split the
+ * caption across both, and the two together are the caption. Duplication is
+ * handled by not caring — the parser reads a list of ingredients twice as the
+ * same list of ingredients, and `mergeDrafts` only fills holes anyway.
+ */
+function captionOf(html: string): string {
+    const title = withoutPlatformWrapper(metaLines(html, 'og:title'));
+    const description = metaLines(html, 'og:description');
+
+    if (description === '' || title.includes(description)) return title;
+    if (description.includes(title)) return description;
+
+    return `${title}\n\n${description}`;
+}
+
+/**
+ * The caption as a recipe, or null.
+ *
+ * Returns null rather than an empty draft when there is nothing in it, so the
+ * caller's "did this help" comparison is never asked about a draft that was
+ * never going to.
+ */
+function captionDraft(html: string, sourceUrl: string): ImportedRecipe | null {
+    /*
+     * No length floor, and its absence is the considered position rather than
+     * an omission.
+     *
+     * There was one, at 120 characters, chosen by feel. It rejected
+     * "Pasta / Zutaten: / 400 g Nudeln / 2 EL Öl" — 36 characters, two real
+     * ingredients with real quantities, a genuine if small recipe. Lowering it
+     * to 40 rejected the same caption by four characters, which is the same
+     * mistake wearing a smaller number.
+     *
+     * The guard that belongs here is the damage comparison at the call site:
+     * it looks at what came *out* instead of guessing from how much went in,
+     * and it throws away anything that does not leave the draft better. Two
+     * guards where one measures and the other guesses is not defence in depth;
+     * it is a measurement with a guess allowed to overrule it.
+     */
+    const parsed = parseRecipeText(captionOf(html));
+    if (parsed.ingredients.length === 0 && parsed.instructions.trim() === '') return null;
+
+    return {
+        ...emptyDraft(sourceUrl),
+        // The title is left to the rules and to `titleProblem`. A caption's
+        // first line is a good recipe name about half the time, and the half
+        // where it is not is "POV: you have 20 minutes and one pan".
+        description: parsed.description,
+        ingredients: parsed.ingredients,
+        instructions: parsed.instructions,
+        // The picture is the one thing these pages always get right.
+        imageUrl: metaContent(html, 'og:image'),
+    };
 }

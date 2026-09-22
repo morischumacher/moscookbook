@@ -17,7 +17,7 @@ import archive, { archiveCollectionsTests } from './archive.test';
 import searchText from './searchText.test';
 import capture from './capture.test';
 import youtube from './youtube.test';
-import captureProcess, { siteProfilePipelineTests } from './captureProcess.test';
+import captureProcess, { siteProfilePipelineTests, captionTests } from './captureProcess.test';
 import email from './email.test';
 import duplicates from './duplicates.test';
 import recipeJsonLd from './recipeJsonLd.test';
@@ -70,6 +70,7 @@ async function main() {
     youtube();
     await captureProcess();
     await siteProfilePipelineTests();
+    await captionTests();
     await email();
     duplicates();
     recipeJsonLd();

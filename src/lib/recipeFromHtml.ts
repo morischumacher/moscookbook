@@ -171,6 +171,39 @@ function findRecipeNode(value: unknown, depth = 0): Record<string, unknown> | nu
     return null;
 }
 
+/**
+ * A meta tag with its line breaks left in.
+ *
+ * `metaContent` collapses all whitespace, which is right for a title and wrong
+ * for a caption: Instagram writes the whole recipe into `og:title` with
+ * `&#10;` between the lines, and the rule-based parser is line-based. Flatten
+ * it and a perfectly structured ingredient list arrives as one sentence, which
+ * parses to nothing.
+ *
+ * So: entities decoded, runs of spaces and tabs squeezed, newlines kept, and
+ * three or more of them reduced to two — a caption often has a dozen blank
+ * lines before the hashtags.
+ */
+export function metaLines(html: string, property: string): string {
+    const pattern = new RegExp(
+        `<meta[^>]+(?:property|name)\\s*=\\s*["']${property}["'][^>]*>`,
+        'i'
+    );
+    const tag = pattern.exec(html)?.[0];
+    if (!tag) return '';
+
+    const content = /content\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
+    if (!content) return '';
+
+    return decodeEntities(content.replace(/<[^>]*>/g, ' '))
+        .replace(/\r\n?/g, '\n')
+        .split('\n')
+        .map((line) => line.replace(/[ \t\u00a0]+/g, ' ').trim())
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
 /** Exported so a learned site profile can name a meta tag as a source. */
 export function metaContent(html: string, property: string): string {
     const pattern = new RegExp(
