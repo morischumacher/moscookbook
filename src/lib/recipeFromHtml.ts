@@ -182,23 +182,87 @@ function metaContent(html: string, property: string): string {
     return content ? plainText(content) : '';
 }
 
-export function extractRecipeFromHtml(html: string, sourceUrl = ''): ImportedRecipe {
-    const blocks = [
-        ...html.matchAll(
-            /<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
-        ),
-    ];
+const LD_JSON = /<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
 
-    for (const block of blocks) {
-        let data: unknown;
+/** Every `application/ld+json` block on the page that is valid JSON. */
+function jsonLdDocuments(html: string): unknown[] {
+    const documents: unknown[] = [];
+
+    for (const block of html.matchAll(LD_JSON)) {
         try {
             // Strip CDATA wrappers some CMSs add.
             const raw = block[1].replace(/^\s*<!\[CDATA\[/, '').replace(/\]\]>\s*$/, '');
-            data = JSON.parse(raw);
+            documents.push(JSON.parse(raw));
         } catch {
             continue;
         }
+    }
 
+    return documents;
+}
+
+/**
+ * What the page's structured data actually says.
+ *
+ * Purely for the diagnose script, and it exists because the line it replaces
+ * lied by omission. "has JSON-LD: yes" was a regex looking for the string
+ * `application/ld+json`, printed in green, directly above "ingredients: 0".
+ * Read together those two lines say the parser is broken. They were both
+ * correct: the page carries JSON-LD describing a *blog post*, and there is no
+ * `Recipe` in it anywhere, so there was nothing for the rules to find.
+ *
+ * Which of those two it is decides what to do next — fix a parser, or accept
+ * that this page only works with a model — so the diagnostic now says which.
+ */
+export interface JsonLdReport {
+    /** Script tags found, whether or not they parsed. */
+    blocks: number;
+    /** How many of them were valid JSON. */
+    parsed: number;
+    /** Every `@type` in them, in the order first seen. */
+    types: string[];
+    /** Whether a `Recipe` node is reachable the way the importer looks for it. */
+    hasRecipe: boolean;
+}
+
+function collectTypes(value: unknown, into: Set<string>, depth = 0): void {
+    if (depth > 8 || !value || typeof value !== 'object') return;
+
+    if (Array.isArray(value)) {
+        for (const entry of value) collectTypes(entry, into, depth + 1);
+        return;
+    }
+
+    const record = value as Record<string, unknown>;
+    const type = record['@type'];
+    if (typeof type === 'string') into.add(type);
+    if (Array.isArray(type)) {
+        for (const entry of type) if (typeof entry === 'string') into.add(entry);
+    }
+
+    for (const key of Object.keys(record)) {
+        if (key === '@type') continue;
+        collectTypes(record[key], into, depth + 1);
+    }
+}
+
+export function describeJsonLd(html: string): JsonLdReport {
+    const blocks = [...html.matchAll(LD_JSON)].length;
+    const documents = jsonLdDocuments(html);
+
+    const types = new Set<string>();
+    for (const document of documents) collectTypes(document, types);
+
+    return {
+        blocks,
+        parsed: documents.length,
+        types: [...types],
+        hasRecipe: documents.some((document) => findRecipeNode(document) !== null),
+    };
+}
+
+export function extractRecipeFromHtml(html: string, sourceUrl = ''): ImportedRecipe {
+    for (const data of jsonLdDocuments(html)) {
         const node = findRecipeNode(data);
         if (!node) continue;
 

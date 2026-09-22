@@ -31,7 +31,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { performance } from 'node:perf_hooks';
 
-import { extractRecipeFromHtml } from '../src/lib/recipeFromHtml';
+import { describeJsonLd, extractRecipeFromHtml } from '../src/lib/recipeFromHtml';
 import { fetchPage } from '../src/lib/fetchPage';
 import { readableText } from '../src/lib/readableText';
 import { assessDraft } from '../src/lib/draftQuality';
@@ -176,7 +176,30 @@ async function diagnose(url: string, keep: boolean): Promise<void> {
 
     line('final url', page.finalUrl);
     line('size', `${(page.html.length / 1024).toFixed(0)} KB`);
-    line('has JSON-LD', /application\/ld\+json/i.test(page.html) ? green('yes') : red('no'));
+    /*
+     * Not "is there JSON-LD" — "is there a recipe in it".
+     *
+     * The old line tested for the string `application/ld+json` and printed a
+     * green "yes" directly above "ingredients: 0", which reads like a broken
+     * parser. Both lines were true: the page describes a blog post and carries
+     * no Recipe at all. Saying so is the difference between a bug to fix and a
+     * page that will always need a model.
+     */
+    const structured = describeJsonLd(page.html);
+    if (structured.blocks === 0) {
+        line('recipe in JSON-LD', red('no JSON-LD on the page'));
+    } else if (structured.hasRecipe) {
+        line('recipe in JSON-LD', green('yes'));
+    } else {
+        const seen = structured.types.slice(0, 6).join(', ') || 'nothing typed';
+        const unreadable = structured.blocks - structured.parsed;
+        line(
+            'recipe in JSON-LD',
+            `${red('no')} — ${structured.blocks} block(s), describing: ${seen}` +
+                (unreadable > 0 ? ` (${unreadable} could not be parsed)` : '')
+        );
+    }
+
     line('readable text', `${readableText(page.html).length} chars after stripping`);
 
     /* ------------------------------------------------------- the rules alone */
