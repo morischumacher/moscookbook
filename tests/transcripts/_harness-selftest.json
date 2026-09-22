@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "recordedAt": "2026-09-22T14:40:00.000Z",
+  "source": "https://kochblog.example/pasta-calabrese",
+  "kind": "url",
+  "calls": [
+    {
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+      "method": "POST",
+      "requestBody": {
+        "systemInstruction": {
+          "parts": [
+            {
+              "text": "You extract recipes into structured data.\n\nReturn ONLY a JSON object, no prose and no code fences, with exactly these keys:\n{\"title\": string, \"description\": string, \"category\": string, \"nationality\": string,\n \"servings\": number|null, \"prepMinutes\": number|null, \"cookMinutes\": number|null,\n \"ingredients\": [{\"amount\": string, \"item\": string}], \"instructions\": string}\n\nRules:\n- Keep the language of the source. Do not translate.\n- \"amount\" holds the quantity and unit together, e.g. \"200 g\", \"2 EL\", \"1/2\".\n  Leave it as an empty string when the source gives no quantity.\n- \"item\" is the ingredient alone, without the quantity.\n- \"instructions\" is markdown: one numbered list item per step, separated by blank lines.\n- \"category\" is a single word like Breakfast, Lunch, Dinner, Dessert — or \"\" if unclear.\n- \"nationality\" is the cuisine, e.g. Italian, German — or \"\" if unclear.\n- \"servings\", \"prepMinutes\" and \"cookMinutes\" are numbers taken from the source,\n  or null when the source does not state them. Never estimate them.\n- Never invent ingredients, quantities or steps that are not in the source.\n  If something is missing, leave it empty.\n- If the source is not a recipe at all, return the object with every field empty."
+            }
+          ]
+        },
+        "contents": [
+          {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Extract the recipe from this text:\n\nPasta Calabrese mit Hack und Pilzen\nEin Gericht, das nach einem langen Tag in zwanzig Minuten fertig ist und trotzdem schmeckt, als hätte man sich Mühe gegeben. Die Nduja macht die ganze Arbeit.\nZutaten\n400 g Rigatoni\n250 g Rinderhackfleisch\n200 g braune Champignons\n2 EL Nduja\n1 Zwiebel\n2 Zehen Knoblauch\n400 g stückige Tomaten\nSalz und Pfeffer\nZubereitung\nDie Zwiebel und den Knoblauch fein würfeln. Die Champignons in Scheiben schneiden. Das Hackfleisch in einer großen Pfanne kräftig anbraten, bis es Farbe genommen hat, dann Zwiebel, Knoblauch und Pilze zugeben und weiterbraten. Die Nduja einrühren und kurz mitschmoren lassen, dann die Tomaten angießen und bei mittlerer Hitze 15 Minuten köcheln. Inzwischen die Rigatoni in reichlich Salzwasser al dente kochen, abgießen und unter die Sauce heben. Mit Salz und Pfeffer abschmecken."
+              }
+            ]
+          }
+        ],
+        "generationConfig": {
+          "responseMimeType": "application/json"
+        }
+      },
+      "status": 200,
+      "responseBody": {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\"title\": \"Pasta Calabrese mit Hack und Pilzen\", \"description\": \"Ein Gericht, das nach einem langen Tag in zwanzig Minuten fertig ist.\", \"category\": \"Dinner\", \"nationality\": \"Italian\", \"servings\": 4, \"prepMinutes\": 10, \"cookMinutes\": 20, \"ingredients\": [{\"amount\": \"400 g\", \"item\": \"Rigatoni\"}, {\"amount\": \"250 g\", \"item\": \"Rinderhackfleisch\"}, {\"amount\": \"200 g\", \"item\": \"braune Champignons\"}, {\"amount\": \"2 EL\", \"item\": \"Nduja\"}, {\"amount\": \"1\", \"item\": \"Zwiebel\"}, {\"amount\": \"2 Zehen\", \"item\": \"Knoblauch\"}, {\"amount\": \"400 g\", \"item\": \"stückige Tomaten\"}, {\"amount\": \"\", \"item\": \"Salz und Pfeffer\"}], \"instructions\": \"1. Zwiebel und Knoblauch fein würfeln, Champignons in Scheiben schneiden.\\n\\n2. Hackfleisch kräftig anbraten, dann Zwiebel, Knoblauch und Pilze zugeben.\\n\\n3. Nduja einrühren, Tomaten angießen und 15 Minuten köcheln.\\n\\n4. Rigatoni al dente kochen und unter die Sauce heben.\"}"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "ms": 1840
+    }
+  ],
+  "outcome": {
+    "status": "ready",
+    "readBy": "rules+ai",
+    "provider": "google",
+    "error": null,
+    "title": "Pasta Calabrese mit Hack und Pilzen",
+    "ingredientCount": 8,
+    "instructionLength": 268,
+    "rulesQuality": "poor",
+    "rulesProblems": [
+      "no ingredients",
+      "no method"
+    ]
+  }
+}

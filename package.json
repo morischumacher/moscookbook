@@ -21,6 +21,7 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "check:backup": "node scripts/check-backup.mjs",
     "fixtures": "node scripts/collect-import-fixtures.mjs",
+    "diagnose": "ts-node --transpile-only --project tests/tsconfig.json scripts/diagnose-import.ts",
     "mark:preview": "ts-node --transpile-only --project tests/tsconfig.json scripts/preview-mark.ts",
     "reindex": "ts-node --transpile-only --project tests/tsconfig.json scripts/reindex-search.ts",
     "verify:search": "ts-node --transpile-only --project tests/tsconfig.json scripts/verify-search.ts",

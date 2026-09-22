@@ -1,3 +1,4 @@
+import { withoutSiteName } from './pageTitle';
 import { parseIngredientLine } from './recipeParser';
 import { isoDurationToMinutes, parseServings } from './amount';
 import type { ParsedRecipe } from './recipeParser';
@@ -236,7 +237,12 @@ export function extractRecipeFromHtml(html: string, sourceUrl = ''): ImportedRec
 
     return {
         ...EMPTY,
-        title: fallbackTitle,
+        // "Pasta Calabrese - Kochblog" is the page's title; the recipe is
+        // called "Pasta Calabrese". Only a suffix that is provably the site's
+        // own name is removed — see lib/pageTitle.ts, and note that this
+        // applies to the *fallback* only: a site that publishes JSON-LD tells
+        // us the dish's name directly and is not second-guessed.
+        title: withoutSiteName(fallbackTitle, metaContent(html, 'og:site_name'), sourceUrl),
         description: metaContent(html, 'og:description') || metaContent(html, 'description'),
         imageUrl: metaContent(html, 'og:image'),
         sourceUrl,
