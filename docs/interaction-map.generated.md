@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-34 screens · 72 endpoints · 47 link edges · 78 call edges
+36 screens · 72 endpoints · 50 link edges · 79 call edges
 
 ## Screens
 
@@ -15,22 +15,24 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/collections/new` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/create` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/upload` | `/[locale]/admin` |
 | `/[locale]/admin/devices` | admin | requires admin | `* /api/capture`<br>`DELETE /api/capture-tokens/[id]`<br>`GET /api/capture-tokens`<br>`POST /api/capture-tokens` | `/[locale]/admin/inbox` |
+| `/[locale]/admin/drafts` | admin | requires admin | `POST /api/recipes/[id]/draft` | `/[locale]/recipe/[id]` |
 | `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/upload` | `/[locale]/admin` |
-| `/[locale]/admin/errors` | admin | requires admin | `GET /api/errors`<br>`POST /api/errors/[id]` | — |
+| `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`GET /api/capture`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge` | `/[locale]/admin/create`<br>`/[locale]/admin/devices`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/admin/invites` | admin | requires admin | — | `/[locale]/admin/users` |
 | `/[locale]/admin` | admin | requires admin | `DELETE /api/recipes/[id]`<br>`GET /api/export`<br>`PATCH /api/recipes/[id]/visibility`<br>`POST /api/import/archive`<br>`POST /api/recipes/[id]/share` | `/[locale]/admin/create`<br>`/[locale]/admin/edit/[id]`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/admin/posts/[id]` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts/new` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts` | admin | requires admin | `DELETE /api/posts/[id]` | `/[locale]/admin/posts/[id]`<br>`/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]` |
-| `/[locale]/admin/tickets` | admin | requires admin | `GET /api/tickets`<br>`PATCH /api/tickets` | — |
+| `/[locale]/admin/reports` | admin | requires admin | `DELETE /api/errors/[id]`<br>`GET /api/errors`<br>`GET /api/tickets`<br>`PATCH /api/tickets`<br>`POST /api/errors/[id]` | — |
+| `/[locale]/admin/tickets` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/users` | admin | requires admin | `DELETE /api/invites/[id]`<br>`DELETE /api/users/[id]`<br>`GET /api/invites`<br>`GET /api/users`<br>`PATCH /api/users/[id]/role`<br>`POST /api/invites` | — |
 | `/[locale]/blog/[slug]` | account | requires session | `* /api/collections/[id]/share`<br>`* /api/posts/[id]/share`<br>`* /api/recipes/[id]/share` | `/[locale]/recipe/[id]` |
 | `/[locale]/blog` | account | requires session | — | `/[locale]/blog/[id]` |
 | `/[locale]/c/[token]` | open | steps aside | — | `/[locale]/recipe/[id]` |
 | `/[locale]/collections/[slug]` | account | requires session | `* /api/collections/[id]/share`<br>`* /api/posts/[id]/share`<br>`* /api/recipes/[id]/share` | `/[locale]/admin/collections/[id]`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/collections` | account | requires session | — | `/[locale]/admin/collections/new`<br>`/[locale]/collections/[id]` |
-| `/[locale]/drafts` | account | requires session | `POST /api/recipes/[id]/draft` | `/[locale]/recipe/[id]` |
+| `/[locale]/drafts` | account | requires session | — | `/[locale]/admin/drafts` |
 | `/[locale]/forgot` | open | steps aside | `POST /api/auth/forgot` | `/[locale]/login` |
 | `/[locale]/imprint` | open | steps aside | — | — |
 | `/[locale]/login` | open | steps aside | `POST /api/auth/login` | `/[locale]/forgot` |
@@ -78,10 +80,10 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | GET | `/api/collections` | user (manual) | zod | — | `collection/CollectionForm` |
 | POST | `/api/collections` | admin | zod | — | `collection/CollectionForm` |
 | GET | `/api/cron/backup` | cron secret | — | — | *(nothing in the UI)* |
-| POST | `/api/errors/[id]` | admin | — | — | `src/app/[locale]/admin/errors/page.tsx` |
-| DELETE | `/api/errors/[id]` | admin | — | — | *(nothing in the UI)* |
+| POST | `/api/errors/[id]` | admin | — | — | `admin/ErrorsPanel` |
+| DELETE | `/api/errors/[id]` | admin | — | — | `admin/ErrorsPanel` |
 | POST | `/api/errors` | none (open by design) | zod | yes | `ErrorReporter`<br>`GlobalErrorReporter` |
-| GET | `/api/errors` | admin | zod | yes | `src/app/[locale]/admin/errors/page.tsx` |
+| GET | `/api/errors` | admin | zod | yes | `admin/ErrorsPanel` |
 | GET | `/api/export` | admin | — | — | `admin/BackupPanel` |
 | POST | `/api/import/ai` | admin | zod | yes | `recipe-form/QuickImport` |
 | POST | `/api/import/archive` | admin | — | — | `admin/BackupPanel` |
@@ -114,16 +116,12 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | GET | `/api/site-profiles` | admin | zod | yes | `admin/SiteProfiles` |
 | POST | `/api/site-profiles` | admin | zod | yes | `admin/SiteProfiles` |
 | POST | `/api/tickets` | user (manual) | zod | yes | `src/app/[locale]/tickets/page.tsx` |
-| GET | `/api/tickets` | admin | zod | yes | `src/app/[locale]/admin/tickets/page.tsx` |
-| PATCH | `/api/tickets` | admin | zod | yes | `src/app/[locale]/admin/tickets/page.tsx` |
+| GET | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
+| PATCH | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
 | POST | `/api/upload` | admin | — | — | `recipe-form/RecipeForm` |
 | PATCH | `/api/users/[id]/role` | admin | zod | — | `admin/UserList` |
 | DELETE | `/api/users/[id]` | admin | — | — | `admin/UserList` |
 | GET | `/api/users` | admin | — | — | `admin/UserList` |
-
-Calls the map could not match to an endpoint (a URL built elsewhere, or a path the regex misread):
-
-- `POST /api/…  (from ui/useAction)`
 
 ## Always present
 
@@ -133,7 +131,7 @@ Rendered by a layout rather than a page, so they are on every screen (or every a
 |---|---|---|
 | Header | `Navbar` | `/[locale]`<br>`/[locale]/account`<br>`/[locale]/admin`<br>`/[locale]/blog`<br>`/[locale]/collections`<br>`/[locale]/login` |
 | Footer | `Footer` | `/[locale]/imprint`<br>`/[locale]/privacy` |
-| Admin nav | `admin/AdminNav` | `/[locale]/admin`<br>`/[locale]/admin/ai`<br>`/[locale]/admin/collections/new`<br>`/[locale]/admin/devices`<br>`/[locale]/admin/errors`<br>`/[locale]/admin/inbox`<br>`/[locale]/admin/posts`<br>`/[locale]/admin/tickets`<br>`/[locale]/admin/users`<br>`/[locale]/drafts` |
+| Admin nav | `admin/AdminNav` | `/[locale]/admin`<br>`/[locale]/admin/ai`<br>`/[locale]/admin/collections/new`<br>`/[locale]/admin/devices`<br>`/[locale]/admin/drafts`<br>`/[locale]/admin/inbox`<br>`/[locale]/admin/posts`<br>`/[locale]/admin/reports`<br>`/[locale]/admin/users` |
 
 ## Navigation
 
@@ -157,6 +155,7 @@ flowchart LR
     n__locale__admin_collections_new["/[locale]/admin/collections/new"]
     n__locale__admin_create["/[locale]/admin/create"]
     n__locale__admin_devices["/[locale]/admin/devices"]
+    n__locale__admin_drafts["/[locale]/admin/drafts"]
     n__locale__admin_edit__id_["/[locale]/admin/edit/[id]"]
     n__locale__admin_errors["/[locale]/admin/errors"]
     n__locale__admin_inbox["/[locale]/admin/inbox"]
@@ -165,6 +164,7 @@ flowchart LR
     n__locale__admin_posts__id_["/[locale]/admin/posts/[id]"]
     n__locale__admin_posts_new["/[locale]/admin/posts/new"]
     n__locale__admin_posts["/[locale]/admin/posts"]
+    n__locale__admin_reports["/[locale]/admin/reports"]
     n__locale__admin_tickets["/[locale]/admin/tickets"]
     n__locale__admin_users["/[locale]/admin/users"]
   end
@@ -191,7 +191,9 @@ flowchart LR
   n__locale__admin_collections_new --> n__locale__collections__slug_
   n__locale__admin_create --> n__locale__admin
   n__locale__admin_devices --> n__locale__admin_inbox
+  n__locale__admin_drafts --> n__locale__recipe__slug_
   n__locale__admin_edit__id_ --> n__locale__admin
+  n__locale__admin_errors --> n__locale__admin_reports
   n__locale__admin_inbox --> n__locale__admin_create
   n__locale__admin_inbox --> n__locale__admin_devices
   n__locale__admin_inbox --> n__locale__recipe__slug_
@@ -204,6 +206,7 @@ flowchart LR
   n__locale__admin_posts --> n__locale__admin_posts__id_
   n__locale__admin_posts --> n__locale__admin_posts_new
   n__locale__admin_posts --> n__locale__blog__slug_
+  n__locale__admin_tickets --> n__locale__admin_reports
   n__locale__blog__slug_ --> n__locale__recipe__slug_
   n__locale__blog --> n__locale__blog__slug_
   n__locale__c__token_ --> n__locale__recipe__slug_
@@ -211,7 +214,7 @@ flowchart LR
   n__locale__collections__slug_ --> n__locale__recipe__slug_
   n__locale__collections --> n__locale__admin_collections_new
   n__locale__collections --> n__locale__collections__slug_
-  n__locale__drafts --> n__locale__recipe__slug_
+  n__locale__drafts --> n__locale__admin_drafts
   n__locale__forgot --> n__locale__login
   n__locale__login --> n__locale__forgot
   n__locale__p__token_ --> n__locale__login
@@ -309,15 +312,17 @@ flowchart LR
   ePOST_api_collections(["POST /api/collections"])
   ccollection_CollectionForm --> ePOST_api_collections
   ePOST_api_errors__id_(["POST /api/errors/[id]"])
-  csrc_app__locale__admin_errors_page_tsx["src/app/[locale]/admin/errors/page.tsx"]
-  csrc_app__locale__admin_errors_page_tsx --> ePOST_api_errors__id_
+  cadmin_ErrorsPanel["admin/ErrorsPanel"]
+  cadmin_ErrorsPanel --> ePOST_api_errors__id_
+  eDELETE_api_errors__id_(["DELETE /api/errors/[id]"])
+  cadmin_ErrorsPanel --> eDELETE_api_errors__id_
   ePOST_api_errors(["POST /api/errors"])
   cErrorReporter["ErrorReporter"]
   cErrorReporter --> ePOST_api_errors
   cGlobalErrorReporter["GlobalErrorReporter"]
   cGlobalErrorReporter --> ePOST_api_errors
   eGET_api_errors(["GET /api/errors"])
-  csrc_app__locale__admin_errors_page_tsx --> eGET_api_errors
+  cadmin_ErrorsPanel --> eGET_api_errors
   eGET_api_export(["GET /api/export"])
   cadmin_BackupPanel["admin/BackupPanel"]
   cadmin_BackupPanel --> eGET_api_export
@@ -406,10 +411,10 @@ flowchart LR
   csrc_app__locale__tickets_page_tsx["src/app/[locale]/tickets/page.tsx"]
   csrc_app__locale__tickets_page_tsx --> ePOST_api_tickets
   eGET_api_tickets(["GET /api/tickets"])
-  csrc_app__locale__admin_tickets_page_tsx["src/app/[locale]/admin/tickets/page.tsx"]
-  csrc_app__locale__admin_tickets_page_tsx --> eGET_api_tickets
+  cadmin_TicketsPanel["admin/TicketsPanel"]
+  cadmin_TicketsPanel --> eGET_api_tickets
   ePATCH_api_tickets(["PATCH /api/tickets"])
-  csrc_app__locale__admin_tickets_page_tsx --> ePATCH_api_tickets
+  cadmin_TicketsPanel --> ePATCH_api_tickets
   ePOST_api_upload(["POST /api/upload"])
   crecipe_form_RecipeForm --> ePOST_api_upload
   ePATCH_api_users__id__role(["PATCH /api/users/[id]/role"])

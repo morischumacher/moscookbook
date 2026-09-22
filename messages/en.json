@@ -438,6 +438,9 @@
     },
     "loadFailed": "The error list could not be loaded, so this page cannot say whether anything is wrong.",
     "resolveFailed": "That could not be marked as handled.",
+    "delete": "Delete for good",
+    "deleteConfirm": "Remove this row? Its history goes with it.",
+    "deleteFailed": "That could not be deleted.",
     "retry": "Try again"
   },
   "ErrorPage": {
@@ -593,6 +596,12 @@
     "rightsBody": "You may ask for access, correction, deletion, restriction and portability of your data, and you may object to its processing. Writing to me is enough. If you would like to complain, the Austrian Data Protection Authority in Vienna is the place.",
     "privacyUpdated": "As of September 2026. If something on the site changes that is described here, this text changes with it."
   },
+  "Reports": {
+    "nav": "Reports",
+    "title": "Reports",
+    "errors": "Errors",
+    "tickets": "Tickets"
+  },
   "Tickets": {
     "title": "Open a ticket",
     "intro": "What is missing, what is annoying, what you would like. One sentence is enough — the more concrete, the sooner it is fixed.",
@@ -611,6 +620,7 @@
     "backToRecipes": "Back to the recipes",
     "nav": "Tickets",
     "adminTitle": "Tickets",
+    "adminExplanation": "What people have said about the cookbook. The page they were on is shown as they sent it.",
     "loading": "Loading…",
     "loadFailed": "The list could not be loaded.",
     "noneOpen": "Nothing open.",

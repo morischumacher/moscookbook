@@ -438,6 +438,9 @@
     },
     "loadFailed": "Die Fehlerliste konnte nicht geladen werden — diese Seite kann gerade nicht sagen, ob etwas kaputt ist.",
     "resolveFailed": "Das konnte nicht als erledigt markiert werden.",
+    "delete": "Endgültig löschen",
+    "deleteConfirm": "Diese Zeile entfernen? Ihre Vorgeschichte geht mit.",
+    "deleteFailed": "Das konnte nicht gelöscht werden.",
     "retry": "Nochmal versuchen"
   },
   "ErrorPage": {
@@ -593,6 +596,12 @@
     "rightsBody": "Du kannst Auskunft, Berichtigung, Löschung, Einschränkung und Übertragung deiner Daten verlangen und der Verarbeitung widersprechen. Schreib mir, das genügt. Wenn du dich beschweren möchtest, ist die Datenschutzbehörde in Wien zuständig.",
     "privacyUpdated": "Stand: September 2026. Sollte sich an der Seite etwas ändern, das hier steht, ändert sich auch dieser Text."
   },
+  "Reports": {
+    "nav": "Meldungen",
+    "title": "Meldungen",
+    "errors": "Fehler",
+    "tickets": "Tickets"
+  },
   "Tickets": {
     "title": "Ticket aufmachen",
     "intro": "Was fehlt, was nervt, was du dir wünschst. Ein Satz reicht — je konkreter, desto eher ist es schnell behoben.",
@@ -611,6 +620,7 @@
     "backToRecipes": "Zurück zu den Rezepten",
     "nav": "Tickets",
     "adminTitle": "Tickets",
+    "adminExplanation": "Was Leute zum Kochbuch gesagt haben. Die Seite, auf der sie waren, steht so da, wie sie gesendet wurde.",
     "loading": "Wird geladen…",
     "loadFailed": "Die Liste konnte nicht geladen werden.",
     "noneOpen": "Nichts offen.",

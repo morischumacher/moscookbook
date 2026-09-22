@@ -71,7 +71,7 @@ rule and the proxy can no longer disagree silently.
 | Screen | Why | Recommendation |
 |---|---|---|
 | ~~`/[locale]/account`~~ | The only link was the greeting row inside the **mobile** menu (`md:hidden`). | **Done.** The desktop row carries the same greeting, leading to the same place. |
-| `/[locale]/drafts` as a non-admin | Access is `account`, but the only link lives in `AdminNav`, which renders under `/admin/**` only. A non-admin who types the address sees the list and no Finish button (`mayFinish` is admin-only). | Either make the page `admin` (it is an admin workflow) or link it from the header for everybody. The first is honest. |
+| ~~`/[locale]/drafts` as a non-admin~~ | Access was `account`, but the only link lived in `AdminNav`, which renders under `/admin/**` only — so arriving made the navigation vanish, and a non-admin found a list with no button. | **Done.** The page is `/admin/drafts`; `/drafts` redirects. `mayFinish` is gone with it: everyone who reaches the page can finish. |
 | `/[locale]/admin/invites` | A redirect stub kept for old bookmarks; nothing links to it. | Fine as is. Remove once the bookmark is gone. |
 | ~~`/[locale]/register` without `?invite=`~~ | Linked from `/login`, but the page refuses to draw the form; its only exit was back to `/login`. | **Done.** The login page says so instead of linking, and the two labels nothing used any more are gone. |
 | `/[locale]/c/[token]` | A leaf: tiles are not links (`linkTo={null}`), by design — the visitor has no account. | Fine, but the page could carry the shared-collection's recipes as `/r/` links if recipes in a shared collection are meant to be readable. Decide, then document. |
@@ -142,10 +142,10 @@ one click that could be a redirect.
 ### 6. Endpoints with nothing in the UI
 
 - `GET /api/cron/backup` — called by the Vercel cron with the secret. Correct.
-- `DELETE /api/errors/[id]` — an admin can *resolve* an error from the errors
-  page (`POST`) but nothing deletes one. Either add the button next to
-  "resolve" or remove the handler; a route nobody calls is a route nobody
-  tests.
+- ~~`DELETE /api/errors/[id]`~~ — **done.** The button is among the resolved
+  errors, one deliberate step past the reversible action.
+
+One endpoint left with nothing in the UI, and it is the right one.
 
 ## Recommendations, in order
 
@@ -160,9 +160,9 @@ one click that could be a redirect.
    button above makes the same link.
 4. ~~After Accept in the inbox, go to the recipe.~~ Done — the slug was in the answer all along.
 5. ~~Put the account link in the desktop header.~~ Done — the greeting leads there, as it already did on a phone.
-6. Move `/drafts` under `/admin`, or make its access `admin`.
+6. ~~Move `/drafts` under `/admin`.~~ Done, with a redirect from the old address.
 7. ~~Login page: "by invitation" text instead of a dead register link.~~ Done — it says `inviteRequired`, the wording the register page itself uses.
-8. `DELETE /api/errors/[id]`: a button or a deletion.
+8. ~~`DELETE /api/errors/[id]`: a button or a deletion.~~ Done — a button, among the resolved errors only, since resolving is reversible and this is not.
 
 Every one of these is a small change; none needs a migration. When one is
 done, regenerate the map (`npm run map`) and strike the line here.

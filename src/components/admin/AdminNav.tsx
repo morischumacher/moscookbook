@@ -8,7 +8,7 @@ import { adminSectionFor } from '@/lib/navigation';
 /**
  * The admin's own tools, on the admin's own pages.
  *
- * All six of these used to be in the bar at the top of the site, next to Blog,
+ * All of these used to be in the bar at the top of the site, next to Blog,
  * which produced a row of eight links in which "Entries" and "Blog" sat two
  * apart meaning two different things, and in which a guest with no account saw
  * a bar half the width of an admin's. Nothing in it said which one you were
@@ -18,80 +18,121 @@ import { adminSectionFor } from '@/lib/navigation';
  * rooms in it, so they live here, on the pages where they apply, and the top
  * bar is three words long again.
  *
- * It scrolls sideways on a phone rather than wrapping: six labels wrapped to
- * three lines push the page's own heading below the fold, and a strip that
- * moves is easier to read than a block that has to be read.
+ * ## Groups, and why they have no headings
+ *
+ * The row grew to ten entries in the order they were built, which is not an
+ * order anybody reads in. It is three groups now:
+ *
+ *   the recipes and what turns into one — overview, inbox, drafts, collections
+ *   the writing — blog entries
+ *   the running of it — people, reports, devices, AI
+ *
+ * Separated by a rule and nothing else. A heading over each would say out loud
+ * what the spacing already says, and cost three lines of a bar whose whole
+ * job is to be small.
+ *
+ * ## Wrapping, not scrolling
+ *
+ * It used to scroll sideways, on the reasoning that six labels wrapped to
+ * three lines push the page's heading below the fold. With ten entries that
+ * reasoning had a cost nobody had noticed: on a phone the last two — Devices
+ * and AI — were off the edge of a strip with no scrollbar, so unless you
+ * happened to drag the row they did not exist. "Where is AI?" is a fair
+ * question to ask of a navigation.
+ *
+ * It wraps now, and the groups are what it wraps on: each group stays
+ * together on a line, so the break happens where the meaning already breaks.
  */
-export default function AdminNav({ unresolvedErrors = 0 }: { unresolvedErrors?: number }) {
+export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?: number }) {
     const t = useTranslations('Admin');
     const tInbox = useTranslations('Inbox');
     const tDrafts = useTranslations('Drafts');
     const tBlog = useTranslations('Blog');
     const tCollections = useTranslations('Collections');
-    const tErrors = useTranslations('Errors');
+    const tReports = useTranslations('Reports');
     const tDevices = useTranslations('Devices');
-    const tTickets = useTranslations('Tickets');
     const tAi = useTranslations('Ai');
 
     const current = adminSectionFor(usePathname());
 
     // Spelled out rather than built in a loop, so every key is visible to the
     // translation checker.
-    const links: { href: string; label: string; count?: number }[] = [
-        { href: '/admin', label: t('dashboard') },
-        { href: '/admin/inbox', label: tInbox('nav') },
-        // Next to the inbox, because it is the step straight after it.
-        { href: '/drafts', label: tDrafts('nav') },
-        { href: '/admin/posts', label: tBlog('adminNav') },
-        { href: '/admin/collections/new', label: tCollections('createNew') },
-        { href: '/admin/users', label: t('people') },
-        { href: '/admin/tickets', label: tTickets('nav') },
-        { href: '/admin/errors', label: tErrors('nav'), count: unresolvedErrors },
-        { href: '/admin/devices', label: tDevices('nav') },
-        { href: '/admin/ai', label: tAi('nav') },
+    const groups: { href: string; label: string; count?: number }[][] = [
+        [
+            { href: '/admin', label: t('dashboard') },
+            { href: '/admin/inbox', label: tInbox('nav') },
+            // Straight after the inbox, because that is the step after it.
+            { href: '/admin/drafts', label: tDrafts('nav') },
+            { href: '/admin/collections/new', label: tCollections('createNew') },
+        ],
+        [{ href: '/admin/posts', label: tBlog('adminNav') }],
+        [
+            { href: '/admin/users', label: t('people') },
+            { href: '/admin/reports', label: tReports('nav'), count: unresolvedReports },
+            { href: '/admin/devices', label: tDevices('nav') },
+            { href: '/admin/ai', label: tAi('nav') },
+        ],
     ];
 
     return (
-        <nav
-            aria-label={t('adminNavLabel')}
-            className="print:hidden border-b border-line"
-        >
+        <nav aria-label={t('adminNavLabel')} className="print:hidden border-b border-line">
+            {/*
+                Left-aligned, like the page headings below it and unlike the
+                site's own bar, which is pushed right. Two bars above one
+                another, one centred and one not, was the visual answer to
+                "am I in the admin?" being "look closely".
+            */}
             <div className="container mx-auto max-w-3xl px-4 md:px-8">
-                <ul className="-mx-4 flex gap-1 overflow-x-auto px-4 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {links.map((link) => {
-                        const here = current === link.href;
+                <div className="flex flex-wrap items-center gap-x-1 gap-y-0">
+                    {groups.map((group, index) => (
+                        <div key={group[0].href} className="flex items-center">
+                            {index > 0 && (
+                                <span
+                                    aria-hidden="true"
+                                    className="mx-2 h-4 w-px shrink-0 bg-line"
+                                />
+                            )}
 
-                        return (
-                            <li key={link.href} className="shrink-0">
-                                <Link
-                                    href={link.href}
-                                    // Read out as the current page, not only
-                                    // drawn as one.
-                                    aria-current={here ? 'page' : undefined}
-                                    className={`-mb-px inline-block whitespace-nowrap border-b-2 px-3 py-3 text-sm transition-colors ${
-                                        here
-                                            ? 'border-ink font-semibold text-ink'
-                                            : 'border-transparent text-muted hover:text-ink'
-                                    }`}
-                                >
-                                    {link.label}
-                                    {/* A count, only when there is one. Read
-                                        out as part of the link text, so a
-                                        screen reader hears "Errors, 3" rather
-                                        than a link and then a stray number. */}
-                                    {(link.count ?? 0) > 0 && (
-                                        <span
-                                            className="ml-1.5 inline-block min-w-[1.25rem] rounded-full bg-danger-surface px-1.5 text-center text-xs font-semibold text-danger"
-                                            aria-label={`, ${link.count ?? 0}`}
-                                        >
-                                            {(link.count ?? 0) > 99 ? '99+' : link.count}
-                                        </span>
-                                    )}
-                                </Link>
-                            </li>
-                        );
-                    })}
-                </ul>
+                            <ul className="flex items-center gap-1">
+                                {group.map((link) => {
+                                    const here = current === link.href;
+
+                                    return (
+                                        <li key={link.href}>
+                                            <Link
+                                                href={link.href}
+                                                // Read out as the current page,
+                                                // not only drawn as one.
+                                                aria-current={here ? 'page' : undefined}
+                                                className={`-mb-px inline-block whitespace-nowrap border-b-2 px-2 py-3 text-sm transition-colors ${
+                                                    here
+                                                        ? 'border-ink font-semibold text-ink'
+                                                        : 'border-transparent text-muted hover:text-ink'
+                                                }`}
+                                            >
+                                                {link.label}
+                                                {/* A count, only when there is
+                                                    one. Read out as part of the
+                                                    link text, so a screen reader
+                                                    hears "Reports, 3" rather than
+                                                    a link and then a stray
+                                                    number. */}
+                                                {(link.count ?? 0) > 0 && (
+                                                    <span
+                                                        className="ml-1.5 inline-block min-w-[1.25rem] rounded-full bg-danger-surface px-1.5 text-center text-xs font-semibold text-danger"
+                                                        aria-label={`, ${link.count ?? 0}`}
+                                                    >
+                                                        {(link.count ?? 0) > 99 ? '99+' : link.count}
+                                                    </span>
+                                                )}
+                                            </Link>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
+                    ))}
+                </div>
             </div>
         </nav>
     );
