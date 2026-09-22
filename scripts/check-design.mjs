@@ -130,6 +130,45 @@ const LINK_PAGES = [
     ['src/app/[locale]/register/page.tsx', 'inviteLinkState'],
 ];
 
+/**
+ * The one page that guards itself.
+ *
+ * `pathAccess` answers 'recipe' for `/en/recipe/<slug>`, meaning the proxy
+ * steps aside because only the row knows whether it is public. Everywhere else
+ * in this application, a page being reachable is decided in one file that is
+ * tested; here it is decided in the page, and if the page ever stops deciding,
+ * every private recipe in the cookbook is readable by anybody who knows a slug
+ * — with no error, no log line and nothing on screen to notice.
+ *
+ * So the page has to keep both halves: it reads `isPublic`, and it sends
+ * somebody without an account away.
+ */
+const SELF_GUARDED = [
+    ['src/app/[locale]/recipe/[slug]/page.tsx', ['isPublic', 'redirect(']],
+];
+
+for (const [page, needles] of SELF_GUARDED) {
+    let text;
+
+    try {
+        text = readFileSync(page, 'utf8');
+    } catch {
+        problems.push(`${page} is missing, and it is the page that guards itself.`);
+        continue;
+    }
+
+    for (const needle of needles) {
+        if (text.includes(needle)) continue;
+
+        problems.push(
+            `${page} no longer contains \`${needle}\`.\n` +
+            "    accessRules lets this path through on the understanding that the page\n" +
+            '    checks the recipe itself. Without that check every private recipe is\n' +
+            '    readable by anybody who knows a slug, and nothing says so.'
+        );
+    }
+}
+
 for (const [page, helper] of LINK_PAGES) {
     let text;
 
@@ -165,5 +204,6 @@ if (problems.length > 0) {
 
 console.log(
     `check:design — ${scanned} files, no colours outside the tokens, ` +
-    'no primary buttons outside lib/ui, and both link pages check before they ask.'
+    'no primary buttons outside lib/ui, both link pages check before they ask, ' +
+    'and the recipe page still guards itself.'
 );

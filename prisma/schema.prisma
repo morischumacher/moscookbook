@@ -292,6 +292,26 @@ model Recipe {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
+  /// Whether this recipe's own address works for somebody with no account.
+  ///
+  /// Different from shareToken, and both are worth having. A share token is a
+  /// secret URL for one person, withdrawable, and says "do not index me". This
+  /// is the recipe's real address working for everyone: a link you can put in
+  /// a message without it looking like a password, and a page a search engine
+  /// may keep.
+  ///
+  /// Public covers the recipe — its ingredients, its method, its picture and
+  /// the average rating. It does **not** cover the cooking entries: rating,
+  /// noting and photographing still need an account, and who cooked what, when
+  /// and with what note is not shown to anybody without one. Names and
+  /// photographs of the people in a household are not part of publishing a
+  /// recipe, and once they are on the open web they are not retrievable.
+  ///
+  /// Default false, which is the only safe default: a recipe added next month
+  /// is private until somebody decides otherwise, rather than public until
+  /// somebody notices.
+  isPublic     Boolean    @default(false)
+
   /// The public link, or null when the recipe is only for people who are
   /// logged in. Unguessable rather than a flag on the normal address: a secret
   /// URL can be handed to one person and withdrawn again without renaming the

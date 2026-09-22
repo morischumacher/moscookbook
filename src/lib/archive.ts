@@ -13,11 +13,13 @@ import { z } from 'zod';
  */
 
 /**
- * 4: collections. 3 added cooking logs, 2 entries and cooked photographs.
+ * 5: one cooking entry with its photographs, where 2-4 had a list of
+ * photographs and a separate list of cookings; and whether a recipe is
+ * published. 4 added collections, 3 cooking logs, 2 entries and photographs.
  *
- * A reader of an older archive still works — every new array defaults to empty
- * — and an archive from a newer version is refused with the numbers in the
- * message rather than half-read.
+ * A reader of an older archive still works — every new array defaults to empty,
+ * every new field to the safe value — and an archive from a newer version is
+ * refused with the numbers in the message rather than half-read.
  */
 export const ARCHIVE_VERSION = 5;
 
@@ -41,6 +43,16 @@ const archiveRecipeSchema = z.object({
     prepMinutes: z.number().int().nullable().default(null),
     cookMinutes: z.number().int().nullable().default(null),
     views: z.number().int().min(0).default(0),
+    /**
+     * Whether the recipe was published on its own address.
+     *
+     * In the archive because losing it is a silent change of meaning: a
+     * restore without it turns every published recipe private, and nobody
+     * would notice until they wondered why a link they had given somebody
+     * stopped working. Defaults to false, so an archive written before this
+     * existed restores the safe way round rather than failing.
+     */
+    isPublic: z.boolean().default(false),
     createdAt: z.string().default(() => new Date().toISOString()),
     /** Absolute URLs at the time of export; a local backup also keeps the files. */
     images: z.array(z.string()).default([]),
@@ -195,6 +207,7 @@ export function parseArchive(input: unknown): ParseResult {
 
 /** Database rows in, archive out. */
 export interface ExportableRecipe {
+    isPublic: boolean;
     title: string;
     slug: string;
     description: string | null;
@@ -265,6 +278,7 @@ export function toArchiveRecipe(recipe: ExportableRecipe): ArchiveRecipe {
         prepMinutes: recipe.prepMinutes,
         cookMinutes: recipe.cookMinutes,
         views: recipe.views,
+        isPublic: recipe.isPublic,
         createdAt: recipe.createdAt.toISOString(),
         images: recipe.images.map((image) => image.url),
         ingredients: recipe.ingredients

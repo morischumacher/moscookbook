@@ -21,6 +21,7 @@ function row(overrides: Partial<ExportableRecipe> = {}): ExportableRecipe {
         prepMinutes: 15,
         cookMinutes: 30,
         views: 12,
+        isPublic: false,
         createdAt: new Date('2026-02-01T10:00:00Z'),
         images: [{ url: 'https://example.com/a.jpg' }],
         ingredients: [
@@ -115,6 +116,39 @@ export default function run() {
         exportedAt: '2026-01-01T00:00:00.000Z',
         recipes: [{ title: 'Toast', slug: 'toast', ingredients: [], images: [] }],
     });
+
+    /* -------------------------------------------- whether it was published */
+
+    /*
+     * The failure this guards against is silent in both directions: a restore
+     * that drops the flag turns every published recipe private, and the first
+     * anybody knows is a link they gave somebody having stopped working.
+     */
+    const published = buildArchive([row({ isPublic: true })], new Date('2026-09-22T00:00:00Z'));
+    equal('a published recipe is carried as published', published.recipes[0].isPublic, true);
+
+    const republished = parseArchive(JSON.parse(JSON.stringify(published)));
+    check('and survives the round trip', republished.ok, republished.error);
+    equal('still published', republished.archive?.recipes[0].isPublic, true);
+
+    const privateOne = buildArchive([row({ isPublic: false })]);
+    equal('a private one stays private', privateOne.recipes[0].isPublic, false);
+
+    // An archive written before the field existed. The safe direction is
+    // private, because publishing something nobody asked to publish cannot be
+    // undone by noticing it later.
+    const beforeTheField = parseArchive({
+        version: 4,
+        exportedAt: '2026-09-01T00:00:00.000Z',
+        recipes: [{ title: 'Toast', slug: 'toast', ingredients: [], images: [] }],
+    });
+
+    check('an archive with no such field still reads', beforeTheField.ok, beforeTheField.error);
+    equal(
+        'and its recipes come back private rather than published',
+        beforeTheField.archive?.recipes[0].isPublic,
+        false
+    );
 
     check('a version 1 archive still reads', old.ok, old.error);
     equal('and gets an empty list of entries', old.archive?.posts, []);

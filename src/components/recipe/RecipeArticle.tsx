@@ -8,6 +8,7 @@ import Gallery from '@/components/recipe/Gallery';
 import ShareLink from '@/components/recipe/ShareLink';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import Cooked, { type CookedEntry } from '@/components/recipe/Cooked';
+import Visibility from '@/components/recipe/Visibility';
 import SimilarRecipes from '@/components/recipe/SimilarRecipes';
 import type { SimilarRecipe } from '@/lib/similarRecipes';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
@@ -28,6 +29,8 @@ export interface RecipeRow {
     prepMinutes: number | null;
     cookMinutes: number | null;
     createdAt: Date;
+    /** Whether the recipe's own address works without an account. */
+    isPublic: boolean;
     shareToken: string | null;
     /**
      * The recipe's own searchable wording. Not shown anywhere — it is what
@@ -251,6 +254,17 @@ export default async function RecipeArticle({
 
                 {mode === 'private' && isAdmin && (
                     <div className="print:hidden mt-6">
+                        <Visibility recipeId={recipe.id} isPublic={recipe.isPublic} />
+                    </div>
+                )}
+
+                {/* A secret link is what you make when the real address ends
+                    at a sign-in form. On a public recipe it does not, so the
+                    panel would be offering a worse version of something the
+                    page already has — a long token URL that looks like a
+                    password, in place of an address you can read out loud. */}
+                {mode === 'private' && isAdmin && !recipe.isPublic && (
+                    <div className="print:hidden mt-6">
                         <ShareLink id={recipe.id} kind="recipe" initialUrl={publicUrl} locale={locale} />
                     </div>
                 )}
@@ -281,9 +295,14 @@ export default async function RecipeArticle({
                     // none yet and this person may publish, the button makes
                     // one in the same tap rather than quietly sharing an
                     // address that ends at a sign-in form.
-                    shareUrl={mode === 'shared' ? url : publicUrl ?? undefined}
+                    // A public recipe shares its own address; a private one
+                    // shares the secret link, or offers to make one, because
+                    // its own address ends at a sign-in form.
+                    shareUrl={
+                        mode === 'shared' || recipe.isPublic ? url : publicUrl ?? undefined
+                    }
                     shareCreateUrl={
-                        mode === 'private' && isAdmin && !publicUrl
+                        mode === 'private' && isAdmin && !recipe.isPublic && !publicUrl
                             ? `/api/recipes/${recipe.id}/share?locale=${locale}`
                             : undefined
                     }

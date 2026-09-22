@@ -40,6 +40,11 @@ function recipeData(recipe: ArchiveRecipe) {
         servings: recipe.servings,
         prepMinutes: recipe.prepMinutes,
         cookMinutes: recipe.cookMinutes,
+        // Restored as it was. Dropping it would quietly turn every published
+        // recipe private, and the first anybody would know is a link they had
+        // given somebody having stopped working. An archive from before this
+        // field existed defaults to false, which is the safe direction.
+        isPublic: recipe.isPublic,
         createdAt: safeDate(recipe.createdAt) ?? new Date(),
         ...searchFields({
             title: recipe.title,
