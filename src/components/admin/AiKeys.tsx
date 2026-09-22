@@ -43,6 +43,7 @@ interface Credential {
     priority: number;
     checkedAt: string | null;
     checkError: string | null;
+    verified: boolean;
     unreadable: boolean;
 }
 
@@ -211,9 +212,13 @@ export default function AiKeys() {
 
     if (loading) return <p className="text-muted">{t('loading')}</p>;
 
+    // "Configured" for the menu, "usable" for the sentence about what runs:
+    // an untested key is set up and is not being used, and saying otherwise
+    // would be the screen telling a comfortable lie.
     const configured = credentials.filter((entry) => entry.origin !== 'none');
-    const inUse = [...configured].sort((a, b) => a.priority - b.priority)[0];
-    const fallbacks = configured.filter((entry) => entry.provider !== inUse?.provider);
+    const usable = configured.filter((entry) => entry.verified && !entry.unreadable);
+    const inUse = [...usable].sort((a, b) => a.priority - b.priority)[0];
+    const fallbacks = usable.filter((entry) => entry.provider !== inUse?.provider);
 
     return (
         <>
@@ -287,6 +292,21 @@ export default function AiKeys() {
 
             {current && (
                 <div className="rounded-lg border border-line p-4">
+                    {/*
+                        The gate, said before anything else on the card.
+
+                        A key that has never been seen to work is not used —
+                        and the failure it prevents is the quiet one: a key
+                        with no credit, or one character short, sits there
+                        looking configured while every share comes back as if
+                        no key existed at all.
+                    */}
+                    {current.origin === 'row' && !current.verified && (
+                        <p className="mb-3 rounded border border-line bg-surface p-2 text-sm">
+                            {t('notVerified')}
+                        </p>
+                    )}
+
                     {current.unreadable && (
                         <p className="mb-3 rounded border border-danger-line bg-danger-surface p-2 text-sm text-danger">
                             {t('unreadable')}
@@ -386,6 +406,10 @@ export default function AiKeys() {
 
             {/* What is actually in effect, in a sentence. The menu above says
                 what you are looking at; this says what runs. */}
+            {!inUse && configured.length > 0 && (
+                <p className="mt-4 text-sm text-muted">{t('noneUsable')}</p>
+            )}
+
             {inUse && (
                 <p className="mt-4 text-sm text-muted">
                     {fallbacks.length > 0

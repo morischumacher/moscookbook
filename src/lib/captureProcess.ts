@@ -62,13 +62,41 @@ export interface ProcessedCapture {
      * publishing it is entitled to know which they are looking at, and until
      * now the two were indistinguishable once they reached the inbox.
      *
-     *   rules     — no model was asked. Structured data, or a clean parse.
-     *   rules+ai  — the rules found part of it and a model filled the gaps.
-     *   ai        — a model produced it. A photograph, always.
+     *   rules            — no model was asked. Structured data, or a clean parse.
+     *   rules+ai         — the rules found part of it, a model filled the gaps.
+     *   rules+ai-failed  — a model was asked and did not answer.
+     *   ai               — a model produced it. A photograph, always.
+     *
+     * The third one exists because of a question that had no good answer: "the
+     * setting says ask when the rules fall short — what happens when the model
+     * is then also down?" The behaviour was already right (the rules' draft is
+     * kept, nothing fails, nothing is lost). What was wrong is that it was
+     * *invisible*: the capture came back labelled "rules", exactly as if the
+     * model had never been needed. So a key with no credit left, a wrong model
+     * name, a provider having an afternoon — all of it looked like the cookbook
+     * working normally, and the way you would find out is by wondering, weeks
+     * later, why the AI never seemed to do anything.
      */
-    readBy: 'rules' | 'rules+ai' | 'ai';
+    readBy: 'rules' | 'rules+ai' | 'rules+ai-failed' | 'ai';
     /** Which provider answered, when one did. */
     provider: string | null;
+}
+
+/**
+ * How this run is allowed to behave, beyond what the capability says.
+ *
+ * `force` is somebody pressing "read this with the AI" on a draft the scoring
+ * called good. That is a different act from an automatic import and it obeys a
+ * different rule: the quality gate is skipped entirely, and the mode gate
+ * loosens from `assistsText` to `canUseAi` — so "nur Bilder" does not refuse a
+ * button somebody deliberately pressed, while "nie" still means never.
+ *
+ * The scoring is a guess about whether asking would help. A person looking at
+ * the draft has better information than the scoring does, and the scoring
+ * exists to save them the trouble, not to overrule them.
+ */
+export interface ProcessOptions {
+    force?: boolean;
 }
 
 export interface ProcessableCapture {
@@ -120,8 +148,13 @@ function completeness(draft: ImportedRecipe): 'ready' | 'needsWork' {
  * and collapsing them is how a cookbook ends up paying to re-read pages it
  * read perfectly.
  */
-function shouldAsk(draft: ImportedRecipe): boolean {
-    return worthAsking(assessDraft(draft));
+function shouldAsk(draft: ImportedRecipe, options: ProcessOptions): boolean {
+    return options.force === true || worthAsking(assessDraft(draft));
+}
+
+/** Whether a text path may ask at all, under this capability and these options. */
+function mayAskAboutText(ai: AiCapability, options: ProcessOptions): boolean {
+    return options.force === true ? canUseAi(ai) : assistsText(ai);
 }
 
 /** Fills the gaps in `draft` from `fallback`, without overwriting real data. */
@@ -144,14 +177,30 @@ function mergeDrafts(draft: ImportedRecipe, fallback: Partial<ImportedRecipe>): 
  * a draft ends up labelled "rules" because somebody added a branch and copied
  * the return above it.
  */
+interface AiTrace {
+    provider: string | null;
+    asked: boolean;
+    failed: boolean;
+}
+
+const NOT_ASKED: AiTrace = { provider: null, asked: false, failed: false };
+
 function outcome(
     status: ProcessedCapture['status'],
     draft: ImportedRecipe | null,
     error: string | null,
-    provider: string | null = null,
-    readBy: ProcessedCapture['readBy'] = provider ? 'rules+ai' : 'rules'
+    trace: AiTrace = NOT_ASKED,
+    readBy?: ProcessedCapture['readBy']
 ): ProcessedCapture {
-    return { status, draft, error, readBy, provider };
+    return {
+        status,
+        draft,
+        error,
+        readBy:
+            readBy ??
+            (!trace.asked ? 'rules' : trace.failed ? 'rules+ai-failed' : 'rules+ai'),
+        provider: trace.provider,
+    };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -180,14 +229,17 @@ async function fillGapsWithAi(
     draft: ImportedRecipe,
     text: string,
     ai: AiCapability
-): Promise<{ draft: ImportedRecipe; used: string | null }> {
+): Promise<{ draft: ImportedRecipe; trace: AiTrace }> {
+    const provider = ai.keys[0]?.provider ?? null;
+
     // Two lines of boilerplate is not a recipe and is not worth asking about.
-    if (text.trim().length < 80) return { draft, used: null };
+    // Not asking is not the same as asking and failing, so it says so.
+    if (text.trim().length < 80) return { draft, trace: NOT_ASKED };
 
     try {
         const parsed = await extractRecipeWithAi({ kind: 'text', text }, ai.keys);
 
-        return { used: ai.keys[0]?.provider ?? null, draft: {
+        return { trace: { provider, asked: true, failed: false }, draft: {
             ...mergeDrafts(draft, parsed),
             // These four are not part of `mergeDrafts` because they are not
             // strings and an empty one is null rather than ''. Same rule
@@ -203,7 +255,7 @@ async function fillGapsWithAi(
         // person sharing a link in a supermarket does not care which of three
         // providers was having an afternoon.
         console.error('The AI could not help with this capture:', error);
-        return { draft, used: null };
+        return { draft, trace: { provider, asked: true, failed: true } };
     }
 }
 
@@ -214,7 +266,8 @@ async function fillGapsWithAi(
 async function processYoutube(
     url: string,
     rawText: string | null,
-    ai: AiCapability
+    ai: AiCapability,
+    options: ProcessOptions
 ): Promise<ProcessedCapture> {
     const videoId = youtubeVideoId(url);
     if (!videoId) {
@@ -261,16 +314,16 @@ async function processYoutube(
      * has nothing to name the dish after and invents something plausible from
      * the ingredients — "Nudelauflauf" for a video called "Mamas Auflauf".
      */
-    let usedAi: string | null = null;
+    let trace: AiTrace = NOT_ASKED;
 
-    if (shouldAsk(merged) && assistsText(ai)) {
+    if (shouldAsk(merged, options) && mayAskAboutText(ai, options)) {
         const helped = await fillGapsWithAi(
             merged,
             [video.title, description, shared].filter(Boolean).join('\n\n'),
             ai
         );
         merged = helped.draft;
-        usedAi = helped.used;
+        trace = helped.trace;
     }
 
     const status = completeness(merged);
@@ -281,14 +334,15 @@ async function processYoutube(
         status === 'ready'
             ? null
             : 'The description did not hold a full recipe — it may only be spoken in the video.',
-        usedAi
+        trace
     );
 }
 
 async function processWebPage(
     url: string,
     rawText: string | null,
-    ai: AiCapability
+    ai: AiCapability,
+    options: ProcessOptions
 ): Promise<ProcessedCapture> {
     const page = await fetchPage(url);
 
@@ -300,19 +354,19 @@ async function processWebPage(
         if (shared) {
             const parsed = parseRecipeText(shared);
             let draft = { ...emptyDraft(url), ...parsed };
-            let usedAi: string | null = null;
+            let trace: AiTrace = NOT_ASKED;
 
-            if (shouldAsk(draft) && assistsText(ai)) {
+            if (shouldAsk(draft, options) && mayAskAboutText(ai, options)) {
                 const helped = await fillGapsWithAi(draft, shared, ai);
                 draft = helped.draft;
-                usedAi = helped.used;
+                trace = helped.trace;
             }
 
             return outcome(
                 completeness(draft),
                 draft,
                 'The page could not be read; the shared text was used instead.',
-                usedAi
+                trace
             );
         }
         return outcome('failed', null, `The page could not be read (${page.failure}).`);
@@ -332,12 +386,12 @@ async function processWebPage(
      * The page is stripped to its words first. See `readableText`: what is sent
      * is the prose, not four hundred kilobytes of markup and script.
      */
-    let usedAi: string | null = null;
+    let trace: AiTrace = NOT_ASKED;
 
-    if (shouldAsk(draft) && assistsText(ai)) {
+    if (shouldAsk(draft, options) && mayAskAboutText(ai, options)) {
         const helped = await fillGapsWithAi(draft, readableText(page.html), ai);
         draft = helped.draft;
-        usedAi = helped.used;
+        trace = helped.trace;
     }
 
     const status = completeness(draft);
@@ -345,7 +399,7 @@ async function processWebPage(
         status,
         draft,
         status === 'ready' ? null : 'The page held only part of a recipe.',
-        usedAi
+        trace
     );
 }
 
@@ -401,7 +455,7 @@ async function processImage(imageUrl: string | null, ai: AiCapability): Promise<
             status,
             draft,
             status === 'ready' ? null : 'Only part of a recipe was legible in the picture.',
-            ai.keys[0]?.provider ?? null,
+            { provider: ai.keys[0]?.provider ?? null, asked: true, failed: false },
             'ai'
         );
     } catch (error) {
@@ -411,7 +465,9 @@ async function processImage(imageUrl: string | null, ai: AiCapability): Promise<
         return outcome(
             'needsWork',
             withPicture,
-            'The picture is saved, but reading it did not work. Try again from the inbox.'
+            'The picture is saved, but reading it did not work. Try again from the inbox.',
+            { provider: ai.keys[0]?.provider ?? null, asked: true, failed: true },
+            'rules+ai-failed'
         );
     }
 }
@@ -421,7 +477,8 @@ export async function processCapture(
     // The environment alone when nobody says otherwise. The routes pass the
     // real thing, which also knows about the rows; the tests pass whatever
     // case they are checking.
-    ai: AiCapability = capabilityFromEnv()
+    ai: AiCapability = capabilityFromEnv(),
+    options: ProcessOptions = {}
 ): Promise<ProcessedCapture> {
     try {
         if (capture.kind === 'image') {
@@ -445,12 +502,12 @@ export async function processCapture(
             // parser wants a shape — a heading, a list, then steps — and what
             // arrives by e-mail is very often four paragraphs of prose from
             // somebody's aunt, which is exactly what a model is good at.
-            let usedAi: string | null = null;
+            let trace: AiTrace = NOT_ASKED;
 
-            if (shouldAsk(draft) && assistsText(ai)) {
+            if (shouldAsk(draft, options) && mayAskAboutText(ai, options)) {
                 const helped = await fillGapsWithAi(draft, text, ai);
                 draft = helped.draft;
-                usedAi = helped.used;
+                trace = helped.trace;
             }
 
             if (completeness(draft) !== 'ready' && capture.imageUrl) {
@@ -462,7 +519,7 @@ export async function processCapture(
                 completeness(draft),
                 draft,
                 completeness(draft) === 'ready' ? null : 'Only part of a recipe was recognised.',
-                usedAi
+                trace
             );
         }
 
@@ -474,8 +531,8 @@ export async function processCapture(
         const source = capture.source as CaptureSource;
         const result =
             source === 'youtube'
-                ? await processYoutube(url, capture.rawText, ai)
-                : await processWebPage(url, capture.rawText, ai);
+                ? await processYoutube(url, capture.rawText, ai, options)
+                : await processWebPage(url, capture.rawText, ai, options);
 
         // The Instagram screenshot case, from the other side: the link could
         // not be read and the caption was not the recipe, but a picture came

@@ -72,6 +72,8 @@ export default function AdminInboxPage() {
     const [loading, setLoading] = useState(true);
     const [busyId, setBusyId] = useState<number | null>(null);
     const [error, setError] = useState('');
+    /** Whether "read this with the AI" can do anything. Reported by the list. */
+    const [aiAvailable, setAiAvailable] = useState(false);
 
     const load = useCallback(async () => {
         try {
@@ -79,6 +81,7 @@ export default function AdminInboxPage() {
             if (!res.ok) throw new Error(tAdmin('genericError'));
             const data = await res.json();
             setCaptures(data.captures);
+            setAiAvailable(Boolean(data.aiAvailable));
         } catch (err) {
             setError(err instanceof Error ? err.message : tAdmin('genericError'));
         } finally {
@@ -90,7 +93,7 @@ export default function AdminInboxPage() {
         load();
     }, [load]);
 
-    const act = async (id: number, action: 'retry' | 'publish') => {
+    const act = async (id: number, action: 'retry' | 'askAi' | 'publish') => {
         setBusyId(id);
         setError('');
         try {
@@ -201,6 +204,8 @@ export default function AdminInboxPage() {
                             busy={busyId === capture.id}
                             onPublish={() => act(capture.id, 'publish')}
                             onRetry={() => act(capture.id, 'retry')}
+                            onAskAi={() => act(capture.id, 'askAi')}
+                            aiAvailable={aiAvailable}
                             onDiscard={() => discard(capture.id)}
                             onMerge={
                                 capture.duplicateOf
@@ -251,6 +256,8 @@ function CaptureRow({
     busy,
     onPublish,
     onRetry,
+    onAskAi,
+    aiAvailable,
     onDiscard,
     onMerge,
 }: {
@@ -258,6 +265,9 @@ function CaptureRow({
     busy: boolean;
     onPublish: () => void;
     onRetry: () => void;
+    onAskAi: () => void;
+    /** False when no key is configured or the AI is switched off. */
+    aiAvailable: boolean;
     onDiscard: () => void;
     /** Only offered when the inbox thinks this is something we already have. */
     onMerge?: () => void;
@@ -291,14 +301,26 @@ function CaptureRow({
                     the alternative is labelling it with a guess. */}
                 {capture.readBy && (
                     <>
-                        <span className={capture.readBy === 'rules' ? undefined : 'text-accent-text'}>
+                        <span
+                            className={
+                                capture.readBy === 'rules'
+                                    ? undefined
+                                    : capture.readBy === 'rules+ai-failed'
+                                        ? 'text-danger'
+                                        : 'text-accent-text'
+                            }
+                        >
                             {capture.readBy === 'rules'
                                 ? tAi('usedRules')
                                 : capture.readBy === 'ai'
                                     ? tAi('usedAi', { provider: providerLabel(capture.aiProvider) })
-                                    : tAi('usedRulesAndAi', {
-                                        provider: providerLabel(capture.aiProvider),
-                                    })}
+                                    : capture.readBy === 'rules+ai-failed'
+                                        ? tAi('usedAiFailed', {
+                                            provider: providerLabel(capture.aiProvider),
+                                        })
+                                        : tAi('usedRulesAndAi', {
+                                            provider: providerLabel(capture.aiProvider),
+                                        })}
                         </span>
                         <span aria-hidden="true">·</span>
                     </>
@@ -376,6 +398,31 @@ function CaptureRow({
                     className="text-muted underline underline-offset-4 disabled:opacity-50"
                 >
                     {t('retry')}
+                </button>
+
+                {/*
+                    Always offered, including on a draft the scoring called
+                    good — which is the whole point of it being here.
+
+                    The scoring decides whether a model is asked *without*
+                    being told to. It is a guess made from shape alone: it can
+                    see that a draft has a title, ingredients with quantities
+                    and a method, and it cannot see that the method is the
+                    wrong recipe's. Somebody reading the draft can. So the
+                    automatic decision saves them the trouble in the common
+                    case and never takes the decision away from them.
+
+                    Costs a call every time it is pressed, which is why it says
+                    what it does rather than being a second "retry".
+                */}
+                <button
+                    type="button"
+                    onClick={onAskAi}
+                    disabled={busy || !aiAvailable}
+                    title={aiAvailable ? undefined : tAi('polishOff')}
+                    className="text-muted underline underline-offset-4 disabled:no-underline disabled:opacity-50"
+                >
+                    {tAi('askAi')}
                 </button>
 
                 {capture.sourceUrl && (

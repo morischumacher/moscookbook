@@ -212,8 +212,11 @@ export default async function aiProviderTests() {
 
     suite('ai: asking the next provider');
 
+    // A 401, not a 429: a rate limit is retried three times now (see the
+    // "busy provider" suite below), and this suite is about the chain rather
+    // than about the retries. A dead key fails once and moves on.
     net = recordFetch({
-        [ANTHROPIC]: { status: 429, json: { error: 'rate limited' } },
+        [ANTHROPIC]: { status: 401, json: { error: 'bad key' } },
         [OPENAI]: { json: { choices: [{ message: { content: RECIPE } }] } },
     });
 
@@ -315,6 +318,83 @@ export default async function aiProviderTests() {
         if (value === undefined) delete process.env[name];
         else process.env[name] = value;
     }
+
+    /* ---------------------------------------------- a provider that is busy */
+
+    suite('ai: a busy provider is asked again');
+
+    /*
+     * The failure that prompted this, verbatim from Gemini:
+     *
+     *   503 "This model is currently experiencing high demand. Spikes in
+     *   demand are usually temporary. Please try again later."
+     *
+     * The provider is telling us to try again, and the cookbook was reading it
+     * as a refusal and falling back to the rules. Three attempts over roughly
+     * three seconds covers a spike; longer than that sits inside a request
+     * somebody is waiting on and is better spent failing honestly.
+     */
+
+    let attempts = 0;
+    const busyThenFine = (status: number) => {
+        const original = globalThis.fetch;
+        attempts = 0;
+
+        globalThis.fetch = (async () => {
+            attempts += 1;
+            if (attempts < 3) {
+                return {
+                    ok: false,
+                    status,
+                    text: async () => `{"error":{"code":${status},"message":"high demand"}}`,
+                    json: async () => ({}),
+                } as unknown as Response;
+            }
+            return {
+                ok: true,
+                status: 200,
+                text: async () => RECIPE,
+                json: async () => ({ content: [{ type: 'text', text: RECIPE }] }),
+            } as unknown as Response;
+        }) as typeof globalThis.fetch;
+
+        return () => { globalThis.fetch = original; };
+    };
+
+    let undo = busyThenFine(503);
+    recipe = await extractWithKey(anthropicKey, TEXT);
+    equal('a 503 is retried until it works', recipe.title, 'Ofengemüse mit Feta');
+    equal('and it took three attempts', attempts, 3);
+    undo();
+
+    undo = busyThenFine(429);
+    recipe = await extractWithKey(anthropicKey, TEXT);
+    equal('a rate limit is retried too', recipe.title, 'Ofengemüse mit Feta');
+    undo();
+
+    // A wrong key does not get better by asking again, and asking again is
+    // three seconds somebody waits for nothing.
+    undo = busyThenFine(401);
+    threw = '';
+    try {
+        await extractWithKey(anthropicKey, TEXT);
+    } catch (error) {
+        threw = error instanceof Error ? error.message : '';
+    }
+    equal('a 401 is not retried', attempts, 1);
+    check('and says what happened', threw.includes('401'), threw);
+    undo();
+
+    undo = busyThenFine(404);
+    threw = '';
+    try {
+        await extractWithKey(anthropicKey, TEXT);
+    } catch {
+        // expected
+    }
+    equal('a missing model is not retried either', attempts, 1);
+    undo();
+
 }
 
 async function noKeys(): Promise<string> {

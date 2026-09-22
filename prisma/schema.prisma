@@ -619,6 +619,21 @@ model AiCredential {
   checkedAt  DateTime?
   checkError String?
 
+  /// When this key was last seen to actually work — and the gate on using it.
+  ///
+  /// A key that has never produced a recipe is not used for anything. Pasting
+  /// one in is not evidence: a key with no credit, a key for the wrong
+  /// product, a key with a typo in it all authenticate or fail in ways nobody
+  /// sees until a share from a supermarket comes back empty.
+  ///
+  /// Only ever *set* on a success, and cleared only when the key itself is
+  /// replaced. A later failure records itself in `checkError` and leaves this
+  /// alone, because the failure that prompted this design was a 503 saying
+  /// "spikes in demand are usually temporary" — and a gate that switches the
+  /// feature off on a transient error is a gate somebody has to remember to
+  /// re-open.
+  verifiedAt DateTime?
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 

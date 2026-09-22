@@ -866,13 +866,12 @@ export default function RecipeForm({
                         earn their keep: a title has a typo perhaps twice a
                         year, and a method forwarded from an e-mail is one
                         paragraph every single time. */}
-                    {aiEnabled && (
-                        <PolishPanel
-                            text={instructions}
-                            onApply={setInstructions}
-                            disabled={preview}
-                        />
-                    )}
+                    <PolishPanel
+                        text={instructions}
+                        onApply={setInstructions}
+                        disabled={preview}
+                        available={aiEnabled}
+                    />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">

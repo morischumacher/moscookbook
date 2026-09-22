@@ -11,6 +11,7 @@ import { storeCaptureImage, MAX_CAPTURE_IMAGE_BASE64 } from '@/lib/storeCaptureI
 import { findDuplicate, type ExistingRecipe } from '@/lib/duplicates';
 import { processCapture } from '@/lib/captureProcess';
 import { aiCapability } from '@/lib/aiConfig';
+import { canUseAi } from '@/lib/aiImport';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { toJsonObject } from '@/lib/json';
 
@@ -305,5 +306,11 @@ export async function GET() {
         };
     });
 
-    return NextResponse.json({ captures: withHints });
+    /*
+     * Reported with the list rather than fetched separately, because the
+     * inbox needs it for every row and one extra field on a response it was
+     * already making is cheaper than a second request that can fail on its
+     * own and leave the buttons in a state nobody chose.
+     */
+    return NextResponse.json({ captures: withHints, aiAvailable: canUseAi(await aiCapability()) });
 }
