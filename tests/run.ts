@@ -50,6 +50,7 @@ import siteProfile from './siteProfile.test';
 import siteLearn from './siteLearn.test';
 import drafts from './drafts.test';
 import routeParams from './routeParams.test';
+import prismaErrors from './prismaErrors.test';
 import aiProviders from './aiProviders.test';
 import aiPolish from './aiPolish.test';
 import draftQuality from './draftQuality.test';
@@ -103,6 +104,7 @@ async function main() {
     await siteLearn();
     drafts();
     routeParams();
+    prismaErrors();
     draftQuality();
     await fixtures();
     pageTitle();

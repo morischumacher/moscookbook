@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { BCRYPT_COST } from '@/lib/passwordHash';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { sessionOptions, SessionData } from '@/lib/session';
-import { clientKey } from '@/lib/rateLimit';
-import { rateLimitShared } from '@/lib/rateLimitShared';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import prisma from '@/lib/prisma';
 import { fullName } from '@/lib/personName';
 import { issueToken } from '@/lib/issueToken';
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'User already exists' }, { status: 409 });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_COST);
 
         const user = await prisma.user.create({
             data: {

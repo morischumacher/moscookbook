@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 
 interface Bucket {
     count: number;
@@ -53,9 +52,5 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateLim
     return { ok: true, remaining: limit - bucket.count, retryAfterSeconds: 0 };
 }
 
-/** Best-effort client identifier, behind Vercel's proxy this is the real client IP. */
-export function clientKey(req: NextRequest, scope: string): string {
-    const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
-    return `${scope}:${ip}`;
-}
+// Moved next to the shared limiter, which is what nearly every caller uses.
+export { clientKey } from './rateLimitShared';

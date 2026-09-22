@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
-import { clientKey, rateLimit } from '@/lib/rateLimit';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { canUseAi, completeWithKey } from '@/lib/aiImport';
 import { aiCapability, rememberModel } from '@/lib/aiConfig';
 import { polish, polishSchema } from '@/lib/aiPolish';
@@ -32,7 +32,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Each press costs money. Sixty in ten minutes is more than anybody edits.
-    const limit = rateLimit(clientKey(req, 'ai-polish'), 60, 10 * 60 * 1000);
+    /*
+     * The shared limiter, because this route spends money.
+     *
+     * It used the in-memory one, whose own comment says it multiplies by the
+     * number of warm instances and resets on every cold start — fine for a
+     * view counter, and the wrong tool for a route where each call past the
+     * limit is a charge at a provider. The database-backed count is the only
+     * one that is actually a ceiling.
+     */
+    const limit = await rateLimitShared(clientKey(req, 'ai-polish'), 60, 10 * 60 * 1000);
     if (!limit.ok) {
         return NextResponse.json(
             { message: 'Too many revisions. Please wait a moment.' },

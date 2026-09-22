@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { BCRYPT_COST } from '@/lib/passwordHash';
 import prisma from '@/lib/prisma';
 import { sessionOptions, SessionData } from '@/lib/session';
-import { clientKey } from '@/lib/rateLimit';
-import { rateLimitShared } from '@/lib/rateLimitShared';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { hashToken, tokenState } from '@/lib/authTokens';
 
 const schema = z.object({
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'Unknown link.', reason: 'unknown' }, { status: 400 });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_COST);
 
         const user = await prisma.user.update({
             where: { id: record.userId },

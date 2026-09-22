@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { requireAdmin } from '@/lib/auth';
-import { clientKey, rateLimit } from '@/lib/rateLimit';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { fetchPage } from '@/lib/fetchPage';
 import { extractRecipeFromHtml } from '@/lib/recipeFromHtml';
 import { readableText } from '@/lib/readableText';
@@ -11,6 +11,7 @@ import { aiCapability, rememberModel } from '@/lib/aiConfig';
 import { learnSiteProfile } from '@/lib/siteLearn';
 import { hostOf } from '@/lib/siteProfile';
 import { listSiteProfiles, siteProfiles } from '@/lib/siteProfileDb';
+import { scrub } from '@/lib/secretBox';
 
 /**
  * Learning a site on purpose.
@@ -50,7 +51,16 @@ export async function POST(req: NextRequest) {
 
     // Each press fetches a page and calls a model twice. Ten in ten minutes is
     // more than teaching the cookbook a site ever needs.
-    const limit = rateLimit(clientKey(req, 'site-learn'), 10, 10 * 60 * 1000);
+    /*
+     * The shared limiter, because this route spends money.
+     *
+     * It used the in-memory one, whose own comment says it multiplies by the
+     * number of warm instances and resets on every cold start — fine for a
+     * view counter, and the wrong tool for a route where each call past the
+     * limit is a charge at a provider. The database-backed count is the only
+     * one that is actually a ceiling.
+     */
+    const limit = await rateLimitShared(clientKey(req, 'site-learn'), 10, 10 * 60 * 1000);
     if (!limit.ok) {
         return NextResponse.json(
             { message: 'Zu viele Versuche. Bitte einen Moment warten.' },
@@ -104,8 +114,11 @@ export async function POST(req: NextRequest) {
             }
         );
     } catch (error) {
+        // A provider's error text can quote the request that failed, and the
+        // request carried the key. The test route scrubs for the same reason.
+        const detail = scrub(error instanceof Error ? error.message : 'unknown', key.apiKey).slice(0, 300);
         return NextResponse.json(
-            { message: `Das Modell konnte die Seite nicht lesen: ${error instanceof Error ? error.message : 'unbekannt'}` },
+            { message: `Das Modell konnte die Seite nicht lesen: ${detail}` },
             { status: 502 }
         );
     }

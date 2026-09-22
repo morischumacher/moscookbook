@@ -38,7 +38,7 @@ async function main() {
     const firstName = lastSpace === -1 ? trimmed : trimmed.slice(0, lastSpace).trim();
     const lastName = lastSpace === -1 ? '' : trimmed.slice(lastSpace + 1).trim();
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.upsert({
         where: { email },

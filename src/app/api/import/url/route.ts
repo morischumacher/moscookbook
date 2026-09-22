@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
-import { rateLimit, clientKey } from '@/lib/rateLimit';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { extractRecipeFromHtml } from '@/lib/recipeFromHtml';
 import { fetchPage, type FetchFailure } from '@/lib/fetchPage';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
@@ -27,7 +27,16 @@ export async function POST(req: NextRequest) {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    const limit = rateLimit(clientKey(req, 'import-url'), 30, 10 * 60 * 1000);
+    /*
+     * The shared limiter, because this route spends money.
+     *
+     * It used the in-memory one, whose own comment says it multiplies by the
+     * number of warm instances and resets on every cold start — fine for a
+     * view counter, and the wrong tool for a route where each call past the
+     * limit is a charge at a provider. The database-backed count is the only
+     * one that is actually a ceiling.
+     */
+    const limit = await rateLimitShared(clientKey(req, 'import-url'), 30, 10 * 60 * 1000);
     if (!limit.ok) {
         return NextResponse.json(
             { message: 'Too many imports. Please wait a moment.' },

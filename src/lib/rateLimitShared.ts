@@ -1,3 +1,4 @@
+import type { NextRequest } from 'next/server';
 import prisma from './prisma';
 
 /**
@@ -116,4 +117,19 @@ export async function sweepRateLimits(): Promise<number> {
     } catch {
         return 0;
     }
+}
+
+/**
+ * Who a request is from, for the purpose of counting.
+ *
+ * Behind the platform's proxy the first hop of `x-forwarded-for` is the real
+ * client. It lived in `rateLimit.ts`, which meant every caller of the shared
+ * limiter imported from two modules to use one — seven routes doing the same
+ * two-line dance. It lives here now and `rateLimit.ts` re-exports it for the
+ * one route that still wants the soft count.
+ */
+export function clientKey(req: NextRequest, scope: string): string {
+    const forwarded = req.headers.get('x-forwarded-for');
+    const ip = forwarded?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+    return `${scope}:${ip}`;
 }
