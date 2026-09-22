@@ -586,7 +586,9 @@ Every screen, endpoint, link and call is listed in
 [docs/interaction-map.generated.md](docs/interaction-map.generated.md), read
 from the source by `npm run map` and kept current by CI. The analysis of it —
 dead ends, duplicated labels, the longest paths and what to shorten — is in
-[docs/interaction-map.md](docs/interaction-map.md).
+[docs/interaction-map.md](docs/interaction-map.md). The September 2026
+code, security and test pass is written up in
+[docs/hardening-2026-09.md](docs/hardening-2026-09.md).
 
 ## Scripts
 
