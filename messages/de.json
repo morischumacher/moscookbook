@@ -556,5 +556,33 @@
         "rightsTitle": "Deine Rechte",
         "rightsBody": "Du kannst Auskunft, Berichtigung, Löschung, Einschränkung und Übertragung deiner Daten verlangen und der Verarbeitung widersprechen. Schreib mir, das genügt. Wenn du dich beschweren möchtest, ist die Datenschutzbehörde in Wien zuständig.",
         "privacyUpdated": "Stand: September 2026. Sollte sich an der Seite etwas ändern, das hier steht, ändert sich auch dieser Text."
+    },
+    "Feedback": {
+        "title": "Feedback",
+        "intro": "Was fehlt, was nervt, was du dir wünschst. Ein Satz reicht — je konkreter, desto eher passiert etwas.",
+        "kindLabel": "Worum geht es",
+        "kind_idea": "Idee",
+        "kind_problem": "Etwas geht nicht",
+        "kind_other": "Sonstiges",
+        "bodyLabel": "Deine Nachricht",
+        "bodyPlaceholder": "Zum Beispiel: Beim Hinzufügen eines Fotos muss ich jedes Mal zweimal tippen.",
+        "fromPage": "Kommt von:",
+        "send": "Abschicken",
+        "sending": "Wird gesendet…",
+        "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
+        "thanksTitle": "Angekommen",
+        "thanksBody": "Danke. Es steht auf der Liste.",
+        "backToRecipes": "Zurück zu den Rezepten",
+        "nav": "Feedback",
+        "adminTitle": "Feedback",
+        "loading": "Wird geladen…",
+        "loadFailed": "Die Liste konnte nicht geladen werden.",
+        "noneOpen": "Nichts offen.",
+        "noneResolved": "Nichts erledigt.",
+        "showResolved": "Erledigte zeigen",
+        "showOpen": "Offene zeigen",
+        "markDone": "Erledigt",
+        "reopen": "Wieder öffnen",
+        "someone": "Jemand"
     }
 }

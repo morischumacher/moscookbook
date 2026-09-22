@@ -45,6 +45,7 @@ const NOT_BACKED_UP = new Map([
     ['Capture', 'the inbox is a queue, not a record; what mattered became a recipe'],
     ['CaptureToken', 'device keys, stored as hashes and revocable'],
     ['ErrorLog', 'a log of what broke in this deployment'],
+    ['Feedback', 'remarks about this deployment of the tool, not about the cookbook: "the search is slow" restored into a fresh installation is a sentence with no referent'],
     ['Image', "carried inside each recipe's entry rather than as its own list"],
     ['Ingredient', 'the same'],
     ['RateLimit', 'counters for windows measured in minutes; restoring one would be nonsense'],

@@ -91,3 +91,23 @@ export const photoBadge =
  */
 export const photoControl =
     'flex h-9 w-9 items-center justify-center rounded-full bg-scrim/55 text-on-scrim';
+
+/**
+ * One of a small set of choices, all of them visible at once.
+ *
+ * A radio group that looks like a row of pills rather than a `<select>`: three
+ * options that can all be read is a glance, and a select is a tap, a list and
+ * a second tap for the same decision. At 44px tall it is also hittable without
+ * looking, which a native select on a phone is not.
+ *
+ * Written down here the first time a second one was needed, rather than
+ * copied. The selected state reuses the ink-on-page inversion the primary
+ * button uses, because "this is the one" should look the same wherever it is
+ * said.
+ */
+export function chip(selected: boolean): string {
+    return (
+        'inline-flex min-h-11 cursor-pointer items-center rounded-full border px-4 text-sm font-medium transition-colors ' +
+        (selected ? 'border-ink bg-ink text-page' : 'border-control hover:border-ink')
+    );
+}
