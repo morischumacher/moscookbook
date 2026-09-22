@@ -30,6 +30,7 @@ export default function AdminNav() {
     const tErrors = useTranslations('Errors');
     const tDevices = useTranslations('Devices');
     const tTickets = useTranslations('Tickets');
+    const tAi = useTranslations('Ai');
 
     const current = adminSectionFor(usePathname());
 
@@ -44,6 +45,7 @@ export default function AdminNav() {
         { href: '/admin/tickets', label: tTickets('nav') },
         { href: '/admin/errors', label: tErrors('nav') },
         { href: '/admin/devices', label: tDevices('nav') },
+        { href: '/admin/ai', label: tAi('nav') },
     ];
 
     return (

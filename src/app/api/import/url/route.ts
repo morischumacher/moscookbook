@@ -4,6 +4,9 @@ import { requireAdmin } from '@/lib/auth';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
 import { extractRecipeFromHtml, isSafePublicUrl } from '@/lib/recipeFromHtml';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
+import { readableText } from '@/lib/readableText';
+import { assistsText, extractRecipeWithAi } from '@/lib/aiImport';
+import { aiCapability } from '@/lib/aiConfig';
 
 const importSchema = z.object({
     url: z.string().trim().min(1).max(2048),
@@ -68,7 +71,49 @@ export async function POST(req: NextRequest) {
         }
 
         const html = (await response.text()).slice(0, MAX_HTML_BYTES);
-        const recipe = extractRecipeFromHtml(html, response.url || url);
+        let recipe = extractRecipeFromHtml(html, response.url || url);
+
+        /*
+         * The rules first, always — a page with schema.org markup is read here
+         * and costs nothing. This is the *second* attempt, for the very large
+         * number of food blogs that write their ingredients in a plain list
+         * with no markup at all and until now imported as a title and a
+         * picture.
+         *
+         * Merged rather than replaced: whatever the markup gave up is the
+         * better answer, because it is the site's own statement about itself
+         * rather than a reading of its prose.
+         */
+        const ai = await aiCapability();
+        const incomplete = !recipe.title || recipe.ingredients.length === 0 || !recipe.instructions;
+
+        if (incomplete && assistsText(ai)) {
+            try {
+                const read = await extractRecipeWithAi(
+                    { kind: 'text', text: readableText(html) },
+                    ai.keys
+                );
+
+                recipe = {
+                    ...recipe,
+                    title: recipe.title || read.title,
+                    description: recipe.description || read.description,
+                    ingredients:
+                        recipe.ingredients.length > 0 ? recipe.ingredients : read.ingredients,
+                    instructions: recipe.instructions || read.instructions,
+                    category: recipe.category || read.category,
+                    nationality: recipe.nationality || read.nationality,
+                    servings: recipe.servings ?? read.servings,
+                    prepMinutes: recipe.prepMinutes ?? read.prepMinutes,
+                    cookMinutes: recipe.cookMinutes ?? read.cookMinutes,
+                };
+            } catch (error) {
+                // The rules' answer is still on the table. An import that
+                // returns less than it might is a far better outcome than one
+                // that returns an error because an optional extra was down.
+                console.error('The AI could not help with this import:', error);
+            }
+        }
 
         if (!recipe.title && recipe.ingredients.length === 0) {
             return NextResponse.json(

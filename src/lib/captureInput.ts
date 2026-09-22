@@ -25,15 +25,24 @@ export interface CaptureBody {
     via?: 'email';
     subject?: string;
     /**
-     * A screenshot, already stored — the route uploads it before calling here,
-     * so that what is about to be classified is the same thing that will still
-     * be there tomorrow.
+     * A screenshot that has already been stored.
      */
     imageUrl?: string;
+    /**
+     * A screenshot as it arrives from a device: base64, not yet stored.
+     *
+     * Passed through as a *fact* rather than as data — the classifier is being
+     * asked what was sent, and "a picture" is the answer whether or not the
+     * upload has happened yet. See `hasImage` in `capture.ts` for the bug this
+     * closes.
+     */
+    image?: { base64: string; mediaType: string };
 }
 
 export function captureInputFrom(body: CaptureBody): ClassifiedCapture | null {
-    if (body.via !== 'email') return classifyCapture(body);
+    const hasImage = Boolean(body.image) || Boolean(body.imageUrl);
+
+    if (body.via !== 'email') return classifyCapture({ ...body, hasImage });
 
     // A mail arrives wrapped in forwarding headers, quote markers and a
     // signature, and its subject has been through three clients. Cleaning that
@@ -50,5 +59,6 @@ export function captureInputFrom(body: CaptureBody): ClassifiedCapture | null {
         // parser, which would otherwise name the dish "Fwd: schau mal".
         note: body.note || mail.title || undefined,
         via: 'email',
+        hasImage,
     });
 }

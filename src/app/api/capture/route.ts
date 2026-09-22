@@ -10,6 +10,7 @@ import { captureInputFrom } from '@/lib/captureInput';
 import { storeCaptureImage, MAX_CAPTURE_IMAGE_BASE64 } from '@/lib/storeCaptureImage';
 import { findDuplicate, type ExistingRecipe } from '@/lib/duplicates';
 import { processCapture } from '@/lib/captureProcess';
+import { aiCapability } from '@/lib/aiConfig';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { toJsonObject } from '@/lib/json';
 
@@ -181,7 +182,18 @@ export async function POST(req: NextRequest) {
     let title = '';
 
     try {
-        const result = await processCapture(classified);
+        // Read here rather than inside the pipeline: `captureProcess` must
+        // not import Prisma, because the test suite imports `captureProcess`.
+        // With the stored address put back on it.
+        //
+        // The second half of the same bug: classification happens before the
+        // upload, so `classified.imageUrl` is null for a screenshot, and
+        // handing that to the pipeline made it answer "No picture was stored"
+        // about a picture that had just been stored perfectly.
+        const result = await processCapture(
+            { ...classified, imageUrl: imageUrl ?? classified.imageUrl },
+            await aiCapability()
+        );
 
         // Foreign image hosts are rejected by next/image, so the picture is
         // copied into our own store rather than kept as a link that will not

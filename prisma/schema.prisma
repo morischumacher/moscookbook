@@ -561,3 +561,65 @@ model CollectionRecipe {
   /// Deleting a recipe cascades through here; without this that is a scan.
   @@index([recipeId])
 }
+
+/// An API key for one AI provider, kept where it can be changed.
+///
+/// It used to live in `ANTHROPIC_API_KEY` on Vercel, which is the right place
+/// for a secret and the wrong place for a setting somebody wants to try out:
+/// changing it meant opening a dashboard, editing an environment variable and
+/// waiting for a redeploy, and the only way to find out whether the key worked
+/// was to import a recipe and see. So it lives here, and the admin screen has
+/// a button that asks the provider whether the key is good.
+///
+/// **`secret` is a sealed envelope, never the key.** AES-256-GCM under a key
+/// derived from the session secret — see `src/lib/secretBox.ts`. A database
+/// dump, a backup, a support session with somebody reading rows: none of them
+/// hand over a working key. `hint` is the last four characters, which is all
+/// the screen needs to say *which* key this is.
+///
+/// The environment variables still work and still win nothing: a provider
+/// configured in the environment is shown on the screen as coming from there
+/// and cannot be edited, so there is never a question about which key is
+/// actually being used.
+model AiCredential {
+  /// anthropic | openai | google. The provider *is* the identity: one key per
+  /// provider, and an upsert rather than a second row nobody meant to make.
+  provider   String    @id
+
+  secret     String
+  hint       String
+
+  /// Overrides the provider's default model. Null means the default, which is
+  /// the only sensible behaviour when model names change faster than releases.
+  model      String?
+
+  enabled    Boolean   @default(true)
+
+  /// Ascending, and it is the fallback order: the first enabled provider is
+  /// asked, and the next one only if that call fails. Zero is "primary".
+  priority   Int       @default(10)
+
+  /// What the last "test" button said. Kept because the useful question is not
+  /// whether a key is set but whether it worked, and the answer is worth more
+  /// than the moment it was asked.
+  checkedAt  DateTime?
+  checkError String?
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([enabled, priority])
+}
+
+/// Settings of this deployment that are not secrets and not worth a column.
+///
+/// Exactly one key so far — `ai.assist`, which decides whether the AI is asked
+/// at all — and the table exists rather than a column somewhere because the
+/// next such setting should not need a migration to be born.
+///
+/// Not a place for anything a person wrote. A row here is a knob.
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

@@ -182,6 +182,25 @@ export interface CaptureInput {
      * to be looked at.
      */
     imageUrl?: string | null;
+    /**
+     * A picture that arrived in this request and has **not been stored yet**.
+     *
+     * This exists because of a bug that reached a phone. The route used to
+     * store the picture first and classify afterwards; it was changed to
+     * classify first — so that a request with nothing usable in it does not
+     * pay for a file nobody will ever point at — and the comment justifying
+     * the change said "the classifier needs no image to decide".
+     *
+     * It does. Not to decide *which* kind of capture this is, but to decide
+     * that there is one at all: a share with a screenshot and nothing else has
+     * no url, no text and, at that moment, no `imageUrl` either. Every such
+     * capture was answered "Nothing usable was sent." — which is exactly the
+     * rejected share the whole pipeline is built to avoid.
+     *
+     * The tests did not catch it because they passed `imageUrl`, the shape the
+     * classifier takes, rather than the shape an iOS Shortcut actually posts.
+     */
+    hasImage?: boolean;
 }
 
 export interface ClassifiedCapture {
@@ -236,7 +255,8 @@ export function classifyCapture(input: CaptureInput): ClassifiedCapture | null {
         };
     }
 
-    if (imageUrl !== null) {
+    // Stored or about to be: either way, a picture was sent.
+    if (imageUrl !== null || input.hasImage === true) {
         return {
             kind: 'image',
             source: 'photo',

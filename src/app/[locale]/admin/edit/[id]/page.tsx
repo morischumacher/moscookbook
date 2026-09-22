@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import RecipeForm from '@/components/recipe-form/RecipeForm';
-import { isAiImportConfigured } from '@/lib/aiImport';
+import { canUseAi } from '@/lib/aiImport';
+import { aiCapability } from '@/lib/aiConfig';
 
 interface EditableRecipe {
     id: number;
@@ -41,7 +42,7 @@ export default async function EditRecipePage({
     return (
         <RecipeForm
             mode="edit"
-            aiEnabled={isAiImportConfigured()}
+            aiEnabled={canUseAi(await aiCapability())}
             initial={{
                 id: recipe.id,
                 title: recipe.title,

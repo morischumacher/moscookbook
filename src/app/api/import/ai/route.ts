@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
-import { isAiImportConfigured, extractRecipeWithAi } from '@/lib/aiImport';
+import { assistsText, canUseAi, extractRecipeWithAi } from '@/lib/aiImport';
+import { aiCapability } from '@/lib/aiConfig';
 import { parseRecipeText } from '@/lib/recipeParser';
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
@@ -24,7 +25,9 @@ export async function POST(req: NextRequest) {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    if (!isAiImportConfigured()) {
+    const ai = await aiCapability();
+
+    if (!canUseAi(ai)) {
         return NextResponse.json(
             { message: 'AI import is not configured on this deployment.' },
             { status: 501 }
@@ -45,8 +48,33 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Invalid request.' }, { status: 400 });
     }
 
+    /*
+     * Pasted text is held to the stricter setting, and a picture is not.
+     *
+     * They are different questions. "Read this photograph" has no rule-based
+     * answer at all, so refusing it means refusing the feature. "Read this text
+     * I pasted" does — the parser is right there, one tab across — so it obeys
+     * the setting that says whether the AI may be asked for things the rules
+     * could also attempt.
+     */
+    if (parsed.data.kind === 'text' && !assistsText(ai)) {
+        const fallback = parseRecipeText(parsed.data.text);
+        return NextResponse.json({
+            recipe: {
+                ...fallback,
+                category: '',
+                nationality: '',
+                servings: null,
+                prepMinutes: null,
+                cookMinutes: null,
+            },
+            source: 'fallback',
+            message: 'The AI is set to pictures only, so the text was parsed locally.',
+        });
+    }
+
     try {
-        const recipe = await extractRecipeWithAi(parsed.data);
+        const recipe = await extractRecipeWithAi(parsed.data, ai.keys);
         return NextResponse.json({ recipe, source: 'ai' });
     } catch (error) {
         console.error('AI import error:', error);
