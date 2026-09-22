@@ -35,6 +35,7 @@ import imageCompression from './imageCompression.test';
 import navigation from './navigation.test';
 import ownership from './ownership.test';
 import ticketPath from './ticketPath.test';
+import oysterMark from './oysterMark.test';
 import cookProgress from './cookProgress.test';
 import safeFetch from './safeFetch.test';
 import similarRecipes from './similarRecipes.test';
@@ -75,6 +76,7 @@ async function main() {
     navigation();
     ownership();
     ticketPath();
+    oysterMark();
     cookProgress();
     await safeFetch();
     similarRecipes();

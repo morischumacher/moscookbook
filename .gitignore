@@ -52,3 +52,4 @@ dev.db
 # uploads
 /public/uploads
 cookies.txt
+.preview-mark.html
