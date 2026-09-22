@@ -573,7 +573,7 @@
         "kind_other": "Something else",
         "bodyLabel": "Description",
         "bodyPlaceholder": "For example: adding a photo takes two taps every time.",
-        "fromPage": "Sent from:",
+        "fromPage": "This page goes with it, so it is clear what you mean:",
         "send": "Open the ticket",
         "sending": "Sending…",
         "failed": "That did not work. Please try again.",
@@ -594,7 +594,8 @@
         "copyTicket": "Copy as a ticket",
         "copied": "Copied",
         "copyFailed": "Could not copy.",
-        "ticketHint": "Copies a finished text with the page, the date and the description — to paste wherever it gets fixed."
+        "ticketHint": "Copies a finished text with the page, the date and the description — to paste wherever it gets fixed.",
+        "dropPage": "Leave it out"
     },
     "Account": {
         "title": "Your account",

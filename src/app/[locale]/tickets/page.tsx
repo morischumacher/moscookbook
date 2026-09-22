@@ -149,9 +149,34 @@ export default function TicketsPage() {
                     />
                 </div>
 
+                {/*
+                    Explained, and removable.
+                    
+                    This was one word and a path — "Kommt von:
+                    /de/recipe/green-curry" — which is the system describing
+                    itself to somebody who did not ask. The first person to see
+                    it asked what it meant, which is the only review this kind
+                    of line ever gets.
+                    
+                    It says what it is for now, and it can be taken off. The
+                    page is genuinely useful for fixing things, but somebody
+                    writing "the search is slow" while standing on a recipe
+                    should not have to send that recipe along with it.
+                */}
                 {path && (
-                    <p className="text-sm text-muted">
-                        {t('fromPage')} <code className="font-mono text-ink">{path}</code>
+                    <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-muted">
+                        <span>
+                            {t('fromPage')}{' '}
+                            <code className="font-mono text-ink">{path}</code>
+                        </span>
+
+                        <button
+                            type="button"
+                            onClick={() => setPath(null)}
+                            className="underline underline-offset-4 hover:text-ink"
+                        >
+                            {t('dropPage')}
+                        </button>
                     </p>
                 )}
 
