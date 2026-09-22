@@ -518,15 +518,23 @@
         "sharedBy": "A collection from Mo’sCookbook"
     },
     "Visibility": {
-        "privateTitle": "Private",
-        "privateBody": "Only people with an account can open this recipe. Its address ends at the sign-in form for everybody else.",
-        "publicTitle": "Public",
-        "publicBody": "Anybody with the address can read this recipe, and a search engine may keep it. Rating it, noting it and adding photos still need an account, and the cooking log is not shown.",
+        "heading": "Visibility",
+        "privateBody": "Private — only people with an account can open this recipe.",
+        "publicBody": "Public — anybody with the address can read it, and a search engine may keep it. Rating, noting and adding photos still need an account, and the cooking log is not shown.",
+        "addressLabel": "This recipe’s address",
+        "copyAddress": "Copy address",
+        "copied": "Copied",
         "makePublic": "Publish",
         "makePrivate": "Make private again",
         "sureQuestion": "Put this on the open web?",
         "working": "Just a moment…",
-        "failed": "That did not work. Please try again."
+        "failed": "That did not work. Please try again.",
+        "share": "Share",
+        "copyFailed": "Could not copy.",
+        "makePublicShort": "Publish",
+        "makePrivateShort": "Make private",
+        "statePublic": "Public",
+        "statePrivate": "Private"
     },
     "Legal": {
         "imprintTitle": "Imprint",
@@ -557,24 +565,24 @@
         "rightsBody": "You may ask for access, correction, deletion, restriction and portability of your data, and you may object to its processing. Writing to me is enough. If you would like to complain, the Austrian Data Protection Authority in Vienna is the place.",
         "privacyUpdated": "As of September 2026. If something on the site changes that is described here, this text changes with it."
     },
-    "Feedback": {
-        "title": "Feedback",
-        "intro": "What is missing, what is annoying, what you would like. One sentence is enough — the more concrete, the more likely something happens.",
+    "Tickets": {
+        "title": "Open a ticket",
+        "intro": "What is missing, what is annoying, what you would like. One sentence is enough — the more concrete, the sooner it is fixed.",
         "kindLabel": "What is this about",
         "kind_idea": "An idea",
         "kind_problem": "Something is broken",
         "kind_other": "Something else",
-        "bodyLabel": "Your message",
+        "bodyLabel": "Description",
         "bodyPlaceholder": "For example: adding a photo takes two taps every time.",
         "fromPage": "Sent from:",
-        "send": "Send",
+        "send": "Open the ticket",
         "sending": "Sending…",
         "failed": "That did not work. Please try again.",
-        "thanksTitle": "Got it",
+        "thanksTitle": "Ticket is open",
         "thanksBody": "Thank you. It is on the list.",
         "backToRecipes": "Back to the recipes",
-        "nav": "Feedback",
-        "adminTitle": "Feedback",
+        "nav": "Tickets",
+        "adminTitle": "Tickets",
         "loading": "Loading…",
         "loadFailed": "The list could not be loaded.",
         "noneOpen": "Nothing open.",
@@ -583,6 +591,10 @@
         "showOpen": "Show open",
         "markDone": "Done",
         "reopen": "Reopen",
-        "someone": "Someone"
+        "someone": "Someone",
+        "copyTicket": "Copy as a ticket",
+        "copied": "Copied",
+        "copyFailed": "Could not copy.",
+        "ticketHint": "Copies a finished text with the page, the date and the description — to paste wherever it gets fixed."
     }
 }

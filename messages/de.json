@@ -518,15 +518,23 @@
         "sharedBy": "Eine Sammlung aus Mo’sCookbook"
     },
     "Visibility": {
-        "privateTitle": "Privat",
-        "privateBody": "Nur wer ein Konto hat, kann dieses Rezept öffnen. Für alle anderen endet die Adresse beim Anmeldeformular.",
-        "publicTitle": "Öffentlich",
-        "publicBody": "Jeder mit der Adresse kann das Rezept lesen, und eine Suchmaschine darf es behalten. Bewerten, notieren und Fotos hinzufügen geht weiterhin nur mit Konto, und das Kochprotokoll wird nicht gezeigt.",
+        "heading": "Sichtbarkeit",
+        "privateBody": "Privat — nur wer ein Konto hat, kann dieses Rezept öffnen.",
+        "publicBody": "Öffentlich — jeder mit der Adresse kann es lesen, und eine Suchmaschine darf es behalten. Bewerten, notieren und Fotos hinzufügen geht weiterhin nur mit Konto, und das Kochprotokoll wird nicht gezeigt.",
+        "addressLabel": "Adresse dieses Rezepts",
+        "copyAddress": "Adresse kopieren",
+        "copied": "Kopiert",
         "makePublic": "Veröffentlichen",
         "makePrivate": "Wieder privat machen",
         "sureQuestion": "Ins offene Netz stellen?",
         "working": "Einen Moment…",
-        "failed": "Hat nicht geklappt. Bitte noch einmal versuchen."
+        "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
+        "share": "Teilen",
+        "copyFailed": "Kopieren ging nicht.",
+        "makePublicShort": "Veröffentlichen",
+        "makePrivateShort": "Privat",
+        "statePublic": "Öffentlich",
+        "statePrivate": "Privat"
     },
     "Legal": {
         "imprintTitle": "Impressum",
@@ -557,24 +565,24 @@
         "rightsBody": "Du kannst Auskunft, Berichtigung, Löschung, Einschränkung und Übertragung deiner Daten verlangen und der Verarbeitung widersprechen. Schreib mir, das genügt. Wenn du dich beschweren möchtest, ist die Datenschutzbehörde in Wien zuständig.",
         "privacyUpdated": "Stand: September 2026. Sollte sich an der Seite etwas ändern, das hier steht, ändert sich auch dieser Text."
     },
-    "Feedback": {
-        "title": "Feedback",
-        "intro": "Was fehlt, was nervt, was du dir wünschst. Ein Satz reicht — je konkreter, desto eher passiert etwas.",
+    "Tickets": {
+        "title": "Ticket aufmachen",
+        "intro": "Was fehlt, was nervt, was du dir wünschst. Ein Satz reicht — je konkreter, desto eher ist es schnell behoben.",
         "kindLabel": "Worum geht es",
         "kind_idea": "Idee",
         "kind_problem": "Etwas geht nicht",
         "kind_other": "Sonstiges",
-        "bodyLabel": "Deine Nachricht",
+        "bodyLabel": "Beschreibung",
         "bodyPlaceholder": "Zum Beispiel: Beim Hinzufügen eines Fotos muss ich jedes Mal zweimal tippen.",
         "fromPage": "Kommt von:",
-        "send": "Abschicken",
+        "send": "Ticket aufmachen",
         "sending": "Wird gesendet…",
         "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
-        "thanksTitle": "Angekommen",
+        "thanksTitle": "Ticket ist offen",
         "thanksBody": "Danke. Es steht auf der Liste.",
         "backToRecipes": "Zurück zu den Rezepten",
-        "nav": "Feedback",
-        "adminTitle": "Feedback",
+        "nav": "Tickets",
+        "adminTitle": "Tickets",
         "loading": "Wird geladen…",
         "loadFailed": "Die Liste konnte nicht geladen werden.",
         "noneOpen": "Nichts offen.",
@@ -583,6 +591,10 @@
         "showOpen": "Offene zeigen",
         "markDone": "Erledigt",
         "reopen": "Wieder öffnen",
-        "someone": "Jemand"
+        "someone": "Jemand",
+        "copyTicket": "Als Ticket kopieren",
+        "copied": "Kopiert",
+        "copyFailed": "Kopieren ging nicht.",
+        "ticketHint": "Kopiert einen fertigen Text mit Seite, Datum und Beschreibung — zum Einfügen dort, wo es behoben wird."
     }
 }

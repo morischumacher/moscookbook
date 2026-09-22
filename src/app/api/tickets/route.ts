@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
     // Per account: a generous limit that only a stuck submit button reaches.
-    const limit = await rateLimitShared(`feedback:${user.id}`, 20, 60 * 60 * 1000);
+    const limit = await rateLimitShared(`ticket:${user.id}`, 20, 60 * 60 * 1000);
     if (!limit.ok) {
         return NextResponse.json(
             { message: 'That is a lot at once. Try again a little later.' },
@@ -68,14 +68,14 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const entry: { id: number; createdAt: Date } = await prisma.feedback.create({
+        const entry: { id: number; createdAt: Date } = await prisma.ticket.create({
             data: { ...parsed.data, userId: user.id },
             select: { id: true, createdAt: true },
         });
 
         return NextResponse.json(entry, { status: 201 });
     } catch (error) {
-        console.error('Feedback failed:', error);
+        console.error('Ticket failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
     const resolved = new URL(req.url).searchParams.get('resolved') === 'true';
 
     try {
-        const entries = await prisma.feedback.findMany({
+        const entries = await prisma.ticket.findMany({
             where: resolved ? { resolvedAt: { not: null } } : { resolvedAt: null },
             orderBy: { createdAt: 'desc' },
             take: 200,
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({ entries });
     } catch (error) {
-        console.error('Could not read feedback:', error);
+        console.error('Could not read tickets:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }
@@ -124,7 +124,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     try {
-        const updated: { count: number } = await prisma.feedback.updateMany({
+        const updated: { count: number } = await prisma.ticket.updateMany({
             where: { id },
             data: { resolvedAt: done ? new Date() : null },
         });
@@ -135,7 +135,7 @@ export async function PATCH(req: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Could not update feedback:', error);
+        console.error('Could not update ticket:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }

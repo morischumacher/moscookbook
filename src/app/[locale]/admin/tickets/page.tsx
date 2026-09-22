@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/lib/formatDate';
 import { pageContainer, pageHeading, pageTop, buttonSecondary } from '@/lib/ui';
 
-interface FeedbackRow {
+interface TicketRow {
     id: number;
     kind: string;
     body: string;
@@ -31,21 +31,22 @@ interface FeedbackRow {
  * on a page whose job is "here is what people told you" is the most
  * misleading thing it could say.
  */
-export default function AdminFeedbackPage() {
-    const t = useTranslations('Feedback');
+export default function AdminTicketsPage() {
+    const t = useTranslations('Tickets');
     const locale = useLocale();
 
-    const [entries, setEntries] = useState<FeedbackRow[]>([]);
+    const [entries, setEntries] = useState<TicketRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showResolved, setShowResolved] = useState(false);
+    const [copiedId, setCopiedId] = useState<number | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
         setError('');
 
         try {
-            const res = await fetch(`/api/feedback?resolved=${showResolved}`);
+            const res = await fetch(`/api/tickets?resolved=${showResolved}`);
             if (!res.ok) throw new Error(t('loadFailed'));
             const data = await res.json();
             setEntries(data.entries);
@@ -61,9 +62,44 @@ export default function AdminFeedbackPage() {
         void load();
     }, [load]);
 
+    /**
+     * The ticket as a block of text, ready to paste wherever it gets fixed.
+     *
+     * The gap this closes is small and it is the whole reason the list exists:
+     * somebody reads a complaint, agrees with it, and then has to retype it
+     * somewhere else with the page and the date, which is the moment most of
+     * them stop being tickets and go back to being remarks.
+     *
+     * Plain text rather than any particular tool's format. It pastes into a
+     * chat, an issue tracker, a note or a message, and none of those are
+     * chosen here because none of them should have to be.
+     */
+    const asTicket = (entry: TicketRow) =>
+        [
+            `[${t(`kind_${entry.kind}`)}] ${entry.body.trim()}`,
+            '',
+            entry.path ? `Page:   ${entry.path}` : null,
+            `From:   ${entry.user?.name ?? t('someone')} · ${formatDateTime(new Date(entry.createdAt), locale)}`,
+            `Ticket: #${entry.id}`,
+        ]
+            .filter((line) => line !== null)
+            .join('\n');
+
+    const copy = async (entry: TicketRow) => {
+        setError('');
+
+        try {
+            await navigator.clipboard.writeText(asTicket(entry));
+            setCopiedId(entry.id);
+            window.setTimeout(() => setCopiedId(null), 2500);
+        } catch {
+            setError(t('copyFailed'));
+        }
+    };
+
     const setResolved = async (id: number, resolved: boolean) => {
         try {
-            const res = await fetch('/api/feedback', {
+            const res = await fetch('/api/tickets', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, resolved }),
@@ -121,13 +157,24 @@ export default function AdminFeedbackPage() {
                                 <p className="mt-2 font-mono text-xs text-muted">{entry.path}</p>
                             )}
 
-                            <button
-                                type="button"
-                                onClick={() => void setResolved(entry.id, !entry.resolvedAt)}
-                                className="mt-3 text-xs text-muted underline underline-offset-4 hover:text-ink"
-                            >
-                                {entry.resolvedAt ? t('reopen') : t('markDone')}
-                            </button>
+                            <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                                <button
+                                    type="button"
+                                    onClick={() => void copy(entry)}
+                                    title={t('ticketHint')}
+                                    className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+                                >
+                                    {copiedId === entry.id ? t('copied') : t('copyTicket')}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => void setResolved(entry.id, !entry.resolvedAt)}
+                                    className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+                                >
+                                    {entry.resolvedAt ? t('reopen') : t('markDone')}
+                                </button>
+                            </p>
                         </li>
                     ))}
                 </ul>

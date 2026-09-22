@@ -26,8 +26,8 @@ const KINDS = ['idea', 'problem', 'other'] as const;
  * invites a second one and says nothing about the first; what somebody wants
  * to know here is that it arrived.
  */
-export default function FeedbackPage() {
-    const t = useTranslations('Feedback');
+export default function TicketsPage() {
+    const t = useTranslations('Tickets');
 
     const [kind, setKind] = useState<(typeof KINDS)[number]>('idea');
     const [body, setBody] = useState('');
@@ -46,7 +46,7 @@ export default function FeedbackPage() {
 
             const url = new URL(referrer);
             if (url.origin !== window.location.origin) return;
-            if (url.pathname.includes('/feedback')) return;
+            if (url.pathname.includes('/tickets')) return;
 
             setPath(url.pathname);
         } catch {
@@ -60,7 +60,7 @@ export default function FeedbackPage() {
         setError('');
 
         try {
-            const res = await fetch('/api/feedback', {
+            const res = await fetch('/api/tickets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ kind, body, path }),

@@ -28,7 +28,7 @@ model User {
   tokens         AuthToken[]
   posts          Post[]
   cookEntries    CookEntry[]
-  feedback       Feedback[]
+  tickets        Ticket[]
   ratings        Rating[]
   favorites      Favorite[]
   invitesCreated Invite[]   @relation("InviteCreatedBy")
@@ -453,7 +453,11 @@ model RateLimit {
   @@index([expiresAt])
 }
 
-/// What somebody thinks is wrong with the tool, or wants it to do.
+/// One thing to fix, change or add.
+///
+/// Called a ticket rather than "feedback" on purpose: feedback is something
+/// you receive, a ticket is something you work through, and a list named for
+/// the first is read while a list named for the second is emptied.
 ///
 /// Its own table rather than an e-mail, because an e-mail about a cookbook
 /// arrives in the same inbox as everything else and is answered never. A list
@@ -464,7 +468,7 @@ model RateLimit {
 /// cookbook. "The search is slow" restored into a fresh installation is a
 /// sentence with no referent. The same reasoning exempts the capture inbox and
 /// the error log; scripts/check-backup.mjs holds all three with their reasons.
-model Feedback {
+model Ticket {
   id         Int       @id @default(autoincrement())
 
   /// idea | problem | other. A short vocabulary rather than free text, so the
