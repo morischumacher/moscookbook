@@ -693,4 +693,62 @@ Gesendet von meinem iPhone`,
 
     restore();
 
+
+    // ── 13. A shortcut posts whatever the share sheet gave it ───────────────
+    suite('channel: the url field is not always a url');
+
+    /*
+     * The shortcut on his phone puts Shortcut Input into a field called `url`,
+     * because that is the field it was built with. Safari hands it a link.
+     * Apple Notes hands it the note — several hundred characters of recipe.
+     *
+     * What happened then: the prose became `sourceUrl`, the capture was
+     * classified as a link, and the pipeline went off to fetch a page whose
+     * address was "Käsespätzle 400 g Spätzle…". It failed, and the inbox said
+     * the page could not be read — about a complete recipe sitting in the row.
+     * "It sort of worked", he said, which is the politest possible description.
+     */
+
+    const appleNote = await share({
+        url: 'Käsespätzle\n\nZutaten\n400 g Spätzle\n2 Zwiebeln\nSalz\n\nZubereitung\nZwiebeln goldbraun braten und alles schichten.',
+    });
+
+    equal('a note posted as a url is read as text', appleNote.classified?.kind, 'text');
+    equal('with no source url invented for it', appleNote.classified?.sourceUrl, null);
+    equal('and it parses', appleNote.result?.status, 'ready');
+    equal('into a real title', appleNote.result?.draft?.title, 'Käsespätzle');
+    equal('with its ingredients', appleNote.result?.draft?.ingredients.length, 3);
+
+    // A real link still behaves exactly as before.
+    const link = await share({ url: 'https://kochblog.example/rezept' });
+    equal('a real url is still a url', link.classified?.kind, 'url');
+    equal('and keeps it', link.classified?.sourceUrl, 'https://kochblog.example/rezept');
+
+    // A link with a space in it is not a link; it is text with a link in it,
+    // and classifyCapture finds the link itself.
+    const both = await share({ url: 'schau mal https://kochblog.example/rezept' });
+    equal('text containing a link is classified by the link', both.classified?.kind, 'url');
+    equal(
+        'the link is extracted rather than used whole',
+        both.classified?.sourceUrl,
+        'https://kochblog.example/rezept'
+    );
+
+    // Both fields filled: neither is dropped.
+    const twice = await share({
+        url: 'Käsespätzle mit Zwiebeln',
+        text: 'Zutaten\n400 g Spätzle\n2 Zwiebeln\n\nZubereitung\nAlles schichten und backen.',
+    });
+    check(
+        'a stray url field is kept alongside the text',
+        (twice.classified?.rawText ?? '').includes('Käsespätzle mit Zwiebeln'),
+        twice.classified?.rawText
+    );
+    equal('and the recipe still parses', twice.result?.status, 'ready');
+
+    // An empty url field is not text.
+    const blank = await share({ url: '   ', text: 'Tomatensuppe\n\n500 g Tomaten\n1 EL Öl\n\nAlles pürieren und erhitzen.' });
+    equal('a blank url field disappears', blank.classified?.kind, 'text');
+    equal('and does not become a title', blank.result?.draft?.title, 'Tomatensuppe');
+
 }

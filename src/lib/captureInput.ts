@@ -39,7 +39,52 @@ export interface CaptureBody {
     image?: { base64: string; mediaType: string };
 }
 
-export function captureInputFrom(body: CaptureBody): ClassifiedCapture | null {
+/**
+ * Is this actually a link?
+ *
+ * The `url` field arrives from a shortcut, and a shortcut hands over whatever
+ * the share sheet gave it. From Safari that is a link. From Apple Notes it is
+ * the note — several hundred characters of recipe — posted into a field called
+ * `url` because that is the field the shortcut was built with.
+ *
+ * Without this check that prose became `sourceUrl`, the capture was classified
+ * as a link, and the pipeline went off to fetch a web page whose address was
+ * "Käsespätzle 400 g Spätzle 2 Zwiebeln…". It failed, of course, and the inbox
+ * said the page could not be read — about a recipe that had arrived complete
+ * and was sitting in the row.
+ */
+function looksLikeUrl(value: string | undefined): boolean {
+    if (!value) return false;
+    const text = value.trim();
+    if (/\s/.test(text)) return false;
+    return /^https?:\/\//i.test(text);
+}
+
+/**
+ * Sorts `url` and `text` into the fields they belong in.
+ *
+ * Whatever was posted as a url and is not one is moved to `text`, where the
+ * recipe parser will look at it — and where `classifyCapture` will still find
+ * a link inside it if there is one. Nothing is discarded and nothing is
+ * rejected; a share is never refused for being in the wrong box.
+ */
+function sorted(body: CaptureBody): CaptureBody {
+    if (body.url === undefined || looksLikeUrl(body.url)) return body;
+
+    const stray = body.url.trim();
+    if (stray === '') return { ...body, url: undefined };
+
+    return {
+        ...body,
+        url: undefined,
+        // Joined rather than replaced: a shortcut that fills in both should
+        // not have one of them quietly dropped.
+        text: body.text ? `${stray}\n\n${body.text}` : stray,
+    };
+}
+
+export function captureInputFrom(raw: CaptureBody): ClassifiedCapture | null {
+    const body = sorted(raw);
     const hasImage = Boolean(body.image) || Boolean(body.imageUrl);
 
     if (body.via !== 'email') return classifyCapture({ ...body, hasImage });
