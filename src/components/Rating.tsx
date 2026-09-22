@@ -97,15 +97,29 @@ export default function Rating({
     /** How much of oyster `position` is filled, 0 to 1. Averages are fractional. */
     const fillFor = (position: number) => Math.max(0, Math.min(1, shown - position + 1));
 
+    /*
+     * The pixel size the stylesheet will draw these at.
+     *
+     * The component picks its level of detail from the `size` prop, and this
+     * is the one place where the drawn size comes from CSS instead — so
+     * without this the small shells were drawn with the detail meant for
+     * twenty-four pixels and then scaled to fifteen, which is three rings'
+     * worth of ink in a space that holds one.
+     *
+     * Kept in step with --oyster in Rating.module.css by hand, because a
+     * custom property cannot be read from here without measuring the DOM.
+     */
+    const drawnSize = size === 'sm' ? 15 : 24;
+
     const oysters = positions.map((position) => {
         const fill = fillFor(position);
 
         const shape = (
             <span className={styles.oyster}>
-                <Oyster variant="outline" className={styles.empty} />
+                <Oyster variant="outline" size={drawnSize} className={styles.empty} />
                 {fill > 0 && (
                     <span className={styles.fill} style={{ width: `${fill * 100}%` }}>
-                        <Oyster variant="solid" className={styles.full} />
+                        <Oyster variant="solid" size={drawnSize} className={styles.full} />
                     </span>
                 )}
             </span>

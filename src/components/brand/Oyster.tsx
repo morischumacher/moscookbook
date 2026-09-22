@@ -30,37 +30,17 @@
  * what makes the wordmark's shell look like a shell rather than a stone.
  *
  * The detail follows the size, which is not decoration either: five rings at
- * sixteen pixels is a smudge, and one ring at 512 is a bean. Rendered at every
- * size the application actually uses before this was committed.
- */
-
-/**
- * The shell, drawn once. Everything else here is this path at a smaller scale.
- */
-const SHELL =
-    'M2.4 14.6 C1.9 10.4 6.8 6.3 12.6 6.2 C18.1 6.1 21.6 8.9 21.5 12.2 ' +
-    'C21.4 15.7 17.0 18.1 11.6 17.9 C6.2 17.7 2.8 17.2 2.4 14.6 Z';
-
-/**
- * Where the rings converge — the umbo, the point a shell grows out from.
+ * sixteen pixels is a smudge, and one ring at 512 is a bean.
  *
- * On the upper right, which is where the wordmark's are. A real oyster's rings
- * converge at the hinge, which is the pointed end; the wordmark does the
- * opposite and looks better for it, and matching the brand beats matching the
- * mollusc.
+ * **The geometry lives in lib/oysterMark.ts** so that a script can render what
+ * this component draws rather than its own copy of it. The previous tuning was
+ * checked by a script that reimplemented the ladder, the two agreed at every
+ * size except the smallest, and the smallest is the one on the rating badge —
+ * which shipped as a white sliver because the single ring, being the outline
+ * scaled to 0.74, had eaten the shell it was drawn on.
  */
-const UMBO_X = 18.6;
-const UMBO_Y = 8.6;
 
-/** How much detail a given size can hold, and how heavy the line has to be. */
-function detail(size: number): { rings: number[]; strokeWidth: number } {
-    if (size >= 64) return { rings: [0.84, 0.68, 0.52, 0.36, 0.21], strokeWidth: 0.75 };
-    if (size >= 32) return { rings: [0.8, 0.6, 0.38], strokeWidth: 1 };
-    if (size >= 20) return { rings: [0.78, 0.52], strokeWidth: 1.3 };
-    // At sixteen pixels a single ring is the difference between a shell and an
-    // olive. Two is already mud.
-    return { rings: [0.74], strokeWidth: 1.6 };
-}
+import { SHELL, detail, ringTransform } from '@/lib/oysterMark';
 
 export interface OysterProps {
     /**
@@ -92,9 +72,6 @@ export default function Oyster({
 }: OysterProps) {
     const { rings, strokeWidth } = detail(size);
 
-    const about = (factor: number) =>
-        `translate(${UMBO_X} ${UMBO_Y}) scale(${factor}) translate(${-UMBO_X} ${-UMBO_Y})`;
-
     return (
         <svg
             viewBox="0 0 24 24"
@@ -120,7 +97,7 @@ export default function Oyster({
                     <path
                         key={factor}
                         d={SHELL}
-                        transform={about(factor)}
+                        transform={ringTransform(factor)}
                         fill="none"
                         // On a filled shell the rings are cut out of the fill,
                         // so they take the colour of whatever is behind it —
