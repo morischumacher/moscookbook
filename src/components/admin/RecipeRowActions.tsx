@@ -134,7 +134,7 @@ export default function RecipeRowActions({
                     disabled={busy}
                     className={link}
                 >
-                    {t('makePrivateShort')}
+                    {t('makePrivate')}
                 </button>
             ) : (
                 // Asks first, here as on the recipe page. The list is exactly
@@ -142,9 +142,9 @@ export default function RecipeRowActions({
                 // and the labels are short — and this is the one action that
                 // cannot be fully undone.
                 <InlineConfirm
-                    label={t('makePublicShort')}
+                    label={t('makePublic')}
                     question={t('sureQuestion')}
-                    confirmLabel={t('makePublicShort')}
+                    confirmLabel={t('makePublic')}
                     disabled={busy}
                     onConfirm={() => setPublic(true)}
                     className={link}

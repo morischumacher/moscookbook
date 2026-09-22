@@ -65,6 +65,9 @@ interface Capture {
 export default function AdminInboxPage() {
     const t = useTranslations('Inbox');
     const tAdmin = useTranslations('Admin');
+    // The same word as the admin navigation's, from the same key: two keys
+    // holding one string is two strings waiting to disagree.
+    const tDevices = useTranslations('Devices');
     const router = useRouter();
 
     const [ask, dialog] = useConfirm();
@@ -179,7 +182,7 @@ export default function AdminInboxPage() {
             <div className={`mb-8 flex flex-wrap items-baseline justify-between gap-4 ${pageTop} ${pageHeading}`}>
                 <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
                 <Link href="/admin/devices" className="text-sm underline underline-offset-4">
-                    {t('devices')}
+                    {tDevices('nav')}
                 </Link>
             </div>
 

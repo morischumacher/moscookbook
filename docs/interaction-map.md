@@ -107,11 +107,11 @@ draft it abandoned.
 
 | Action | Labels in use | Recommendation |
 |---|---|---|
-| Publish / unpublish a recipe | `makePublic` (`Visibility`) vs `makePublicShort` (`RecipeRowActions`), same `PATCH …/visibility` | One label. The short one fits both. |
+| ~~Publish / unpublish a recipe~~ | `makePublic` and `makePublicShort` held the *same string* in both languages; `makePrivate`/`makePrivateShort` held two. | **Done.** One key per action, shortened so it fits a list row as well as a panel. |
 | Get a link to a recipe | `Share.share`, `Visibility.share`, `Share.copyLink`, `Visibility.copyAddress` — four labels, and they can copy *different* URLs (`/recipe/<slug>` vs `/r/<token>`) | Two verbs at most: **Share** (mints the token, copies the `/r/` link, uses the share sheet on a phone) and **Copy address** (the plain URL, for people with accounts). Say which is which. |
 | Create the share token | Explicit `createLink` button in `ShareLink`; invisible inside `share` in `ShareButton` — both on the recipe page at once | Keep one of the two components on the recipe page. |
-| Write a note on a recipe | `addNote` (`RecipeNotes`) vs `newPost` (`/admin/posts`) for the same destination | One label. |
-| Open the devices page | `tDevices('nav')` in AdminNav and on `/admin/ai`; `tInbox('devices')` on the inbox | One label. |
+| ~~Write a note on a recipe~~ | Read again: `addNote` is "Write a blog entry about this recipe" and `newPost` is "New entry". Same destination, different offers — the first carries the recipe with it. | **Not a duplicate.** This row was wrong; the labels stay. |
+| ~~Open the devices page~~ | Three entry points, and `Inbox.devices` held the same string as `Devices.nav` rather than a different one. | **Done.** The inbox reads the navigation's key; two keys holding one string is two strings waiting to disagree. |
 
 ### 5. The three longest paths, and where they can be shortened
 
@@ -151,8 +151,13 @@ one click that could be a redirect.
 
 1. ~~Make the proxy honour `'recipe'` access.~~ Done — `proxyStepsAside()`, commit f6b1ea1.
 2. ~~One shared client error path, then wire the silent actions to it.~~ Done — `messageFrom()` and `useAction()`; the eight sites in the table above all say so now.
-3. Collapse the four share labels to two verbs and drop one of the two share
-   components on the recipe page.
+3. ~~Collapse the duplicated labels.~~ Done for publish/unpublish and the
+   devices link; the `addNote`/`newPost` row turned out not to be a duplicate
+   and is struck above. **Still open:** the recipe page offers both an
+   implicit mint (`ShareButton`) and an explicit one (`ShareLink`, inside the
+   visibility panel). Keeping both is deliberate — the explicit one is also
+   where a link is *withdrawn* — but the panel should say that the Share
+   button above makes the same link.
 4. After Accept in the inbox, go to the recipe.
 5. Put the account link in the desktop header.
 6. Move `/drafts` under `/admin`, or make its access `admin`.
