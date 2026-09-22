@@ -7,6 +7,7 @@ import { fetchPage } from './fetchPage';
 import { youtubeVideoId, extractYoutubePage, cleanYoutubeDescription } from './youtube';
 import { fetchImageAsBase64 } from './fetchImage';
 import { readableText } from './readableText';
+import { assessDraft, worthAsking } from './draftQuality';
 import {
     assistsText,
     canUseAi,
@@ -98,15 +99,29 @@ function emptyDraft(sourceUrl: string): ImportedRecipe {
 /**
  * Enough to publish without opening the editor?
  *
- * A title alone is not a recipe, and neither is a list of ingredients with no
- * method. Anything short of both is `needsWork` — which does not mean broken,
- * only that it wants a human for a minute.
+ * This is now the *scored* question rather than the three-field one it used to
+ * be — see lib/draftQuality.ts for why a title, one ingredient and a non-empty
+ * instructions field turned out to be a bar that "Cook Mode / Servings / Print
+ * Recipe" clears comfortably.
+ *
+ * `good` is what used to be called ready. Everything else wants a human for a
+ * minute, which is what the inbox is.
  */
 function completeness(draft: ImportedRecipe): 'ready' | 'needsWork' {
-    const hasTitle = draft.title.trim() !== '';
-    const hasIngredients = draft.ingredients.length > 0;
-    const hasInstructions = draft.instructions.trim() !== '';
-    return hasTitle && hasIngredients && hasInstructions ? 'ready' : 'needsWork';
+    return assessDraft(draft).quality === 'good' ? 'ready' : 'needsWork';
+}
+
+/**
+ * Is this draft worth spending a model on?
+ *
+ * Deliberately *not* the same question as `completeness`, even though today
+ * they agree. "Is this good enough to publish untouched" and "would asking
+ * again plausibly improve it" are different questions about different risks,
+ * and collapsing them is how a cookbook ends up paying to re-read pages it
+ * read perfectly.
+ */
+function shouldAsk(draft: ImportedRecipe): boolean {
+    return worthAsking(assessDraft(draft));
 }
 
 /** Fills the gaps in `draft` from `fallback`, without overwriting real data. */
@@ -248,7 +263,7 @@ async function processYoutube(
      */
     let usedAi: string | null = null;
 
-    if (completeness(merged) !== 'ready' && assistsText(ai)) {
+    if (shouldAsk(merged) && assistsText(ai)) {
         const helped = await fillGapsWithAi(
             merged,
             [video.title, description, shared].filter(Boolean).join('\n\n'),
@@ -287,7 +302,7 @@ async function processWebPage(
             let draft = { ...emptyDraft(url), ...parsed };
             let usedAi: string | null = null;
 
-            if (completeness(draft) !== 'ready' && assistsText(ai)) {
+            if (shouldAsk(draft) && assistsText(ai)) {
                 const helped = await fillGapsWithAi(draft, shared, ai);
                 draft = helped.draft;
                 usedAi = helped.used;
@@ -319,7 +334,7 @@ async function processWebPage(
      */
     let usedAi: string | null = null;
 
-    if (completeness(draft) !== 'ready' && assistsText(ai)) {
+    if (shouldAsk(draft) && assistsText(ai)) {
         const helped = await fillGapsWithAi(draft, readableText(page.html), ai);
         draft = helped.draft;
         usedAi = helped.used;
@@ -432,7 +447,7 @@ export async function processCapture(
             // somebody's aunt, which is exactly what a model is good at.
             let usedAi: string | null = null;
 
-            if (completeness(draft) !== 'ready' && assistsText(ai)) {
+            if (shouldAsk(draft) && assistsText(ai)) {
                 const helped = await fillGapsWithAi(draft, text, ai);
                 draft = helped.draft;
                 usedAi = helped.used;
