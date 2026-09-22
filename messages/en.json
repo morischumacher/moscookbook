@@ -141,7 +141,9 @@
         "verifyResent": "Sent. Have a look in your inbox.",
         "verifyResendFailed": "that did not work, try again later",
         "inviteShareTitle": "You have been invited to Mo'sCookbook",
-        "inviteShareDescription": "A private cookbook. Open the link to create your account."
+        "inviteShareDescription": "A private cookbook. Open the link to create your account.",
+        "inviteUsed": "This invitation has already been used. If the account is yours, sign in — or ask Mo for a new link.",
+        "inviteExpired": "This invitation has expired. Ask Mo for a new link."
     },
     "Admin": {
         "dashboard": "Recipes",

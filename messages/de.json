@@ -141,7 +141,9 @@
         "verifyResent": "Abgeschickt. Schau in dein Postfach.",
         "verifyResendFailed": "hat nicht geklappt, bitte später noch einmal",
         "inviteShareTitle": "Du bist zu Mo'sCookbook eingeladen",
-        "inviteShareDescription": "Ein privates Kochbuch. Über den Link legst du dein Konto an."
+        "inviteShareDescription": "Ein privates Kochbuch. Über den Link legst du dein Konto an.",
+        "inviteUsed": "Diese Einladung wurde schon benutzt. Wenn das Konto deins ist, melde dich an — sonst frag Mo nach einem neuen Link.",
+        "inviteExpired": "Diese Einladung ist abgelaufen. Frag Mo nach einem neuen Link."
     },
     "Admin": {
         "dashboard": "Rezepte",

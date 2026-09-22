@@ -1,148 +1,66 @@
-'use client';
-
-import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
-import { goAfterAuth } from '@/lib/afterAuth';
+import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
-import { buttonPrimary } from '@/lib/ui';
+import RegisterForm from '@/components/auth/RegisterForm';
+import { inviteLinkState } from '@/lib/linkState';
 
-const fieldClass =
-    'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
-const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-muted';
+/**
+ * Making an account, which needs an invitation.
+ *
+ * **The invitation is checked before the form is drawn**, for the same reason
+ * the reset page checks its link — and here the cost of getting it wrong was
+ * higher. The page used to ask only whether an `invite` parameter was
+ * *present*. Anything in it was accepted as far as the form was concerned, so
+ * somebody opening a spent invitation filled in a first name, a last name, an
+ * address and a password, pressed the button, and only then learned that the
+ * invitation had been used — often by themselves, weeks earlier, which is
+ * exactly why the mail was still in their inbox.
+ *
+ * Four fields of typing to be told something that was knowable before the page
+ * rendered.
+ *
+ * Only a read; the invitation is claimed by the conditional UPDATE in the
+ * registration route, which is what makes two people opening one link produce
+ * one account.
+ */
+export default async function RegisterPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+    const t = await getTranslations('Auth');
 
-export default function RegisterPage() {
-    const t = useTranslations('Auth');
-    const locale = useLocale();
-    const searchParams = useSearchParams();
-    const invite = searchParams.get('invite') ?? '';
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const raw = (await searchParams).invite;
+    const invite = typeof raw === 'string' ? raw : undefined;
 
-    const handleSubmit = async (event: React.FormEvent) => {
-        event.preventDefault();
-        setError('');
-        setIsLoading(true);
-
-        try {
-            const res = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ firstName, lastName, email, password, invite, locale }),
-            });
-
-            if (res.ok) {
-                // A full load, not a client navigation: see afterAuth.ts.
-                goAfterAuth(locale, '/');
-                return;
-            }
-
-            const data = await res.json();
-            setError(data.message || t('registerFailed'));
-        } catch {
-            setError(t('error'));
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const state = await inviteLinkState(invite);
 
     return (
         <main className="container mx-auto max-w-sm px-4 pb-32 pt-16 sm:pt-24">
             <h1 className="mb-3 text-3xl font-extrabold tracking-tight">{t('registerTitle')}</h1>
             <p className="mb-8 font-serif text-muted">{t('registerIntro')}</p>
 
-            {!invite ? (
+            {state === 'valid' ? (
+                <RegisterForm invite={invite as string} />
+            ) : (
                 <div className="rounded-lg border border-line p-4">
-                    <p className="text-muted">{t('inviteRequired')}</p>
+                    {/* Three different situations, and the difference matters:
+                        arriving with no invitation at all is somebody who needs
+                        to be asked for one, while a used or expired invitation
+                        is somebody who had one and needs another. Telling them
+                        apart is the difference between "ask Mo" and "look for a
+                        newer mail", and only one of those is worth doing. */}
+                    <p className="text-muted">
+                        {state === 'missing' || state === 'unknown'
+                            ? t('inviteRequired')
+                            : state === 'used'
+                              ? t('inviteUsed')
+                              : t('inviteExpired')}
+                    </p>
+
                     <Link href="/login" className="mt-4 inline-block text-sm underline underline-offset-4">
                         {t('loginLink')}
                     </Link>
                 </div>
-            ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                {error && (
-                    <p className="rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
-                        {error}
-                    </p>
-                )}
-
-                {/* Side by side once there is room; stacked on a phone, where
-                    two half-width fields are two half-width mistakes. */}
-                <div className="flex flex-col gap-6 sm:flex-row sm:gap-4">
-                    <div className="flex-1">
-                        <label htmlFor="firstName" className={labelClass}>{t('firstName')}</label>
-                        <input
-                            type="text"
-                            id="firstName"
-                            autoComplete="given-name"
-                            value={firstName}
-                            onChange={(event) => setFirstName(event.target.value)}
-                            required
-                            className={fieldClass}
-                        />
-                    </div>
-
-                    <div className="flex-1">
-                        <label htmlFor="lastName" className={labelClass}>{t('lastName')}</label>
-                        <input
-                            type="text"
-                            id="lastName"
-                            autoComplete="family-name"
-                            value={lastName}
-                            onChange={(event) => setLastName(event.target.value)}
-                            required
-                            className={fieldClass}
-                        />
-                    </div>
-                </div>
-
-                <div>
-                    <label htmlFor="email" className={labelClass}>{t('email')}</label>
-                    <input
-                        type="email"
-                        id="email"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        required
-                        className={fieldClass}
-                    />
-                </div>
-
-                <div>
-                    <label htmlFor="password" className={labelClass}>{t('password')}</label>
-                    <input
-                        type="password"
-                        id="password"
-                        autoComplete="new-password"
-                        minLength={8}
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        required
-                        className={fieldClass}
-                    />
-                    <p className="mt-2 text-sm text-muted">{t('passwordHint')}</p>
-                </div>
-
-                <button
-                    type="submit"
-                    disabled={isLoading}
-                    className={buttonPrimary}
-                >
-                    {isLoading ? t('creatingAccount') : t('submitRegister')}
-                </button>
-
-                <p className="text-center text-sm text-muted">
-                    {t('haveAccount')}{' '}
-                    <Link href="/login" className="underline underline-offset-4">
-                        {t('loginLink')}
-                    </Link>
-                </p>
-            </form>
             )}
         </main>
     );

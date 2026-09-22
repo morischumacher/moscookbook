@@ -1,141 +1,67 @@
-'use client';
-
-import { Suspense, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
-import { goAfterAuth } from '@/lib/afterAuth';
+import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
-import { buttonPrimary } from '@/lib/ui';
+import ResetForm from '@/components/auth/ResetForm';
+import { linkState } from '@/lib/linkState';
 
-const fieldClass =
-    'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
-const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-muted';
+/**
+ * Setting a new password from a mailed link.
+ *
+ * **The link is checked before the form is drawn.** This page used to render
+ * the form whatever state the link was in, and only say "this link is no
+ * longer valid" after somebody had invented a password, typed it twice and
+ * pressed the button. Opening a spent link a second time — which people do,
+ * because the mail is still in the inbox — looked exactly like opening a good
+ * one, right up to the last moment.
+ *
+ * A form is a promise that filling it in will do something. Drawing one that
+ * cannot work is a broken promise made deliberately, and here it wastes the
+ * one thing the person came to do: think of a password. Worse, some of them
+ * will leave believing it is set.
+ *
+ * So the check moved to the server, before the page exists. Nothing is spent
+ * by looking — see lib/linkState.ts — and the form is still the thing that
+ * redeems the link, so a link that dies in the half-minute between the page
+ * loading and the button being pressed is still reported properly by the form
+ * itself.
+ *
+ * Every dead end offers the way out, which is asking for a new link. A page
+ * that says "no" without saying "instead" is a page somebody has to solve.
+ */
+export default async function ResetPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+    const t = await getTranslations('Auth');
 
-function ResetForm() {
-    const t = useTranslations('Auth');
-    const locale = useLocale();
-    const token = useSearchParams().get('token') ?? '';
+    const raw = (await searchParams).token;
+    const token = typeof raw === 'string' ? raw : undefined;
 
-    const [password, setPassword] = useState('');
-    const [confirmation, setConfirmation] = useState('');
-    const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-
-    const handleSubmit = async (event: React.FormEvent) => {
-        event.preventDefault();
-
-        // Checked here as well as on the server, because the mistake this
-        // catches — a typo in a password nobody can see — is one the server
-        // cannot catch at all.
-        if (password !== confirmation) {
-            setError(t('passwordMismatch'));
-            return;
-        }
-
-        setError('');
-        setIsLoading(true);
-
-        try {
-            const res = await fetch('/api/auth/reset', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, password }),
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-                goAfterAuth(locale, data.admin ? '/admin' : '/');
-                return;
-            }
-
-            // "expired" and "used" are worth naming: they tell the person to
-            // ask for a new link rather than to doubt what they typed.
-            const reason = typeof data.reason === 'string' ? data.reason : '';
-            setError(
-                reason === 'expired' || reason === 'used'
-                    ? t('linkExpired')
-                    : data.message || t('error')
-            );
-        } catch {
-            setError(t('error'));
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    if (!token) {
-        return (
-            <div className="flex flex-col gap-6">
-                <p className="rounded-lg border border-danger-line bg-danger-surface p-4 text-sm text-danger">
-                    {t('linkMissing')}
-                </p>
-                <Link href="/forgot" className="text-center text-sm underline underline-offset-4">
-                    {t('forgotTitle')}
-                </Link>
-            </div>
-        );
-    }
-
-    return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            {error && (
-                <p className="rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
-                    {error}
-                </p>
-            )}
-
-            <div>
-                <label htmlFor="password" className={labelClass}>{t('newPassword')}</label>
-                <input
-                    type="password"
-                    id="password"
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    required
-                    minLength={8}
-                    className={fieldClass}
-                />
-                <p className="mt-2 text-sm text-muted">{t('passwordHint')}</p>
-            </div>
-
-            <div>
-                <label htmlFor="confirmation" className={labelClass}>{t('repeatPassword')}</label>
-                <input
-                    type="password"
-                    id="confirmation"
-                    autoComplete="new-password"
-                    value={confirmation}
-                    onChange={(event) => setConfirmation(event.target.value)}
-                    required
-                    minLength={8}
-                    className={fieldClass}
-                />
-            </div>
-
-            <button
-                type="submit"
-                disabled={isLoading}
-                className={buttonPrimary}
-            >
-                {t('resetSubmit')}
-            </button>
-        </form>
-    );
-}
-
-export default function ResetPage() {
-    const t = useTranslations('Auth');
+    const state = await linkState(token, 'reset');
 
     return (
         <main className="container mx-auto max-w-sm px-4 pb-32 pt-16 sm:pt-24">
             <h1 className="mb-8 text-3xl font-extrabold tracking-tight">{t('resetTitle')}</h1>
-            {/* useSearchParams reads something only the browser knows, so the
-                subtree has to be allowed to render later than the page. */}
-            <Suspense fallback={null}>
-                <ResetForm />
-            </Suspense>
+
+            {state === 'valid' ? (
+                <ResetForm token={token as string} />
+            ) : (
+                <div className="flex flex-col gap-6">
+                    <p className="rounded-lg border border-danger-line bg-danger-surface p-4 text-sm text-danger">
+                        {/* A link with no token at all is a different mistake
+                            from a link that has been used: one is a mangled
+                            address, the other is a link that did its job. Both
+                            lead to the same door, but saying which happened
+                            saves somebody hunting for a second copy of a mail
+                            that would not have worked either. */}
+                        {state === 'missing' ? t('linkMissing') : t('linkExpired')}
+                    </p>
+
+                    <Link href="/forgot" className="text-center text-sm underline underline-offset-4">
+                        {t('forgotTitle')}
+                    </Link>
+                </div>
+            )}
         </main>
     );
 }

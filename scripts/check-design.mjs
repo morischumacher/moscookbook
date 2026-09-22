@@ -108,13 +108,62 @@ for (const file of walk('src')) {
     });
 }
 
+
+/**
+ * A page that acts on a mailed link has to check it before drawing the form.
+ *
+ * Both of them did not. The reset page rendered the password fields whatever
+ * state the link was in and only said "this link is no longer valid" after
+ * somebody had invented a password and typed it twice. The registration page
+ * was worse: it checked only that an `invite` parameter existed, so a spent
+ * invitation cost four fields of typing before it said no.
+ *
+ * A form is a promise that filling it in will do something. The way that
+ * promise gets broken again is somebody moving the form back into the page to
+ * "simplify" it — at which point the page needs `'use client'`, the check
+ * cannot run on the server any more, and nothing else notices.
+ *
+ * So: these pages stay server components, and they consult lib/linkState.
+ */
+const LINK_PAGES = [
+    ['src/app/[locale]/reset/page.tsx', 'linkState'],
+    ['src/app/[locale]/register/page.tsx', 'inviteLinkState'],
+];
+
+for (const [page, helper] of LINK_PAGES) {
+    let text;
+
+    try {
+        text = readFileSync(page, 'utf8');
+    } catch {
+        problems.push(`${page} is missing, and it is the page that checks a mailed link.`);
+        continue;
+    }
+
+    if (/^\s*'use client'/m.test(text)) {
+        problems.push(
+            `${page} is a client component.\n` +
+            '    It has to stay on the server: the link is checked before the form is\n' +
+            '    drawn, and a client component cannot do that without a round trip.'
+        );
+    }
+
+    if (!text.includes(helper)) {
+        problems.push(
+            `${page} does not call ${helper}().\n` +
+            '    Without it the form is shown for a link that has already been used,\n' +
+            '    and the person finds out only after filling it in.'
+        );
+    }
+}
+
 if (problems.length > 0) {
-    console.error('Colours that bypass the design tokens:\n');
+    console.error('Design rules:\n');
     for (const problem of problems) console.error(`  ${problem}\n`);
     process.exit(1);
 }
 
 console.log(
-    `check:design — ${scanned} files, no colours outside the tokens ` +
-    'and no primary buttons outside lib/ui.'
+    `check:design — ${scanned} files, no colours outside the tokens, ` +
+    'no primary buttons outside lib/ui, and both link pages check before they ask.'
 );
