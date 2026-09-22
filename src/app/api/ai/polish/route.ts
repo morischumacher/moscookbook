@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { clientKey, rateLimit } from '@/lib/rateLimit';
 import { canUseAi, completeWithKey } from '@/lib/aiImport';
-import { aiCapability } from '@/lib/aiConfig';
+import { aiCapability, rememberModel } from '@/lib/aiConfig';
 import { polish, polishSchema } from '@/lib/aiPolish';
 
 /**
@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
     }
 
     const outcome = await polish(parsed.data.mode, parsed.data.text, ai.keys, (key, system, text) =>
-        completeWithKey(key, { kind: 'raw', system, text })
+        completeWithKey(key, { kind: 'raw', system, text }, (provider, model) =>
+            void rememberModel(provider, model)
+        )
     );
 
     if (!outcome.ok) {

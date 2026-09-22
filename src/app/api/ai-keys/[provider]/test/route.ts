@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { clientKey, rateLimit } from '@/lib/rateLimit';
 import { extractWithKey, isAiProvider, PROVIDER_LABEL } from '@/lib/aiImport';
-import { keyFor, listAiCredentials, recordCheck } from '@/lib/aiConfig';
+import { keyFor, listAiCredentials, recordCheck, rememberModel } from '@/lib/aiConfig';
 import { scrub } from '@/lib/secretBox';
 
 /**
@@ -68,8 +68,18 @@ export async function POST(req: NextRequest, context: { params: Promise<{ provid
         );
     }
 
+    let answered: string | null = null;
+
     try {
-        const recipe = await extractWithKey(key, { kind: 'text', text: PROBE });
+        const recipe = await extractWithKey(key, { kind: 'text', text: PROBE }, (_, model) => {
+            answered = model;
+        });
+
+        // The point of pressing Test is to find out what works. When the
+        // fallback had to walk past the default to get an answer, that is the
+        // answer — so it is kept, and the screen says which one and that
+        // nobody chose it.
+        if (answered && answered !== key.model) await rememberModel(provider, answered);
 
         if (!recipe.title.trim() || recipe.ingredients.length === 0) {
             // It answered, and the answer was empty. Almost always a model
@@ -93,7 +103,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ provid
             // convincing from a green tick.
             title: recipe.title,
             ingredients: recipe.ingredients.length,
-            model: key.model,
+            model: answered ?? key.model,
             credentials: await listAiCredentials(),
         });
     } catch (error) {

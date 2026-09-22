@@ -128,6 +128,8 @@ export interface AiCredentialView {
     checkError: string | null;
     /** Has this key ever been seen to work? Until it has, it is not used. */
     verified: boolean;
+    /** Set when the model in `model` was chosen by a fallback, not by a person. */
+    autoModelAt: string | null;
     /**
      * True when a row exists but its envelope will not open — which means the
      * session secret was rotated. The screen says so and asks for the key
@@ -276,6 +278,7 @@ interface ViewRow {
     checkedAt: Date | null;
     checkError: string | null;
     verifiedAt: Date | null;
+    autoModelAt: Date | null;
 }
 
 /**
@@ -304,6 +307,7 @@ export async function listAiCredentials(): Promise<AiCredentialView[]> {
                 checkedAt: true,
                 checkError: true,
                 verifiedAt: true,
+                autoModelAt: true,
             },
         })
             .catch(() => [])) as ViewRow[])
@@ -327,6 +331,7 @@ export async function listAiCredentials(): Promise<AiCredentialView[]> {
                 checkedAt: row.checkedAt ? row.checkedAt.toISOString() : null,
                 checkError: row.checkError,
                 verified: row.verifiedAt !== null,
+                autoModelAt: row.autoModelAt ? row.autoModelAt.toISOString() : null,
                 unreadable: open(row.secret) === null,
             };
         }
@@ -343,6 +348,7 @@ export async function listAiCredentials(): Promise<AiCredentialView[]> {
             checkError: null,
             // An environment key is taken on trust; see `aiCapability`.
             verified: env.has(provider),
+            autoModelAt: null,
             unreadable: false,
         };
     });
@@ -397,7 +403,8 @@ export async function saveAiCredential(input: SaveCredential): Promise<boolean> 
                     verifiedAt: null,
                 }
                 : {}),
-            ...(input.model !== undefined ? { model } : {}),
+            // Typing a model in is a decision, so it stops being automatic.
+            ...(input.model !== undefined ? { model, autoModelAt: null } : {}),
             ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
             ...(input.priority !== undefined ? { priority: input.priority } : {}),
         },
@@ -456,6 +463,34 @@ export async function recordCheck(provider: AiProvider, error: string | null): P
                 checkError: error,
                 ...(error === null ? { verifiedAt: new Date() } : {}),
             },
+        })
+        .catch(() => undefined);
+}
+
+/**
+ * Writes down which model actually answered.
+ *
+ * Only when the field was left empty — that is, when the deployment is on
+ * "whatever the default is". Somebody who typed a model name in made a
+ * decision, and this may carry on past it for one request but must not quietly
+ * rewrite it; the next person to look at that screen should see what they
+ * chose, not what a fallback picked at three in the morning.
+ *
+ * Fire and forget. It is a side effect on a read path — an import is in
+ * progress and somebody is waiting — so a failure here changes nothing about
+ * the recipe that is being read.
+ */
+export async function rememberModel(provider: AiProvider, model: string): Promise<void> {
+    const credentials = table('aiCredential');
+    if (!credentials || !isValidModel(model)) return;
+
+    await credentials
+        .updateMany({
+            // The `model: null` in the filter is the whole rule: an explicit
+            // choice is never overwritten, and there is no read-then-write
+            // between the two halves for anything to race in.
+            where: { provider, model: null },
+            data: { model, autoModelAt: new Date() },
         })
         .catch(() => undefined);
 }

@@ -619,6 +619,13 @@ model AiCredential {
   checkedAt  DateTime?
   checkError String?
 
+  /// Set when `model` was filled in by the fallback rather than by a person.
+  ///
+  /// The screen says so, because "the model changed itself" is exactly the
+  /// kind of thing that should never be a surprise — and because the reason it
+  /// changed (the previous one was out of quota) is worth knowing.
+  autoModelAt DateTime?
+
   /// When this key was last seen to actually work — and the gate on using it.
   ///
   /// A key that has never produced a recipe is not used for anything. Pasting

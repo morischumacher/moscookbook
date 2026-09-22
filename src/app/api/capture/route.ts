@@ -10,7 +10,7 @@ import { captureInputFrom } from '@/lib/captureInput';
 import { storeCaptureImage, MAX_CAPTURE_IMAGE_BASE64 } from '@/lib/storeCaptureImage';
 import { findDuplicate, type ExistingRecipe } from '@/lib/duplicates';
 import { processCapture } from '@/lib/captureProcess';
-import { aiCapability } from '@/lib/aiConfig';
+import { aiCapability, rememberModel } from '@/lib/aiConfig';
 import { canUseAi } from '@/lib/aiImport';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { toJsonObject } from '@/lib/json';
@@ -193,7 +193,8 @@ export async function POST(req: NextRequest) {
         // about a picture that had just been stored perfectly.
         const result = await processCapture(
             { ...classified, imageUrl: imageUrl ?? classified.imageUrl },
-            await aiCapability()
+            await aiCapability(),
+            { onModel: (provider, model) => void rememberModel(provider, model) }
         );
 
         // Foreign image hosts are rejected by next/image, so the picture is

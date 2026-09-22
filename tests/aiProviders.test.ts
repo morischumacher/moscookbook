@@ -432,6 +432,124 @@ export default async function aiProviderTests() {
     equal('a missing model is not retried either', attempts, 1);
     undo();
 
+
+    /* ------------------------------------------- walking to the next model */
+
+    suite('ai: when the model is the problem, try another');
+
+    const GEMINI_OF = (model: string) =>
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+    const geminiAnswer = { candidates: [{ content: { parts: [{ text: RECIPE }] } }] };
+
+    /*
+     * The run that produced this. `gemini-flash-latest` — the default, and an
+     * alias that always points at the current model — answered 503, 503, then
+     * 429 "you exceeded your current quota". The fix was to find a model that
+     * answers and type its name into a box, which is a fix with an expiry
+     * date: the working model on a free tier changes with the week.
+     */
+    net = recordFetch({
+        [GEMINI_OF('gemini-flash-latest')]: {
+            status: 503,
+            json: { error: { code: 503, message: 'This model is currently experiencing high demand.' } },
+        },
+        [GEMINI_OF('gemini-flash-lite-latest')]: { json: geminiAnswer },
+    });
+
+    let chosen = '';
+    recipe = await extractWithKey(googleKey, TEXT, (_, model) => { chosen = model; });
+
+    equal('the next model answers', recipe.title, 'Ofengemüse mit Feta');
+    equal('and is reported, so it can be remembered', chosen, 'gemini-flash-lite-latest');
+    // Two attempts on the busy one (one retry), then one on the next.
+    equal('the busy model was retried once before moving on', net.sent.length, 3);
+    net.restore();
+
+    // An exhausted quota does not get a retry on the way past: the ration is
+    // gone and waiting will not refill it.
+    net = recordFetch({
+        [GEMINI_OF('gemini-flash-latest')]: {
+            status: 429,
+            json: { error: { code: 429, message: 'You exceeded your current quota, check your plan and billing details' } },
+        },
+        [GEMINI_OF('gemini-flash-lite-latest')]: { json: geminiAnswer },
+    });
+
+    recipe = await extractWithKey(googleKey, TEXT);
+    equal('a quota moves straight on', recipe.title, 'Ofengemüse mit Feta');
+    equal('with no retry wasted on it', net.sent.length, 2);
+    net.restore();
+
+    // A model that no longer exists is the third case worth walking past.
+    net = recordFetch({
+        [GEMINI_OF('gemini-flash-latest')]: {
+            status: 404,
+            json: { error: { code: 404, message: 'models/gemini-flash-latest is not found' } },
+        },
+        [GEMINI_OF('gemini-flash-lite-latest')]: { json: geminiAnswer },
+    });
+
+    recipe = await extractWithKey(googleKey, TEXT);
+    equal('a model that is gone is walked past', recipe.title, 'Ofengemüse mit Feta');
+    net.restore();
+
+    /*
+     * And the case this must not become: a bad key fails identically on every
+     * model, so walking the list would turn one refusal into five requests and
+     * five times the waiting, for the same answer.
+     */
+    net = recordFetch({});   // everything 404s at the transport level… so:
+    net.restore();
+
+    net = recordFetch(
+        Object.fromEntries(
+            ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'].map(
+                (model) => [GEMINI_OF(model), { status: 401, json: { error: { code: 401, message: 'API key not valid' } } }]
+            )
+        )
+    );
+
+    threw = '';
+    try {
+        await extractWithKey(googleKey, TEXT);
+    } catch (error) {
+        threw = error instanceof Error ? error.message : '';
+    }
+
+    equal('a bad key is refused once, not five times', net.sent.length, 1);
+    check('and says what happened', threw.includes('401'), threw);
+    net.restore();
+
+    /* ---------------------------------------- an explicit choice goes first */
+
+    net = recordFetch({ [GEMINI_OF('gemini-2.0-flash')]: { json: geminiAnswer } });
+
+    chosen = '';
+    recipe = await extractWithKey(
+        { ...googleKey, model: 'gemini-2.0-flash' },
+        TEXT,
+        (_, model) => { chosen = model; }
+    );
+
+    equal('a model somebody typed in is asked first', chosen, 'gemini-2.0-flash');
+    equal('and nothing else is asked', net.sent.length, 1);
+    net.restore();
+
+    // …and is still walked past when it will not answer at all, because a
+    // recipe in the inbox beats deference to a setting.
+    net = recordFetch({
+        [GEMINI_OF('gemini-2.0-flash')]: {
+            status: 429,
+            json: { error: { code: 429, message: 'exceeded your current quota' } },
+        },
+        [GEMINI_OF('gemini-flash-latest')]: { json: geminiAnswer },
+    });
+
+    recipe = await extractWithKey({ ...googleKey, model: 'gemini-2.0-flash' }, TEXT);
+    equal('an explicit model that is out of quota is not a dead end', recipe.title, 'Ofengemüse mit Feta');
+    net.restore();
+
 }
 
 async function noKeys(): Promise<string> {
