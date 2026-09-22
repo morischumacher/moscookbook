@@ -1,11 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
+import TicketLink from '@/components/TicketLink';
 import styles from './Footer.module.css';
 
 export default async function Footer() {
     const t = await getTranslations('Site');
     const tLegal = await getTranslations('Legal');
-    const tTickets = await getTranslations('Tickets');
 
     return (
         <footer className={styles.footer}>
@@ -31,9 +31,7 @@ export default async function Footer() {
                         component on every page and a link that leads to a
                         sign-in form is a smaller cost than making this one
                         page's rendering depend on the session. */}
-                    <Link href="/tickets" className="underline underline-offset-4 hover:opacity-70">
-                        {tTickets('nav')}
-                    </Link>
+                    <TicketLink className="underline underline-offset-4 hover:opacity-70" />
                 </p>
             </div>
         </footer>
