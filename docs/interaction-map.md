@@ -144,7 +144,7 @@ one click that could be a redirect.
 
 ## Recommendations, in order
 
-1. ~~Make the proxy honour `'recipe'` access.~~ Done in this commit.
+1. ~~Make the proxy honour `'recipe'` access.~~ Done — `proxyStepsAside()`, commit f6b1ea1.
 2. One shared client error toast, then wire the seven silent actions to it.
 3. Collapse the four share labels to two verbs and drop one of the two share
    components on the recipe page.

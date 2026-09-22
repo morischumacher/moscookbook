@@ -586,7 +586,9 @@ Every screen, endpoint, link and call is listed in
 [docs/interaction-map.generated.md](docs/interaction-map.generated.md), read
 from the source by `npm run map` and kept current by CI. The analysis of it —
 dead ends, duplicated labels, the longest paths and what to shorten — is in
-[docs/interaction-map.md](docs/interaction-map.md). The September 2026
+[docs/interaction-map.md](docs/interaction-map.md), and the same map as a page
+you can open in a browser, with both graphs drawn and both tables filterable,
+is `docs/interaction-map.html` (generated too; don't edit it by hand). The September 2026
 code, security and test pass is written up in
 [docs/hardening-2026-09.md](docs/hardening-2026-09.md).
 
@@ -604,8 +606,8 @@ code, security and test pass is written up in
 | `npm run check:search` | Verify every recipe writer maintains the search columns |
 | `npm run check:contrast` | Verify the colour tokens meet WCAG AA, in both themes |
 | `npm run check:design` | Refuse colours that bypass the design tokens |
-| `npm run map` | Regenerate `docs/interaction-map.generated.md` from the source |
-| `npm run check:map` | Fail if that map is stale (runs in CI) |
+| `npm run map` | Regenerate the interaction map — the Markdown and the page |
+| `npm run check:map` | Fail if either is stale (runs in CI) |
 | `npm run fixtures` | Collect real pages to test the import against |
 | `npm run reindex` | Rebuild the search columns for every recipe |
 | `npm run verify:search` | Check the German search against a real Postgres |

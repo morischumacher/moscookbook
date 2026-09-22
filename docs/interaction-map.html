@@ -1,0 +1,564 @@
+<title>Mo'sCookbook Interaction Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  /* The cookbook's own tokens: this is a map of that app and should wear its
+     colours. src/app/globals.css is where they come from. */
+  :root {
+    --bg: #FFF8F0; --panel: #FFFCF7; --fg: #111111; --muted: #4B5563; --faint: #6B7280;
+    --line: #E4DDD3; --hair: #EFE8DE; --accent: #ff4a0e; --accent-text: #C73500;
+    --open: #15803D; --admin: #C73500; --account: #5A6270; --recipe: #8A6D3B;
+    --orphan: #B45309; --done: #15803D;
+    --sans: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0B0A09; --panel: #131110; --fg: #EDE8E2; --muted: #A49C94; --faint: #8A827A;
+      --line: #2C2724; --hair: #211D1B; --accent: #ff4a0e; --accent-text: #FF7A4A;
+      --open: #34D399; --admin: #FF7A4A; --account: #9AA3B2; --recipe: #D6A85F;
+      --orphan: #F0A24B; --done: #34D399;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0B0A09; --panel: #131110; --fg: #EDE8E2; --muted: #A49C94; --faint: #8A827A;
+    --line: #2C2724; --hair: #211D1B; --accent: #ff4a0e; --accent-text: #FF7A4A;
+    --open: #34D399; --admin: #FF7A4A; --account: #9AA3B2; --recipe: #D6A85F;
+    --orphan: #F0A24B; --done: #34D399;
+  }
+
+  html { background: var(--bg); }
+  body { background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.55; margin: 0; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 72px; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; letter-spacing: -0.02em; }
+  h1 { font-size: clamp(30px, 6vw, 46px); font-weight: 700; line-height: 1.05; }
+  h2 { font-size: clamp(19px, 3vw, 23px); font-weight: 600; }
+  p { margin: 0; }
+  code { font-family: var(--mono); font-size: 0.86em; }
+
+  header .eyebrow {
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent-text); font-weight: 600; margin-bottom: 14px;
+  }
+  header .lede { color: var(--muted); max-width: 62ch; margin-top: 16px; font-size: 16px; }
+
+  .counts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+  .count {
+    border: 1px solid var(--line); border-radius: 3px; padding: 10px 16px 11px;
+    background: var(--panel); min-width: 104px;
+  }
+  .count b { display: block; font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .count span { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+
+  section { margin-top: 64px; }
+  section > .head { border-top: 2px solid var(--fg); padding-top: 12px; margin-bottom: 20px; }
+  section > .head p { color: var(--muted); font-size: 14px; margin-top: 6px; max-width: 70ch; }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .chip {
+    font: inherit; font-size: 12.5px; cursor: pointer; border-radius: 999px;
+    border: 1px solid var(--line); background: transparent; color: var(--muted);
+    padding: 5px 12px; display: inline-flex; gap: 6px; align-items: center;
+  }
+  .chip b { font-variant-numeric: tabular-nums; color: var(--faint); font-weight: 500; }
+  .chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .chip[aria-pressed="true"] b { color: var(--bg); opacity: 0.7; }
+  .chip:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  input[type="search"] {
+    font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--fg); min-width: 190px; flex: 1 1 190px;
+  }
+
+  .scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th {
+    text-align: left; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--faint); font-weight: 600; padding: 11px 14px; border-bottom: 1px solid var(--line);
+    white-space: nowrap; position: sticky; top: 0; background: var(--panel);
+  }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.route code { font-weight: 500; white-space: nowrap; }
+  /* The flex lives on a div inside the cell, never on the cell: display:flex
+     on a <td> takes it out of the table layout and the columns stop lining up. */
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  #screens, #endpoints { min-width: 860px; }
+  #screens th:nth-child(1) { width: 21%; } #screens th:nth-child(2) { width: 13%; }
+  #screens th:nth-child(3) { width: 36%; } #screens th:nth-child(4) { width: 30%; }
+  #endpoints th:nth-child(1) { width: 8%; } #endpoints th:nth-child(2) { width: 32%; }
+  #endpoints th:nth-child(3) { width: 24%; } #endpoints th:nth-child(4) { width: 36%; }
+  .call, .lnk, .cmp {
+    border: 1px solid var(--hair); border-radius: 3px; padding: 2px 6px;
+    background: var(--bg); color: var(--muted); white-space: nowrap;
+  }
+  .lnk { color: var(--accent-text); border-color: color-mix(in srgb, var(--accent) 22%, transparent); }
+  .none { color: var(--faint); font-size: 12px; font-style: italic; }
+  .orphan { color: var(--orphan); font-size: 12px; }
+
+  .tier, .gate {
+    display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap;
+  }
+  .t-open, .g-none { color: var(--open); }
+  .t-admin, .g-admin { color: var(--admin); }
+  .t-account, .g-user { color: var(--account); }
+  .t-recipe, .g-cron, .g-device { color: var(--recipe); }
+  .proxy { display: block; font-size: 11.5px; color: var(--faint); margin-top: 4px; white-space: nowrap; }
+  .mark {
+    display: inline-block; margin-left: 6px; font-size: 10.5px; color: var(--faint);
+    border: 1px solid var(--hair); border-radius: 3px; padding: 1px 5px;
+  }
+  .verb { font-family: var(--mono); font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+  .v-get { color: var(--account); } .v-post { color: var(--open); }
+  .v-patch, .v-put { color: var(--recipe); } .v-delete { color: var(--accent-text); }
+  .empty { padding: 26px 14px; color: var(--faint); font-size: 13px; }
+
+  .diagram {
+    border: 1px solid var(--line); border-radius: 4px; background: var(--panel);
+    padding: 18px 12px; overflow-x: auto;
+  }
+  .diagram pre.mermaid { margin: 0; min-width: 640px; }
+  .diagram svg { max-width: none; height: auto; }
+
+  .gcards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .gcard { border: 1px solid var(--line); border-radius: 4px; background: var(--panel); padding: 14px 16px 16px; }
+  .gcard h3 { font-size: 14px; font-weight: 600; }
+  .gcard .cmp { display: inline-block; margin-top: 6px; }
+  .glinks { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+
+  ol.findings { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  ol.findings li {
+    display: grid; grid-template-columns: 38px 1fr; gap: 14px; align-items: start;
+    padding: 14px 0; border-bottom: 1px solid var(--hair);
+  }
+  ol.findings li:last-child { border-bottom: 0; }
+  .fnum {
+    font-family: var(--mono); font-size: 12px; color: var(--faint);
+    border: 1px solid var(--line); border-radius: 3px; text-align: center; padding: 3px 0;
+  }
+  .f-done .fnum { color: var(--done); border-color: currentColor; }
+  ol.findings p { font-size: 15px; max-width: 74ch; }
+  .f-done p { color: var(--faint); text-decoration: line-through; text-decoration-color: var(--done); }
+
+  footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--faint); font-size: 12.5px; }
+  footer code { color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  @media (max-width: 640px) { th, td { padding: 9px 10px; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Mo&#39;sCookbook &middot; aus dem Quelltext gelesen</div>
+    <h1>Jeder Bildschirm, jeder Knopf, jede Route</h1>
+    <p class="lede">
+      <code>npm run map</code> liest diese Karte aus dem Quelltext: jede <code>page.tsx</code> mit ihrer
+      Zugriffsregel, jeder <code>fetch</code> aus den Komponenten, die sie rendert, jede <code>route.ts</code>
+      mit ihrem Türsteher. <code>npm run check:map</code> macht CI rot, sobald sie veraltet ist — sie kann
+      also nicht vom Code abweichen. Diese Seite ist eine Umformung derselben Datei, keine zweite Lesung.
+    </p>
+    <div class="counts">
+      <div class="count"><b>34</b><span>Bildschirme</span></div>
+      <div class="count"><b>72</b><span>Endpunkte</span></div>
+      <div class="count"><b>48</b><span>Verlinkungen</span></div>
+      <div class="count"><b>78</b><span>Aufrufe</span></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="head">
+      <h2>Navigation</h2>
+      <p>Bildschirm zu Bildschirm, aus jedem <code>href</code>, <code>router.push</code> und <code>redirect</code> —
+      Header, Footer und Admin-Navigation ausgenommen, die stehen weiter unten, weil sie auf jeder Seite sind.
+      Gruppiert nach dem, was der Proxy verlangt.</p>
+    </div>
+    <div class="diagram"><pre class="mermaid">%%{init: {'theme':'base','themeVariables':{'background':'transparent','primaryColor':'#2A2622','primaryTextColor':'#FFF8F0','primaryBorderColor':'#2A2622','lineColor':'#9A9088','secondaryColor':'#2A2622','tertiaryColor':'transparent','clusterBkg':'transparent','clusterBorder':'#6B5F54','titleColor':'#6B5F54','edgeLabelBackground':'transparent','fontFamily':'Geist, ui-sans-serif, system-ui','fontSize':'13px'}}}%%
+flowchart LR
+  subgraph account
+    n__locale__account[&quot;/[locale]/account&quot;]
+    n__locale__blog__slug_[&quot;/[locale]/blog/[slug]&quot;]
+    n__locale__blog[&quot;/[locale]/blog&quot;]
+    n__locale__collections__slug_[&quot;/[locale]/collections/[slug]&quot;]
+    n__locale__collections[&quot;/[locale]/collections&quot;]
+    n__locale__drafts[&quot;/[locale]/drafts&quot;]
+    n__locale_[&quot;/[locale]&quot;]
+    n__locale__tickets[&quot;/[locale]/tickets&quot;]
+  end
+  subgraph admin
+    n__locale__admin_ai[&quot;/[locale]/admin/ai&quot;]
+    n__locale__admin_collections__id_[&quot;/[locale]/admin/collections/[id]&quot;]
+    n__locale__admin_collections_new[&quot;/[locale]/admin/collections/new&quot;]
+    n__locale__admin_create[&quot;/[locale]/admin/create&quot;]
+    n__locale__admin_devices[&quot;/[locale]/admin/devices&quot;]
+    n__locale__admin_edit__id_[&quot;/[locale]/admin/edit/[id]&quot;]
+    n__locale__admin_errors[&quot;/[locale]/admin/errors&quot;]
+    n__locale__admin_inbox[&quot;/[locale]/admin/inbox&quot;]
+    n__locale__admin_invites[&quot;/[locale]/admin/invites&quot;]
+    n__locale__admin[&quot;/[locale]/admin&quot;]
+    n__locale__admin_posts__id_[&quot;/[locale]/admin/posts/[id]&quot;]
+    n__locale__admin_posts_new[&quot;/[locale]/admin/posts/new&quot;]
+    n__locale__admin_posts[&quot;/[locale]/admin/posts&quot;]
+    n__locale__admin_tickets[&quot;/[locale]/admin/tickets&quot;]
+    n__locale__admin_users[&quot;/[locale]/admin/users&quot;]
+  end
+  subgraph open
+    n__locale__c__token_[&quot;/[locale]/c/[token]&quot;]
+    n__locale__forgot[&quot;/[locale]/forgot&quot;]
+    n__locale__imprint[&quot;/[locale]/imprint&quot;]
+    n__locale__login[&quot;/[locale]/login&quot;]
+    n__locale__p__token_[&quot;/[locale]/p/[token]&quot;]
+    n__locale__privacy[&quot;/[locale]/privacy&quot;]
+    n__locale__r__token_[&quot;/[locale]/r/[token]&quot;]
+    n__locale__register[&quot;/[locale]/register&quot;]
+    n__locale__reset[&quot;/[locale]/reset&quot;]
+    n__locale__verify[&quot;/[locale]/verify&quot;]
+  end
+  subgraph recipe
+    n__locale__recipe__slug_[&quot;/[locale]/recipe/[slug]&quot;]
+  end
+  n__locale__account --&gt; n__locale__login
+  n__locale__admin_ai --&gt; n__locale__admin_devices
+  n__locale__admin_collections__id_ --&gt; n__locale__collections
+  n__locale__admin_collections__id_ --&gt; n__locale__collections__slug_
+  n__locale__admin_collections_new --&gt; n__locale__collections
+  n__locale__admin_collections_new --&gt; n__locale__collections__slug_
+  n__locale__admin_create --&gt; n__locale__admin
+  n__locale__admin_devices --&gt; n__locale__admin_inbox
+  n__locale__admin_edit__id_ --&gt; n__locale__admin
+  n__locale__admin_inbox --&gt; n__locale__admin_create
+  n__locale__admin_inbox --&gt; n__locale__admin_devices
+  n__locale__admin_inbox --&gt; n__locale__recipe__slug_
+  n__locale__admin_invites --&gt; n__locale__admin_users
+  n__locale__admin --&gt; n__locale__admin_create
+  n__locale__admin --&gt; n__locale__admin_edit__id_
+  n__locale__admin --&gt; n__locale__recipe__slug_
+  n__locale__admin_posts__id_ --&gt; n__locale__admin_posts
+  n__locale__admin_posts_new --&gt; n__locale__admin_posts
+  n__locale__admin_posts --&gt; n__locale__admin_posts__id_
+  n__locale__admin_posts --&gt; n__locale__admin_posts_new
+  n__locale__admin_posts --&gt; n__locale__blog__slug_
+  n__locale__blog__slug_ --&gt; n__locale__recipe__slug_
+  n__locale__blog --&gt; n__locale__blog__slug_
+  n__locale__c__token_ --&gt; n__locale__recipe__slug_
+  n__locale__collections__slug_ --&gt; n__locale__admin_collections__id_
+  n__locale__collections__slug_ --&gt; n__locale__recipe__slug_
+  n__locale__collections --&gt; n__locale__admin_collections_new
+  n__locale__collections --&gt; n__locale__collections__slug_
+  n__locale__drafts --&gt; n__locale__recipe__slug_
+  n__locale__forgot --&gt; n__locale__login
+  n__locale__login --&gt; n__locale__forgot
+  n__locale__login --&gt; n__locale__register
+  n__locale__p__token_ --&gt; n__locale__login
+  n__locale__p__token_ --&gt; n__locale__recipe__slug_
+  n__locale_ --&gt; n__locale__blog
+  n__locale_ --&gt; n__locale__recipe__slug_
+  n__locale__r__token_ --&gt; n__locale__admin_posts_new
+  n__locale__r__token_ --&gt; n__locale__blog__slug_
+  n__locale__r__token_ --&gt; n__locale__login
+  n__locale__r__token_ --&gt; n__locale__recipe__slug_
+  n__locale__recipe__slug_ --&gt; n__locale__admin_posts_new
+  n__locale__recipe__slug_ --&gt; n__locale__blog__slug_
+  n__locale__recipe__slug_ --&gt; n__locale__login
+  n__locale__register --&gt; n__locale__login
+  n__locale__reset --&gt; n__locale__forgot
+  n__locale__tickets --&gt; n__locale_
+  n__locale__verify --&gt; n__locale_</pre></div>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Bildschirme</h2>
+      <p>Zugriff ist, was <code>pathAccess()</code> sagt; Proxy ist, was <code>src/proxy.ts</code> daraufhin tut.
+      „Sackgasse" heißt: von hier führt kein Link weiter — bei <code>/c/[token]</code> ist das Absicht, sonst selten.</p>
+    </div>
+    <div class="toolbar">
+      <button class="chip" data-filter="admin" aria-pressed="false">admin <b>15</b></button><button class="chip" data-filter="open" aria-pressed="false">open <b>10</b></button><button class="chip" data-filter="account" aria-pressed="false">account <b>8</b></button><button class="chip" data-filter="recipe" aria-pressed="false">recipe <b>1</b></button>
+      <input type="search" id="screen-search" placeholder="Route, Aufruf oder Ziel suchen" aria-label="Bildschirme filtern">
+    </div>
+    <div class="scroller">
+      <table id="screens">
+        <thead><tr><th>Route</th><th>Zugriff</th><th>Ruft auf</th><th>Verlinkt auf</th></tr></thead>
+        <tbody><tr data-access="account" data-text="/[locale]/account delete /api/account/avatar post /api/account/avatar /[locale]/login"><td class="route"><code>/[locale]/account</code></td><td><span class="tier t-account">account</span><span class="proxy">requires session</span></td><td><div class="chips"><code class="call">DELETE /api/account/avatar</code><code class="call">POST /api/account/avatar</code></div></td><td><div class="chips"><code class="lnk">/[locale]/login</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/ai delete /api/ai-keys/[id] delete /api/site-profiles/[id] get /api/ai-keys get /api/site-profiles patch /api/ai-keys post /api/ai-keys post /api/ai-keys/[id]/test post /api/site-profiles /[locale]/admin/devices"><td class="route"><code>/[locale]/admin/ai</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">DELETE /api/ai-keys/[id]</code><code class="call">DELETE /api/site-profiles/[id]</code><code class="call">GET /api/ai-keys</code><code class="call">GET /api/site-profiles</code><code class="call">PATCH /api/ai-keys</code><code class="call">POST /api/ai-keys</code><code class="call">POST /api/ai-keys/[id]/test</code><code class="call">POST /api/site-profiles</code></div></td><td><div class="chips"><code class="lnk">/[locale]/admin/devices</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/collections/[id] * /api/collections * /api/collections/[id] delete /api/collections/[id] /[locale]/collections /[locale]/collections/[id]"><td class="route"><code>/[locale]/admin/collections/[id]</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">* /api/collections</code><code class="call">* /api/collections/[id]</code><code class="call">DELETE /api/collections/[id]</code></div></td><td><div class="chips"><code class="lnk">/[locale]/collections</code><code class="lnk">/[locale]/collections/[id]</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/collections/new * /api/collections * /api/collections/[id] delete /api/collections/[id] /[locale]/collections /[locale]/collections/[id]"><td class="route"><code>/[locale]/admin/collections/new</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">* /api/collections</code><code class="call">* /api/collections/[id]</code><code class="call">DELETE /api/collections/[id]</code></div></td><td><div class="chips"><code class="lnk">/[locale]/collections</code><code class="lnk">/[locale]/collections/[id]</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/create * /api/recipes * /api/recipes/[id] post /api/ai/polish post /api/import/ai post /api/import/url post /api/upload /[locale]/admin"><td class="route"><code>/[locale]/admin/create</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">* /api/recipes</code><code class="call">* /api/recipes/[id]</code><code class="call">POST /api/ai/polish</code><code class="call">POST /api/import/ai</code><code class="call">POST /api/import/url</code><code class="call">POST /api/upload</code></div></td><td><div class="chips"><code class="lnk">/[locale]/admin</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/devices * /api/capture delete /api/capture-tokens/[id] get /api/capture-tokens post /api/capture-tokens /[locale]/admin/inbox"><td class="route"><code>/[locale]/admin/devices</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">* /api/capture</code><code class="call">DELETE /api/capture-tokens/[id]</code><code class="call">GET /api/capture-tokens</code><code class="call">POST /api/capture-tokens</code></div></td><td><div class="chips"><code class="lnk">/[locale]/admin/inbox</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/edit/[id] * /api/recipes * /api/recipes/[id] post /api/ai/polish post /api/import/ai post /api/import/url post /api/upload /[locale]/admin"><td class="route"><code>/[locale]/admin/edit/[id]</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">* /api/recipes</code><code class="call">* /api/recipes/[id]</code><code class="call">POST /api/ai/polish</code><code class="call">POST /api/import/ai</code><code class="call">POST /api/import/url</code><code class="call">POST /api/upload</code></div></td><td><div class="chips"><code class="lnk">/[locale]/admin</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/errors get /api/errors post /api/errors/[id]"><td class="route"><code>/[locale]/admin/errors</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">GET /api/errors</code><code class="call">POST /api/errors/[id]</code></div></td><td><div class="chips"><span class="none">Sackgasse</span></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/inbox delete /api/capture/[id] get /api/capture post /api/capture/[id] post /api/capture/[id]/merge /[locale]/admin/create /[locale]/admin/devices /[locale]/recipe/[id]"><td class="route"><code>/[locale]/admin/inbox</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">DELETE /api/capture/[id]</code><code class="call">GET /api/capture</code><code class="call">POST /api/capture/[id]</code><code class="call">POST /api/capture/[id]/merge</code></div></td><td><div class="chips"><code class="lnk">/[locale]/admin/create</code><code class="lnk">/[locale]/admin/devices</code><code class="lnk">/[locale]/recipe/[id]</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/invites /[locale]/admin/users"><td class="route"><code>/[locale]/admin/invites</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><span class="none">—</span></div></td><td><div class="chips"><code class="lnk">/[locale]/admin/users</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin delete /api/recipes/[id] get /api/export patch /api/recipes/[id]/visibility post /api/import/archive post /api/recipes/[id]/share /[locale]/admin/create /[locale]/admin/edit/[id] /[locale]/recipe/[id]"><td class="route"><code>/[locale]/admin</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">DELETE /api/recipes/[id]</code><code class="call">GET /api/export</code><code class="call">PATCH /api/recipes/[id]/visibility</code><code class="call">POST /api/import/archive</code><code class="call">POST /api/recipes/[id]/share</code></div></td><td><div class="chips"><code class="lnk">/[locale]/admin/create</code><code class="lnk">/[locale]/admin/edit/[id]</code><code class="lnk">/[locale]/recipe/[id]</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/posts/[id] * /api/posts * /api/posts/[id] /[locale]/admin/posts"><td class="route"><code>/[locale]/admin/posts/[id]</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">* /api/posts</code><code class="call">* /api/posts/[id]</code></div></td><td><div class="chips"><code class="lnk">/[locale]/admin/posts</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/posts/new * /api/posts * /api/posts/[id] /[locale]/admin/posts"><td class="route"><code>/[locale]/admin/posts/new</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">* /api/posts</code><code class="call">* /api/posts/[id]</code></div></td><td><div class="chips"><code class="lnk">/[locale]/admin/posts</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/posts delete /api/posts/[id] /[locale]/admin/posts/[id] /[locale]/admin/posts/new /[locale]/blog/[id]"><td class="route"><code>/[locale]/admin/posts</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">DELETE /api/posts/[id]</code></div></td><td><div class="chips"><code class="lnk">/[locale]/admin/posts/[id]</code><code class="lnk">/[locale]/admin/posts/new</code><code class="lnk">/[locale]/blog/[id]</code></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/tickets get /api/tickets patch /api/tickets"><td class="route"><code>/[locale]/admin/tickets</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">GET /api/tickets</code><code class="call">PATCH /api/tickets</code></div></td><td><div class="chips"><span class="none">Sackgasse</span></div></td></tr><tr data-access="admin" data-text="/[locale]/admin/users delete /api/invites/[id] delete /api/users/[id] get /api/invites get /api/users patch /api/users/[id]/role post /api/invites"><td class="route"><code>/[locale]/admin/users</code></td><td><span class="tier t-admin">admin</span><span class="proxy">requires admin</span></td><td><div class="chips"><code class="call">DELETE /api/invites/[id]</code><code class="call">DELETE /api/users/[id]</code><code class="call">GET /api/invites</code><code class="call">GET /api/users</code><code class="call">PATCH /api/users/[id]/role</code><code class="call">POST /api/invites</code></div></td><td><div class="chips"><span class="none">Sackgasse</span></div></td></tr><tr data-access="account" data-text="/[locale]/blog/[slug] * /api/collections/[id]/share * /api/posts/[id]/share * /api/recipes/[id]/share /[locale]/recipe/[id]"><td class="route"><code>/[locale]/blog/[slug]</code></td><td><span class="tier t-account">account</span><span class="proxy">requires session</span></td><td><div class="chips"><code class="call">* /api/collections/[id]/share</code><code class="call">* /api/posts/[id]/share</code><code class="call">* /api/recipes/[id]/share</code></div></td><td><div class="chips"><code class="lnk">/[locale]/recipe/[id]</code></div></td></tr><tr data-access="account" data-text="/[locale]/blog /[locale]/blog/[id]"><td class="route"><code>/[locale]/blog</code></td><td><span class="tier t-account">account</span><span class="proxy">requires session</span></td><td><div class="chips"><span class="none">—</span></div></td><td><div class="chips"><code class="lnk">/[locale]/blog/[id]</code></div></td></tr><tr data-access="open" data-text="/[locale]/c/[token] /[locale]/recipe/[id]"><td class="route"><code>/[locale]/c/[token]</code></td><td><span class="tier t-open">open</span><span class="proxy">steps aside</span></td><td><div class="chips"><span class="none">—</span></div></td><td><div class="chips"><code class="lnk">/[locale]/recipe/[id]</code></div></td></tr><tr data-access="account" data-text="/[locale]/collections/[slug] * /api/collections/[id]/share * /api/posts/[id]/share * /api/recipes/[id]/share /[locale]/admin/collections/[id] /[locale]/recipe/[id]"><td class="route"><code>/[locale]/collections/[slug]</code></td><td><span class="tier t-account">account</span><span class="proxy">requires session</span></td><td><div class="chips"><code class="call">* /api/collections/[id]/share</code><code class="call">* /api/posts/[id]/share</code><code class="call">* /api/recipes/[id]/share</code></div></td><td><div class="chips"><code class="lnk">/[locale]/admin/collections/[id]</code><code class="lnk">/[locale]/recipe/[id]</code></div></td></tr><tr data-access="account" data-text="/[locale]/collections /[locale]/admin/collections/new /[locale]/collections/[id]"><td class="route"><code>/[locale]/collections</code></td><td><span class="tier t-account">account</span><span class="proxy">requires session</span></td><td><div class="chips"><span class="none">—</span></div></td><td><div class="chips"><code class="lnk">/[locale]/admin/collections/new</code><code class="lnk">/[locale]/collections/[id]</code></div></td></tr><tr data-access="account" data-text="/[locale]/drafts post /api/recipes/[id]/draft /[locale]/recipe/[id]"><td class="route"><code>/[locale]/drafts</code></td><td><span class="tier t-account">account</span><span class="proxy">requires session</span></td><td><div class="chips"><code class="call">POST /api/recipes/[id]/draft</code></div></td><td><div class="chips"><code class="lnk">/[locale]/recipe/[id]</code></div></td></tr><tr data-access="open" data-text="/[locale]/forgot post /api/auth/forgot /[locale]/login"><td class="route"><code>/[locale]/forgot</code></td><td><span class="tier t-open">open</span><span class="proxy">steps aside</span></td><td><div class="chips"><code class="call">POST /api/auth/forgot</code></div></td><td><div class="chips"><code class="lnk">/[locale]/login</code></div></td></tr><tr data-access="open" data-text="/[locale]/imprint"><td class="route"><code>/[locale]/imprint</code></td><td><span class="tier t-open">open</span><span class="proxy">steps aside</span></td><td><div class="chips"><span class="none">—</span></div></td><td><div class="chips"><span class="none">Sackgasse</span></div></td></tr><tr data-access="open" data-text="/[locale]/login post /api/auth/login /[locale]/forgot /[locale]/register"><td class="route"><code>/[locale]/login</code></td><td><span class="tier t-open">open</span><span class="proxy">steps aside</span></td><td><div class="chips"><code class="call">POST /api/auth/login</code></div></td><td><div class="chips"><code class="lnk">/[locale]/forgot</code><code class="lnk">/[locale]/register</code></div></td></tr><tr data-access="open" data-text="/[locale]/p/[token] * /api/collections/[id]/share * /api/posts/[id]/share * /api/recipes/[id]/share /[locale]/login /[locale]/recipe/[id]"><td class="route"><code>/[locale]/p/[token]</code></td><td><span class="tier t-open">open</span><span class="proxy">steps aside</span></td><td><div class="chips"><code class="call">* /api/collections/[id]/share</code><code class="call">* /api/posts/[id]/share</code><code class="call">* /api/recipes/[id]/share</code></div></td><td><div class="chips"><code class="lnk">/[locale]/login</code><code class="lnk">/[locale]/recipe/[id]</code></div></td></tr><tr data-access="account" data-text="/[locale] * /api/recipes/[id]/favorite post /api/recipes/[id]/rate /[locale]/blog /[locale]/recipe/[id]"><td class="route"><code>/[locale]</code></td><td><span class="tier t-account">account</span><span class="proxy">requires session</span></td><td><div class="chips"><code class="call">* /api/recipes/[id]/favorite</code><code class="call">POST /api/recipes/[id]/rate</code></div></td><td><div class="chips"><code class="lnk">/[locale]/blog</code><code class="lnk">/[locale]/recipe/[id]</code></div></td></tr><tr data-access="open" data-text="/[locale]/privacy"><td class="route"><code>/[locale]/privacy</code></td><td><span class="tier t-open">open</span><span class="proxy">steps aside</span></td><td><div class="chips"><span class="none">—</span></div></td><td><div class="chips"><span class="none">Sackgasse</span></div></td></tr><tr data-access="open" data-text="/[locale]/r/[token] * /api/collections/[id]/share * /api/posts/[id]/share * /api/recipes/[id]/favorite * /api/recipes/[id]/share delete /api/recipes/[id]/cooked delete /api/recipes/[id]/cooked/photos patch /api/recipes/[id]/cooked patch /api/recipes/[id]/visibility post /api/recipes/[id]/cooked post /api/recipes/[id]/cooked/photos post /api/recipes/[id]/rate post /api/recipes/[id]/view /[locale]/admin/posts/new /[locale]/blog/[id] /[locale]/login /[locale]/recipe/[id]"><td class="route"><code>/[locale]/r/[token]</code></td><td><span class="tier t-open">open</span><span class="proxy">steps aside</span></td><td><div class="chips"><code class="call">* /api/collections/[id]/share</code><code class="call">* /api/posts/[id]/share</code><code class="call">* /api/recipes/[id]/favorite</code><code class="call">* /api/recipes/[id]/share</code><code class="call">DELETE /api/recipes/[id]/cooked</code><code class="call">DELETE /api/recipes/[id]/cooked/photos</code><code class="call">PATCH /api/recipes/[id]/cooked</code><code class="call">PATCH /api/recipes/[id]/visibility</code><code class="call">POST /api/recipes/[id]/cooked</code><code class="call">POST /api/recipes/[id]/cooked/photos</code><code class="call">POST /api/recipes/[id]/rate</code><code class="call">POST /api/recipes/[id]/view</code></div></td><td><div class="chips"><code class="lnk">/[locale]/admin/posts/new</code><code class="lnk">/[locale]/blog/[id]</code><code class="lnk">/[locale]/login</code><code class="lnk">/[locale]/recipe/[id]</code></div></td></tr><tr data-access="recipe" data-text="/[locale]/recipe/[slug] * /api/collections/[id]/share * /api/posts/[id]/share * /api/recipes/[id]/favorite * /api/recipes/[id]/share delete /api/recipes/[id]/cooked delete /api/recipes/[id]/cooked/photos patch /api/recipes/[id]/cooked patch /api/recipes/[id]/visibility post /api/recipes/[id]/cooked post /api/recipes/[id]/cooked/photos post /api/recipes/[id]/draft post /api/recipes/[id]/rate post /api/recipes/[id]/view /[locale]/admin/posts/new /[locale]/blog/[id] /[locale]/login /[locale]/recipe/[id]"><td class="route"><code>/[locale]/recipe/[slug]</code></td><td><span class="tier t-recipe">recipe</span><span class="proxy">steps aside</span></td><td><div class="chips"><code class="call">* /api/collections/[id]/share</code><code class="call">* /api/posts/[id]/share</code><code class="call">* /api/recipes/[id]/favorite</code><code class="call">* /api/recipes/[id]/share</code><code class="call">DELETE /api/recipes/[id]/cooked</code><code class="call">DELETE /api/recipes/[id]/cooked/photos</code><code class="call">PATCH /api/recipes/[id]/cooked</code><code class="call">PATCH /api/recipes/[id]/visibility</code><code class="call">POST /api/recipes/[id]/cooked</code><code class="call">POST /api/recipes/[id]/cooked/photos</code><code class="call">POST /api/recipes/[id]/draft</code><code class="call">POST /api/recipes/[id]/rate</code><code class="call">POST /api/recipes/[id]/view</code></div></td><td><div class="chips"><code class="lnk">/[locale]/admin/posts/new</code><code class="lnk">/[locale]/blog/[id]</code><code class="lnk">/[locale]/login</code><code class="lnk">/[locale]/recipe/[id]</code></div></td></tr><tr data-access="open" data-text="/[locale]/register post /api/auth/register /[locale]/login"><td class="route"><code>/[locale]/register</code></td><td><span class="tier t-open">open</span><span class="proxy">steps aside</span></td><td><div class="chips"><code class="call">POST /api/auth/register</code></div></td><td><div class="chips"><code class="lnk">/[locale]/login</code></div></td></tr><tr data-access="open" data-text="/[locale]/reset post /api/auth/reset /[locale]/forgot"><td class="route"><code>/[locale]/reset</code></td><td><span class="tier t-open">open</span><span class="proxy">steps aside</span></td><td><div class="chips"><code class="call">POST /api/auth/reset</code></div></td><td><div class="chips"><code class="lnk">/[locale]/forgot</code></div></td></tr><tr data-access="account" data-text="/[locale]/tickets post /api/tickets /[locale]"><td class="route"><code>/[locale]/tickets</code></td><td><span class="tier t-account">account</span><span class="proxy">requires session</span></td><td><div class="chips"><code class="call">POST /api/tickets</code></div></td><td><div class="chips"><code class="lnk">/[locale]</code></div></td></tr><tr data-access="open" data-text="/[locale]/verify post /api/auth/verify /[locale]"><td class="route"><code>/[locale]/verify</code></td><td><span class="tier t-open">open</span><span class="proxy">steps aside</span></td><td><div class="chips"><code class="call">POST /api/auth/verify</code></div></td><td><div class="chips"><code class="lnk">/[locale]</code></div></td></tr></tbody>
+      </table>
+      <div class="empty" id="screens-empty" hidden>Nichts gefunden.</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Endpunkte</h2>
+      <p>Eine Zeile je exportierter Methode. „Türsteher" ist, was der Handler selbst prüft — darunter liegt
+      zusätzlich der Proxy, der <code>/api</code> ohne Session abweist, sofern der Pfad nicht ausdrücklich offen ist.
+      <code>zod</code> heißt, der Body wird gegen ein Schema geprüft; <code>limitiert</code> heißt, die Route zählt mit.</p>
+    </div>
+    <div class="toolbar">
+      <button class="chip" data-gfilter="admin" aria-pressed="false">admin <b>49</b></button><button class="chip" data-gfilter="user" aria-pressed="false">angemeldet <b>14</b></button><button class="chip" data-gfilter="none" aria-pressed="false">offen <b>5</b></button><button class="chip" data-gfilter="device" aria-pressed="false">Geräte-Token <b>3</b></button><button class="chip" data-gfilter="cron" aria-pressed="false">cron-secret <b>1</b></button>
+      <input type="search" id="endpoint-search" placeholder="Pfad oder Aufrufer suchen" aria-label="Endpunkte filtern">
+    </div>
+    <div class="scroller">
+      <table id="endpoints">
+        <thead><tr><th>Methode</th><th>Pfad</th><th>Türsteher</th><th>Aufgerufen von</th></tr></thead>
+        <tbody><tr data-gate="user" data-text="post /api/account/avatar account/avatarform"><td class="verb v-post">POST</td><td class="route"><code>/api/account/avatar</code></td><td><span class="gate g-user">user (manual)</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">account/AvatarForm</code></div></td></tr><tr data-gate="user" data-text="delete /api/account/avatar account/avatarform"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/account/avatar</code></td><td><span class="gate g-user">user (manual)</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">account/AvatarForm</code></div></td></tr><tr data-gate="admin" data-text="delete /api/ai-keys/[provider] admin/aikeys"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/ai-keys/[provider]</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">admin/AiKeys</code></div></td></tr><tr data-gate="admin" data-text="post /api/ai-keys/[provider]/test admin/aikeys"><td class="verb v-post">POST</td><td class="route"><code>/api/ai-keys/[provider]/test</code></td><td><span class="gate g-admin">admin</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">admin/AiKeys</code></div></td></tr><tr data-gate="admin" data-text="get /api/ai-keys admin/aikeys"><td class="verb v-get">GET</td><td class="route"><code>/api/ai-keys</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">admin/AiKeys</code></div></td></tr><tr data-gate="admin" data-text="post /api/ai-keys admin/aikeys"><td class="verb v-post">POST</td><td class="route"><code>/api/ai-keys</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">admin/AiKeys</code></div></td></tr><tr data-gate="admin" data-text="patch /api/ai-keys admin/aikeys"><td class="verb v-patch">PATCH</td><td class="route"><code>/api/ai-keys</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">admin/AiKeys</code></div></td></tr><tr data-gate="admin" data-text="post /api/ai/polish recipe-form/polishpanel"><td class="verb v-post">POST</td><td class="route"><code>/api/ai/polish</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">recipe-form/PolishPanel</code></div></td></tr><tr data-gate="none" data-text="post /api/auth/forgot src/app/[locale]/forgot/page.tsx"><td class="verb v-post">POST</td><td class="route"><code>/api/auth/forgot</code></td><td><span class="gate g-none">none (open by design)</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">src/app/[locale]/forgot/page.tsx</code></div></td></tr><tr data-gate="none" data-text="post /api/auth/login src/app/[locale]/login/page.tsx"><td class="verb v-post">POST</td><td class="route"><code>/api/auth/login</code></td><td><span class="gate g-none">none (open by design)</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">src/app/[locale]/login/page.tsx</code></div></td></tr><tr data-gate="none" data-text="post /api/auth/logout logoutbutton"><td class="verb v-post">POST</td><td class="route"><code>/api/auth/logout</code></td><td><span class="gate g-none">none (open by design)</span></td><td><div class="chips"><code class="call">LogoutButton</code></div></td></tr><tr data-gate="none" data-text="post /api/auth/register auth/registerform"><td class="verb v-post">POST</td><td class="route"><code>/api/auth/register</code></td><td><span class="gate g-none">none (open by design)</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">auth/RegisterForm</code></div></td></tr><tr data-gate="user" data-text="post /api/auth/resend-verification auth/resendverification"><td class="verb v-post">POST</td><td class="route"><code>/api/auth/resend-verification</code></td><td><span class="gate g-user">user</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">auth/ResendVerification</code></div></td></tr><tr data-gate="device" data-text="post /api/auth/reset auth/resetform"><td class="verb v-post">POST</td><td class="route"><code>/api/auth/reset</code></td><td><span class="gate g-device">device token</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">auth/ResetForm</code></div></td></tr><tr data-gate="device" data-text="post /api/auth/verify src/app/[locale]/verify/page.tsx"><td class="verb v-post">POST</td><td class="route"><code>/api/auth/verify</code></td><td><span class="gate g-device">device token</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">src/app/[locale]/verify/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="delete /api/capture-tokens/[id] src/app/[locale]/admin/devices/page.tsx"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/capture-tokens/[id]</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">src/app/[locale]/admin/devices/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="get /api/capture-tokens src/app/[locale]/admin/devices/page.tsx"><td class="verb v-get">GET</td><td class="route"><code>/api/capture-tokens</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">src/app/[locale]/admin/devices/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="post /api/capture-tokens src/app/[locale]/admin/devices/page.tsx"><td class="verb v-post">POST</td><td class="route"><code>/api/capture-tokens</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">src/app/[locale]/admin/devices/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="post /api/capture/[id]/merge src/app/[locale]/admin/inbox/page.tsx"><td class="verb v-post">POST</td><td class="route"><code>/api/capture/[id]/merge</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">src/app/[locale]/admin/inbox/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="post /api/capture/[id] src/app/[locale]/admin/inbox/page.tsx"><td class="verb v-post">POST</td><td class="route"><code>/api/capture/[id]</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">src/app/[locale]/admin/inbox/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="delete /api/capture/[id] src/app/[locale]/admin/inbox/page.tsx"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/capture/[id]</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">src/app/[locale]/admin/inbox/page.tsx</code></div></td></tr><tr data-gate="device" data-text="post /api/capture src/app/[locale]/admin/devices/page.tsx"><td class="verb v-post">POST</td><td class="route"><code>/api/capture</code></td><td><span class="gate g-device">device token</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">src/app/[locale]/admin/devices/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="get /api/capture src/app/[locale]/admin/devices/page.tsx src/app/[locale]/admin/inbox/page.tsx"><td class="verb v-get">GET</td><td class="route"><code>/api/capture</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">src/app/[locale]/admin/devices/page.tsx</code><code class="call">src/app/[locale]/admin/inbox/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="put /api/collections/[id] collection/collectionform"><td class="verb v-put">PUT</td><td class="route"><code>/api/collections/[id]</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">collection/CollectionForm</code></div></td></tr><tr data-gate="admin" data-text="delete /api/collections/[id] collection/collectionform"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/collections/[id]</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">collection/CollectionForm</code></div></td></tr><tr data-gate="admin" data-text="post /api/collections/[id]/share recipe/sharelink"><td class="verb v-post">POST</td><td class="route"><code>/api/collections/[id]/share</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">recipe/ShareLink</code></div></td></tr><tr data-gate="admin" data-text="delete /api/collections/[id]/share recipe/sharelink"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/collections/[id]/share</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">recipe/ShareLink</code></div></td></tr><tr data-gate="user" data-text="get /api/collections collection/collectionform"><td class="verb v-get">GET</td><td class="route"><code>/api/collections</code></td><td><span class="gate g-user">user (manual)</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">collection/CollectionForm</code></div></td></tr><tr data-gate="admin" data-text="post /api/collections collection/collectionform"><td class="verb v-post">POST</td><td class="route"><code>/api/collections</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">collection/CollectionForm</code></div></td></tr><tr data-gate="cron" data-text="get /api/cron/backup"><td class="verb v-get">GET</td><td class="route"><code>/api/cron/backup</code></td><td><span class="gate g-cron">cron secret</span></td><td><div class="chips"><span class="orphan">nichts in der Oberfläche</span></div></td></tr><tr data-gate="admin" data-text="post /api/errors/[id] src/app/[locale]/admin/errors/page.tsx"><td class="verb v-post">POST</td><td class="route"><code>/api/errors/[id]</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">src/app/[locale]/admin/errors/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="delete /api/errors/[id]"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/errors/[id]</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><span class="orphan">nichts in der Oberfläche</span></div></td></tr><tr data-gate="none" data-text="post /api/errors errorreporter globalerrorreporter"><td class="verb v-post">POST</td><td class="route"><code>/api/errors</code></td><td><span class="gate g-none">none (open by design)</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">ErrorReporter</code><code class="call">GlobalErrorReporter</code></div></td></tr><tr data-gate="admin" data-text="get /api/errors src/app/[locale]/admin/errors/page.tsx"><td class="verb v-get">GET</td><td class="route"><code>/api/errors</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">src/app/[locale]/admin/errors/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="get /api/export admin/backuppanel"><td class="verb v-get">GET</td><td class="route"><code>/api/export</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">admin/BackupPanel</code></div></td></tr><tr data-gate="admin" data-text="post /api/import/ai recipe-form/quickimport"><td class="verb v-post">POST</td><td class="route"><code>/api/import/ai</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">recipe-form/QuickImport</code></div></td></tr><tr data-gate="admin" data-text="post /api/import/archive admin/backuppanel"><td class="verb v-post">POST</td><td class="route"><code>/api/import/archive</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">admin/BackupPanel</code></div></td></tr><tr data-gate="admin" data-text="post /api/import/url recipe-form/quickimport"><td class="verb v-post">POST</td><td class="route"><code>/api/import/url</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">recipe-form/QuickImport</code></div></td></tr><tr data-gate="admin" data-text="delete /api/invites/[id] admin/invitationlist"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/invites/[id]</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">admin/InvitationList</code></div></td></tr><tr data-gate="admin" data-text="get /api/invites admin/invitationlist"><td class="verb v-get">GET</td><td class="route"><code>/api/invites</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">admin/InvitationList</code></div></td></tr><tr data-gate="admin" data-text="post /api/invites admin/invitationlist"><td class="verb v-post">POST</td><td class="route"><code>/api/invites</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">admin/InvitationList</code></div></td></tr><tr data-gate="admin" data-text="put /api/posts/[id] post/postform"><td class="verb v-put">PUT</td><td class="route"><code>/api/posts/[id]</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">post/PostForm</code></div></td></tr><tr data-gate="admin" data-text="delete /api/posts/[id] post/deletepostbutton post/postform"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/posts/[id]</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">post/DeletePostButton</code><code class="call">post/PostForm</code></div></td></tr><tr data-gate="admin" data-text="post /api/posts/[id]/share recipe/sharelink"><td class="verb v-post">POST</td><td class="route"><code>/api/posts/[id]/share</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">recipe/ShareLink</code></div></td></tr><tr data-gate="admin" data-text="delete /api/posts/[id]/share recipe/sharelink"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/posts/[id]/share</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">recipe/ShareLink</code></div></td></tr><tr data-gate="admin" data-text="post /api/posts post/postform"><td class="verb v-post">POST</td><td class="route"><code>/api/posts</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">post/PostForm</code></div></td></tr><tr data-gate="user" data-text="post /api/recipes/[id]/cooked/photos recipe/cooked"><td class="verb v-post">POST</td><td class="route"><code>/api/recipes/[id]/cooked/photos</code></td><td><span class="gate g-user">user (manual)</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">recipe/Cooked</code></div></td></tr><tr data-gate="user" data-text="delete /api/recipes/[id]/cooked/photos recipe/cooked"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/recipes/[id]/cooked/photos</code></td><td><span class="gate g-user">user (manual)</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">recipe/Cooked</code></div></td></tr><tr data-gate="user" data-text="post /api/recipes/[id]/cooked recipe/cooked"><td class="verb v-post">POST</td><td class="route"><code>/api/recipes/[id]/cooked</code></td><td><span class="gate g-user">user (manual)</span></td><td><div class="chips"><code class="call">recipe/Cooked</code></div></td></tr><tr data-gate="user" data-text="patch /api/recipes/[id]/cooked recipe/cooked"><td class="verb v-patch">PATCH</td><td class="route"><code>/api/recipes/[id]/cooked</code></td><td><span class="gate g-user">user (manual)</span></td><td><div class="chips"><code class="call">recipe/Cooked</code></div></td></tr><tr data-gate="user" data-text="delete /api/recipes/[id]/cooked recipe/cooked"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/recipes/[id]/cooked</code></td><td><span class="gate g-user">user (manual)</span></td><td><div class="chips"><code class="call">recipe/Cooked</code></div></td></tr><tr data-gate="admin" data-text="post /api/recipes/[id]/draft recipe/finishdraft"><td class="verb v-post">POST</td><td class="route"><code>/api/recipes/[id]/draft</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">recipe/FinishDraft</code></div></td></tr><tr data-gate="user" data-text="post /api/recipes/[id]/favorite favoritebutton"><td class="verb v-post">POST</td><td class="route"><code>/api/recipes/[id]/favorite</code></td><td><span class="gate g-user">user</span></td><td><div class="chips"><code class="call">FavoriteButton</code></div></td></tr><tr data-gate="user" data-text="delete /api/recipes/[id]/favorite favoritebutton"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/recipes/[id]/favorite</code></td><td><span class="gate g-user">user</span></td><td><div class="chips"><code class="call">FavoriteButton</code></div></td></tr><tr data-gate="user" data-text="post /api/recipes/[id]/rate rating"><td class="verb v-post">POST</td><td class="route"><code>/api/recipes/[id]/rate</code></td><td><span class="gate g-user">user</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">Rating</code></div></td></tr><tr data-gate="admin" data-text="put /api/recipes/[id] recipe-form/recipeform"><td class="verb v-put">PUT</td><td class="route"><code>/api/recipes/[id]</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">recipe-form/RecipeForm</code></div></td></tr><tr data-gate="admin" data-text="delete /api/recipes/[id] deleterecipebutton recipe-form/recipeform"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/recipes/[id]</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">DeleteRecipeButton</code><code class="call">recipe-form/RecipeForm</code></div></td></tr><tr data-gate="admin" data-text="post /api/recipes/[id]/share admin/reciperowactions recipe/recipearticle recipe/sharelink"><td class="verb v-post">POST</td><td class="route"><code>/api/recipes/[id]/share</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">admin/RecipeRowActions</code><code class="call">recipe/RecipeArticle</code><code class="call">recipe/ShareLink</code></div></td></tr><tr data-gate="admin" data-text="delete /api/recipes/[id]/share recipe/recipearticle recipe/sharelink"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/recipes/[id]/share</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">recipe/RecipeArticle</code><code class="call">recipe/ShareLink</code></div></td></tr><tr data-gate="user" data-text="post /api/recipes/[id]/view viewtracker"><td class="verb v-post">POST</td><td class="route"><code>/api/recipes/[id]/view</code></td><td><span class="gate g-user">user (manual)</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">ViewTracker</code></div></td></tr><tr data-gate="admin" data-text="patch /api/recipes/[id]/visibility admin/reciperowactions recipe/visibility"><td class="verb v-patch">PATCH</td><td class="route"><code>/api/recipes/[id]/visibility</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">admin/RecipeRowActions</code><code class="call">recipe/Visibility</code></div></td></tr><tr data-gate="admin" data-text="post /api/recipes recipe-form/recipeform"><td class="verb v-post">POST</td><td class="route"><code>/api/recipes</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">recipe-form/RecipeForm</code></div></td></tr><tr data-gate="admin" data-text="delete /api/site-profiles/[host] admin/siteprofiles"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/site-profiles/[host]</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">admin/SiteProfiles</code></div></td></tr><tr data-gate="admin" data-text="get /api/site-profiles admin/siteprofiles"><td class="verb v-get">GET</td><td class="route"><code>/api/site-profiles</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">admin/SiteProfiles</code></div></td></tr><tr data-gate="admin" data-text="post /api/site-profiles admin/siteprofiles"><td class="verb v-post">POST</td><td class="route"><code>/api/site-profiles</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">admin/SiteProfiles</code></div></td></tr><tr data-gate="user" data-text="post /api/tickets src/app/[locale]/tickets/page.tsx"><td class="verb v-post">POST</td><td class="route"><code>/api/tickets</code></td><td><span class="gate g-user">user (manual)</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">src/app/[locale]/tickets/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="get /api/tickets src/app/[locale]/admin/tickets/page.tsx"><td class="verb v-get">GET</td><td class="route"><code>/api/tickets</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">src/app/[locale]/admin/tickets/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="patch /api/tickets src/app/[locale]/admin/tickets/page.tsx"><td class="verb v-patch">PATCH</td><td class="route"><code>/api/tickets</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span><span class="mark">limitiert</span></td><td><div class="chips"><code class="call">src/app/[locale]/admin/tickets/page.tsx</code></div></td></tr><tr data-gate="admin" data-text="post /api/upload recipe-form/recipeform"><td class="verb v-post">POST</td><td class="route"><code>/api/upload</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">recipe-form/RecipeForm</code></div></td></tr><tr data-gate="admin" data-text="patch /api/users/[id]/role admin/userlist"><td class="verb v-patch">PATCH</td><td class="route"><code>/api/users/[id]/role</code></td><td><span class="gate g-admin">admin</span><span class="mark">zod</span></td><td><div class="chips"><code class="call">admin/UserList</code></div></td></tr><tr data-gate="admin" data-text="delete /api/users/[id] admin/userlist"><td class="verb v-delete">DELETE</td><td class="route"><code>/api/users/[id]</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">admin/UserList</code></div></td></tr><tr data-gate="admin" data-text="get /api/users admin/userlist"><td class="verb v-get">GET</td><td class="route"><code>/api/users</code></td><td><span class="gate g-admin">admin</span></td><td><div class="chips"><code class="call">admin/UserList</code></div></td></tr></tbody>
+      </table>
+      <div class="empty" id="endpoints-empty" hidden>Nichts gefunden.</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Immer da</h2>
+      <p>Aus einem Layout gerendert, nicht aus einer Seite — deshalb einmal aufgezählt statt als vierzig Kanten gezeichnet.</p>
+    </div>
+    <div class="gcards"><div class="gcard"><h3>Header</h3><code class="cmp">Navbar</code><div class="glinks"><code class="lnk">/[locale]</code><code class="lnk">/[locale]/account</code><code class="lnk">/[locale]/admin</code><code class="lnk">/[locale]/blog</code><code class="lnk">/[locale]/collections</code><code class="lnk">/[locale]/login</code></div></div><div class="gcard"><h3>Footer</h3><code class="cmp">Footer</code><div class="glinks"><code class="lnk">/[locale]/imprint</code><code class="lnk">/[locale]/privacy</code></div></div><div class="gcard"><h3>Admin nav</h3><code class="cmp">admin/AdminNav</code><div class="glinks"><code class="lnk">/[locale]/admin</code><code class="lnk">/[locale]/admin/ai</code><code class="lnk">/[locale]/admin/collections/new</code><code class="lnk">/[locale]/admin/devices</code><code class="lnk">/[locale]/admin/errors</code><code class="lnk">/[locale]/admin/inbox</code><code class="lnk">/[locale]/admin/posts</code><code class="lnk">/[locale]/admin/tickets</code><code class="lnk">/[locale]/admin/users</code><code class="lnk">/[locale]/drafts</code></div></div></div>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Was daran zu verbessern ist</h2>
+      <p>Aus <code>docs/interaction-map.md</code> gelesen, damit hier nichts anderes steht als dort.
+      Durchgestrichen heißt erledigt. Keine davon braucht eine Migration.</p>
+    </div>
+    <ol class="findings"><li class="f-done"><div class="fnum">1</div><p>Make the proxy honour <code>'recipe'</code> access. Done — <code>proxyStepsAside()</code>, commit f6b1ea1.</p></li><li class="f-open"><div class="fnum">2</div><p>One shared client error toast, then wire the seven silent actions to it.</p></li><li class="f-open"><div class="fnum">3</div><p>Collapse the four share labels to two verbs and drop one of the two share components on the recipe page.</p></li><li class="f-open"><div class="fnum">4</div><p>After Accept in the inbox, go to the recipe.</p></li><li class="f-open"><div class="fnum">5</div><p>Put the account link in the desktop header.</p></li><li class="f-open"><div class="fnum">6</div><p>Move <code>/drafts</code> under <code>/admin</code>, or make its access <code>admin</code>.</p></li><li class="f-open"><div class="fnum">7</div><p>Login page: &quot;by invitation&quot; text instead of a dead register link.</p></li><li class="f-open"><div class="fnum">8</div><p><code>DELETE /api/errors/[id]</code>: a button or a deletion.</p></li></ol>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Wer ruft was</h2>
+      <p>Komponenten und die Endpunkte, die sie anfassen. Ein Endpunkt ohne eingehenden Pfeil steht in der
+      Tabelle oben als „nichts in der Oberfläche".</p>
+    </div>
+    <div class="diagram"><pre class="mermaid">%%{init: {'theme':'base','themeVariables':{'background':'transparent','primaryColor':'#2A2622','primaryTextColor':'#FFF8F0','primaryBorderColor':'#2A2622','lineColor':'#9A9088','secondaryColor':'#2A2622','tertiaryColor':'transparent','clusterBkg':'transparent','clusterBorder':'#6B5F54','titleColor':'#6B5F54','edgeLabelBackground':'transparent','fontFamily':'Geist, ui-sans-serif, system-ui','fontSize':'13px'}}}%%
+flowchart LR
+  ePOST_api_account_avatar([&quot;POST /api/account/avatar&quot;])
+  caccount_AvatarForm[&quot;account/AvatarForm&quot;]
+  caccount_AvatarForm --&gt; ePOST_api_account_avatar
+  eDELETE_api_account_avatar([&quot;DELETE /api/account/avatar&quot;])
+  caccount_AvatarForm --&gt; eDELETE_api_account_avatar
+  eDELETE_api_ai_keys__provider_([&quot;DELETE /api/ai-keys/[provider]&quot;])
+  cadmin_AiKeys[&quot;admin/AiKeys&quot;]
+  cadmin_AiKeys --&gt; eDELETE_api_ai_keys__provider_
+  ePOST_api_ai_keys__provider__test([&quot;POST /api/ai-keys/[provider]/test&quot;])
+  cadmin_AiKeys --&gt; ePOST_api_ai_keys__provider__test
+  eGET_api_ai_keys([&quot;GET /api/ai-keys&quot;])
+  cadmin_AiKeys --&gt; eGET_api_ai_keys
+  ePOST_api_ai_keys([&quot;POST /api/ai-keys&quot;])
+  cadmin_AiKeys --&gt; ePOST_api_ai_keys
+  ePATCH_api_ai_keys([&quot;PATCH /api/ai-keys&quot;])
+  cadmin_AiKeys --&gt; ePATCH_api_ai_keys
+  ePOST_api_ai_polish([&quot;POST /api/ai/polish&quot;])
+  crecipe_form_PolishPanel[&quot;recipe-form/PolishPanel&quot;]
+  crecipe_form_PolishPanel --&gt; ePOST_api_ai_polish
+  ePOST_api_auth_forgot([&quot;POST /api/auth/forgot&quot;])
+  csrc_app__locale__forgot_page_tsx[&quot;src/app/[locale]/forgot/page.tsx&quot;]
+  csrc_app__locale__forgot_page_tsx --&gt; ePOST_api_auth_forgot
+  ePOST_api_auth_login([&quot;POST /api/auth/login&quot;])
+  csrc_app__locale__login_page_tsx[&quot;src/app/[locale]/login/page.tsx&quot;]
+  csrc_app__locale__login_page_tsx --&gt; ePOST_api_auth_login
+  ePOST_api_auth_logout([&quot;POST /api/auth/logout&quot;])
+  cLogoutButton[&quot;LogoutButton&quot;]
+  cLogoutButton --&gt; ePOST_api_auth_logout
+  ePOST_api_auth_register([&quot;POST /api/auth/register&quot;])
+  cauth_RegisterForm[&quot;auth/RegisterForm&quot;]
+  cauth_RegisterForm --&gt; ePOST_api_auth_register
+  ePOST_api_auth_resend_verification([&quot;POST /api/auth/resend-verification&quot;])
+  cauth_ResendVerification[&quot;auth/ResendVerification&quot;]
+  cauth_ResendVerification --&gt; ePOST_api_auth_resend_verification
+  ePOST_api_auth_reset([&quot;POST /api/auth/reset&quot;])
+  cauth_ResetForm[&quot;auth/ResetForm&quot;]
+  cauth_ResetForm --&gt; ePOST_api_auth_reset
+  ePOST_api_auth_verify([&quot;POST /api/auth/verify&quot;])
+  csrc_app__locale__verify_page_tsx[&quot;src/app/[locale]/verify/page.tsx&quot;]
+  csrc_app__locale__verify_page_tsx --&gt; ePOST_api_auth_verify
+  eDELETE_api_capture_tokens__id_([&quot;DELETE /api/capture-tokens/[id]&quot;])
+  csrc_app__locale__admin_devices_page_tsx[&quot;src/app/[locale]/admin/devices/page.tsx&quot;]
+  csrc_app__locale__admin_devices_page_tsx --&gt; eDELETE_api_capture_tokens__id_
+  eGET_api_capture_tokens([&quot;GET /api/capture-tokens&quot;])
+  csrc_app__locale__admin_devices_page_tsx --&gt; eGET_api_capture_tokens
+  ePOST_api_capture_tokens([&quot;POST /api/capture-tokens&quot;])
+  csrc_app__locale__admin_devices_page_tsx --&gt; ePOST_api_capture_tokens
+  ePOST_api_capture__id__merge([&quot;POST /api/capture/[id]/merge&quot;])
+  csrc_app__locale__admin_inbox_page_tsx[&quot;src/app/[locale]/admin/inbox/page.tsx&quot;]
+  csrc_app__locale__admin_inbox_page_tsx --&gt; ePOST_api_capture__id__merge
+  ePOST_api_capture__id_([&quot;POST /api/capture/[id]&quot;])
+  csrc_app__locale__admin_inbox_page_tsx --&gt; ePOST_api_capture__id_
+  eDELETE_api_capture__id_([&quot;DELETE /api/capture/[id]&quot;])
+  csrc_app__locale__admin_inbox_page_tsx --&gt; eDELETE_api_capture__id_
+  ePOST_api_capture([&quot;POST /api/capture&quot;])
+  csrc_app__locale__admin_devices_page_tsx --&gt; ePOST_api_capture
+  eGET_api_capture([&quot;GET /api/capture&quot;])
+  csrc_app__locale__admin_devices_page_tsx --&gt; eGET_api_capture
+  csrc_app__locale__admin_inbox_page_tsx --&gt; eGET_api_capture
+  ePUT_api_collections__id_([&quot;PUT /api/collections/[id]&quot;])
+  ccollection_CollectionForm[&quot;collection/CollectionForm&quot;]
+  ccollection_CollectionForm --&gt; ePUT_api_collections__id_
+  eDELETE_api_collections__id_([&quot;DELETE /api/collections/[id]&quot;])
+  ccollection_CollectionForm --&gt; eDELETE_api_collections__id_
+  ePOST_api_collections__id__share([&quot;POST /api/collections/[id]/share&quot;])
+  crecipe_ShareLink[&quot;recipe/ShareLink&quot;]
+  crecipe_ShareLink --&gt; ePOST_api_collections__id__share
+  eDELETE_api_collections__id__share([&quot;DELETE /api/collections/[id]/share&quot;])
+  crecipe_ShareLink --&gt; eDELETE_api_collections__id__share
+  eGET_api_collections([&quot;GET /api/collections&quot;])
+  ccollection_CollectionForm --&gt; eGET_api_collections
+  ePOST_api_collections([&quot;POST /api/collections&quot;])
+  ccollection_CollectionForm --&gt; ePOST_api_collections
+  ePOST_api_errors__id_([&quot;POST /api/errors/[id]&quot;])
+  csrc_app__locale__admin_errors_page_tsx[&quot;src/app/[locale]/admin/errors/page.tsx&quot;]
+  csrc_app__locale__admin_errors_page_tsx --&gt; ePOST_api_errors__id_
+  ePOST_api_errors([&quot;POST /api/errors&quot;])
+  cErrorReporter[&quot;ErrorReporter&quot;]
+  cErrorReporter --&gt; ePOST_api_errors
+  cGlobalErrorReporter[&quot;GlobalErrorReporter&quot;]
+  cGlobalErrorReporter --&gt; ePOST_api_errors
+  eGET_api_errors([&quot;GET /api/errors&quot;])
+  csrc_app__locale__admin_errors_page_tsx --&gt; eGET_api_errors
+  eGET_api_export([&quot;GET /api/export&quot;])
+  cadmin_BackupPanel[&quot;admin/BackupPanel&quot;]
+  cadmin_BackupPanel --&gt; eGET_api_export
+  ePOST_api_import_ai([&quot;POST /api/import/ai&quot;])
+  crecipe_form_QuickImport[&quot;recipe-form/QuickImport&quot;]
+  crecipe_form_QuickImport --&gt; ePOST_api_import_ai
+  ePOST_api_import_archive([&quot;POST /api/import/archive&quot;])
+  cadmin_BackupPanel --&gt; ePOST_api_import_archive
+  ePOST_api_import_url([&quot;POST /api/import/url&quot;])
+  crecipe_form_QuickImport --&gt; ePOST_api_import_url
+  eDELETE_api_invites__id_([&quot;DELETE /api/invites/[id]&quot;])
+  cadmin_InvitationList[&quot;admin/InvitationList&quot;]
+  cadmin_InvitationList --&gt; eDELETE_api_invites__id_
+  eGET_api_invites([&quot;GET /api/invites&quot;])
+  cadmin_InvitationList --&gt; eGET_api_invites
+  ePOST_api_invites([&quot;POST /api/invites&quot;])
+  cadmin_InvitationList --&gt; ePOST_api_invites
+  ePUT_api_posts__id_([&quot;PUT /api/posts/[id]&quot;])
+  cpost_PostForm[&quot;post/PostForm&quot;]
+  cpost_PostForm --&gt; ePUT_api_posts__id_
+  eDELETE_api_posts__id_([&quot;DELETE /api/posts/[id]&quot;])
+  cpost_DeletePostButton[&quot;post/DeletePostButton&quot;]
+  cpost_DeletePostButton --&gt; eDELETE_api_posts__id_
+  cpost_PostForm --&gt; eDELETE_api_posts__id_
+  ePOST_api_posts__id__share([&quot;POST /api/posts/[id]/share&quot;])
+  crecipe_ShareLink --&gt; ePOST_api_posts__id__share
+  eDELETE_api_posts__id__share([&quot;DELETE /api/posts/[id]/share&quot;])
+  crecipe_ShareLink --&gt; eDELETE_api_posts__id__share
+  ePOST_api_posts([&quot;POST /api/posts&quot;])
+  cpost_PostForm --&gt; ePOST_api_posts
+  ePOST_api_recipes__id__cooked_photos([&quot;POST /api/recipes/[id]/cooked/photos&quot;])
+  crecipe_Cooked[&quot;recipe/Cooked&quot;]
+  crecipe_Cooked --&gt; ePOST_api_recipes__id__cooked_photos
+  eDELETE_api_recipes__id__cooked_photos([&quot;DELETE /api/recipes/[id]/cooked/photos&quot;])
+  crecipe_Cooked --&gt; eDELETE_api_recipes__id__cooked_photos
+  ePOST_api_recipes__id__cooked([&quot;POST /api/recipes/[id]/cooked&quot;])
+  crecipe_Cooked --&gt; ePOST_api_recipes__id__cooked
+  ePATCH_api_recipes__id__cooked([&quot;PATCH /api/recipes/[id]/cooked&quot;])
+  crecipe_Cooked --&gt; ePATCH_api_recipes__id__cooked
+  eDELETE_api_recipes__id__cooked([&quot;DELETE /api/recipes/[id]/cooked&quot;])
+  crecipe_Cooked --&gt; eDELETE_api_recipes__id__cooked
+  ePOST_api_recipes__id__draft([&quot;POST /api/recipes/[id]/draft&quot;])
+  crecipe_FinishDraft[&quot;recipe/FinishDraft&quot;]
+  crecipe_FinishDraft --&gt; ePOST_api_recipes__id__draft
+  ePOST_api_recipes__id__favorite([&quot;POST /api/recipes/[id]/favorite&quot;])
+  cFavoriteButton[&quot;FavoriteButton&quot;]
+  cFavoriteButton --&gt; ePOST_api_recipes__id__favorite
+  eDELETE_api_recipes__id__favorite([&quot;DELETE /api/recipes/[id]/favorite&quot;])
+  cFavoriteButton --&gt; eDELETE_api_recipes__id__favorite
+  ePOST_api_recipes__id__rate([&quot;POST /api/recipes/[id]/rate&quot;])
+  cRating[&quot;Rating&quot;]
+  cRating --&gt; ePOST_api_recipes__id__rate
+  ePUT_api_recipes__id_([&quot;PUT /api/recipes/[id]&quot;])
+  crecipe_form_RecipeForm[&quot;recipe-form/RecipeForm&quot;]
+  crecipe_form_RecipeForm --&gt; ePUT_api_recipes__id_
+  eDELETE_api_recipes__id_([&quot;DELETE /api/recipes/[id]&quot;])
+  cDeleteRecipeButton[&quot;DeleteRecipeButton&quot;]
+  cDeleteRecipeButton --&gt; eDELETE_api_recipes__id_
+  crecipe_form_RecipeForm --&gt; eDELETE_api_recipes__id_
+  ePOST_api_recipes__id__share([&quot;POST /api/recipes/[id]/share&quot;])
+  cadmin_RecipeRowActions[&quot;admin/RecipeRowActions&quot;]
+  cadmin_RecipeRowActions --&gt; ePOST_api_recipes__id__share
+  crecipe_RecipeArticle[&quot;recipe/RecipeArticle&quot;]
+  crecipe_RecipeArticle --&gt; ePOST_api_recipes__id__share
+  crecipe_ShareLink --&gt; ePOST_api_recipes__id__share
+  eDELETE_api_recipes__id__share([&quot;DELETE /api/recipes/[id]/share&quot;])
+  crecipe_RecipeArticle --&gt; eDELETE_api_recipes__id__share
+  crecipe_ShareLink --&gt; eDELETE_api_recipes__id__share
+  ePOST_api_recipes__id__view([&quot;POST /api/recipes/[id]/view&quot;])
+  cViewTracker[&quot;ViewTracker&quot;]
+  cViewTracker --&gt; ePOST_api_recipes__id__view
+  ePATCH_api_recipes__id__visibility([&quot;PATCH /api/recipes/[id]/visibility&quot;])
+  cadmin_RecipeRowActions --&gt; ePATCH_api_recipes__id__visibility
+  crecipe_Visibility[&quot;recipe/Visibility&quot;]
+  crecipe_Visibility --&gt; ePATCH_api_recipes__id__visibility
+  ePOST_api_recipes([&quot;POST /api/recipes&quot;])
+  crecipe_form_RecipeForm --&gt; ePOST_api_recipes
+  eDELETE_api_site_profiles__host_([&quot;DELETE /api/site-profiles/[host]&quot;])
+  cadmin_SiteProfiles[&quot;admin/SiteProfiles&quot;]
+  cadmin_SiteProfiles --&gt; eDELETE_api_site_profiles__host_
+  eGET_api_site_profiles([&quot;GET /api/site-profiles&quot;])
+  cadmin_SiteProfiles --&gt; eGET_api_site_profiles
+  ePOST_api_site_profiles([&quot;POST /api/site-profiles&quot;])
+  cadmin_SiteProfiles --&gt; ePOST_api_site_profiles
+  ePOST_api_tickets([&quot;POST /api/tickets&quot;])
+  csrc_app__locale__tickets_page_tsx[&quot;src/app/[locale]/tickets/page.tsx&quot;]
+  csrc_app__locale__tickets_page_tsx --&gt; ePOST_api_tickets
+  eGET_api_tickets([&quot;GET /api/tickets&quot;])
+  csrc_app__locale__admin_tickets_page_tsx[&quot;src/app/[locale]/admin/tickets/page.tsx&quot;]
+  csrc_app__locale__admin_tickets_page_tsx --&gt; eGET_api_tickets
+  ePATCH_api_tickets([&quot;PATCH /api/tickets&quot;])
+  csrc_app__locale__admin_tickets_page_tsx --&gt; ePATCH_api_tickets
+  ePOST_api_upload([&quot;POST /api/upload&quot;])
+  crecipe_form_RecipeForm --&gt; ePOST_api_upload
+  ePATCH_api_users__id__role([&quot;PATCH /api/users/[id]/role&quot;])
+  cadmin_UserList[&quot;admin/UserList&quot;]
+  cadmin_UserList --&gt; ePATCH_api_users__id__role
+  eDELETE_api_users__id_([&quot;DELETE /api/users/[id]&quot;])
+  cadmin_UserList --&gt; eDELETE_api_users__id_
+  eGET_api_users([&quot;GET /api/users&quot;])
+  cadmin_UserList --&gt; eGET_api_users</pre></div>
+  </section>
+
+  <footer>
+    Erzeugt von <code>scripts/interaction-map-page.ts</code> aus <code>docs/interaction-map.generated.md</code>
+    und <code>docs/interaction-map.md</code>. Nicht von Hand ändern — <code>npm run map</code>.
+  </footer>
+</div>
+
+<script>
+  function wire(tableId, emptyId, searchId, key, chipAttr) {
+    var table = document.getElementById(tableId);
+    var empty = document.getElementById(emptyId);
+    var search = document.getElementById(searchId);
+    var chips = Array.prototype.slice.call(document.querySelectorAll('[' + chipAttr + ']'));
+    var rows = Array.prototype.slice.call(table.tBodies[0].rows);
+    var active = [];
+
+    function apply() {
+      var term = search.value.trim().toLowerCase();
+      var shown = 0;
+      rows.forEach(function (row) {
+        var byChip = active.length === 0 || active.indexOf(row.dataset[key]) !== -1;
+        var byTerm = term === '' || row.dataset.text.indexOf(term) !== -1;
+        row.hidden = !(byChip && byTerm);
+        if (!row.hidden) shown++;
+      });
+      empty.hidden = shown > 0;
+      table.hidden = shown === 0;
+    }
+
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        var value = chip.getAttribute(chipAttr);
+        var on = chip.getAttribute('aria-pressed') === 'true';
+        chip.setAttribute('aria-pressed', on ? 'false' : 'true');
+        if (on) active = active.filter(function (v) { return v !== value; });
+        else active.push(value);
+        apply();
+      });
+    });
+    search.addEventListener('input', apply);
+  }
+
+  wire('screens', 'screens-empty', 'screen-search', 'access', 'data-filter');
+  wire('endpoints', 'endpoints-empty', 'endpoint-search', 'gate', 'data-gfilter');
+</script>
