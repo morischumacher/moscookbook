@@ -11,7 +11,7 @@ import {
     isAssistMode,
     isValidModel,
     keysFromEnv,
-} from './aiImport';
+} from './aiProviders';
 
 /**
  * Where the AI keys actually come from.
