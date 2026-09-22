@@ -32,7 +32,23 @@ function TicketForm() {
     const t = useTranslations('Tickets');
 
     const [kind, setKind] = useState<(typeof KINDS)[number]>('idea');
-    const [body, setBody] = useState('');
+
+    /*
+     * A description that is already written, when whoever sent you here knew
+     * what the ticket was about.
+     *
+     * The inbox uses this: a capture that came back wrong is the case where
+     * "report this" has to be one tap, because the alternative is typing out
+     * which of forty rows you meant, what state it was in and where it came
+     * from — which is the moment most tickets stop being written.
+     *
+     * Pre-filled rather than submitted: it is a draft in a text box, and the
+     * person can delete every word of it. Trimmed to the same ceiling the
+     * field has, so a runaway query string cannot produce a form that refuses
+     * itself.
+     */
+    const about = useSearchParams().get('about');
+    const [body, setBody] = useState(about ? about.slice(0, 2000) : '');
     /*
      * Where they were, handed over by the link rather than guessed.
      *

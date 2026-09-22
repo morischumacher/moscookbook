@@ -326,6 +326,35 @@ function CaptureRow({
         capture.status === 'ready' ||
         (Boolean(capture.draft?.title) && Boolean(capture.draft?.instructions));
 
+    /*
+     * Whether a model has already had a go at this one.
+     *
+     * "Read again" and "Read with AI" are not two names for one thing, and
+     * the difference was invisible: reading again uses a model *if the
+     * scoring thinks it would help*, and asking explicitly skips that
+     * judgement and pays for a call regardless. Which means that on a row a
+     * model has already read, the second button mostly buys the same answer a
+     * second time.
+     *
+     * Said rather than taken away — the scoring is a guess from shape alone,
+     * and somebody who has read the draft may know better. The button is
+     * dimmed and its explanation changes; it still works.
+     */
+    const alreadyAsked = (capture.readBy ?? '').includes('ai') && capture.status === 'ready';
+
+    /** The ticket, already written. See the report link below. */
+    const reportText = [
+        `${t('report')}: ${label}`,
+        `${t('reportStatus')}: ${capture.status}${capture.readBy ? ` (${capture.readBy})` : ''}`,
+        capture.aiProvider ? `${tAi('nav')}: ${providerLabel(capture.aiProvider)}` : null,
+        capture.sourceUrl ? capture.sourceUrl : null,
+        capture.error ? capture.error : null,
+        '',
+        '',
+    ]
+        .filter((line) => line !== null)
+        .join('\n');
+
     return (
         <li className="py-5">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs uppercase tracking-widest text-faint">
@@ -484,6 +513,7 @@ function CaptureRow({
                     type="button"
                     onClick={onRetry}
                     disabled={busy}
+                    title={t('retryExplain')}
                     className="text-muted underline underline-offset-4 disabled:opacity-50"
                 >
                     {t('retry')}
@@ -508,11 +538,35 @@ function CaptureRow({
                     type="button"
                     onClick={onAskAi}
                     disabled={busy || !aiAvailable}
-                    title={aiAvailable ? undefined : tAi('polishOff')}
-                    className="text-muted underline underline-offset-4 disabled:no-underline disabled:opacity-50"
+                    title={
+                        !aiAvailable
+                            ? tAi('polishOff')
+                            : alreadyAsked
+                              ? tAi('askAgainExplain')
+                              : tAi('askAiExplain')
+                    }
+                    className={`underline underline-offset-4 disabled:no-underline disabled:opacity-50 ${
+                        alreadyAsked ? 'text-faint' : 'text-muted'
+                    }`}
                 >
                     {tAi('askAi')}
                 </button>
+
+                {/*
+                    Something came out wrong and you want it looked at.
+
+                    The alternative was opening the ticket form and typing out
+                    which of forty rows you meant, what state it was in and
+                    where it came from — which is the moment most tickets stop
+                    being written. The description arrives already written and
+                    entirely editable.
+                */}
+                <Link
+                    href={`/tickets?from=${encodeURIComponent(`/${locale}/admin/inbox`)}&about=${encodeURIComponent(reportText)}`}
+                    className="text-muted underline underline-offset-4"
+                >
+                    {t('report')}
+                </Link>
 
                 {capture.sourceUrl && (
                     <a

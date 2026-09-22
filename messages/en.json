@@ -304,7 +304,7 @@
     "empty": "Nothing waiting. Share something from your phone.",
     "untitled": "Untitled",
     "accept": "Take it",
-    "finish": "Finish it",
+    "finish": "Open and edit",
     "retry": "Read again",
     "discard": "Bin it",
     "openSource": "Open the source",
@@ -332,7 +332,10 @@
     "duplicateLink": "That link is already in the cookbook as",
     "duplicateTitle": "There may already be",
     "merge": "Merge into it",
-    "confirmMerge": "Merge into “{title}”? Its text stays as it is; a new picture is added and this capture is filed against it."
+    "confirmMerge": "Merge into “{title}”? Its text stays as it is; a new picture is added and this capture is filed against it.",
+    "report": "Report this",
+    "reportStatus": "Status",
+    "retryExplain": "Read it again the usual way — rules first, and a model only if that would help."
   },
   "Devices": {
     "title": "Devices",
@@ -715,7 +718,9 @@
     "rebuildWithAi": "Build the recipe from this with AI",
     "modelHint": "Leaving it empty is usually right. If the default will not answer — busy, or out of quota — the next one is tried automatically and the one that worked is written in here.",
     "modelAuto": "Chosen automatically on {date}, because the previous one did not answer. Overwrite it whenever you like; your choice then stands.",
-    "testModel": "Answered by: {model}."
+    "testModel": "Answered by: {model}.",
+    "askAiExplain": "Ask a model even though the rules think they managed. Costs one call.",
+    "askAgainExplain": "A model has already read this one. Asking again costs another call and will probably say the same thing."
   },
   "SiteProfiles": {
     "title": "Learned sites",

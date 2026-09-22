@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-36 screens · 72 endpoints · 50 link edges · 79 call edges
+36 screens · 72 endpoints · 51 link edges · 79 call edges
 
 ## Screens
 
@@ -18,7 +18,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/drafts` | admin | requires admin | `POST /api/recipes/[id]/draft` | `/[locale]/recipe/[id]` |
 | `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/upload` | `/[locale]/admin` |
 | `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
-| `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`GET /api/capture`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge` | `/[locale]/admin/create`<br>`/[locale]/admin/devices`<br>`/[locale]/recipe/[id]` |
+| `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`GET /api/capture`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge` | `/[locale]/admin/create`<br>`/[locale]/admin/devices`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
 | `/[locale]/admin/invites` | admin | requires admin | — | `/[locale]/admin/users` |
 | `/[locale]/admin` | admin | requires admin | `DELETE /api/recipes/[id]`<br>`GET /api/export`<br>`PATCH /api/recipes/[id]/visibility`<br>`POST /api/import/archive`<br>`POST /api/recipes/[id]/share` | `/[locale]/admin/create`<br>`/[locale]/admin/edit/[id]`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/admin/posts/[id]` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
@@ -197,6 +197,7 @@ flowchart LR
   n__locale__admin_inbox --> n__locale__admin_create
   n__locale__admin_inbox --> n__locale__admin_devices
   n__locale__admin_inbox --> n__locale__recipe__slug_
+  n__locale__admin_inbox --> n__locale__tickets
   n__locale__admin_invites --> n__locale__admin_users
   n__locale__admin --> n__locale__admin_create
   n__locale__admin --> n__locale__admin_edit__id_

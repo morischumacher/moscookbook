@@ -304,7 +304,7 @@
     "empty": "Nichts da. Teile etwas von deinem Handy.",
     "untitled": "Ohne Titel",
     "accept": "Übernehmen",
-    "finish": "Fertigstellen",
+    "finish": "Öffnen und bearbeiten",
     "retry": "Neu einlesen",
     "discard": "Wegwerfen",
     "openSource": "Quelle öffnen",
@@ -332,7 +332,10 @@
     "duplicateLink": "Dieser Link steht schon im Kochbuch als",
     "duplicateTitle": "Gibt es vielleicht schon:",
     "merge": "Zusammenführen",
-    "confirmMerge": "Mit „{title}\" zusammenführen? Der Text bleibt, wie er ist; ein neues Bild kommt dazu und dieser Eingang wird dem Rezept zugeordnet."
+    "confirmMerge": "Mit „{title}\" zusammenführen? Der Text bleibt, wie er ist; ein neues Bild kommt dazu und dieser Eingang wird dem Rezept zugeordnet.",
+    "report": "Das melden",
+    "reportStatus": "Status",
+    "retryExplain": "Noch einmal einlesen, wie sonst auch — Regeln zuerst, ein Modell nur, wenn es helfen würde."
   },
   "Devices": {
     "title": "Geräte",
@@ -715,7 +718,9 @@
     "rebuildWithAi": "Rezept mit KI aus der Eingabe erstellen",
     "modelHint": "Leer lassen ist meistens richtig. Antwortet das Standardmodell nicht — überlastet oder Kontingent leer —, wird automatisch das nächste probiert und das funktionierende hier eingetragen.",
     "modelAuto": "Automatisch gewählt am {date}, weil das vorherige nicht geantwortet hat. Du kannst es jederzeit überschreiben; dann bleibt deine Wahl stehen.",
-    "testModel": "Geantwortet hat: {model}."
+    "testModel": "Geantwortet hat: {model}.",
+    "askAiExplain": "Ein Modell fragen, obwohl die Regeln meinen, sie hätten es geschafft. Kostet einen Aufruf.",
+    "askAgainExplain": "Ein Modell hat das hier schon gelesen. Noch einmal fragen kostet noch einen Aufruf und sagt vermutlich dasselbe."
   },
   "SiteProfiles": {
     "title": "Gelernte Seiten",
