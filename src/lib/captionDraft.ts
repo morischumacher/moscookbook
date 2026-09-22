@@ -71,6 +71,33 @@ export function captionDraft(html: string, sourceUrl: string): ImportedRecipe | 
     const parsed = parseRecipeText(captionOf(html));
     if (parsed.ingredients.length === 0 && parsed.instructions.trim() === '') return null;
 
+    /*
+     * A caption with no ingredients in it is prose, and prose is not a method.
+     *
+     * `parseRecipeText` has to put text somewhere, so a caption it cannot find
+     * a list in comes back with the whole thing as `instructions`. On the
+     * pages this was written for that is harmless — those captions *are* the
+     * recipe. On every other page on the web it is the `og:description`, which
+     * is a sentence of marketing written to be read in a search result:
+     *
+     *     "The crispiest fried chicken sandwich you will ever make at home."
+     *
+     * Eighty characters that look, to a scoring function, exactly like a
+     * method the page was kind enough to supply. It lowered the damage, so the
+     * caption was merged; and then it *was* the method — `mergeDrafts` fills
+     * holes and this was no longer a hole, so the model's real reading of the
+     * page was discarded on arrival. A recipe blog came back with a slogan
+     * where its method should be, and the transcript suite caught it: 84
+     * characters where a recorded import had 3654.
+     *
+     * So the picture and the description still come along — those are right
+     * even on a blurb, and the picture is the one thing these pages never get
+     * wrong — and the method does not. A list of ingredients is what tells the
+     * two kinds of caption apart, because a caption that really is a recipe
+     * has one and a slogan does not.
+     */
+    const isRecipe = parsed.ingredients.length > 0;
+
     return {
         ...emptyDraft(sourceUrl),
         // The title is left to the rules and to `titleProblem`. A caption's
@@ -78,7 +105,7 @@ export function captionDraft(html: string, sourceUrl: string): ImportedRecipe | 
         // where it is not is "POV: you have 20 minutes and one pan".
         description: parsed.description,
         ingredients: parsed.ingredients,
-        instructions: parsed.instructions,
+        instructions: isRecipe ? parsed.instructions : '',
         // The picture is the one thing these pages always get right.
         imageUrl: metaContent(html, 'og:image'),
     };

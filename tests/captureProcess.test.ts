@@ -504,6 +504,21 @@ ${description ? `<meta property="og:description" content="${description}">` : ''
             (read.draft?.ingredients.length ?? 0) === 0,
             read.draft?.ingredients
         );
+        /*
+         * And the prose does not become the method either.
+         *
+         * This one is not load-bearing and the probe says so: this caption is
+         * rejected outright by the emptiness guard, because `parseRecipeText`
+         * finds neither a list nor a method in a single paragraph of joke. It
+         * is here to pin the outcome by whichever mechanism holds it — the
+         * blog case at the end of this file is where the guard that had to be
+         * added is the thing doing the work.
+         */
+        check(
+            'and its prose does not become the method',
+            (read.draft?.instructions ?? '') === '',
+            read.draft?.instructions
+        );
         check('and nothing is published as ready', read.status !== 'ready', read.status);
     } finally {
         restore();
@@ -620,5 +635,96 @@ ${description ? `<meta property="og:description" content="${description}">` : ''
         );
     } finally {
         restore();
+    }
+
+    /* ------------------------------------- a blog, which is not a platform */
+
+    /*
+     * The caption reader runs on every page, not only on the platforms it was
+     * written for, and every page on the web has an `og:description`.
+     *
+     * On a recipe blog that description is a sentence of marketing, and
+     * `parseRecipeText` — which has to put text somewhere — handed it back as
+     * `instructions`. Eighty characters that scored like a method, so the
+     * caption was merged; and once the method was no longer a hole, the model
+     * reading the actual page had its answer thrown away by `mergeDrafts`.
+     * The recipe came back with the site's slogan where the method belonged.
+     *
+     * Found by the transcript suite, which replays real imports: a recording
+     * with 3654 characters of method replayed to 84. This is that page, made
+     * small, and it drives the whole chain — caption, score, model, merge —
+     * because every part of it was behaving reasonably on its own.
+     */
+    const BLOG_URL = 'https://blog.example/recipes/fried-chicken-sandwich';
+    const SLOGAN = 'The crispiest fried chicken sandwich you will ever make at home, no deep fryer.';
+    const BLOG_PAGE = `<!DOCTYPE html><html><head>
+<title>Perfect Fried Chicken Sandwich</title>
+<meta property="og:title" content="Perfect Fried Chicken Sandwich">
+<meta property="og:description" content="${SLOGAN}">
+<meta property="og:image" content="https://blog.example/a.jpg">
+</head><body><article><h1>Perfect Fried Chicken Sandwich</h1>
+<ul><li>2 lb chicken thighs</li><li>1 cup flour</li><li>1 tbsp salt</li><li>2 cups buttermilk</li></ul>
+${Array.from({ length: 12 }, (_, i) => `<p>Step ${i + 1}. Keep everything cold and well seasoned until the texture is right.</p>`).join('\n')}
+</article></body></html>`;
+
+    const MODEL_METHOD = Array.from(
+        { length: 12 },
+        (_, i) => `${i + 1}. Keep everything cold and well seasoned until the texture is right.`
+    ).join('\n');
+
+    const BLOG_ANSWER = {
+        content: [{ type: 'text', text: JSON.stringify({
+            title: 'Perfect Fried Chicken Sandwich',
+            description: '', category: '', nationality: '',
+            servings: null, prepMinutes: null, cookMinutes: null,
+            ingredients: [
+                { amount: '2 lb', item: 'chicken thighs' },
+                { amount: '1 cup', item: 'flour' },
+                { amount: '1 tbsp', item: 'salt' },
+                { amount: '2 cups', item: 'buttermilk' },
+            ],
+            instructions: MODEL_METHOD,
+        }) }],
+    };
+
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: string | URL | Request) => {
+        const at = typeof input === 'string' ? input : input.toString();
+        if (at.includes('api.anthropic.com')) {
+            return {
+                ok: true, status: 200, url: at,
+                headers: new Headers({ 'content-type': 'application/json' }),
+                text: async () => JSON.stringify(BLOG_ANSWER),
+                json: async () => BLOG_ANSWER,
+            } as unknown as Response;
+        }
+        return {
+            ok: at === BLOG_URL, status: at === BLOG_URL ? 200 : 404, url: at,
+            headers: new Headers({ 'content-type': 'text/html; charset=utf-8' }),
+            text: async () => (at === BLOG_URL ? BLOG_PAGE : ''),
+            json: async () => ({}),
+        } as unknown as Response;
+    }) as typeof globalThis.fetch;
+
+    try {
+        const blogKey: AiKey = { provider: 'anthropic', apiKey: 'test', model: null };
+        const read = await processCapture(
+            classifyCapture({ text: BLOG_URL })!,
+            { mode: 'always', keys: [blogKey] }
+        );
+
+        check(
+            'a blog\'s slogan never becomes its method',
+            !(read.draft?.instructions ?? '').includes('crispiest'),
+            read.draft?.instructions
+        );
+        check(
+            'the model\'s reading of the page survives the merge',
+            (read.draft?.instructions ?? '').length > SLOGAN.length * 3,
+            `${(read.draft?.instructions ?? '').length} characters`
+        );
+        equal('and the recipe is complete', read.draft?.ingredients.length, 4);
+    } finally {
+        globalThis.fetch = realFetch;
     }
 }
