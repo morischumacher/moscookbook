@@ -108,7 +108,7 @@ draft it abandoned.
 | Action | Labels in use | Recommendation |
 |---|---|---|
 | ~~Publish / unpublish a recipe~~ | `makePublic` and `makePublicShort` held the *same string* in both languages; `makePrivate`/`makePrivateShort` held two. | **Done.** One key per action, shortened so it fits a list row as well as a panel. |
-| Get a link to a recipe | `Share.share`, `Visibility.share`, `Share.copyLink`, `Visibility.copyAddress` — four labels, and they can copy *different* URLs (`/recipe/<slug>` vs `/r/<token>`) | Two verbs at most: **Share** (mints the token, copies the `/r/` link, uses the share sheet on a phone) and **Copy address** (the plain URL, for people with accounts). Say which is which. |
+| Get a link to a recipe | `Share.share`, `Visibility.share`, `Share.copyLink`, `Visibility.copyAddress` — four labels, and they can copy *different* URLs (`/recipe/<slug>` vs `/r/<token>`) | **Still open.** The two `share` keys already hold the same word; the other two copy genuinely different things and their fields say which. What remains is the double entry point, struck below. |
 | Create the share token | Explicit `createLink` button in `ShareLink`; invisible inside `share` in `ShareButton` — both on the recipe page at once | Keep one of the two components on the recipe page. |
 | ~~Write a note on a recipe~~ | Read again: `addNote` is "Write a blog entry about this recipe" and `newPost` is "New entry". Same destination, different offers — the first carries the recipe with it. | **Not a duplicate.** This row was wrong; the labels stay. |
 | ~~Open the devices page~~ | Three entry points, and `Inbox.devices` held the same string as `Devices.nav` rather than a different one. | **Done.** The inbox reads the navigation's key; two keys holding one string is two strings waiting to disagree. |
@@ -146,6 +146,24 @@ one click that could be a redirect.
   errors, one deliberate step past the reversible action.
 
 One endpoint left with nothing in the UI, and it is the right one.
+
+## What came after, from using it
+
+The eight below were read off the map. A session with the running application
+produced a second list, which is in the commits rather than here — it is
+about what the screens *feel* like, which a static map cannot see:
+
+- Loading was announced only where you could already tell, and never during
+  the wait between pressing a tab and the page arriving. `loading.tsx` plus
+  one indicator with the oyster in it.
+- "Read again" and "Read with AI" did not say what separated them, and
+  nothing said when asking again would buy the same answer twice.
+- The admin navigation had ten entries in build order, wrapped nothing, and
+  hid the last two off the edge of a phone.
+- Errors and tickets were two entries for one question.
+- Your own account could not be renamed, moved, re-passworded or deleted.
+- Spent invitations were kept in the place you go to make one.
+- A recipe did not say where it came from.
 
 ## Recommendations, in order
 
