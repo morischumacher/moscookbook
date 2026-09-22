@@ -324,6 +324,7 @@ export default function QuickImport({
                         <pre className="overflow-x-auto rounded border border-line p-3 font-mono text-xs leading-relaxed">
                             {t('formatExample')}
                         </pre>
+                        <p className="mt-2 text-sm text-muted">{t('formatCaveat')}</p>
                         <p className="mt-2 text-sm text-muted">{t('applyNote')}</p>
                     </Disclosure>
 

@@ -253,10 +253,11 @@
     "imported": "Recipe imported. Please check it before saving.",
     "importedWithAi": "Imported, with help from the AI.",
     "intro": "A whole recipe as flowing text — copied from somewhere, or typed straight in here. “Apply” splits it into title, ingredients and method and fills the fields below.",
-    "formatSummary": "What format does it understand?",
-    "formatIntro": "Roughly like this, and it need not be exact — the headings are optional and one line per ingredient is enough.",
+    "formatSummary": "Which formats does it understand?",
+    "formatIntro": "The example below is one of many. Headings are optional, bullets and numbers are stripped, German and English both work. It reads fractions (½, 1/2, 1 1/2), ranges (2–3 tbsp), “about”, and around ninety units.",
     "formatExample": "Cheese spaetzle\n\nIngredients\n400 g spaetzle\n200 g cheese\n2 onions\nSalt\n\nMethod\nFry the onions in butter until golden.\nCook the spaetzle and drain.\nLayer everything and serve.",
-    "applyNote": "After that the fields below are the recipe; this box is only the way in."
+    "applyNote": "After that the fields below are the recipe; this box is only the way in.",
+    "formatCaveat": "Two cases go wrong: ingredients with no quantities and no “Ingredients” heading (they end up in the method), and a recipe written as a single flowing paragraph. The AI button below is for both."
   },
   "Invites": {
     "title": "Invitations",
