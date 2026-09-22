@@ -61,6 +61,9 @@ export async function similarRecipes(recipe: {
                    ) AS "imageUrl"
             FROM "Recipe" r
             WHERE r."id" <> ${recipe.id}
+              -- Suggesting a draft would be the cookbook recommending something
+              -- nobody here has cooked yet, under a heading that says otherwise.
+              AND r."isDraft" = false
               AND r."searchVector" @@ to_tsquery('german', ${query})
               AND ts_rank(r."searchVector", to_tsquery('german', ${query})) > ${MINIMUM_RANK}
             ORDER BY ts_rank(r."searchVector", to_tsquery('german', ${query}))

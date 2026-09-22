@@ -93,7 +93,7 @@ export default function AdminInboxPage() {
         load();
     }, [load]);
 
-    const act = async (id: number, action: 'retry' | 'askAi' | 'publish') => {
+    const act = async (id: number, action: 'retry' | 'askAi' | 'publish' | 'stage') => {
         setBusyId(id);
         setError('');
         try {
@@ -108,7 +108,7 @@ export default function AdminInboxPage() {
                 return;
             }
             await load();
-            if (action === 'publish') router.refresh();
+            if (action === 'publish' || action === 'stage') router.refresh();
         } catch {
             setError(tAdmin('genericError'));
         } finally {
@@ -203,6 +203,7 @@ export default function AdminInboxPage() {
                             capture={capture}
                             busy={busyId === capture.id}
                             onPublish={() => act(capture.id, 'publish')}
+                            onStage={() => act(capture.id, 'stage')}
                             onRetry={() => act(capture.id, 'retry')}
                             onAskAi={() => act(capture.id, 'askAi')}
                             aiAvailable={aiAvailable}
@@ -255,6 +256,7 @@ function CaptureRow({
     capture,
     busy,
     onPublish,
+    onStage,
     onRetry,
     onAskAi,
     aiAvailable,
@@ -264,6 +266,7 @@ function CaptureRow({
     capture: Capture;
     busy: boolean;
     onPublish: () => void;
+    onStage: () => void;
     onRetry: () => void;
     onAskAi: () => void;
     /** False when no key is configured or the AI is switched off. */
@@ -274,6 +277,7 @@ function CaptureRow({
 }) {
     const t = useTranslations('Inbox');
     const tAi = useTranslations('Ai');
+    const tDrafts = useTranslations('Drafts');
     // The site's language, not the browser's: this page used
     // toLocaleDateString() with no argument, so a German reader on an
     // English-language phone saw 9/21/2026 here and 21. September 2026 on
@@ -394,6 +398,24 @@ function CaptureRow({
                         className="font-medium underline underline-offset-4 disabled:opacity-50"
                     >
                         {busy ? t('working') : t('accept')}
+                    </button>
+                )}
+
+                {/* The same act, one step short: the recipe is taken in but
+                    does not count yet. Beside the direct one rather than
+                    replacing it, because sometimes you already know — a recipe
+                    you have cooked for years and are only typing up does not
+                    need a probation period, and making it serve one would
+                    teach you to press past the draft state without reading it. */}
+                {canPublish && (
+                    <button
+                        type="button"
+                        onClick={onStage}
+                        disabled={busy}
+                        title={tDrafts('stageHint')}
+                        className="text-muted underline underline-offset-4 disabled:opacity-50"
+                    >
+                        {tDrafts('stage')}
                     </button>
                 )}
 

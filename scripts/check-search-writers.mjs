@@ -56,6 +56,13 @@ const SUBJECTS = [
  */
 const ALLOWED = new Map([
     [
+        'recipe src/app/api/recipes/[id]/draft/route.ts',
+        {
+            why: 'only ever clears the flag that keeps a recipe out of the list; the text is untouched, so the index it was written with still describes it',
+            marker: /data:\s*\{\s*isDraft:\s*false\s*\}/,
+        },
+    ],
+    [
         'recipe src/app/api/recipes/[id]/visibility/route.ts',
         {
             why: 'only ever sets the one boolean that decides who may read it',

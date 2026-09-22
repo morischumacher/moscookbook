@@ -25,6 +25,7 @@ import { adminSectionFor } from '@/lib/navigation';
 export default function AdminNav() {
     const t = useTranslations('Admin');
     const tInbox = useTranslations('Inbox');
+    const tDrafts = useTranslations('Drafts');
     const tBlog = useTranslations('Blog');
     const tCollections = useTranslations('Collections');
     const tErrors = useTranslations('Errors');
@@ -39,6 +40,8 @@ export default function AdminNav() {
     const links = [
         { href: '/admin', label: t('dashboard') },
         { href: '/admin/inbox', label: tInbox('nav') },
+        // Next to the inbox, because it is the step straight after it.
+        { href: '/drafts', label: tDrafts('nav') },
         { href: '/admin/posts', label: tBlog('adminNav') },
         { href: '/admin/collections/new', label: tCollections('createNew') },
         { href: '/admin/users', label: t('people') },

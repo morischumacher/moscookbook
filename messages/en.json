@@ -726,5 +726,19 @@
     "viaList": "the list under the heading \u201c{heading}\u201d",
     "viaText": "the text under the heading \u201c{heading}\u201d",
     "viaSelector": "via the CSS selector {selector}"
+  },
+  "Drafts": {
+    "title": "Drafts",
+    "intro": "Recipes that have been imported and tidied up but are not yet yours. They appear nowhere else \u2014 not in the list, not in search, not as a suggestion, never in public, and no post can be written about one. Cook it once, adjust it, then finish it.",
+    "none": "No drafts. From the inbox you can take a recipe here instead of taking it straight in.",
+    "added": "since {date}",
+    "addedFrom": "since {date}, from {host}",
+    "finish": "Finish",
+    "finishing": "One moment \u2026",
+    "finishFailed": "That did not work.",
+    "nav": "Drafts",
+    "banner": "This is a draft. It is not in your list, cannot be found by searching, and cannot be made public or shared.",
+    "stage": "Keep as draft",
+    "stageHint": "Takes the recipe in, but not yet into your list."
   }
 }

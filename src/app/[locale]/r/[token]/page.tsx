@@ -24,7 +24,19 @@ const loadShared = cache(async (token: string): Promise<RecipeRow | null> => {
     // there is no reason to ask the database about it.
     if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
 
-    return prisma.recipe.findUnique({ where: { shareToken: token }, include: recipeInclude });
+    /*
+     * `isDraft: false` in the lookup itself, so a draft behind a share link is
+     * simply not found — the same 404 a revoked token gives.
+     *
+     * The share route already refuses to mint a link for a draft, so this
+     * should be unreachable. It is here because this page is the one surface
+     * in the whole cookbook that works with no account at all, and "should be
+     * unreachable" is not a property worth betting a private recipe on.
+     */
+    return prisma.recipe.findFirst({
+        where: { shareToken: token, isDraft: false },
+        include: recipeInclude,
+    });
 });
 
 export async function generateMetadata({

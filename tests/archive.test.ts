@@ -22,6 +22,7 @@ function row(overrides: Partial<ExportableRecipe> = {}): ExportableRecipe {
         cookMinutes: 30,
         views: 12,
         isPublic: false,
+        isDraft: false,
         createdAt: new Date('2026-02-01T10:00:00Z'),
         images: [{ url: 'https://example.com/a.jpg' }],
         ingredients: [

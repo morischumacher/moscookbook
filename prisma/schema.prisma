@@ -340,6 +340,21 @@ model Recipe {
   /// somebody notices.
   isPublic     Boolean    @default(false)
 
+  /// Imported and tidied up, but not yet one of this cookbook's own recipes.
+  ///
+  /// The state between the inbox — where quality varies wildly — and a recipe
+  /// somebody stands behind. A draft is meant to be cooked once and adjusted
+  /// before it counts, and until it does it is deliberately not offered
+  /// anywhere: not in the list, not in search, not as a suggestion, never in
+  /// public, and no post can be written about it.
+  ///
+  /// One-way on purpose. A recipe can be finished; it cannot be sent back to
+  /// being a draft. The reverse would mean a recipe that was public yesterday
+  /// having to un-publish itself, revoke its share link and disappear from
+  /// collections other people can see — a lot of machinery for an act nobody
+  /// asked for. Making one again from the source is the honest alternative.
+  isDraft      Boolean    @default(false)
+
   /// The public link, or null when the recipe is only for people who are
   /// logged in. Unguessable rather than a flag on the normal address: a secret
   /// URL can be handed to one person and withdrawn again without renaming the

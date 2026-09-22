@@ -36,6 +36,15 @@ interface RawCollection {
 const include = {
     recipes: {
         orderBy: { position: 'asc' as const },
+        /*
+         * A collection can be shared at /c/<token>, which needs no account, so
+         * a draft sitting in one is a draft a stranger can read. Filtering the
+         * join rather than the recipe: the row stays, its recipe comes back
+         * null, and `flatten` drops it — which is also what should happen on
+         * the member's own page, since a collection of things to cook should
+         * not list one that is not ready.
+         */
+        where: { recipe: { isDraft: false } },
         select: {
             position: true,
             recipe: {

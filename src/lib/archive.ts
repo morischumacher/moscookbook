@@ -53,6 +53,13 @@ const archiveRecipeSchema = z.object({
      * existed restores the safe way round rather than failing.
      */
     isPublic: z.boolean().default(false),
+    /*
+     * Defaults to false, which is what every archive written before drafts
+     * existed means: everything in it was already a recipe. A draft that is
+     * restored as a recipe would be the backup quietly finishing work nobody
+     * did.
+     */
+    isDraft: z.boolean().default(false),
     createdAt: z.string().default(() => new Date().toISOString()),
     /** Absolute URLs at the time of export; a local backup also keeps the files. */
     images: z.array(z.string()).default([]),
@@ -208,6 +215,7 @@ export function parseArchive(input: unknown): ParseResult {
 /** Database rows in, archive out. */
 export interface ExportableRecipe {
     isPublic: boolean;
+    isDraft: boolean;
     title: string;
     slug: string;
     description: string | null;
@@ -279,6 +287,7 @@ export function toArchiveRecipe(recipe: ExportableRecipe): ArchiveRecipe {
         cookMinutes: recipe.cookMinutes,
         views: recipe.views,
         isPublic: recipe.isPublic,
+        isDraft: recipe.isDraft,
         createdAt: recipe.createdAt.toISOString(),
         images: recipe.images.map((image) => image.url),
         ingredients: recipe.ingredients

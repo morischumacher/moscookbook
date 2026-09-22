@@ -48,6 +48,7 @@ import secretBox from './secretBox.test';
 import readableText from './readableText.test';
 import siteProfile from './siteProfile.test';
 import siteLearn from './siteLearn.test';
+import drafts from './drafts.test';
 import aiProviders from './aiProviders.test';
 import aiPolish from './aiPolish.test';
 import draftQuality from './draftQuality.test';
@@ -98,6 +99,7 @@ async function main() {
     await aiProviders();
     await aiPolish();
     await siteLearn();
+    drafts();
     draftQuality();
     await fixtures();
     pageTitle();

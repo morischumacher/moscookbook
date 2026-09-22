@@ -726,5 +726,19 @@
     "viaList": "die Liste unter der \u00dcberschrift \u201e{heading}\u201c",
     "viaText": "der Text unter der \u00dcberschrift \u201e{heading}\u201c",
     "viaSelector": "\u00fcber den CSS-Selektor {selector}"
+  },
+  "Drafts": {
+    "title": "Entw\u00fcrfe",
+    "intro": "Rezepte, die importiert und aufger\u00e4umt sind, aber noch nicht zu deinen z\u00e4hlen. Sie tauchen nirgends sonst auf \u2014 nicht in der Liste, nicht in der Suche, nicht als Vorschlag, nie \u00f6ffentlich, und einen Beitrag gibt es dazu auch nicht. Koch es einmal, pass es an, und stell es dann fertig.",
+    "none": "Keine Entw\u00fcrfe. Aus der Inbox kannst du ein Rezept hierher \u00fcbernehmen statt es direkt zu \u00fcbernehmen.",
+    "added": "seit {date}",
+    "addedFrom": "seit {date}, von {host}",
+    "finish": "Fertigstellen",
+    "finishing": "Einen Moment \u2026",
+    "finishFailed": "Hat nicht geklappt.",
+    "nav": "Entw\u00fcrfe",
+    "banner": "Das ist ein Entwurf. Er steht nicht in deiner Liste, ist nicht auffindbar und kann nicht ver\u00f6ffentlicht oder geteilt werden.",
+    "stage": "Als Entwurf",
+    "stageHint": "\u00dcbernimmt das Rezept, aber noch nicht in deine Liste."
   }
 }

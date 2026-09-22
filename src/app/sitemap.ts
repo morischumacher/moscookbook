@@ -30,7 +30,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     try {
         recipes = await prisma.recipe.findMany({
-            where: { isPublic: true },
+            // A draft cannot be public, so this is belt to that brace — and
+            // the brace is a rule in a route, while this is a file Google reads.
+            where: { isPublic: true, isDraft: false },
             select: { slug: true, createdAt: true },
             orderBy: { createdAt: 'desc' },
             take: 5000,
