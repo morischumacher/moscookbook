@@ -1,5 +1,6 @@
 /** recipeFromHtml (link import) */
-import { describeJsonLd, extractRecipeFromHtml, isSafePublicUrl } from '../src/lib/recipeFromHtml';
+import { describeJsonLd, extractRecipeFromHtml } from '../src/lib/recipeFromHtml';
+import { isSafePublicUrl } from '../src/lib/privateAddress';
 import { suite, check } from './harness';
 
 export default function run() {

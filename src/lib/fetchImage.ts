@@ -1,4 +1,4 @@
-import { isSafePublicUrl } from './recipeFromHtml';
+import { isSafePublicUrl } from './privateAddress';
 import { safeFetch } from './safeFetch';
 
 /**

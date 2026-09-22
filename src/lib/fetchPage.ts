@@ -1,5 +1,5 @@
 import { safeFetch, UnsafeUrlError } from './safeFetch';
-import { isSafePublicUrl } from './recipeFromHtml';
+import { isSafePublicUrl } from './privateAddress';
 
 /**
  * Fetching a page someone shared.
