@@ -62,6 +62,9 @@ jobs:
       - name: The blob sweep knows every picture column
         run: npm run check:blobs
 
+      - name: The AI keys are read in one place
+        run: npm run check:secrets
+
       - name: Backup coverage
         run: npm run check:backup
 

@@ -1,20 +1,182 @@
 import { z } from 'zod';
 import type { ParsedRecipe } from './recipeParser';
+import { scrub } from './secretBox';
 
 /**
- * Optional AI-assisted recipe extraction.
+ * Optional AI-assisted recipe extraction, across three providers.
  *
- * Everything here is additive: when ANTHROPIC_API_KEY is absent the feature is
- * simply not offered, and paste-and-parse plus URL import keep working. Nothing
- * in the app depends on this module being configured.
+ * Two things about this module are load-bearing and easy to break later:
+ *
+ * **It never reaches the database.** `captureProcess` imports it, the tests
+ * import `captureProcess`, and the test runner cannot load a module that pulls
+ * in Prisma. So the *keys* are passed in rather than looked up here, and the
+ * looking up lives in `aiConfig.ts`, which the routes import and the tests do
+ * not. That separation is not tidiness; it is the difference between a test
+ * suite that runs and one that does not.
+ *
+ * **Nothing here is ever required.** Every caller has a rule-based answer to
+ * fall back to, and a missing key, a dead provider or a nonsense response all
+ * come out the same way: the rules' answer, unchanged. The cookbook has to
+ * keep working on a month with no AI budget, on a provider's bad afternoon,
+ * and for somebody who simply does not want to use one.
+ *
+ * Three providers rather than one because they fail independently and because
+ * a person should not have to hold an account with a particular company to
+ * photograph a cookbook page. They are asked in order and the second is only
+ * asked when the first *fails* — not when it answers badly, which would be a
+ * way to pay twice for the same answer.
  */
 
-export function isAiImportConfigured(): boolean {
-    return Boolean(process.env.ANTHROPIC_API_KEY);
+/* -------------------------------------------------------------------------- */
+/* What a provider is                                                          */
+/* -------------------------------------------------------------------------- */
+
+export type AiProvider = 'anthropic' | 'openai' | 'google';
+
+/** The order the admin screen draws them in, and nothing more. */
+export const AI_PROVIDERS: readonly AiProvider[] = ['anthropic', 'openai', 'google'];
+
+export function isAiProvider(value: string): value is AiProvider {
+    return (AI_PROVIDERS as readonly string[]).includes(value);
 }
 
-const DEFAULT_MODEL = 'claude-sonnet-5';
-const API_URL = 'https://api.anthropic.com/v1/messages';
+/**
+ * Defaults, and they are a guess with a shelf life.
+ *
+ * Model names change faster than this cookbook does, so every one of these is
+ * overridable on the admin screen and the "test" button reports the provider's
+ * own error verbatim — which for a model that no longer exists is a sentence
+ * naming it. That is the whole mitigation: not being right forever, but being
+ * obviously wrong in one click.
+ */
+export const DEFAULT_MODEL: Record<AiProvider, string> = {
+    anthropic: 'claude-sonnet-5',
+    openai: 'gpt-4o',
+    google: 'gemini-2.0-flash',
+};
+
+/** Human-readable, for error messages that an admin reads. */
+export const PROVIDER_LABEL: Record<AiProvider, string> = {
+    anthropic: 'Anthropic',
+    openai: 'OpenAI',
+    google: 'Google Gemini',
+};
+
+/**
+ * A model name, as far as anything here will accept one.
+ *
+ * This is a validation with teeth rather than a tidy-up: Gemini puts the model
+ * **in the URL path**, so a model of `../../../v1beta/models/x` is a request to
+ * somewhere else entirely, and the field it comes from is a text input on an
+ * admin page. Allowing letters, digits and four punctuation marks closes that
+ * without rejecting any real name.
+ */
+const MODEL_PATTERN = /^[A-Za-z0-9._:-]{1,80}$/;
+
+export function isValidModel(value: string): boolean {
+    return MODEL_PATTERN.test(value);
+}
+
+export interface AiKey {
+    provider: AiProvider;
+    apiKey: string;
+    /** Null means this provider's default. */
+    model: string | null;
+}
+
+/**
+ * When the AI is allowed to be asked.
+ *
+ * `images`, not `always`, is what the cookbook did for its first year: a
+ * photograph is pixels and no rule reads pixels, so that one path had no
+ * alternative. Everything else always had one, so asking was a choice.
+ *
+ *   off     — never. The rules, and nothing else, whatever keys are configured.
+ *   images  — only where there is no rule at all: a screenshot, a photograph.
+ *   always  — also as a *second* attempt when the rules come up short.
+ *
+ * `always` is still rules-first everywhere. There is no mode in which a page
+ * with clean structured data costs money.
+ */
+export type AssistMode = 'off' | 'images' | 'always';
+
+export const ASSIST_MODES: readonly AssistMode[] = ['off', 'images', 'always'];
+
+export function isAssistMode(value: string): value is AssistMode {
+    return (ASSIST_MODES as readonly string[]).includes(value);
+}
+
+/**
+ * Everything a caller needs to decide whether to ask, and whom.
+ *
+ * Passed down rather than looked up, for the reason at the top of this file.
+ */
+export interface AiCapability {
+    mode: AssistMode;
+    /** In the order they should be tried. Empty means nothing is configured. */
+    keys: AiKey[];
+}
+
+export const NO_AI: AiCapability = { mode: 'off', keys: [] };
+
+/** Whether this capability can actually be used. */
+export function canUseAi(ai: AiCapability): boolean {
+    return ai.mode !== 'off' && ai.keys.length > 0;
+}
+
+/** Whether it may be used for something the rules could also have a go at. */
+export function assistsText(ai: AiCapability): boolean {
+    return ai.mode === 'always' && ai.keys.length > 0;
+}
+
+/**
+ * The keys in the environment, which still work.
+ *
+ * This is the whole of the old behaviour, kept: a deployment that sets
+ * `ANTHROPIC_API_KEY` and never opens the admin screen behaves exactly as it
+ * did. It is also what the tests drive, which is why it lives in this
+ * database-free module rather than next to the rows.
+ */
+export function keysFromEnv(): AiKey[] {
+    const keys: AiKey[] = [];
+
+    const anthropic = process.env.ANTHROPIC_API_KEY;
+    if (anthropic) {
+        keys.push({
+            provider: 'anthropic',
+            apiKey: anthropic,
+            model: process.env.ANTHROPIC_MODEL || null,
+        });
+    }
+
+    const openai = process.env.OPENAI_API_KEY;
+    if (openai) {
+        keys.push({ provider: 'openai', apiKey: openai, model: process.env.OPENAI_MODEL || null });
+    }
+
+    const google = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
+    if (google) {
+        keys.push({ provider: 'google', apiKey: google, model: process.env.GOOGLE_AI_MODEL || null });
+    }
+
+    return keys;
+}
+
+/**
+ * The capability from the environment alone, for callers that have no database
+ * connection to hand — which today means the tests.
+ *
+ * `always` rather than `images`: the person who set a key set it to be used,
+ * and the admin screen is where that gets narrowed.
+ */
+export function capabilityFromEnv(): AiCapability {
+    const keys = keysFromEnv();
+    return { mode: keys.length > 0 ? 'always' : 'off', keys };
+}
+
+/* -------------------------------------------------------------------------- */
+/* The shape a provider has to produce                                         */
+/* -------------------------------------------------------------------------- */
 
 const aiRecipeSchema = z.object({
     title: z.string().default(''),
@@ -61,11 +223,17 @@ Rules:
 - "servings", "prepMinutes" and "cookMinutes" are numbers taken from the source,
   or null when the source does not state them. Never estimate them.
 - Never invent ingredients, quantities or steps that are not in the source.
-  If something is missing, leave it empty.`;
+  If something is missing, leave it empty.
+- If the source is not a recipe at all, return the object with every field empty.`;
 
-interface ContentBlock {
-    type: string;
-    text?: string;
+export type AiSource =
+    | { kind: 'text'; text: string }
+    | { kind: 'image'; base64: string; mediaType: string };
+
+function promptFor(source: AiSource): string {
+    return source.kind === 'text'
+        ? `Extract the recipe from this text:\n\n${source.text}`
+        : 'Extract the recipe shown in this image.';
 }
 
 function extractJson(text: string): unknown {
@@ -86,45 +254,50 @@ function extractJson(text: string): unknown {
     }
 }
 
-export type AiSource =
-    | { kind: 'text'; text: string }
-    | { kind: 'image'; base64: string; mediaType: string };
-
 /**
- * Throws on configuration or API failure; the caller decides how to degrade.
+ * A provider's failure, with the key taken out of it and the length capped.
+ *
+ * Both halves matter. Providers put the rejected credential in the body of a
+ * 401 — and this string is shown on an admin page and written to a column that
+ * ends up in a dump. Three hundred characters is enough to name a model that
+ * does not exist, which is what an admin is nearly always reading this for.
  */
-export async function extractRecipeWithAi(source: AiSource): Promise<AiExtractionResult> {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) throw new Error('AI import is not configured');
+function providerError(provider: AiProvider, status: number, body: string, apiKey: string): Error {
+    return new Error(
+        `${PROVIDER_LABEL[provider]} returned ${status}: ${scrub(body, apiKey).slice(0, 300)}`
+    );
+}
 
+/* -------------------------------------------------------------------------- */
+/* The three of them                                                           */
+/* -------------------------------------------------------------------------- */
+
+interface AnthropicBlock {
+    type: string;
+    text?: string;
+}
+
+async function callAnthropic(key: AiKey, source: AiSource): Promise<string> {
     const content =
         source.kind === 'text'
-            ? [
-                {
-                    type: 'text',
-                    text: `Extract the recipe from this text:\n\n${source.text}`,
-                },
-            ]
+            ? [{ type: 'text', text: promptFor(source) }]
             : [
                 {
                     type: 'image',
                     source: { type: 'base64', media_type: source.mediaType, data: source.base64 },
                 },
-                {
-                    type: 'text',
-                    text: 'Extract the recipe shown in this image.',
-                },
+                { type: 'text', text: promptFor(source) },
             ];
 
-    const response = await fetch(API_URL, {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
             'content-type': 'application/json',
-            'x-api-key': apiKey,
+            'x-api-key': key.apiKey,
             'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-            model: process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
+            model: key.model || DEFAULT_MODEL.anthropic,
             max_tokens: 4096,
             system: SYSTEM_PROMPT,
             messages: [{ role: 'user', content }],
@@ -132,23 +305,186 @@ export async function extractRecipeWithAi(source: AiSource): Promise<AiExtractio
     });
 
     if (!response.ok) {
-        const detail = await response.text().catch(() => '');
-        throw new Error(`Anthropic API returned ${response.status}: ${detail.slice(0, 300)}`);
+        throw providerError(
+            'anthropic',
+            response.status,
+            await response.text().catch(() => ''),
+            key.apiKey
+        );
     }
 
-    const payload = (await response.json()) as { content?: ContentBlock[] };
-    const text = (payload.content ?? [])
+    const payload = (await response.json()) as { content?: AnthropicBlock[] };
+    return (payload.content ?? [])
         .filter((block) => block.type === 'text')
         .map((block) => block.text ?? '')
         .join('\n');
+}
+
+interface OpenAiPayload {
+    choices?: { message?: { content?: string | null } }[];
+}
+
+async function callOpenAi(key: AiKey, source: AiSource): Promise<string> {
+    const content =
+        source.kind === 'text'
+            ? [{ type: 'text', text: promptFor(source) }]
+            : [
+                { type: 'text', text: promptFor(source) },
+                {
+                    type: 'image_url',
+                    // OpenAI takes an image as a data URL rather than as a
+                    // separate field — the same bytes, a different envelope.
+                    image_url: { url: `data:${source.mediaType};base64,${source.base64}` },
+                },
+            ];
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${key.apiKey}`,
+        },
+        body: JSON.stringify({
+            model: key.model || DEFAULT_MODEL.openai,
+            // Deliberately no token limit. The field for one has been renamed
+            // once already and the newer models reject the old name outright —
+            // a request that fails on an *argument* rather than on the work is
+            // the worst kind of thing to debug from a recipe import. What comes
+            // back here is a small object either way.
+            response_format: { type: 'json_object' },
+            messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content },
+            ],
+        }),
+    });
+
+    if (!response.ok) {
+        throw providerError(
+            'openai',
+            response.status,
+            await response.text().catch(() => ''),
+            key.apiKey
+        );
+    }
+
+    const payload = (await response.json()) as OpenAiPayload;
+    return payload.choices?.[0]?.message?.content ?? '';
+}
+
+interface GeminiPayload {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+}
+
+async function callGoogle(key: AiKey, source: AiSource): Promise<string> {
+    const model = key.model || DEFAULT_MODEL.google;
+
+    // The model goes in the path, so it is checked before it gets there.
+    // `isValidModel` is also enforced when the row is written; this is the
+    // second of the two, because the row could have been written by an older
+    // version that did not check.
+    if (!isValidModel(model)) {
+        throw new Error(`${PROVIDER_LABEL.google}: "${model}" is not a usable model name.`);
+    }
+
+    const parts =
+        source.kind === 'text'
+            ? [{ text: promptFor(source) }]
+            : [
+                { text: promptFor(source) },
+                { inline_data: { mime_type: source.mediaType, data: source.base64 } },
+            ];
+
+    const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json',
+                // In a header rather than as `?key=`, which Google's own
+                // examples use. A key in a query string is a key in an access
+                // log, a proxy log and a browser history.
+                'x-goog-api-key': key.apiKey,
+            },
+            body: JSON.stringify({
+                systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+                contents: [{ role: 'user', parts }],
+                generationConfig: { responseMimeType: 'application/json' },
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        throw providerError(
+            'google',
+            response.status,
+            await response.text().catch(() => ''),
+            key.apiKey
+        );
+    }
+
+    const payload = (await response.json()) as GeminiPayload;
+    return (payload.candidates?.[0]?.content?.parts ?? []).map((part) => part.text ?? '').join('\n');
+}
+
+const CALLS: Record<AiProvider, (key: AiKey, source: AiSource) => Promise<string>> = {
+    anthropic: callAnthropic,
+    openai: callOpenAi,
+    google: callGoogle,
+};
+
+/* -------------------------------------------------------------------------- */
+/* Asking                                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Asks one provider and parses what comes back.
+ *
+ * Exported for the "test" button, which wants a single provider's answer or a
+ * single provider's error rather than the fallback chain's summary.
+ */
+export async function extractWithKey(key: AiKey, source: AiSource): Promise<AiExtractionResult> {
+    const text = await CALLS[key.provider](key, source);
 
     const parsed = aiRecipeSchema.safeParse(extractJson(text));
     if (!parsed.success) {
-        throw new Error('The model did not return a usable recipe');
+        throw new Error(`${PROVIDER_LABEL[key.provider]} did not return a usable recipe.`);
     }
 
     return {
         ...parsed.data,
         ingredients: parsed.data.ingredients.filter((ingredient) => ingredient.item.trim() !== ''),
     };
+}
+
+/**
+ * Asks each configured provider in turn until one answers.
+ *
+ * Throws when they all fail, carrying every reason: "Anthropic returned 401"
+ * on its own sends somebody to rotate a key that was fine, when what actually
+ * happened is that three providers were asked and the model name was wrong in
+ * all three.
+ *
+ * A provider that answers *badly* ends the chain like any other failure — a
+ * model that returns prose instead of JSON is broken for this purpose — but a
+ * provider that answers with an empty recipe does not. That is a real answer:
+ * the picture did not have a recipe in it.
+ */
+export async function extractRecipeWithAi(
+    source: AiSource,
+    keys: AiKey[]
+): Promise<AiExtractionResult> {
+    if (keys.length === 0) throw new Error('AI import is not configured.');
+
+    const failures: string[] = [];
+
+    for (const key of keys) {
+        try {
+            return await extractWithKey(key, source);
+        } catch (error) {
+            failures.push(error instanceof Error ? error.message : String(error));
+        }
+    }
+
+    throw new Error(failures.join(' · '));
 }

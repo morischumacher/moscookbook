@@ -6,25 +6,44 @@ import { parseRecipeText } from './recipeParser';
 import { fetchPage } from './fetchPage';
 import { youtubeVideoId, extractYoutubePage, cleanYoutubeDescription } from './youtube';
 import { fetchImageAsBase64 } from './fetchImage';
-import { isAiImportConfigured, extractRecipeWithAi } from './aiImport';
+import { readableText } from './readableText';
+import {
+    assistsText,
+    canUseAi,
+    capabilityFromEnv,
+    extractRecipeWithAi,
+    type AiCapability,
+} from './aiImport';
 
 /**
  * Turning a capture into a recipe draft.
  *
- * Every path here is rule-based and needs no API key, because the cookbook has
- * to keep working on a month when there is no AI budget. The one exception is a
- * picture, and it is an exception in the honest direction: a screenshot is
- * pixels, and there is no rule that reads pixels. When a key is configured the
- * picture is read; when it is not, the capture comes back as `needsWork` with
- * the screenshot attached and says so, which is still better than losing it.
- * Nothing here ever *requires* a key.
+ * **Every path here is rule-based first, always, in every configuration.** A
+ * page with clean structured data is read by the rules and never costs a
+ * penny; a YouTube description that parses is parsed. That is not a fallback
+ * arrangement, it is the arrangement, and the AI is what happens next when it
+ * has not worked.
  *
- * Where a source cannot be read at all — a video whose recipe is only spoken —
- * the capture comes back as `needsWork` with whatever was found, rather than as
- * a confident guess.
+ * Which used to be true of exactly one path. A screenshot is pixels and there
+ * is no rule that reads pixels, so the picture path asked and every other path
+ * gave up — a recipe site with no JSON-LD came back as `needsWork` with a
+ * title and nothing else, while a key that could have read it sat unused. So
+ * the second attempt now exists everywhere, and `AiCapability.mode` decides
+ * whether it is allowed to happen:
+ *
+ *   off     — never ask. The rules, and nothing else.
+ *   images  — ask only where there is no rule: a photograph.
+ *   always  — also ask as a *second* attempt when the rules came up short.
+ *
+ * The capability is **passed in** rather than looked up, for two reasons that
+ * both matter. Looking it up means reading the database, and this module is
+ * imported by the test suite, which cannot load Prisma. And a caller that
+ * hands in its own capability is a caller whose behaviour can be checked at
+ * every one of those three settings without setting an environment variable.
  *
  * Nothing in here throws for an unreadable source: a capture that cannot be
- * parsed is a capture waiting for a better parser, not an error.
+ * parsed is a capture waiting for a better parser, not an error. Nothing in
+ * here ever *requires* a key.
  */
 
 export interface ProcessedCapture {
@@ -85,7 +104,68 @@ function mergeDrafts(draft: ImportedRecipe, fallback: Partial<ImportedRecipe>): 
     };
 }
 
-async function processYoutube(url: string, rawText: string | null): Promise<ProcessedCapture> {
+/* -------------------------------------------------------------------------- */
+/* The second attempt                                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Reads some text with the AI and fills whatever the rules left empty.
+ *
+ * Three properties, each of which took a bug to learn somewhere in this file:
+ *
+ * **It merges rather than replaces.** The rules' answer is the better answer
+ * wherever it exists — a JSON-LD image URL is the site's own chosen
+ * photograph, a YouTube title is the video's actual title — and a model asked
+ * to read a whole page will cheerfully name the recipe after the page's
+ * heading, which is often the blog's name. So the AI only ever fills holes.
+ *
+ * **It never makes things worse.** A failure returns the draft it was given,
+ * untouched. There is no configuration in which switching the AI on can turn a
+ * partial import into a failed one.
+ *
+ * **It is silent about cost.** The caller decides whether to call this; by the
+ * time it is called the decision has been made.
+ */
+async function fillGapsWithAi(
+    draft: ImportedRecipe,
+    text: string,
+    ai: AiCapability
+): Promise<ImportedRecipe> {
+    // Two lines of boilerplate is not a recipe and is not worth asking about.
+    if (text.trim().length < 80) return draft;
+
+    try {
+        const parsed = await extractRecipeWithAi({ kind: 'text', text }, ai.keys);
+
+        return {
+            ...mergeDrafts(draft, parsed),
+            // These four are not part of `mergeDrafts` because they are not
+            // strings and an empty one is null rather than ''. Same rule
+            // though: what the rules found wins.
+            category: draft.category || parsed.category,
+            nationality: draft.nationality || parsed.nationality,
+            servings: draft.servings ?? parsed.servings,
+            prepMinutes: draft.prepMinutes ?? parsed.prepMinutes,
+            cookMinutes: draft.cookMinutes ?? parsed.cookMinutes,
+        };
+    } catch (error) {
+        // Logged, not raised. The rules' answer is still on the table and the
+        // person sharing a link in a supermarket does not care which of three
+        // providers was having an afternoon.
+        console.error('The AI could not help with this capture:', error);
+        return draft;
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/* One path per kind of thing                                                  */
+/* -------------------------------------------------------------------------- */
+
+async function processYoutube(
+    url: string,
+    rawText: string | null,
+    ai: AiCapability
+): Promise<ProcessedCapture> {
     const videoId = youtubeVideoId(url);
     if (!videoId) {
         return { status: 'failed', draft: null, error: 'Not a YouTube video link.' };
@@ -124,7 +204,24 @@ async function processYoutube(url: string, rawText: string | null): Promise<Proc
     // alongside the link is then the better source.
     const shared = rawText ? withoutBareUrls(rawText) : '';
     const fromShare = shared ? parseRecipeText(shared) : null;
-    const merged = fromShare ? mergeDrafts(draft, fromShare) : draft;
+    let merged = fromShare ? mergeDrafts(draft, fromShare) : draft;
+
+    /*
+     * A description the rules could not read is the case this is for, and it
+     * is common: half of cooking YouTube writes its ingredients as prose, in
+     * among three paragraphs of links, and the parser needs a list.
+     *
+     * The title goes in with it. Without it a model reading a bare description
+     * has nothing to name the dish after and invents something plausible from
+     * the ingredients — "Nudelauflauf" for a video called "Mamas Auflauf".
+     */
+    if (completeness(merged) !== 'ready' && assistsText(ai)) {
+        merged = await fillGapsWithAi(
+            merged,
+            [video.title, description, shared].filter(Boolean).join('\n\n'),
+            ai
+        );
+    }
 
     const status = completeness(merged);
 
@@ -138,7 +235,11 @@ async function processYoutube(url: string, rawText: string | null): Promise<Proc
     };
 }
 
-async function processWebPage(url: string, rawText: string | null): Promise<ProcessedCapture> {
+async function processWebPage(
+    url: string,
+    rawText: string | null,
+    ai: AiCapability
+): Promise<ProcessedCapture> {
     const page = await fetchPage(url);
 
     if (!page.ok) {
@@ -148,7 +249,12 @@ async function processWebPage(url: string, rawText: string | null): Promise<Proc
         const shared = rawText ? withoutBareUrls(rawText) : '';
         if (shared) {
             const parsed = parseRecipeText(shared);
-            const draft = { ...emptyDraft(url), ...parsed };
+            let draft = { ...emptyDraft(url), ...parsed };
+
+            if (completeness(draft) !== 'ready' && assistsText(ai)) {
+                draft = await fillGapsWithAi(draft, shared, ai);
+            }
+
             return {
                 status: completeness(draft),
                 draft,
@@ -165,7 +271,20 @@ async function processWebPage(url: string, rawText: string | null): Promise<Proc
     const extracted = extractRecipeFromHtml(page.html, page.finalUrl);
     const shared = rawText ? withoutBareUrls(rawText) : '';
     const fromShare = shared ? parseRecipeText(shared) : null;
-    const draft = fromShare ? mergeDrafts(extracted, fromShare) : extracted;
+    let draft = fromShare ? mergeDrafts(extracted, fromShare) : extracted;
+
+    /*
+     * This is the gap that was worth closing. A recipe site with schema.org
+     * markup has always imported perfectly; a food blog that writes its
+     * ingredients in a `<ul>` with no markup at all has always imported as a
+     * title, a picture and nothing else — and there are a great many of those.
+     *
+     * The page is stripped to its words first. See `readableText`: what is sent
+     * is the prose, not four hundred kilobytes of markup and script.
+     */
+    if (completeness(draft) !== 'ready' && assistsText(ai)) {
+        draft = await fillGapsWithAi(draft, readableText(page.html), ai);
+    }
 
     const status = completeness(draft);
     return {
@@ -178,21 +297,20 @@ async function processWebPage(url: string, rawText: string | null): Promise<Proc
 /**
  * A screenshot, or a photograph of a page.
  *
- * This is the one place the AI import is reached from the capture pipeline,
- * and it degrades rather than failing: with no key the picture is kept, the
- * capture says what it needs, and somebody types it up. A screenshot in the
- * inbox with a clear note is a far better outcome than a rejected share, which
- * is what standing in a kitchen with a photograph of a cookbook page actually
- * looks like.
+ * The one path with no rule-based alternative, and it degrades rather than
+ * failing: with no key the picture is kept, the capture says what it needs,
+ * and somebody types it up. A screenshot in the inbox with a clear note is a
+ * far better outcome than a rejected share, which is what standing in a
+ * kitchen with a photograph of a cookbook page actually looks like.
  */
-async function processImage(imageUrl: string | null): Promise<ProcessedCapture> {
+async function processImage(imageUrl: string | null, ai: AiCapability): Promise<ProcessedCapture> {
     if (!imageUrl) {
         return { status: 'failed', draft: null, error: 'No picture was stored.' };
     }
 
     const withPicture = { ...emptyDraft(''), imageUrl };
 
-    if (!isAiImportConfigured()) {
+    if (!canUseAi(ai)) {
         return {
             status: 'needsWork',
             draft: withPicture,
@@ -211,11 +329,10 @@ async function processImage(imageUrl: string | null): Promise<ProcessedCapture> 
     }
 
     try {
-        const parsed = await extractRecipeWithAi({
-            kind: 'image',
-            base64: image.base64,
-            mediaType: image.mediaType,
-        });
+        const parsed = await extractRecipeWithAi(
+            { kind: 'image', base64: image.base64, mediaType: image.mediaType },
+            ai.keys
+        );
 
         // The picture stays the draft's picture. A screenshot of an Instagram
         // post is a perfectly good photograph of the dish, and the alternative
@@ -229,8 +346,8 @@ async function processImage(imageUrl: string | null): Promise<ProcessedCapture> 
             error: status === 'ready' ? null : 'Only part of a recipe was legible in the picture.',
         };
     } catch (error) {
-        // A missing key, a rate limit, a bad month at the API. None of it is
-        // worth losing the screenshot over.
+        // A missing key, a rate limit, a bad month at every provider. None of
+        // it is worth losing the screenshot over.
         console.error('Reading a picture failed:', error);
         return {
             status: 'needsWork',
@@ -240,10 +357,16 @@ async function processImage(imageUrl: string | null): Promise<ProcessedCapture> 
     }
 }
 
-export async function processCapture(capture: ProcessableCapture): Promise<ProcessedCapture> {
+export async function processCapture(
+    capture: ProcessableCapture,
+    // The environment alone when nobody says otherwise. The routes pass the
+    // real thing, which also knows about the rows; the tests pass whatever
+    // case they are checking.
+    ai: AiCapability = capabilityFromEnv()
+): Promise<ProcessedCapture> {
     try {
         if (capture.kind === 'image') {
-            return await processImage(capture.imageUrl ?? null);
+            return await processImage(capture.imageUrl ?? null, ai);
         }
 
         if (capture.kind === 'text') {
@@ -251,7 +374,7 @@ export async function processCapture(capture: ProcessableCapture): Promise<Proce
             if (text.trim() === '') {
                 return { status: 'failed', draft: null, error: 'Nothing was sent.' };
             }
-            const draft = {
+            let draft = {
                 ...emptyDraft(''),
                 ...parseRecipeText(text),
                 // A caption shared together with its screenshot: the words are
@@ -259,8 +382,16 @@ export async function processCapture(capture: ProcessableCapture): Promise<Proce
                 imageUrl: capture.imageUrl ?? '',
             };
 
+            // A mailed recipe, or a long note typed into a share sheet. The
+            // parser wants a shape — a heading, a list, then steps — and what
+            // arrives by e-mail is very often four paragraphs of prose from
+            // somebody's aunt, which is exactly what a model is good at.
+            if (completeness(draft) !== 'ready' && assistsText(ai)) {
+                draft = await fillGapsWithAi(draft, text, ai);
+            }
+
             if (completeness(draft) !== 'ready' && capture.imageUrl) {
-                const fromPicture = await processImage(capture.imageUrl);
+                const fromPicture = await processImage(capture.imageUrl, ai);
                 if (fromPicture.status === 'ready') return fromPicture;
             }
 
@@ -279,14 +410,14 @@ export async function processCapture(capture: ProcessableCapture): Promise<Proce
         const source = capture.source as CaptureSource;
         const result =
             source === 'youtube'
-                ? await processYoutube(url, capture.rawText)
-                : await processWebPage(url, capture.rawText);
+                ? await processYoutube(url, capture.rawText, ai)
+                : await processWebPage(url, capture.rawText, ai);
 
         // The Instagram screenshot case, from the other side: the link could
         // not be read and the caption was not the recipe, but a picture came
         // with the share. Worth one more attempt before giving up.
         if (result.status !== 'ready' && capture.imageUrl) {
-            const fromPicture = await processImage(capture.imageUrl);
+            const fromPicture = await processImage(capture.imageUrl, ai);
             if (fromPicture.status === 'ready') return fromPicture;
         }
 

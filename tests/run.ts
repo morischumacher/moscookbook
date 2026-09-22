@@ -42,6 +42,9 @@ import similarRecipes from './similarRecipes.test';
 import privateAddress from './privateAddress.test';
 import sinceCooked from './sinceCooked.test';
 import fixtures from './fixtures.test';
+import secretBox from './secretBox.test';
+import readableText from './readableText.test';
+import aiProviders from './aiProviders.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
 // they are run in order rather than fired off together.
@@ -82,6 +85,9 @@ async function main() {
     similarRecipes();
     privateAddress();
     sinceCooked();
+    secretBox();
+    readableText();
+    await aiProviders();
     await fixtures();
 
     process.exit(summary() === 0 ? 0 : 1);

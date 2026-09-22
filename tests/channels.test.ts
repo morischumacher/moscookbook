@@ -34,10 +34,31 @@ async function share(body: {
     subject?: string;
     /** Already stored by the route by the time the pipeline sees it. */
     imageUrl?: string;
+    /**
+     * A picture as it actually arrives: base64, not yet stored.
+     *
+     * This field is the whole point of the regression suite at the bottom of
+     * this file. Every image test here used to pass `imageUrl` — the shape the
+     * *classifier* takes — and none used the shape an iOS Shortcut *posts*, so
+     * a bug that rejected every screenshot capture outright passed a hundred
+     * checks on its way to somebody's phone.
+     */
+    image?: { base64: string; mediaType: string };
 }) {
     const classified = captureInputFrom(body);
     if (!classified) return { classified: null, result: null };
-    return { classified, result: await processCapture(classified) };
+
+    // What the route does between classifying and processing: the picture is
+    // stored, and the address is put back on the classified capture.
+    const stored = body.image ? 'https://blob.example/capture_1.jpg' : undefined;
+
+    return {
+        classified,
+        result: await processCapture({
+            ...classified,
+            imageUrl: stored ?? classified.imageUrl,
+        }),
+    };
 }
 
 function ingredientNames(draft: ImportedRecipe | null | undefined): string[] {
@@ -488,4 +509,79 @@ Gesendet von meinem iPhone`,
         second?.sourceUrl
     );
     equal('and gets the same source', first?.source, second?.source);
+
+    // ── 11. The shape a phone actually posts ────────────────────────────────
+    suite('channel: the body an iOS Shortcut sends');
+
+    /*
+     * This suite exists because of a bug that reached a phone, and the reason
+     * it reached one is worth more than the fix.
+     *
+     * The route used to store the picture and then classify the body. It was
+     * changed to classify first — a good change: a request with nothing usable
+     * in it should not pay for a file nobody will ever point at — and the
+     * comment written to justify it said "the classifier needs no image to
+     * decide".
+     *
+     * It needs one. Not to decide *which* kind of capture this is, but to
+     * decide there is one at all. A share carrying a screenshot and nothing
+     * else has no url, no text, and — at that moment, before the upload — no
+     * `imageUrl` either. So every screenshot-only capture was answered
+     * "Nothing usable was sent." with a 400, which is precisely the rejected
+     * share this entire pipeline exists to prevent.
+     *
+     * Eighty channel checks passed throughout, because all of them handed the
+     * pipeline an `imageUrl` — the shape the classifier takes — and not one
+     * handed it the `image: {base64, mediaType}` an iOS Shortcut posts. A test
+     * written against the shape of the code cannot fail on the shape of the
+     * request.
+     */
+
+    const SHOT = { base64: 'aGVsbG8=', mediaType: 'image/jpeg' };
+
+    const previousImageKey = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+
+    restore = stubFetch({});
+
+    const posted = await share({ image: SHOT });
+
+    check('a screenshot on its own is not rejected', posted.classified !== null);
+    equal('it is classified as a picture', posted.classified?.kind, 'image');
+    equal('labelled a photo', posted.classified?.source, 'photo');
+    equal('and it reaches the inbox', posted.result?.status, 'needsWork');
+    check(
+        'with the stored picture on it, not a null',
+        Boolean(posted.result?.draft?.imageUrl),
+        posted.result?.draft?.imageUrl
+    );
+
+    // Several screenshots combined on the phone arrive as one picture; nothing
+    // downstream should be able to tell the difference.
+    const combined = await share({ image: { ...SHOT, mediaType: 'image/jpeg' }, note: 'Seite 1-3' });
+    equal('a combined screenshot is one capture', combined.classified?.kind, 'image');
+    equal('and keeps its note', combined.classified?.note, 'Seite 1-3');
+
+    // The other half of the same change: a caption still beats a picture, and
+    // a link still beats both.
+    const captioned = await share({ image: SHOT, text: 'Ofengemüse\n\n1 Zucchini\n\nBacken.' });
+    equal('a caption with a screenshot is read as text', captioned.classified?.kind, 'text');
+    check(
+        'and the picture is kept alongside it',
+        Boolean(captioned.result?.draft?.imageUrl),
+        captioned.result?.draft?.imageUrl
+    );
+
+    const linked = await share({ image: SHOT, url: 'https://kochblog.example/x' });
+    equal('a link with a screenshot is read as a link', linked.classified?.kind, 'url');
+
+    // And an empty body is still an empty body.
+    const nothing = await share({});
+    equal('nothing usable is still nothing usable', nothing.classified, null);
+
+    restore();
+
+    if (previousImageKey === undefined) delete process.env.ANTHROPIC_API_KEY;
+    else process.env.ANTHROPIC_API_KEY = previousImageKey;
+
 }

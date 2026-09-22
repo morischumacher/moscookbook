@@ -1,5 +1,6 @@
 import RecipeForm from '@/components/recipe-form/RecipeForm';
-import { isAiImportConfigured } from '@/lib/aiImport';
+import { canUseAi } from '@/lib/aiImport';
+import { aiCapability } from '@/lib/aiConfig';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { slugify } from '@/lib/recipe';
@@ -60,7 +61,7 @@ export default async function CreateRecipePage({
     return (
         <RecipeForm
             mode="create"
-            aiEnabled={isAiImportConfigured()}
+            aiEnabled={canUseAi(await aiCapability())}
             initial={initial}
             captureId={captureId ?? undefined}
         />

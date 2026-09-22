@@ -8,6 +8,7 @@ import { slugify } from '@/lib/recipe';
 import { searchFields } from '@/lib/searchText';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { processCapture } from '@/lib/captureProcess';
+import { aiCapability } from '@/lib/aiConfig';
 import type { ImportedRecipe } from '@/lib/recipeFromHtml';
 import { toJsonObject } from '@/lib/json';
 
@@ -62,7 +63,10 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     }
 
     if (parsed.data.action === 'retry') {
-        const result = await processCapture(capture);
+        // The retry button in the inbox, and the reason it is worth pressing
+        // after a key is pasted in: the same capture, read again with more to
+        // read it with.
+        const result = await processCapture(capture, await aiCapability());
         const updated = await prisma.capture.update({
             where: { id: captureId },
             data: {

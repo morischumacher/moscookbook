@@ -27,8 +27,40 @@ See [`.env.example`](.env.example) for the full list. The one that matters most:
 | `POSTGRES_URL_NON_POOLING` | yes | Direct connection, used for migrations. |
 | `BLOB_READ_WRITE_TOKEN` | yes | Set automatically by Vercel Blob. |
 | `NEXT_PUBLIC_SITE_URL` | optional | Base URL for canonical links and OpenGraph images. On Vercel this is derived from `VERCEL_PROJECT_PRODUCTION_URL`, so it is only needed once you have a custom domain. |
-| `ANTHROPIC_API_KEY` | no | Enables the optional AI import (photo of a cookbook page, AI parsing of pasted text). Everything else works without it. |
-| `ANTHROPIC_MODEL` | no | Overrides the model used for AI import. Defaults to `claude-sonnet-5`. |
+| `ANTHROPIC_API_KEY` | no | An AI key for the optional import assistance. **Setting this is no longer the usual way** — see below. |
+| `ANTHROPIC_MODEL` | no | Overrides the model. Defaults to `claude-sonnet-5`. |
+| `OPENAI_API_KEY` / `OPENAI_MODEL` | no | The same, for OpenAI. Defaults to `gpt-4o`. |
+| `GOOGLE_AI_API_KEY` / `GOOGLE_AI_MODEL` | no | The same, for Gemini. `GEMINI_API_KEY` is accepted too. Defaults to `gemini-2.0-flash`. |
+| `AI_SECRET_KEY` | no | Seals the API keys stored in the database. Defaults to `SECRET_COOKIE_PASSWORD`, which is almost always what you want — a second secret is a second thing to lose. |
+
+### The AI keys live in the app
+
+**Admin → AI.** Three providers — Anthropic, OpenAI, Google Gemini — each with a
+key, an optional model override, and a **Test** button that runs a real
+extraction rather than checking that a string is present. A key that
+authenticates, has no credit and names a model the account cannot reach passes
+every cheaper check there is; asking it to read four lines of recipe does not.
+
+Keys are stored sealed (AES-256-GCM under a key derived from the session
+secret), never returned to the browser, and read in exactly one module —
+`src/lib/aiConfig.ts`, which `npm run check:secrets` enforces. The environment
+variables above still work for a provider with no row, and the screen says so on
+that provider's card, so there is never a question about which key is in use.
+
+Rotating `SECRET_COOKIE_PASSWORD` makes the stored keys unreadable. Nothing
+breaks: the screen says the key cannot be opened and asks for it again, and
+imports fall back to their rules in the meantime.
+
+**When the AI is asked** is a setting on the same screen, and the rules always
+run first in every one of them:
+
+| Setting | What happens |
+| --- | --- |
+| Never | Rules only. Stored keys sit unused. |
+| Pictures only | Only where no rule exists: a photograph, a screenshot. |
+| When the rules fall short | Also as a *second* attempt on a page, a video or a text the rules could not finish. |
+
+A page with clean structured data never costs anything at any setting.
 
 ### Registration is by invitation
 
