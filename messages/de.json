@@ -701,5 +701,30 @@
     "modelHint": "Leer lassen ist meistens richtig. Antwortet das Standardmodell nicht — überlastet oder Kontingent leer —, wird automatisch das nächste probiert und das funktionierende hier eingetragen.",
     "modelAuto": "Automatisch gewählt am {date}, weil das vorherige nicht geantwortet hat. Du kannst es jederzeit überschreiben; dann bleibt deine Wahl stehen.",
     "testModel": "Geantwortet hat: {model}."
+  },
+  "SiteProfiles": {
+    "title": "Gelernte Seiten",
+    "intro": "Beim ersten Import von einer unbekannten Seite merkt sich das Kochbuch, wo diese Seite ihr Rezept hinschreibt. Jeder weitere Import von dort kommt ohne KI aus. Diese Liste f\u00fcllt sich von selbst \u2014 hierher kommst du nur, wenn du eine Seite vorab lernen oder eine veraltete korrigieren willst.",
+    "urlLabel": "Adresse einer Rezeptseite",
+    "learn": "Seite lernen",
+    "learning": "Liest \u2026",
+    "failed": "Das hat nicht geklappt.",
+    "none": "Noch nichts gelernt. Das passiert beim n\u00e4chsten Import von einer Seite ohne Rezept-Markup.",
+    "learnedOn": "gelernt am {date} von {by}",
+    "stale": "Zur\u00fcckgestellt: drei Importe hintereinander waren zu schlecht. Der n\u00e4chste Import lernt die Seite neu.",
+    "failures": "{count} Import(e) zuletzt unter der Schwelle.",
+    "howItReads": "Wie diese Seite gelesen wird",
+    "relearn": "Neu lernen",
+    "forget": "Vergessen",
+    "forgetConfirm": "Vergessen",
+    "field_title": "Titel",
+    "field_ingredients": "Zutaten",
+    "field_method": "Zubereitung",
+    "field_image": "Bild",
+    "viaMeta": "aus dem Meta-Tag {property}",
+    "viaJsonLd": "aus den strukturierten Daten unter {path}",
+    "viaList": "die Liste unter der \u00dcberschrift \u201e{heading}\u201c",
+    "viaText": "der Text unter der \u00dcberschrift \u201e{heading}\u201c",
+    "viaSelector": "\u00fcber den CSS-Selektor {selector}"
   }
 }

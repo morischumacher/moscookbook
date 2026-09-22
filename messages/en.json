@@ -701,5 +701,30 @@
     "modelHint": "Leaving it empty is usually right. If the default will not answer — busy, or out of quota — the next one is tried automatically and the one that worked is written in here.",
     "modelAuto": "Chosen automatically on {date}, because the previous one did not answer. Overwrite it whenever you like; your choice then stands.",
     "testModel": "Answered by: {model}."
+  },
+  "SiteProfiles": {
+    "title": "Learned sites",
+    "intro": "The first import from an unknown site teaches the cookbook where that site puts its recipe. Every later import from it needs no AI. This list fills itself \u2014 you are only here to teach a site in advance, or to correct one that has gone out of date.",
+    "urlLabel": "Address of a recipe page",
+    "learn": "Learn this site",
+    "learning": "Reading \u2026",
+    "failed": "That did not work.",
+    "none": "Nothing learned yet. That happens on the next import from a site without recipe markup.",
+    "learnedOn": "learned {date} by {by}",
+    "stale": "Set aside: three imports in a row fell short. The next import will learn the site again.",
+    "failures": "{count} recent import(s) below the threshold.",
+    "howItReads": "How this site is read",
+    "relearn": "Learn again",
+    "forget": "Forget",
+    "forgetConfirm": "Forget",
+    "field_title": "Title",
+    "field_ingredients": "Ingredients",
+    "field_method": "Method",
+    "field_image": "Picture",
+    "viaMeta": "from the meta tag {property}",
+    "viaJsonLd": "from the structured data at {path}",
+    "viaList": "the list under the heading \u201c{heading}\u201d",
+    "viaText": "the text under the heading \u201c{heading}\u201d",
+    "viaSelector": "via the CSS selector {selector}"
   }
 }
