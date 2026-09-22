@@ -1,0 +1,26 @@
+-- A recipe can be published on its own address.
+--
+-- Not the same thing as the share token beside it, and both earn their keep. A
+-- share token is a secret URL handed to one person and withdrawn by setting it
+-- back to null; it tells crawlers to stay away and it looks like a password.
+-- This is the recipe's real address working for anybody: a link that can go in
+-- a message without explanation, and a page a search engine may keep.
+--
+-- **DEFAULT false, and that is the whole safety of this migration.** Every
+-- recipe that exists stays private. Publishing is something a person does, one
+-- recipe at a time, never something a schema change does to a hundred of them
+-- at once.
+--
+-- What "public" covers is decided in the application, not here, and it is
+-- narrower than the word suggests: the recipe, its method, its picture and the
+-- average rating. Not the cooking entries — who made it, when, what they would
+-- change, and their photographs stay behind the login. Publishing a recipe is
+-- not publishing the household that cooks it, and a name on the open web does
+-- not come back.
+--
+-- No index. The only query that filters on this is "is *this* recipe public",
+-- answered by the primary key, and Postgres would not use an index on a
+-- boolean with this distribution anyway. One is worth adding the day there is
+-- a public list to page through.
+
+ALTER TABLE "Recipe" ADD COLUMN "isPublic" BOOLEAN NOT NULL DEFAULT false;

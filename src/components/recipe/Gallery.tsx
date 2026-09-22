@@ -90,7 +90,11 @@ export default function Gallery({
                 <ul
                     className={
                         hero
-                            ? 'absolute right-3 top-3 z-10 flex max-w-[calc(100%-1.5rem)] gap-2 overflow-x-auto rounded-xl bg-ink/55 p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden print:hidden'
+                            // Scrim, not ink: this strip floats on the hero
+                            // photograph, and a backing that turns white in
+                            // dark mode is a backing that stopped doing its
+                            // job. See globals.css.
+                            ? 'absolute right-3 top-3 z-10 flex max-w-[calc(100%-1.5rem)] gap-2 overflow-x-auto rounded-xl bg-scrim/55 p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden print:hidden'
                             : 'mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:px-0 [&::-webkit-scrollbar]:hidden print:hidden'
                     }
                 >

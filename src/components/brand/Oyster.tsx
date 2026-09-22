@@ -30,16 +30,37 @@
 
 export interface OysterProps {
     /**
-     * `outline` is the empty shell; `solid` fills it and draws the rings back
-     * over the fill in the page colour, the way the logo does.
+     * `outline` is the empty shell; `solid` fills it and cuts the rings back
+     * out of the fill, the way the logo does.
      */
     variant?: 'outline' | 'solid';
     /** Pixel size of the square. */
     size?: number;
     className?: string;
+    /**
+     * What colour a filled shell's rings are cut in — which has to be whatever
+     * is *behind* the oyster, or they are not cuts, they are lines.
+     *
+     * This used to be hard-coded to `var(--color-bg)`, on the assumption that
+     * an oyster always sits on the page. On the rating badge it does not: it
+     * sits on a dark scrim over a photograph, filled with the scrim's own
+     * foreground — so the fill and the rings resolved to the same colour and
+     * the shell rendered as a featureless blob. In light mode that blob was
+     * cream and nobody looked twice; in dark mode it was a black jellybean in
+     * the corner of a photograph, which is how this was finally noticed.
+     *
+     * The default keeps every existing caller — the logo, the five shells on a
+     * recipe — exactly as it was.
+     */
+    cutColor?: string;
 }
 
-export default function Oyster({ variant = 'outline', size = 24, className }: OysterProps) {
+export default function Oyster({
+    variant = 'outline',
+    size = 24,
+    className,
+    cutColor = 'var(--color-bg)',
+}: OysterProps) {
     const shell =
         'M2.8 12.4 C2.8 8.8 7 6.2 12.2 6.2 C17.6 6.2 21.4 8.6 21.4 12 ' +
         'C21.4 15.4 17.4 17.9 12 17.9 C6.8 17.9 2.8 15.9 2.8 12.4 Z';
@@ -94,10 +115,10 @@ export default function Oyster({ variant = 'outline', size = 24, className }: Oy
                         d={ring.d}
                         transform={ring.transform}
                         fill="none"
-                        // On a filled shell the rings are cut out of the fill, so
-                        // they follow the page rather than the ink — exactly how
-                        // the logo reads, white on orange.
-                        stroke={variant === 'solid' ? 'var(--color-bg)' : 'currentColor'}
+                        // On a filled shell the rings are cut out of the fill,
+                        // so they take the colour of whatever is behind the
+                        // shell — exactly how the logo reads, white on orange.
+                        stroke={variant === 'solid' ? cutColor : 'currentColor'}
                         strokeWidth={strokeWidth}
                         strokeLinecap="round"
                     />

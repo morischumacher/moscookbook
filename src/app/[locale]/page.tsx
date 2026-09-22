@@ -311,7 +311,7 @@ export default async function HomePage({
         const lastCookedById = new Map<number, number>();
 
         if (matchingIds.length > 0) {
-            const lastCooked = await prisma.cookLog.groupBy({
+            const lastCooked = await prisma.cookEntry.groupBy({
                 by: ['recipeId'],
                 where: { recipeId: { in: matchingIds } },
                 _max: { cookedAt: true },

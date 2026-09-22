@@ -40,6 +40,28 @@
      form have tokens rather than one having a token and the other a literal. */
   --color-success: #15803D;
 
+  /* A darkening laid over a photograph, and what stays legible on top of it.
+     These two are deliberately absent from the dark-mode block below, and that
+     is the whole idea: **a photograph has no dark mode.**
+
+     The rating badge used to be `bg-ink/75 text-page`, which follows the
+     scheme like everything else does, and following the scheme is exactly
+     wrong here. In dark mode it inverts to a near-white pill with black
+     writing sitting on somebody's dinner — an interface element behaving as
+     though the picture underneath had turned dark along with the page. It has
+     not. It is the same photograph of the same green curry either way.
+
+     So: a scrim is dark, always, and what sits on it is white, always, and
+     neither has anything to do with the time of day. The same applies to the
+     lightbox controls, the favourite button's backing and the backdrop behind
+     a dialog — every surface whose backdrop is a picture rather than the page.
+
+     Plain black rather than the ink: #111111 is a considered near-black for
+     *text on paper*, and none of that reasoning survives being laid over a
+     photograph at 70%. */
+  --color-scrim: #000000;
+  --color-on-scrim: #FFFFFF;
+
   --color-neutral: var(--color-muted);
   /* Legacy alias, kept for the plain-CSS classes below */
 
@@ -85,6 +107,9 @@
     --color-accent: #ff4a0e;
     --color-accent-text: #ff4a0e;
     --color-success: #34D399;
+    /* --color-scrim and --color-on-scrim are not redefined here on purpose.
+       See the note beside them above: what they sit on is a photograph, and a
+       photograph does not change with the colour scheme. */
   }
 }
 

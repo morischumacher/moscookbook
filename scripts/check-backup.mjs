@@ -49,6 +49,7 @@ const NOT_BACKED_UP = new Map([
     ['Ingredient', 'the same'],
     ['RateLimit', 'counters for windows measured in minutes; restoring one would be nonsense'],
     ['CollectionRecipe', "carried inside each collection's entry, in order, rather than as its own list"],
+    ['CookEntryPhoto', "carried inside each cooking's entry, in order, rather than as its own list"],
 ]);
 
 const schema = readFileSync(SCHEMA, 'utf8');
@@ -60,7 +61,7 @@ const problems = [];
 let covered = 0;
 
 for (const model of models) {
-    // `prisma.cookPhoto.findMany` for `model CookPhoto`.
+    // `prisma.cookEntry.findMany` for `model CookEntry`.
     const accessor = model[0].toLowerCase() + model.slice(1);
     const reads = new RegExp(`prisma\\.${accessor}\\.find`);
     const missing = sources.filter((source) => !reads.test(source.text));

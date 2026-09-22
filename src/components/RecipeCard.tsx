@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Rating from './Rating';
 import Oyster from './brand/Oyster';
 import FavoriteButton from './FavoriteButton';
-import { photoBadge } from '@/lib/ui';
+import { photoBadge, photoControl } from '@/lib/ui';
 
 interface RecipeCardProps {
     id: number; // For FavoriteButton
@@ -87,22 +87,25 @@ export default function RecipeCard({
                         />
 
                         {/*
-                            A solid pill, not a gradient or a translucent wash.
-                            The number has to clear 4.5:1 over whatever
-                            photograph happens to be underneath, and only an
-                            opaque backing can promise that — a fade promises it
-                            over a dark sky and breaks it over a plate of
-                            polenta. 75% of the ink is dark enough for the page
-                            colour on top of it even where the picture behind is
-                            white.
+                            A pill, not a gradient. The number has to clear
+                            4.5:1 over whatever photograph happens to be
+                            underneath, and only a flat backing can promise
+                            that — a fade promises it over a dark sky and
+                            breaks it over a plate of polenta. The colours come
+                            from lib/ui.ts and deliberately do not follow the
+                            colour scheme; the reason is written there.
                         */}
                         {rating > 0 && (
                             <span className={`${photoBadge} gap-1 py-1 pl-1.5 pr-2.5`}>
-                                {/* 16 rather than 14: the shell's two growth rings are drawn
-                                    in the page colour on a filled shell, and at
+                                {/* 16 rather than 14: the shell's two growth
+                                    rings are cut out of a filled shell, and at
                                     fourteen pixels on a dark pill they close up
-                                    and the oyster becomes a bean. */}
-                                <Oyster variant="solid" size={16} />
+                                    and the oyster becomes a bean. They are cut
+                                    in the scrim, not the page — on this badge
+                                    the page colour is what the shell is filled
+                                    with, and cutting a shape out of itself
+                                    leaves a blob. */}
+                                <Oyster variant="solid" size={16} cutColor="var(--color-scrim)" />
                                 <span className="text-xs font-semibold leading-none">
                                     {averageLabel}
                                 </span>
@@ -165,7 +168,7 @@ export default function RecipeCard({
                 <span
                     className={
                         imageUrl
-                            ? 'flex h-9 w-9 items-center justify-center rounded-full bg-ink/55 text-page'
+                            ? photoControl
                             : 'flex h-9 w-9 items-center justify-center'
                     }
                 >

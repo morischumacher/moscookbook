@@ -13,13 +13,15 @@ import { z } from 'zod';
  */
 
 /**
- * 4: collections. 3 added cooking logs, 2 entries and cooked photographs.
+ * 5: one cooking entry with its photographs, where 2-4 had a list of
+ * photographs and a separate list of cookings; and whether a recipe is
+ * published. 4 added collections, 3 cooking logs, 2 entries and photographs.
  *
- * A reader of an older archive still works — every new array defaults to empty
- * — and an archive from a newer version is refused with the numbers in the
- * message rather than half-read.
+ * A reader of an older archive still works — every new array defaults to empty,
+ * every new field to the safe value — and an archive from a newer version is
+ * refused with the numbers in the message rather than half-read.
  */
-export const ARCHIVE_VERSION = 4;
+export const ARCHIVE_VERSION = 5;
 
 const archiveIngredientSchema = z.object({
     position: z.number().int().min(0),
@@ -41,6 +43,16 @@ const archiveRecipeSchema = z.object({
     prepMinutes: z.number().int().nullable().default(null),
     cookMinutes: z.number().int().nullable().default(null),
     views: z.number().int().min(0).default(0),
+    /**
+     * Whether the recipe was published on its own address.
+     *
+     * In the archive because losing it is a silent change of meaning: a
+     * restore without it turns every published recipe private, and nobody
+     * would notice until they wondered why a link they had given somebody
+     * stopped working. Defaults to false, so an archive written before this
+     * existed restores the safe way round rather than failing.
+     */
+    isPublic: z.boolean().default(false),
     createdAt: z.string().default(() => new Date().toISOString()),
     /** Absolute URLs at the time of export; a local backup also keeps the files. */
     images: z.array(z.string()).default([]),
@@ -72,7 +84,36 @@ const archivePostSchema = z.object({
     author: z.string().nullable().default(null),
 });
 
-const archiveCookPhotoSchema = z.object({
+/**
+ * One cooking: who, when, what they would change, and what it looked like.
+ *
+ * In the archive because it is the only writing on the site nobody can
+ * reconstruct. "Half the chilli next time" is written once, by the person who
+ * would miss it, and the date is the other half of it.
+ *
+ * By slug and by name, like everything else here: an archive is restored into
+ * a database where every id is new, and accounts are not in an archive.
+ */
+const archiveCookEntrySchema = z.object({
+    recipeSlug: z.string().min(1),
+    cookedAt: z.string().default(() => new Date().toISOString()),
+    note: z.string().nullable().default(null),
+    author: z.string().nullable().default(null),
+    /** Picture URLs, in the order they were arranged. */
+    photos: z.array(z.string().min(1)).default([]),
+});
+
+/*
+ * Versions 2 to 4 wrote two arrays where there is now one: a photograph with a
+ * caption, and a cooking with a note. They are still read — an archive written
+ * last month has to restore into a build from today, or the backup was
+ * decorative — and `cookEntriesFrom` folds them into entries with the same
+ * rule the database migration used.
+ *
+ * Nothing writes them any more. They are inputs, not outputs.
+ */
+
+const legacyCookPhotoSchema = z.object({
     url: z.string().min(1),
     caption: z.string().nullable().default(null),
     createdAt: z.string().default(() => new Date().toISOString()),
@@ -80,17 +121,7 @@ const archiveCookPhotoSchema = z.object({
     author: z.string().nullable().default(null),
 });
 
-/**
- * A cooking log entry.
- *
- * In the archive because it is writing: "half the chilli next time" is the
- * kind of thing that is only ever written once and would be missed by exactly
- * the person who wrote it. The date is the other half of it.
- *
- * By slug and by name, like everything else here: an archive is restored into
- * a database where every id is new, and accounts are not in an archive.
- */
-const archiveCookLogSchema = z.object({
+const legacyCookLogSchema = z.object({
     recipeSlug: z.string().min(1),
     cookedAt: z.string().default(() => new Date().toISOString()),
     note: z.string().nullable().default(null),
@@ -121,15 +152,16 @@ export const archiveSchema = z.object({
     recipeCount: z.number().int().min(0).optional(),
     recipes: z.array(archiveRecipeSchema),
     posts: z.array(archivePostSchema).default([]),
-    cookPhotos: z.array(archiveCookPhotoSchema).default([]),
-    cookLogs: z.array(archiveCookLogSchema).default([]),
+    cookEntries: z.array(archiveCookEntrySchema).default([]),
+    /** Read for versions 2-4, never written. See above. */
+    cookPhotos: z.array(legacyCookPhotoSchema).default([]),
+    cookLogs: z.array(legacyCookLogSchema).default([]),
     collections: z.array(archiveCollectionSchema).default([]),
 });
 
 export type ArchiveRecipe = z.infer<typeof archiveRecipeSchema>;
 export type ArchivePost = z.infer<typeof archivePostSchema>;
-export type ArchiveCookPhoto = z.infer<typeof archiveCookPhotoSchema>;
-export type ArchiveCookLog = z.infer<typeof archiveCookLogSchema>;
+export type ArchiveCookEntry = z.infer<typeof archiveCookEntrySchema>;
 export type ArchiveCollection = z.infer<typeof archiveCollectionSchema>;
 export type Archive = z.infer<typeof archiveSchema>;
 
@@ -175,6 +207,7 @@ export function parseArchive(input: unknown): ParseResult {
 
 /** Database rows in, archive out. */
 export interface ExportableRecipe {
+    isPublic: boolean;
     title: string;
     slug: string;
     description: string | null;
@@ -208,12 +241,12 @@ export interface ExportablePost {
     author: { name: string } | null;
 }
 
-export interface ExportableCookPhoto {
-    url: string;
-    caption: string | null;
-    createdAt: Date;
+export interface ExportableCookEntry {
+    cookedAt: Date;
+    note: string | null;
     recipe: { slug: string };
     user: { name: string } | null;
+    photos: { url: string }[];
 }
 
 export interface ExportableCollection {
@@ -222,13 +255,6 @@ export interface ExportableCollection {
     description: string | null;
     createdAt: Date;
     recipes: { recipe: { slug: string } }[];
-}
-
-export interface ExportableCookLog {
-    cookedAt: Date;
-    note: string | null;
-    recipe: { slug: string };
-    user: { name: string } | null;
 }
 
 /*
@@ -252,6 +278,7 @@ export function toArchiveRecipe(recipe: ExportableRecipe): ArchiveRecipe {
         prepMinutes: recipe.prepMinutes,
         cookMinutes: recipe.cookMinutes,
         views: recipe.views,
+        isPublic: recipe.isPublic,
         createdAt: recipe.createdAt.toISOString(),
         images: recipe.images.map((image) => image.url),
         ingredients: recipe.ingredients
@@ -278,23 +305,76 @@ export function toArchivePost(post: ExportablePost): Archive['posts'][number] {
     };
 }
 
-export function toArchiveCookPhoto(photo: ExportableCookPhoto): Archive['cookPhotos'][number] {
-    return {
-        url: photo.url,
-        caption: photo.caption,
-        createdAt: photo.createdAt.toISOString(),
-        recipeSlug: photo.recipe.slug,
-        author: photo.user?.name ?? null,
-    };
-}
-
-export function toArchiveCookLog(entry: ExportableCookLog): Archive['cookLogs'][number] {
+export function toArchiveCookEntry(entry: ExportableCookEntry): ArchiveCookEntry {
     return {
         recipeSlug: entry.recipe.slug,
         cookedAt: entry.cookedAt.toISOString(),
         note: entry.note,
         author: entry.user?.name ?? null,
+        photos: entry.photos.map((photo) => photo.url),
     };
+}
+
+/**
+ * Every cooking in an archive, whatever version wrote it.
+ *
+ * A version-5 archive already has them. Versions 2 to 4 have a list of
+ * photographs and a list of cookings instead, and this folds those together
+ * using the rule the database migration used: **one entry per recipe, per
+ * person, per day.** Captions and notes meeting in the same entry are joined
+ * with " · " in the order they were written rather than one winning.
+ *
+ * Restoring an old archive therefore produces the same rows as migrating the
+ * database it came from, which is the only property that makes an old backup
+ * worth keeping.
+ */
+export function cookEntriesFrom(archive: Archive): ArchiveCookEntry[] {
+    if (archive.cookEntries.length > 0) return archive.cookEntries;
+
+    /** recipe, author and day — the same key the SQL migration grouped on. */
+    const keyOf = (recipeSlug: string, author: string | null, at: string) =>
+        `${recipeSlug}\u0000${author ?? ''}\u0000${at.slice(0, 10)}`;
+
+    const merged = new Map<string, ArchiveCookEntry & { texts: string[] }>();
+
+    const add = (
+        recipeSlug: string,
+        author: string | null,
+        at: string,
+        text: string | null,
+        url: string | null
+    ) => {
+        const key = keyOf(recipeSlug, author, at);
+        let entry = merged.get(key);
+
+        if (!entry) {
+            entry = { recipeSlug, cookedAt: at, note: null, author, photos: [], texts: [] };
+            merged.set(key, entry);
+        }
+
+        // The earliest moment of the day stands for the evening, as MIN(ts) did.
+        if (at < entry.cookedAt) entry.cookedAt = at;
+
+        const trimmed = (text ?? '').trim();
+        if (trimmed !== '' && !entry.texts.includes(trimmed)) entry.texts.push(trimmed);
+
+        if (url) entry.photos.push(url);
+    };
+
+    // Photographs first, then cookings, and both in the order they appear —
+    // which for an export ordered by id is the order they were written.
+    for (const photo of archive.cookPhotos) {
+        add(photo.recipeSlug, photo.author, photo.createdAt, photo.caption, photo.url);
+    }
+
+    for (const log of archive.cookLogs) {
+        add(log.recipeSlug, log.author, log.cookedAt, log.note, null);
+    }
+
+    return [...merged.values()].map(({ texts, ...entry }) => ({
+        ...entry,
+        note: texts.length > 0 ? texts.join(' · ') : null,
+    }));
 }
 
 export function toArchiveCollection(
@@ -314,8 +394,7 @@ export function buildArchive(
     recipes: ExportableRecipe[],
     now = new Date(),
     posts: ExportablePost[] = [],
-    cookPhotos: ExportableCookPhoto[] = [],
-    cookLogs: ExportableCookLog[] = [],
+    cookEntries: ExportableCookEntry[] = [],
     collections: ExportableCollection[] = []
 ): Archive {
     return {
@@ -324,8 +403,13 @@ export function buildArchive(
         recipeCount: recipes.length,
         recipes: recipes.map(toArchiveRecipe),
         posts: posts.map(toArchivePost),
-        cookPhotos: cookPhotos.map(toArchiveCookPhoto),
-        cookLogs: cookLogs.map(toArchiveCookLog),
+        cookEntries: cookEntries.map(toArchiveCookEntry),
+        // Written empty, read when an older archive has them. A reader that
+        // drops the field entirely would make a version-5 archive fail to
+        // parse against a version-4 build, and an archive that only its own
+        // build can read is not a backup.
+        cookPhotos: [],
+        cookLogs: [],
         collections: collections.map(toArchiveCollection),
     };
 }

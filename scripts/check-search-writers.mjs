@@ -56,6 +56,13 @@ const SUBJECTS = [
  */
 const ALLOWED = new Map([
     [
+        'recipe src/app/api/recipes/[id]/visibility/route.ts',
+        {
+            why: 'only ever sets the one boolean that decides who may read it',
+            marker: /data:\s*\{\s*isPublic:\s*parsed\.data\.isPublic\s*\}/,
+        },
+    ],
+    [
         'post src/app/api/posts/[id]/share/route.ts',
         {
             why: 'only ever sets or clears the share token',
@@ -116,6 +123,9 @@ function walk(dir) {
 const FACET_NEUTRAL = new Set([
     'src/app/api/recipes/[id]/view/route.ts',
     'src/app/api/recipes/[id]/share/route.ts',
+    // Publishing changes who may read a recipe, never which category it is
+    // in, so the filter rail cannot be affected by it.
+    'src/app/api/recipes/[id]/visibility/route.ts',
     'scripts/reindex-search.ts',
     'scripts/restore.mjs',
 ]);

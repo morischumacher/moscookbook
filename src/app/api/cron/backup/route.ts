@@ -8,8 +8,7 @@ import {
     archiveFilename,
     type ExportableRecipe,
     type ExportablePost,
-    type ExportableCookPhoto,
-    type ExportableCookLog,
+    type ExportableCookEntry,
     type ExportableCollection,
 } from '@/lib/archive';
 
@@ -67,6 +66,7 @@ export async function GET(req: NextRequest) {
                 prepMinutes: true,
                 cookMinutes: true,
                 views: true,
+                isPublic: true,
                 createdAt: true,
                 images: { orderBy: { position: 'asc' }, select: { url: true } },
                 ingredients: {
@@ -97,26 +97,17 @@ export async function GET(req: NextRequest) {
             },
         });
 
-        const cookPhotos: ExportableCookPhoto[] = await prisma.cookPhoto.findMany({
-            orderBy: { createdAt: 'asc' },
-            select: {
-                url: true,
-                caption: true,
-                createdAt: true,
-                recipe: { select: { slug: true } },
-                user: { select: { name: true } },
-            },
-        });
-
         // Writing, and the only copy of it: "half the chilli next time" is a
-        // line written once and missed by the person who wrote it.
-        const cookLogs: ExportableCookLog[] = await prisma.cookLog.findMany({
+        // line written once and missed by the person who wrote it. The
+        // pictures come with it now, in the order they were arranged.
+        const cookEntries: ExportableCookEntry[] = await prisma.cookEntry.findMany({
             orderBy: { cookedAt: 'asc' },
             select: {
                 cookedAt: true,
                 note: true,
                 recipe: { select: { slug: true } },
                 user: { select: { name: true } },
+                photos: { orderBy: { position: 'asc' }, select: { url: true } },
             },
         });
 
@@ -138,8 +129,7 @@ export async function GET(req: NextRequest) {
             recipes,
             new Date(),
             posts,
-            cookPhotos,
-            cookLogs,
+            cookEntries,
             collections
         );
 
@@ -184,7 +174,8 @@ export async function GET(req: NextRequest) {
             url: blob.url,
             recipes: recipes.length,
             posts: posts.length,
-            cookPhotos: cookPhotos.length,
+            cookEntries: cookEntries.length,
+            cookPhotos: cookEntries.reduce((total, entry) => total + entry.photos.length, 0),
             pruned: old.length,
         });
     } catch (error) {

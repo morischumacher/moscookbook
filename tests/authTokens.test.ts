@@ -9,6 +9,7 @@ import {
     TOKEN_LIFETIME_MINUTES,
 } from '../src/lib/authTokens';
 import { resetMail, verifyMail } from '../src/lib/authMail';
+import { BRAND_MARK_CID, BRAND_MARK_PNG_BASE64 } from '../src/lib/brandMark';
 
 export default function authTokensTests() {
     suite('generateToken');
@@ -165,4 +166,43 @@ export default function authTokensTests() {
         'escapes the link as an attribute value',
         resetMail('a@b.c', 'Mo', 'https://x.test/?a="b', 'en').html?.includes('"b') === false
     );
+
+    /* ------------------------------------------------------- the wordmark */
+
+    /*
+     * The logo is attached, not linked, and the two halves of that are in
+     * different files: the template writes `cid:…` and the mailer attaches
+     * against the same id. If they ever disagree, every message shows a
+     * broken-image icon — which is worse than no logo, and invisible from
+     * either file on its own.
+     */
+    for (const [language, mail] of [
+        ['de', resetMail('a@b.c', 'Mo', 'https://x.test', 'de')],
+        ['en', resetMail('a@b.c', 'Mo', 'https://x.test', 'en')],
+        ['verify', verifyMail('a@b.c', 'Mo', 'https://x.test', 'de')],
+    ] as const) {
+        check(
+            `${language}: the wordmark is referenced by content id`,
+            mail.html?.includes(`src="cid:${BRAND_MARK_CID}"`) === true,
+            mail.html
+        );
+    }
+
+    check(
+        'and never as a remote image, which most clients would not load',
+        resetMail('a@b.c', 'Mo', 'https://x.test', 'de').html?.includes('<img src="http') === false
+    );
+
+    // The text part is the real message, and it has to stand alone for a
+    // client that shows no HTML at all.
+    check(
+        'the plain-text part carries no markup',
+        resetMail('a@b.c', 'Mo', 'https://x.test', 'de').text.includes('<') === false
+    );
+
+    // The bytes are a picture, not an empty string that happens to be valid
+    // base64 — the same failure the icons had.
+    const mark = Buffer.from(BRAND_MARK_PNG_BASE64, 'base64');
+    check('the attached mark is a PNG', mark.subarray(1, 4).toString('ascii') === 'PNG');
+    check('and is large enough to be a drawing', mark.length > 2000, mark.length);
 }

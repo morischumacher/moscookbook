@@ -11,7 +11,25 @@ export default function accessTests() {
     // stops being true is a quiet one.
     equal('the front page needs an account', pathAccess('/en/'), 'account');
     equal('a bare locale needs an account', pathAccess('/de'), 'account');
-    equal('a recipe needs an account', pathAccess('/de/recipe/kaesespaetzle'), 'account');
+    // One recipe is the single path whose answer lives in the database: it is
+    // open when the recipe is public and needs an account when it is not, and
+    // only the page can tell. Everything about this rule is about keeping that
+    // exception as small as it can be.
+    equal('one recipe is decided by the recipe', pathAccess('/de/recipe/kaesespaetzle'), 'recipe');
+    equal('a trailing slash is the same page', pathAccess('/de/recipe/kaesespaetzle/'), 'recipe');
+    equal('and in the other locale', pathAccess('/en/recipe/plum-cake'), 'recipe');
+
+    // The narrowness is the point. Anything deeper than one segment is a
+    // different page that nobody has decided about, so it stays private.
+    equal('a page under a recipe is not covered', pathAccess('/de/recipe/x/edit'), 'account');
+    equal('nor two segments of anything', pathAccess('/de/recipe/x/photos/3'), 'account');
+    equal('the recipe list itself still needs an account', pathAccess('/de/recipe'), 'account');
+    equal('and so does the front page', pathAccess('/de'), 'account');
+
+    // A slug cannot climb into the admin area or out of the recipe rule by
+    // being named after something else.
+    equal('a slug that looks like admin is still a recipe', pathAccess('/de/recipe/admin'), 'recipe');
+    equal('and /admin is still admin', pathAccess('/de/admin/recipe/x'), 'admin');
     equal('the admin area needs an admin', pathAccess('/en/admin'), 'admin');
     equal('everything under admin needs an admin', pathAccess('/de/admin/inbox'), 'admin');
 
@@ -20,6 +38,13 @@ export default function accessTests() {
     }
 
     equal('a share link is reachable without an account', pathAccess('/de/r/abc123'), 'open');
+
+    // The disclosure and the privacy notice exist for people who have no
+    // account. Behind the sign-in form they would be decoration.
+    equal('the imprint is open', pathAccess('/de/imprint'), 'open');
+    equal('the privacy notice is open', pathAccess('/en/privacy'), 'open');
+    equal('a page that merely starts with one is not', pathAccess('/de/imprinted'), 'account');
+    equal('nor one that extends it with a hyphen', pathAccess('/de/privacy-policy'), 'account');
 
     // Both ends of every open path are anchored at a segment boundary. Without
     // that, a page whose name merely starts with one of these words would be

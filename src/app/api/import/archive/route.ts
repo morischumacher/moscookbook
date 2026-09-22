@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { requireAdmin } from '@/lib/auth';
-import { parseArchive, type ArchiveRecipe } from '@/lib/archive';
+import { parseArchive, cookEntriesFrom, type ArchiveRecipe } from '@/lib/archive';
 import { searchFields } from '@/lib/searchText';
 
 const MAX_BODY_BYTES = 20 * 1024 * 1024;
@@ -40,6 +40,11 @@ function recipeData(recipe: ArchiveRecipe) {
         servings: recipe.servings,
         prepMinutes: recipe.prepMinutes,
         cookMinutes: recipe.cookMinutes,
+        // Restored as it was. Dropping it would quietly turn every published
+        // recipe private, and the first anybody would know is a link they had
+        // given somebody having stopped working. An archive from before this
+        // field existed defaults to false, which is the safe direction.
+        isPublic: recipe.isPublic,
         createdAt: safeDate(recipe.createdAt) ?? new Date(),
         ...searchFields({
             title: recipe.title,
@@ -207,71 +212,68 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        let photos = 0;
-        for (const photo of result.archive.cookPhotos) {
-            const recipeId = slugToId.get(photo.recipeSlug);
-            // Unlike an entry, a photograph of a dish has nowhere to be shown
-            // without one — the same reason its foreign key cascades.
-            if (recipeId === undefined) continue;
-
-            // The url is what makes a photograph unique here; importing the
-            // same archive twice should not double every picture.
-            const already = await prisma.cookPhoto.findFirst({
-                where: { url: photo.url, recipeId },
-                select: { id: true },
-            });
-            if (already) continue;
-
-            try {
-                await prisma.cookPhoto.create({
-                    data: {
-                        url: photo.url,
-                        caption: photo.caption,
-                        createdAt: safeDate(photo.createdAt) ?? new Date(),
-                        recipeId,
-                        userId: null,
-                    },
-                });
-                photos += 1;
-            } catch (error) {
-                console.error(`Archive import: photo for ${photo.recipeSlug} failed`, error);
-            }
-        }
-
-        // A restore can bring in a whole cookbook's worth of categories.
-        forgetCollectionFacets();
-
-        // Cooking logs last, for the same reason the photographs are: they
-        // point at a recipe by slug, and the recipes have to exist first.
+        // Cookings, with their pictures.
+        //
+        // `cookEntriesFrom` is what makes an archive written before the merge
+        // restore into the shape that exists now: a version-5 archive already
+        // has entries, and an older one is folded from its two lists using the
+        // same rule the database migration used. A backup that only its own
+        // build can read is not a backup.
+        //
         // Authorship is dropped, like everywhere else here — accounts are not
         // in an archive, and a note attributed to the wrong person is worse
-        // than one attributed to nobody. Which means a restored log needs
-        // somebody to own it, and the admin doing the restoring is the only
-        // account this code can be sure exists.
-        let logs = 0;
-        for (const entry of result.archive.cookLogs) {
+        // than one attributed to nobody. An entry needs somebody to own it,
+        // and the admin doing the restoring is the only account this code can
+        // be sure exists.
+        let entries = 0;
+        let photos = 0;
+
+        for (const entry of cookEntriesFrom(result.archive)) {
             const recipeId = slugToId.get(entry.recipeSlug);
+            // Unlike a blog post, a cooking has nowhere to be shown without
+            // its recipe — the same reason its foreign key cascades.
             if (recipeId === undefined) continue;
 
             const cookedAt = safeDate(entry.cookedAt) ?? new Date();
 
             try {
-                // The date and the recipe are what make an entry unique, so
-                // restoring the same archive twice does not double the log.
-                const already = await prisma.cookLog.findFirst({
+                // The recipe and the moment are what make an entry unique, so
+                // restoring the same archive twice does not double it.
+                const already: { id: number } | null = await prisma.cookEntry.findFirst({
                     where: { recipeId, cookedAt, userId: auth.user.id },
                     select: { id: true },
                 });
-                if (already) continue;
 
-                await prisma.cookLog.create({
-                    data: { recipeId, userId: auth.user.id, cookedAt, note: entry.note },
-                });
-                logs += 1;
+                const target: { id: number } = already
+                    ? already
+                    : await prisma.cookEntry.create({
+                          data: { recipeId, userId: auth.user.id, cookedAt, note: entry.note },
+                          select: { id: true },
+                      });
+
+                if (!already) entries += 1;
+
+                for (const [index, url] of entry.photos.entries()) {
+                    // The url is what makes a picture unique; the same archive
+                    // imported twice should not double every photograph.
+                    const seen: { id: number } | null = await prisma.cookEntryPhoto.findFirst({
+                        where: { url, entryId: target.id },
+                        select: { id: true },
+                    });
+                    if (seen) continue;
+
+                    await prisma.cookEntryPhoto.create({
+                        data: { url, position: index, entryId: target.id },
+                    });
+                    photos += 1;
+                }
             } catch (error) {
-                console.error(`Archive import: cook log for ${entry.recipeSlug} failed`, error);
+                console.error(`Archive import: cooking for ${entry.recipeSlug} failed`, error);
             }
         }
+
+        // A restore can bring in a whole cookbook's worth of categories.
+        forgetCollectionFacets();
 
         // Collections last: they point at recipes by slug, so the recipes
         // have to exist. A collection whose recipes are not all in the archive
@@ -327,8 +329,8 @@ export async function POST(req: NextRequest) {
             skipped,
             total: result.archive.recipes.length,
             posts,
+            entries,
             photos,
-            logs,
             collections,
             // Reported rather than thrown: the rest of the archive is in, and
             // the admin needs to know exactly what is not.

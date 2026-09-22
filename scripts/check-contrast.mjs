@@ -120,6 +120,81 @@ for (const [themeName, tokens] of [['light', light], ['dark', dark]]) {
     }
 }
 
+/**
+ * The scrim, measured against the worst photograph anybody can upload.
+ *
+ * `--color-scrim` and `--color-on-scrim` are not in RULES above because they
+ * are never seen against the page — they sit on a picture, which is why they
+ * are the two tokens that do not change with the colour scheme. Measuring them
+ * against `--color-bg` would be measuring the wrong thing.
+ *
+ * What can be measured is the case that actually decides whether the badge is
+ * readable: a **pure white** photograph. Anything darker only helps. So the
+ * scrim is composited over white at the opacity each surface uses, and the
+ * foreground is checked against that.
+ *
+ * These opacities are the ones written in src/lib/ui.ts and the components. If
+ * one of them is lowered because a pill looked heavy on a dark photograph,
+ * this is what notices that it stopped working on a light one.
+ */
+const SCRIM_RULES = [
+    [0.7, 'on-scrim', 4.5, 'the rating badge — a number, so the text threshold'],
+    [0.55, 'on-scrim', 3.0, "the favourite heart's backing — a drawn shape"],
+];
+
+/** The worst case a photograph can be: every channel at the maximum. */
+const WHITE = [255, 255, 255];
+
+function over(colour, alpha, backdrop) {
+    return colour.map((channel, index) =>
+        Math.round(channel * alpha + backdrop[index] * (1 - alpha))
+    );
+}
+
+{
+    const scrim = toRgb(light.get('scrim') ?? '');
+    const onScrim = toRgb(light.get('on-scrim') ?? '');
+
+    if (!scrim || !onScrim) {
+        console.error('--color-scrim and --color-on-scrim must both be plain hex colours.');
+        process.exit(1);
+    }
+
+    // Stated rather than assumed: the whole argument for these two is that
+    // they are the same in both themes, so a redefinition in the dark block
+    // would quietly undo it.
+    for (const name of ['scrim', 'on-scrim']) {
+        if (dark.get(name) !== light.get(name)) {
+            console.error(
+                `--color-${name} differs between light and dark. It sits on a photograph, ` +
+                'and a photograph does not have a dark mode — see globals.css.'
+            );
+            failures += 1;
+        }
+    }
+
+    for (const [alpha, foreground, minimum, purpose] of SCRIM_RULES) {
+        const backing = over(scrim, alpha, WHITE);
+        const ratio = contrast(foreground === 'on-scrim' ? onScrim : toRgb(light.get(foreground)), backing);
+
+        // Rounded, because 0.55 * 100 is 55.00000000000001 and a checker that
+        // prints that is a checker nobody trusts the rest of the output of.
+        const percent = Math.round(alpha * 1000) / 10;
+
+        if (ratio < minimum) {
+            console.error(
+                `scrim at ${percent}% over a white photograph is ${ratio.toFixed(2)}:1, ` +
+                `below the ${minimum}:1 needed for ${purpose}.`
+            );
+            failures += 1;
+        } else {
+            console.log(
+                `  ok   scrim ${String(percent).padStart(4)}% on white  ${ratio.toFixed(2)}:1  ${purpose}`
+            );
+        }
+    }
+}
+
 // Named so that a reader of this file knows the omission is deliberate.
 console.log(`  --   not measured: ${[...DECORATIVE].join(', ')} (decorative by design)`);
 

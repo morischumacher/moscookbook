@@ -6,13 +6,11 @@ import {
     archiveFilename,
     toArchiveRecipe,
     toArchivePost,
-    toArchiveCookPhoto,
-    toArchiveCookLog,
+    toArchiveCookEntry,
     toArchiveCollection,
     type ExportableRecipe,
     type ExportablePost,
-    type ExportableCookPhoto,
-    type ExportableCookLog,
+    type ExportableCookEntry,
     type ExportableCollection,
 } from '@/lib/archive';
 
@@ -121,6 +119,7 @@ export async function GET() {
                                 prepMinutes: true,
                                 cookMinutes: true,
                                 views: true,
+                                isPublic: true,
                                 createdAt: true,
                                 images: { orderBy: { position: 'asc' }, select: { url: true } },
                                 ingredients: {
@@ -166,31 +165,11 @@ export async function GET() {
                     toArchivePost
                 );
 
-                write('],\n  "cookPhotos": [');
+                write('],\n  "cookEntries": [');
 
-                await writeAll<ExportableCookPhoto & { id: number }, unknown>(
+                await writeAll<ExportableCookEntry & { id: number }, unknown>(
                     (afterId) =>
-                        prisma.cookPhoto.findMany({
-                            where: { id: { gt: afterId } },
-                            orderBy: { id: 'asc' },
-                            take: PAGE,
-                            select: {
-                                id: true,
-                                url: true,
-                                caption: true,
-                                createdAt: true,
-                                recipe: { select: { slug: true } },
-                                user: { select: { name: true } },
-                            },
-                        }),
-                    toArchiveCookPhoto
-                );
-
-                write('],\n  "cookLogs": [');
-
-                await writeAll<ExportableCookLog & { id: number }, unknown>(
-                    (afterId) =>
-                        prisma.cookLog.findMany({
+                        prisma.cookEntry.findMany({
                             where: { id: { gt: afterId } },
                             orderBy: { id: 'asc' },
                             take: PAGE,
@@ -200,9 +179,13 @@ export async function GET() {
                                 note: true,
                                 recipe: { select: { slug: true } },
                                 user: { select: { name: true } },
+                                photos: {
+                                    orderBy: { position: 'asc' },
+                                    select: { url: true },
+                                },
                             },
                         }),
-                    toArchiveCookLog
+                    toArchiveCookEntry
                 );
 
                 write('],\n  "collections": [');

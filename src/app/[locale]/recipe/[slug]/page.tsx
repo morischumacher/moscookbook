@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { cache } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import RecipeArticle, { recipeInclude, type RecipeRow } from '@/components/recipe/RecipeArticle';
 import prisma from '@/lib/prisma';
@@ -17,10 +17,16 @@ const loadRecipe = cache(async (slug: string): Promise<RecipeRow | null> => {
 });
 
 /**
- * This page needs an account, so nothing here is for a crawler or a link
- * preview — neither can get past the login. It gets a title for the browser tab
- * and nothing else. The recipe's public face lives at /r/[token], and that is
- * where the OpenGraph card and the schema.org markup are.
+ * What a crawler or a link preview is told.
+ *
+ * A private recipe gets a title for the browser tab and nothing else: neither
+ * can get past the login, and `index: false` keeps the address out of a search
+ * result that would only ever lead to a sign-in form.
+ *
+ * A **public** one is a page on the web like any other, so it gets the card:
+ * the title, the description, the picture. That is the difference between
+ * publishing a recipe and handing somebody a secret link — a share token says
+ * "do not index me" precisely because it is a secret, and this is not.
  */
 export async function generateMetadata({
     params,
@@ -34,9 +40,27 @@ export async function generateMetadata({
 
     if (!recipe) return { title: t('notFound') };
 
+    const title = `${recipe.title} — mo'scookbook`;
+
+    if (!recipe.isPublic) {
+        return { title, robots: { index: false, follow: false } };
+    }
+
+    const url = `${getSiteUrl()}/${locale}/recipe/${recipe.slug}`;
+    const image = recipe.images[0]?.url;
+
     return {
-        title: `${recipe.title} — mo'scookbook`,
-        robots: { index: false, follow: false },
+        title,
+        description: recipe.description ?? undefined,
+        alternates: { canonical: url },
+        robots: { index: true, follow: true },
+        openGraph: {
+            type: 'article',
+            title: recipe.title,
+            description: recipe.description ?? undefined,
+            url,
+            images: image ? [image] : undefined,
+        },
     };
 }
 
@@ -48,10 +72,30 @@ export default async function RecipePage({
     const { slug, locale } = await params;
 
     const recipe = await loadRecipe(slug);
+    const session = await getSession();
+
+    /*
+     * The one page whose access the proxy does not decide.
+     *
+     * accessRules lets `/recipe/<slug>` through because only the row knows
+     * whether it is public, so the check lives here and has to be the first
+     * thing that happens.
+     *
+     * A missing recipe and a private one look identical to somebody with no
+     * account, and that is deliberate. Answering 404 for one and "sign in" for
+     * the other would let anybody with a word list discover which recipes
+     * exist, one guess at a time, without ever signing in. Both go to the
+     * login form, carrying where they were headed, so following a link and
+     * signing in still lands on the recipe.
+     */
+    if (!session.user && !recipe?.isPublic) {
+        const next = encodeURIComponent(`/${locale}/recipe/${slug}`);
+        redirect(`/${locale}/login?next=${next}`);
+    }
+
     if (!recipe) notFound();
 
     const cookieStore = await cookies();
-    const session = await getSession();
     const hasViewed = cookieStore.has(`viewed_recipe_${recipe.id}`);
 
     // Shown optimistically; the actual increment happens in ViewTracker so that
@@ -71,9 +115,24 @@ export default async function RecipePage({
             recipe.ratings.find((rating: { userId: number }) => rating.userId === userId)?.value ?? 0;
     }
 
+    /*
+     * Everything below this line is for people with an account.
+     *
+     * A public recipe publishes the *recipe*: what is in it, how it is made,
+     * what it looks like, how it was rated on average. It does not publish the
+     * household that cooks it. The written notes, the cooking entries with
+     * their names, dates and photographs, and the other recipes in the book
+     * all stay behind the login, because a name and a face on the open web do
+     * not come back and nobody agreed to that by writing down a recipe.
+     *
+     * Queried conditionally rather than filtered later: the cheapest way to
+     * not leak something is not to fetch it.
+     */
+    const isMember = Boolean(session.user);
+
     // Oldest first: a cooking log is read as a sequence. Drafts only for an
     // admin, same rule as the blog index.
-    const notes = await prisma.post.findMany({
+    const notes = isMember ? await prisma.post.findMany({
         where: {
             recipeId: recipe.id,
             ...(session.user?.admin ? {} : { publishedAt: { not: null } }),
@@ -89,53 +148,44 @@ export default async function RecipePage({
             createdAt: true,
             author: { select: { name: true } },
         },
-    });
+    }) : [];
 
-    // Oldest first as well, for the same reason the notes are: a wall of
-    // pictures of one dish reads as a sequence of attempts.
-    const cooked = await prisma.cookPhoto.findMany({
-        where: { recipeId: recipe.id },
-        orderBy: { createdAt: 'asc' },
-        take: 60,
-        select: {
-            id: true,
-            url: true,
-            caption: true,
-            createdAt: true,
-            userId: true,
-            user: { select: { name: true } },
-        },
-    });
-
-    // Newest first: the question this answers is "when did I last make this",
-    // and the answer is the first row.
-    const cookLog = await prisma.cookLog.findMany({
+    // Newest first: the question this section answers is "when did I last
+    // make this", and the answer is then the first row.
+    //
+    // The pictures inside an entry go the other way, in the order somebody
+    // arranged them — within one evening a sequence reads forwards.
+    const cooked = isMember ? await prisma.cookEntry.findMany({
         where: { recipeId: recipe.id },
         orderBy: { cookedAt: 'desc' },
-        take: 20,
+        take: 30,
         select: {
             id: true,
             cookedAt: true,
             note: true,
             userId: true,
             user: { select: { name: true } },
+            photos: { orderBy: { position: 'asc' }, select: { id: true, url: true } },
         },
-    });
+    }) : [];
 
     // Computed from the recipe's own search vector, which already exists and
     // is already indexed. See lib/similarRecipes.
-    const similar = await similarRecipes(recipe);
+    const similar = isMember ? await similarRecipes(recipe) : [];
 
     return (
         <RecipeArticle
             recipe={recipe}
             similar={similar}
-            cookLog={cookLog}
             notes={notes}
             cooked={cooked}
             currentUserId={session.user?.id ?? null}
             locale={locale}
-            mode="private"
+            // A member sees the cookbook; a visitor to a public recipe sees
+            // the recipe. "shared" is already exactly that shape — it is what
+            // a share link renders — so there is no third mode to keep in
+            // step with the other two.
+            mode={isMember ? 'private' : 'shared'}
             isLoggedIn={Boolean(session.user)}
             isAdmin={Boolean(session.user?.admin)}
             isFavorited={isFavorited}
