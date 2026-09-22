@@ -345,7 +345,6 @@
   "Devices": {
     "title": "Geräte",
     "explanation": "Ein Gerät mit Schlüssel darf Rezepte in deinen Eingang schicken, ohne sich anzumelden. Ein Schlüssel pro Gerät — dann kostet ein verlorenes Handy einen Widerruf und sonst nichts.",
-    "backToInbox": "Zurück zum Eingang",
     "loading": "Geräte werden geladen…",
     "devicesHeading": "Schlüssel",
     "noDevices": "Noch keine Geräte.",

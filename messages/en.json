@@ -345,7 +345,6 @@
   "Devices": {
     "title": "Devices",
     "explanation": "A device with a key may send recipes to your inbox without logging in. One key per device, so losing a phone costs one revoke.",
-    "backToInbox": "Back to the inbox",
     "loading": "Loading devices…",
     "devicesHeading": "Keys",
     "noDevices": "No devices yet.",

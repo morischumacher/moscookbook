@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-36 screens · 76 endpoints · 51 link edges · 83 call edges
+36 screens · 76 endpoints · 49 link edges · 83 call edges
 
 ## Screens
 
@@ -14,11 +14,11 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/collections/[id]` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections/new` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/create` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/upload` | `/[locale]/admin` |
-| `/[locale]/admin/devices` | admin | requires admin | `* /api/capture`<br>`DELETE /api/capture-tokens/[id]`<br>`GET /api/capture-tokens`<br>`POST /api/capture-tokens` | `/[locale]/admin/inbox` |
+| `/[locale]/admin/devices` | admin | requires admin | `* /api/capture`<br>`DELETE /api/capture-tokens/[id]`<br>`GET /api/capture-tokens`<br>`POST /api/capture-tokens` | — |
 | `/[locale]/admin/drafts` | admin | requires admin | `POST /api/recipes/[id]/draft` | `/[locale]/recipe/[id]` |
 | `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/upload` | `/[locale]/admin` |
 | `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
-| `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`GET /api/capture`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge` | `/[locale]/admin/create`<br>`/[locale]/admin/devices`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
+| `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`GET /api/capture`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge` | `/[locale]/admin/create`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
 | `/[locale]/admin/invites` | admin | requires admin | — | `/[locale]/admin/users` |
 | `/[locale]/admin` | admin | requires admin | `DELETE /api/recipes/[id]`<br>`GET /api/export`<br>`PATCH /api/recipes/[id]/visibility`<br>`POST /api/import/archive`<br>`POST /api/recipes/[id]/share` | `/[locale]/admin/create`<br>`/[locale]/admin/edit/[id]`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/admin/posts/[id]` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
@@ -194,12 +194,10 @@ flowchart LR
   n__locale__admin_collections_new --> n__locale__collections
   n__locale__admin_collections_new --> n__locale__collections__slug_
   n__locale__admin_create --> n__locale__admin
-  n__locale__admin_devices --> n__locale__admin_inbox
   n__locale__admin_drafts --> n__locale__recipe__slug_
   n__locale__admin_edit__id_ --> n__locale__admin
   n__locale__admin_errors --> n__locale__admin_reports
   n__locale__admin_inbox --> n__locale__admin_create
-  n__locale__admin_inbox --> n__locale__admin_devices
   n__locale__admin_inbox --> n__locale__recipe__slug_
   n__locale__admin_inbox --> n__locale__tickets
   n__locale__admin_invites --> n__locale__admin_users

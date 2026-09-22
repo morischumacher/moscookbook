@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
 import InlineConfirm from '@/components/ui/InlineConfirm';
 import Disclosure from '@/components/ui/Disclosure';
 import { formatDate } from '@/lib/formatDate';
-import { buttonPrimarySmall, pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import { buttonPrimarySmall, pageContainer } from '@/lib/ui';
+import PageHeader from '@/components/admin/PageHeader';
 
 interface CaptureTokenRow {
     id: number;
@@ -100,14 +100,7 @@ export default function AdminDevicesPage() {
 
     return (
         <main className={`${pageContainer} pb-32`}>
-            <div className={`mb-8 flex flex-wrap items-baseline justify-between gap-4 ${pageTop} ${pageHeading}`}>
-                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
-                <Link href="/admin/inbox" className="text-sm underline underline-offset-4">
-                    {t('backToInbox')}
-                </Link>
-            </div>
-
-            <p className="mb-8 font-serif text-muted">{t('explanation')}</p>
+            <PageHeader title={t('title')} intro={t('explanation')} />
 
             {error && (
                 <p className="mb-6 rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">

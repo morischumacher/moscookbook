@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import ErrorsPanel from './ErrorsPanel';
 import TicketsPanel from './TicketsPanel';
-import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import PageHeader from './PageHeader';
+import { pageContainer } from '@/lib/ui';
 
 type Side = 'errors' | 'tickets';
 
@@ -59,9 +60,9 @@ export default function Reports({
 
     return (
         <main className={`${pageContainer} pb-32`}>
-            <h1 className={`mb-6 ${pageTop} ${pageHeading}`}>{t('title')}</h1>
+            <PageHeader title={t('title')} />
 
-            <div className="mb-8 flex gap-6 border-b border-line">
+            <div className="mb-8 -mt-2 flex gap-6 border-b border-line">
                 {tab('errors', t('errors'), openErrors)}
                 {tab('tickets', t('tickets'), openTickets)}
             </div>

@@ -1,7 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 import UserList from '@/components/admin/UserList';
 import InvitationList from '@/components/admin/InvitationList';
-import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import { pageContainer } from '@/lib/ui';
+import PageHeader from '@/components/admin/PageHeader';
 
 /**
  * The people: those who have an account, and those who have been asked.
@@ -17,9 +18,7 @@ export default async function AdminPeoplePage() {
 
     return (
         <main className={`${pageContainer} pb-32`}>
-            <h1 className={`${pageTop} ${pageHeading}`}>
-                {t('people')}
-            </h1>
+            <PageHeader title={t('people')} />
 
             <div className="flex flex-col gap-14">
                 <UserList />

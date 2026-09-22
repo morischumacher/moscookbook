@@ -3,7 +3,8 @@ import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
 import DeletePostButton from '@/components/post/DeletePostButton';
 import { formatDate } from '@/lib/formatDate';
-import { buttonPrimarySmall, pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import { buttonPrimarySmall, pageContainer } from '@/lib/ui';
+import PageHeader from '@/components/admin/PageHeader';
 
 interface AdminPostRow {
     id: number;
@@ -40,15 +41,11 @@ export default async function AdminPosts({
 
     return (
         <main className={`${pageContainer} pb-32`}>
-            <header className={`flex flex-wrap items-baseline justify-between gap-4 ${pageTop} ${pageHeading}`}>
-                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('adminTitle')}</h1>
-                <Link
-                    href="/admin/posts/new"
-                    className={buttonPrimarySmall}
-                >
+            <PageHeader title={t('adminTitle')}>
+                <Link href="/admin/posts/new" className={buttonPrimarySmall}>
                     {t('newPost')}
                 </Link>
-            </header>
+            </PageHeader>
 
             {posts.length === 0 ? (
                 <p className="py-20 text-center text-muted">{t('empty')}</p>

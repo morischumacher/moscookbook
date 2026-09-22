@@ -6,8 +6,9 @@ import { Link, useRouter } from '@/i18n/routing';
 import { captureLabel } from '@/lib/capture';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { formatDate } from '@/lib/formatDate';
-import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import { pageContainer } from '@/lib/ui';
 import Loading from '@/components/ui/Loading';
+import PageHeader from '@/components/admin/PageHeader';
 
 interface DraftSummary {
     title?: string;
@@ -66,9 +67,6 @@ interface Capture {
 export default function AdminInboxPage() {
     const t = useTranslations('Inbox');
     const tAdmin = useTranslations('Admin');
-    // The same word as the admin navigation's, from the same key: two keys
-    // holding one string is two strings waiting to disagree.
-    const tDevices = useTranslations('Devices');
     const router = useRouter();
 
     const [ask, dialog] = useConfirm();
@@ -204,14 +202,7 @@ export default function AdminInboxPage() {
 
     return (
         <main className={`${pageContainer} pb-32`}>
-            <div className={`mb-8 flex flex-wrap items-baseline justify-between gap-4 ${pageTop} ${pageHeading}`}>
-                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
-                <Link href="/admin/devices" className="text-sm underline underline-offset-4">
-                    {tDevices('nav')}
-                </Link>
-            </div>
-
-            <p className="mb-8 font-serif text-muted">{t('explanation')}</p>
+            <PageHeader title={t('title')} intro={t('explanation')} />
 
             {error && (
                 <p className="mb-6 rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">

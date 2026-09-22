@@ -3,8 +3,9 @@ import { getTranslations } from 'next-intl/server';
 import prisma from '@/lib/prisma';
 import { Link } from '@/i18n/routing';
 import FinishDraft from '@/components/recipe/FinishDraft';
-import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import { pageContainer } from '@/lib/ui';
 import { formatDate } from '@/lib/formatDate';
+import PageHeader from '@/components/admin/PageHeader';
 
 /**
  * Recipes that have been imported and tidied but that nobody here has stood
@@ -61,12 +62,7 @@ export default async function DraftsPage({ params }: { params: Promise<{ locale:
 
     return (
         <main className={`${pageContainer} pb-32`}>
-            <h1
-                className={`mb-2 text-3xl font-extrabold tracking-tight sm:text-4xl ${pageTop} ${pageHeading}`}
-            >
-                {t('title')}
-            </h1>
-            <p className="mb-10 font-serif text-muted">{t('intro')}</p>
+            <PageHeader title={t('title')} intro={t('intro')} />
 
             {drafts.length === 0 ? (
                 <p className="font-serif text-muted">{t('none')}</p>
