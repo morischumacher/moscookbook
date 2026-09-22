@@ -171,7 +171,8 @@ function findRecipeNode(value: unknown, depth = 0): Record<string, unknown> | nu
     return null;
 }
 
-function metaContent(html: string, property: string): string {
+/** Exported so a learned site profile can name a meta tag as a source. */
+export function metaContent(html: string, property: string): string {
     const pattern = new RegExp(
         `<meta[^>]+(?:property|name)\\s*=\\s*["']${property}["'][^>]*>`,
         'i'

@@ -40,6 +40,7 @@
     "iron-session": "^8.0.4",
     "next": "16.1.6",
     "next-intl": "^4.8.3",
+    "node-html-parser": "^9.0.4",
     "nodemailer": "^10.0.10",
     "prisma": "^5.22.0",
     "react": "19.2.3",

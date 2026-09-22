@@ -1,5 +1,5 @@
 import { suite, check, equal } from './harness';
-import { readableText, MAX_READABLE } from '../src/lib/readableText';
+import { readableText, readableBlocks, MAX_READABLE } from '../src/lib/readableText';
 
 /**
  * A page reduced to its words.
@@ -138,6 +138,82 @@ export default function readableTextTests() {
     const huge = `<html><body>${'<p>Lorem ipsum dolor sit amet. </p>'.repeat(5000)}</body></html>`;
     const capped = readableText(huge);
     check('a very long page is capped', capped.length <= MAX_READABLE, capped.length);
+
+    /* ------------------------------------------------- the page with a shape */
+
+    /*
+     * `readableBlocks` is what a learned site profile is anchored to. A profile
+     * says "the ingredients are the list under the heading *Ingredients*", and
+     * answering that needs to know which lines were headings and which were
+     * list items — the one thing `readableText` deliberately destroys.
+     */
+    suite('readableBlocks');
+
+    const shaped = `<html><body>
+<h1>Fried Chicken Sandwich</h1>
+<p>Ein Klassiker.</p>
+<h2>Ingredients</h2>
+<ul><li>4 chicken thighs</li><li><p>2 cups buttermilk</p></li><li>1 tbsp salt</li></ul>
+<h2>Method</h2>
+<ol><li>Brine overnight.</li><li>Dredge in flour.</li></ol>
+<p>Serve hot.<br>Really hot.</p>
+</body></html>`;
+
+    const blocks = readableBlocks(shaped);
+    const kinds = blocks.map((block) => `${block.kind}:${block.text}`);
+
+    check('the title is a level-1 heading', blocks[0].kind === 'heading' && blocks[0].level === 1, blocks[0]);
+    check('a paragraph is text', kinds.includes('text:Ein Klassiker.'), kinds);
+    check('a list item is an item', kinds.includes('item:4 chicken thighs'), kinds);
+    check('and the last one too', kinds.includes('item:1 tbsp salt'), kinds);
+
+    /*
+     * The bug the stack exists to prevent. Reading the *last* opening tag —
+     * which is the obvious implementation — labels `<li><p>x</p></li>` as
+     * prose, and half of every real ingredient list is written that way. A
+     * profile anchored on "the list under this heading" would then find a
+     * heading with nothing under it.
+     */
+    check(
+        'a paragraph inside a list item is still an item',
+        kinds.includes('item:2 cups buttermilk'),
+        kinds
+    );
+
+    check('both headings are found', blocks.filter((b) => b.kind === 'heading').length === 3, kinds);
+    check('a <br> starts a new block', kinds.includes('text:Really hot.'), kinds);
+
+    // Order is the whole point: "the list *under* this heading" is a statement
+    // about position.
+    const headingAt = kinds.indexOf('heading:Ingredients');
+    const methodAt = kinds.indexOf('heading:Method');
+    check(
+        'the ingredients sit between their heading and the next',
+        headingAt >= 0 && methodAt > headingAt && kinds.indexOf('item:4 chicken thighs') > headingAt
+            && kinds.indexOf('item:1 tbsp salt') < methodAt,
+        kinds
+    );
+
+    // Everything the stripper throws away is still thrown away.
+    const noisy = readableBlocks('<body><nav>Start</nav><script>var x=1</script><h2>Zutaten</h2><li>1 Ei</li></body>');
+    check('blocks drop the navigation too', !noisy.some((b) => b.text.includes('Start')), noisy);
+    check('and the scripts', !noisy.some((b) => b.text.includes('var x')), noisy);
+    check('entities are decoded in blocks', readableBlocks('<p>Ofengem&uuml;se</p>')[0].text === 'Ofengemüse', readableBlocks('<p>Ofengem&uuml;se</p>'));
+
+    // Markup in the wild does not close what it opens.
+    const sloppy = readableBlocks('<body><ul><li>1 Ei<li>2 Eier</ul><p>Verquirlen.</p></body>');
+    check(
+        'unclosed list items still come out as items',
+        sloppy.filter((b) => b.kind === 'item').length === 2,
+        sloppy
+    );
+    check('and what follows is not swallowed', sloppy.some((b) => b.text === 'Verquirlen.'), sloppy);
+
+    // A close with no open must not unwind the stack.
+    const stray = readableBlocks('<body></div></span><h2>Zutaten</h2><li>1 Ei</li></body>');
+    check('a stray closing tag is ignored', stray.some((b) => b.kind === 'item' && b.text === '1 Ei'), stray);
+
+    check('an empty page has no blocks', readableBlocks('').length === 0, readableBlocks(''));
 
     /* -------------------------------------------------------------- nonsense */
 
