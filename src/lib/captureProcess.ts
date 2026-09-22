@@ -14,6 +14,7 @@ import {
     capabilityFromEnv,
     extractRecipeWithAi,
     type AiCapability,
+    type ModelReport,
 } from './aiImport';
 
 /**
@@ -97,6 +98,13 @@ export interface ProcessedCapture {
  */
 export interface ProcessOptions {
     force?: boolean;
+    /**
+     * Told which model answered, so a caller with a database can write it
+     * down. See `rememberModel`: the fallback walks a list when the first
+     * choice is busy or out of quota, and the one that worked is worth keeping
+     * rather than rediscovering on every share.
+     */
+    onModel?: ModelReport;
 }
 
 export interface ProcessableCapture {
@@ -228,7 +236,8 @@ function outcome(
 async function fillGapsWithAi(
     draft: ImportedRecipe,
     text: string,
-    ai: AiCapability
+    ai: AiCapability,
+    options: ProcessOptions
 ): Promise<{ draft: ImportedRecipe; trace: AiTrace }> {
     const provider = ai.keys[0]?.provider ?? null;
 
@@ -245,7 +254,7 @@ async function fillGapsWithAi(
     if (text.trim().length < 80) return { draft, trace: NOT_ASKED };
 
     try {
-        const parsed = await extractRecipeWithAi({ kind: 'text', text }, ai.keys);
+        const parsed = await extractRecipeWithAi({ kind: 'text', text }, ai.keys, options.onModel);
 
         /*
          * The one place a model is allowed to overrule the rules.
@@ -377,7 +386,8 @@ async function processYoutube(
         const helped = await fillGapsWithAi(
             merged,
             [video.title, description, shared].filter(Boolean).join('\n\n'),
-            ai
+            ai,
+            options
         );
         merged = helped.draft;
         trace = helped.trace;
@@ -414,7 +424,7 @@ async function processWebPage(
             let trace: AiTrace = NOT_ASKED;
 
             if (shouldAsk(draft, options) && mayAskAboutText(ai, options)) {
-                const helped = await fillGapsWithAi(draft, shared, ai);
+                const helped = await fillGapsWithAi(draft, shared, ai, options);
                 draft = helped.draft;
                 trace = helped.trace;
             }
@@ -449,7 +459,8 @@ async function processWebPage(
         const helped = await fillGapsWithAi(
             draft,
             aiInput(draft, readableText(page.html), shared),
-            ai
+            ai,
+            options
         );
         draft = helped.draft;
         trace = helped.trace;
@@ -473,7 +484,11 @@ async function processWebPage(
  * far better outcome than a rejected share, which is what standing in a
  * kitchen with a photograph of a cookbook page actually looks like.
  */
-async function processImage(imageUrl: string | null, ai: AiCapability): Promise<ProcessedCapture> {
+async function processImage(
+    imageUrl: string | null,
+    ai: AiCapability,
+    options: ProcessOptions
+): Promise<ProcessedCapture> {
     if (!imageUrl) {
         return outcome('failed', null, 'No picture was stored.');
     }
@@ -501,7 +516,8 @@ async function processImage(imageUrl: string | null, ai: AiCapability): Promise<
     try {
         const parsed = await extractRecipeWithAi(
             { kind: 'image', base64: image.base64, mediaType: image.mediaType },
-            ai.keys
+            ai.keys,
+            options.onModel
         );
 
         // The picture stays the draft's picture. A screenshot of an Instagram
@@ -543,7 +559,7 @@ export async function processCapture(
 ): Promise<ProcessedCapture> {
     try {
         if (capture.kind === 'image') {
-            return await processImage(capture.imageUrl ?? null, ai);
+            return await processImage(capture.imageUrl ?? null, ai, options);
         }
 
         if (capture.kind === 'text') {
@@ -566,13 +582,13 @@ export async function processCapture(
             let trace: AiTrace = NOT_ASKED;
 
             if (shouldAsk(draft, options) && mayAskAboutText(ai, options)) {
-                const helped = await fillGapsWithAi(draft, text, ai);
+                const helped = await fillGapsWithAi(draft, text, ai, options);
                 draft = helped.draft;
                 trace = helped.trace;
             }
 
             if (completeness(draft) !== 'ready' && capture.imageUrl) {
-                const fromPicture = await processImage(capture.imageUrl, ai);
+                const fromPicture = await processImage(capture.imageUrl, ai, options);
                 if (fromPicture.status === 'ready') return fromPicture;
             }
 
@@ -599,7 +615,7 @@ export async function processCapture(
         // not be read and the caption was not the recipe, but a picture came
         // with the share. Worth one more attempt before giving up.
         if (result.status !== 'ready' && capture.imageUrl) {
-            const fromPicture = await processImage(capture.imageUrl, ai);
+            const fromPicture = await processImage(capture.imageUrl, ai, options);
             if (fromPicture.status === 'ready') return fromPicture;
         }
 

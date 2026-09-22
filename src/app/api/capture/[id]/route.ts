@@ -8,7 +8,7 @@ import { slugify } from '@/lib/recipe';
 import { searchFields } from '@/lib/searchText';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { processCapture } from '@/lib/captureProcess';
-import { aiCapability } from '@/lib/aiConfig';
+import { aiCapability, rememberModel } from '@/lib/aiConfig';
 import type { ImportedRecipe } from '@/lib/recipeFromHtml';
 import { toJsonObject } from '@/lib/json';
 
@@ -81,6 +81,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         // trouble rather than to overrule them.
         const result = await processCapture(capture, await aiCapability(), {
             force: parsed.data.action === 'askAi',
+            onModel: (provider, model) => void rememberModel(provider, model),
         });
         const updated = await prisma.capture.update({
             where: { id: captureId },

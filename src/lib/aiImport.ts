@@ -63,6 +63,57 @@ export const DEFAULT_MODEL: Record<AiProvider, string> = {
     google: 'gemini-flash-latest',
 };
 
+/**
+ * What to try when the first choice will not answer.
+ *
+ * A real run made the case for this. `gemini-flash-latest` — an alias that
+ * always points at the current model, which is the right idea — answered 503
+ * three times and then 429 "you exceeded your current quota". The fix was to
+ * find a model that does answer and type its name into a box, which is a fix
+ * that expires: the working model on a free tier changes with the week, and a
+ * name typed in today is a name that is wrong in March.
+ *
+ * So the list is tried. Not on *any* failure — a bad key fails the same way on
+ * every model, and walking a list would turn one refusal into seven — but on
+ * the three that are specifically about the model: it is busy, its quota is
+ * gone, or it does not exist any more.
+ *
+ * Ordered by what a recipe import wants: fast and cheap, because the work is
+ * reading a page rather than reasoning about it. The lite models are in here
+ * deliberately; they are entirely capable of turning an ingredient list into
+ * JSON, and they are the ones with quota left.
+ */
+export const MODEL_CANDIDATES: Record<AiProvider, string[]> = {
+    google: [
+        'gemini-flash-latest',
+        'gemini-flash-lite-latest',
+        'gemini-2.5-flash',
+        'gemini-2.5-flash-lite',
+        'gemini-2.0-flash',
+    ],
+    // No published alias worth relying on, and both providers charge rather
+    // than rationing — a quota error there means a card to fix, not a model to
+    // swap. A single entry keeps the machinery uniform without inventing
+    // fallbacks nobody asked for.
+    anthropic: ['claude-sonnet-5'],
+    openai: ['gpt-4o'],
+};
+
+/**
+ * The models to try for this key, in order.
+ *
+ * An explicitly chosen model goes first and is never dropped from the list:
+ * somebody who typed a name in made a decision, and the most this may do is
+ * carry on past it when it will not answer at all.
+ */
+export function modelsFor(key: AiKey): string[] {
+    const candidates = MODEL_CANDIDATES[key.provider] ?? [DEFAULT_MODEL[key.provider]];
+    const chosen = key.model?.trim();
+
+    if (!chosen) return candidates;
+    return [chosen, ...candidates.filter((model) => model !== chosen)];
+}
+
 /** Human-readable, for error messages that an admin reads. */
 export const PROVIDER_LABEL: Record<AiProvider, string> = {
     anthropic: 'Anthropic',
@@ -289,7 +340,14 @@ class ProviderError extends Error {
     constructor(
         message: string,
         /** True when trying the same thing again in a moment might work. */
-        readonly transient: boolean
+        readonly transient: boolean,
+        /**
+         * True when the *model* is the problem rather than the key or the
+         * request: busy, out of quota, or gone. Those are worth trying another
+         * model for; a 401 is not, and walking a list of models on a bad key
+         * turns one refusal into five.
+         */
+        readonly modelFault: boolean = false
     ) {
         super(message);
         this.name = 'ProviderError';
@@ -330,14 +388,23 @@ function isQuota(body: string): boolean {
 function providerError(provider: AiProvider, status: number, body: string, apiKey: string): Error {
     const transient = status === 429 ? !isQuota(body) : TRANSIENT.has(status);
 
+    // Busy, rationed, or gone. All three are answered by asking a different
+    // model; none of them is answered by asking the same one again tomorrow.
+    const modelFault = status === 503 || status === 404 || (status === 429 && isQuota(body));
+
     return new ProviderError(
         `${PROVIDER_LABEL[provider]} returned ${status}: ${scrub(body, apiKey).slice(0, 300)}`,
-        transient
+        transient,
+        modelFault
     );
 }
 
 function isTransient(error: unknown): boolean {
     return error instanceof ProviderError && error.transient;
+}
+
+function isModelFault(error: unknown): boolean {
+    return error instanceof ProviderError && error.modelFault;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -538,19 +605,78 @@ const CALLS: Record<AiProvider, (key: AiKey, source: AiSource) => Promise<string
  */
 const RETRIES = [800];
 
-export async function completeWithKey(key: AiKey, source: AiSource): Promise<string> {
-    for (let attempt = 0; ; attempt += 1) {
-        try {
-            return await CALLS[key.provider](key, source);
-        } catch (error) {
-            if (attempt >= RETRIES.length || !isTransient(error)) throw error;
-            await sleep(RETRIES[attempt]);
+/**
+ * Told which model ended up answering, so it can be remembered.
+ *
+ * A callback rather than a return value because this module must not reach the
+ * database — `captureProcess` imports it and the test suite imports that, and
+ * the suite cannot load Prisma. The callers that can persist it pass one; the
+ * ones that cannot pass nothing and the switch lasts for one request.
+ */
+export type ModelReport = (provider: AiProvider, model: string) => void;
+
+/**
+ * One provider, every model it might answer on.
+ *
+ * Two loops, and they are about different things. The inner one retries the
+ * *same* model once, for a spike that is over in a moment. The outer one moves
+ * to the *next* model, for a model that is busy, rationed or gone — and only
+ * for those three, so that a bad key still fails once rather than five times.
+ *
+ * The first model that answers ends both loops and is reported.
+ */
+export async function completeWithKey(
+    key: AiKey,
+    source: AiSource,
+    report?: ModelReport
+): Promise<string> {
+    const models = modelsFor(key);
+    const failures: string[] = [];
+
+    for (const model of models) {
+        const attempt: AiKey = { ...key, model };
+
+        for (let retry = 0; ; retry += 1) {
+            try {
+                const answer = await CALLS[key.provider](attempt, source);
+                report?.(key.provider, model);
+                return answer;
+            } catch (error) {
+                /*
+                 * Retry first, move on second — and in that order, because the
+                 * two overlap. A 503 is both transient *and* about the model:
+                 * "high demand" is over in a moment often enough that one
+                 * retry on the same model is the cheapest thing to try, and
+                 * only when that fails is a different model worth the trip.
+                 *
+                 * A quota 429 is not transient, so it skips straight past this
+                 * and onto the next model, which is the right shape: the
+                 * ration is gone and waiting will not refill it.
+                 */
+                if (retry < RETRIES.length && isTransient(error)) {
+                    await sleep(RETRIES[retry]);
+                    continue;
+                }
+
+                if (isModelFault(error) && model !== models[models.length - 1]) {
+                    failures.push(`${model}: ${error instanceof Error ? error.message : ''}`);
+                    break;
+                }
+
+                throw error;
+            }
         }
     }
+
+    throw new Error(failures.join(' · ') || 'No model answered.');
 }
 
-export async function extractWithKey(key: AiKey, source: AiSource): Promise<AiExtractionResult> {
-    const text = await completeWithKey(key, source);
+export async function extractWithKey(
+    key: AiKey,
+    source: AiSource,
+    report?: ModelReport
+): Promise<AiExtractionResult> {
+    const text = await completeWithKey(key, source, report);
 
     const parsed = aiRecipeSchema.safeParse(extractJson(text));
     if (!parsed.success) {
@@ -578,7 +704,8 @@ export async function extractWithKey(key: AiKey, source: AiSource): Promise<AiEx
  */
 export async function extractRecipeWithAi(
     source: AiSource,
-    keys: AiKey[]
+    keys: AiKey[],
+    report?: ModelReport
 ): Promise<AiExtractionResult> {
     if (keys.length === 0) throw new Error('AI import is not configured.');
 
@@ -586,7 +713,7 @@ export async function extractRecipeWithAi(
 
     for (const key of keys) {
         try {
-            return await extractWithKey(key, source);
+            return await extractWithKey(key, source, report);
         } catch (error) {
             failures.push(error instanceof Error ? error.message : String(error));
         }

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
 import { assistsText, canUseAi, extractRecipeWithAi } from '@/lib/aiImport';
-import { aiCapability } from '@/lib/aiConfig';
+import { aiCapability, rememberModel } from '@/lib/aiConfig';
 import { parseRecipeText } from '@/lib/recipeParser';
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
@@ -74,7 +74,9 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const recipe = await extractRecipeWithAi(parsed.data, ai.keys);
+        const recipe = await extractRecipeWithAi(parsed.data, ai.keys, (provider, model) =>
+            void rememberModel(provider, model)
+        );
         return NextResponse.json({ recipe, source: 'ai' });
     } catch (error) {
         console.error('AI import error:', error);

@@ -694,6 +694,9 @@
     "usedAiFailed": "AI asked, no answer ({provider})",
     "notVerified": "This key has not been checked yet, so it is not used. Press “Test” once — it sends a tiny recipe through and costs a fraction of a cent.",
     "noneUsable": "No key has been confirmed working yet. Until one is, everything runs on rules.",
-    "rebuildWithAi": "Build the recipe from this with AI"
+    "rebuildWithAi": "Build the recipe from this with AI",
+    "modelHint": "Leaving it empty is usually right. If the default will not answer — busy, or out of quota — the next one is tried automatically and the one that worked is written in here.",
+    "modelAuto": "Chosen automatically on {date}, because the previous one did not answer. Overwrite it whenever you like; your choice then stands.",
+    "testModel": "Answered by: {model}."
   }
 }

@@ -6,7 +6,7 @@ import { extractRecipeFromHtml, isSafePublicUrl } from '@/lib/recipeFromHtml';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { readableText } from '@/lib/readableText';
 import { assistsText, canUseAi, extractRecipeWithAi } from '@/lib/aiImport';
-import { aiCapability } from '@/lib/aiConfig';
+import { aiCapability, rememberModel } from '@/lib/aiConfig';
 
 const importSchema = z.object({
     url: z.string().trim().min(1).max(2048),
@@ -103,7 +103,8 @@ export async function POST(req: NextRequest) {
             try {
                 const read = await extractRecipeWithAi(
                     { kind: 'text', text: readableText(html) },
-                    ai.keys
+                    ai.keys,
+                    (provider, model) => void rememberModel(provider, model)
                 );
 
                 recipe = {

@@ -44,6 +44,7 @@ interface Credential {
     checkedAt: string | null;
     checkError: string | null;
     verified: boolean;
+    autoModelAt: string | null;
     unreadable: boolean;
 }
 
@@ -52,6 +53,8 @@ interface TestResult {
     message?: string;
     title?: string;
     ingredients?: number;
+    /** Which model actually answered — not always the one that was asked. */
+    model?: string | null;
 }
 
 export default function AiKeys() {
@@ -332,7 +335,7 @@ export default function AiKeys() {
                         </label>
                     )}
 
-                    <label className="mb-4 block">
+                    <label className="mb-1 block">
                         <span className="mb-1 block text-sm text-muted">{t('model')}</span>
                         <input
                             type="text"
@@ -344,6 +347,18 @@ export default function AiKeys() {
                             className="w-full rounded-lg border border-control bg-transparent px-3 py-2 font-mono text-sm outline-none transition-colors focus:border-ink"
                         />
                     </label>
+
+                    {/* A model that changed itself is exactly the kind of
+                        thing that must never be a surprise — and the reason it
+                        changed is worth knowing, because it means the one you
+                        had ran out. */}
+                    <p className="mb-4 text-sm text-muted">
+                        {current.autoModelAt
+                            ? t('modelAuto', {
+                                date: formatDate(current.autoModelAt, locale, 'short'),
+                            })
+                            : t('modelHint')}
+                    </p>
 
                     <div className="flex flex-wrap items-center gap-4">
                         <button
@@ -386,6 +401,7 @@ export default function AiKeys() {
                                 title: test.title ?? '',
                                 count: test.ingredients ?? 0,
                             })}
+                            {test.model ? ` ${t('testModel', { model: test.model })}` : ''}
                         </p>
                     ) : current.checkedAt ? (
                         <p

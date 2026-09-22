@@ -694,6 +694,9 @@
     "usedAiFailed": "KI gefragt, keine Antwort ({provider})",
     "notVerified": "Dieser Schlüssel wurde noch nicht geprüft und wird deshalb nicht benutzt. Einmal „Testen“ drücken — das schickt ein Mini-Rezept durch und kostet Bruchteile eines Cents.",
     "noneUsable": "Kein Schlüssel ist bisher als funktionierend bestätigt. Bis dahin läuft alles regelbasiert.",
-    "rebuildWithAi": "Rezept mit KI aus der Eingabe erstellen"
+    "rebuildWithAi": "Rezept mit KI aus der Eingabe erstellen",
+    "modelHint": "Leer lassen ist meistens richtig. Antwortet das Standardmodell nicht — überlastet oder Kontingent leer —, wird automatisch das nächste probiert und das funktionierende hier eingetragen.",
+    "modelAuto": "Automatisch gewählt am {date}, weil das vorherige nicht geantwortet hat. Du kannst es jederzeit überschreiben; dann bleibt deine Wahl stehen.",
+    "testModel": "Geantwortet hat: {model}."
   }
 }
