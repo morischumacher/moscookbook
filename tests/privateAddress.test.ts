@@ -1,5 +1,5 @@
 import { suite, check } from './harness';
-import { isPrivateIPv4, isPrivateIPv6, isPrivateAddress } from '../src/lib/privateAddress';
+import { isPrivateIPv4, isPrivateIPv6, isPrivateAddress, isSafePublicUrl } from '../src/lib/privateAddress';
 
 /**
  * Which addresses are inside.
@@ -90,4 +90,68 @@ export default function privateAddressTests() {
     check('guessed from the shape, v4', isPrivateAddress('192.168.0.1'));
     check('guessed from the shape, v6', isPrivateAddress('fe80::abcd'));
     check('and a public one either way', !isPrivateAddress('8.8.8.8'));
+
+    /* ------------------------------------- the form the URL parser hands over */
+
+    suite('privateAddress: what a URL actually contains');
+
+    /*
+     * `new URL('http://[::ffff:127.0.0.1]/').hostname` is `[::ffff:7f00:1]`.
+     * WHATWG normalises the dotted tail into hex, so the dotted regex above —
+     * the form a human writes and a resolver returns — never matches a
+     * hostname that came out of a URL. The loopback address walked straight
+     * past a check written for it. Found by trying it in Node, not by
+     * reading; nothing in the code suggested it.
+     */
+    check('mapped loopback, as the parser spells it', isPrivateIPv6('::ffff:7f00:1'));
+    check('mapped metadata address, as the parser spells it', isPrivateIPv6('::ffff:a9fe:a9fe'));
+    check('mapped private range, as the parser spells it', isPrivateIPv6('::ffff:a00:5'));
+    check('a mapped public address in hex is still public', !isPrivateIPv6('::ffff:808:808'));
+    check('with the brackets a hostname keeps', isPrivateIPv6('[::ffff:7f00:1]'));
+
+    /* ----------------------------------------------------- the URL as text */
+
+    /*
+     * `isSafePublicUrl` used to live in recipeFromHtml.ts with its own range
+     * table, older than this file's and missing most of it. Every address
+     * below passed it. Each is a way of writing "somewhere inside the
+     * network" that a person would not type but a redirect can.
+     */
+    suite('isSafePublicUrl: the ways in that used to work');
+
+    for (const inward of [
+        'http://[::ffff:127.0.0.1]/',
+        'http://[::ffff:169.254.169.254]/latest/meta-data/',
+        'http://[fd00::1]/',
+        'http://[fe80::1]/',
+        'http://[::]/',
+        'http://0x7f000001/',
+        'http://2130706433/',
+        'http://127.1/',
+        'http://192.0.0.1/',
+        'http://198.18.0.1/',
+        'http://224.0.0.1/',
+        'http://0.0.0.0/',
+    ]) {
+        check(`refuses ${inward}`, !isSafePublicUrl(inward), inward);
+    }
+
+    for (const outward of [
+        'https://www.chefkoch.de/rezepte/1',
+        'http://example.com/',
+        'https://[2606:4700:4700::1111]/',
+        'https://[::ffff:808:808]/',
+        'https://8.8.8.8/',
+    ]) {
+        check(`allows ${outward}`, isSafePublicUrl(outward), outward);
+    }
+
+    // `http:///path` is not an empty host: the parser eats the extra slash
+    // and produces `http://path/`. There is no way to reach the empty-host
+    // branch through an http URL, and this check says so rather than
+    // pretending the guard is exercised.
+    check('a tripled slash becomes a hostname, not nothing', isSafePublicUrl('http:///path'));
+    check('a non-http scheme is refused', !isSafePublicUrl('ftp://example.com/'));
+    check('a file URL is refused', !isSafePublicUrl('file:///etc/passwd'));
+    check('nonsense is refused', !isSafePublicUrl('not a url'));
 }

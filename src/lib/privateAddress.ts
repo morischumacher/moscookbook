@@ -47,6 +47,23 @@ export function isPrivateIPv6(address: string): boolean {
     const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(value);
     if (mapped) return isPrivateIPv4(mapped[1]);
 
+    /*
+     * The same address, as the URL parser actually hands it over.
+     *
+     * `new URL('http://[::ffff:127.0.0.1]/').hostname` is `[::ffff:7f00:1]` —
+     * WHATWG normalises the dotted tail into two hex groups. So the regex
+     * above, which is the form a human writes and a resolver returns, never
+     * matches a hostname that came out of a URL, and the loopback address
+     * walks straight past a check that was written for it. Found by trying
+     * it, not by reading; there was nothing in the code to suggest it.
+     */
+    const mappedHex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(value);
+    if (mappedHex) {
+        const high = Number.parseInt(mappedHex[1], 16);
+        const low = Number.parseInt(mappedHex[2], 16);
+        return isPrivateIPv4(`${high >> 8}.${high & 0xff}.${low >> 8}.${low & 0xff}`);
+    }
+
     if (value.startsWith('fe80')) return true;  // link-local
     if (/^f[cd]/.test(value)) return true;      // unique local
 
@@ -59,4 +76,51 @@ export function isPrivateAddress(address: string, family?: number): boolean {
 
     // No family given: decide from the shape.
     return address.includes(':') ? isPrivateIPv6(address) : isPrivateIPv4(address);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  The text of a URL                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Refuses a URL whose text already says it points inwards.
+ *
+ * This lived in `recipeFromHtml.ts` for a year, and five modules imported a
+ * security check from a module named after recipe extraction. Worse, it had
+ * grown apart from the range tables above — written earlier, never updated
+ * when they were — so it missed `192.0.0/24`, `198.18/15`, everything above
+ * `224`, and every IPv6 range but `::1`. The split that created this file left
+ * the original body behind instead of replacing it. Now it delegates.
+ *
+ * Necessary and not sufficient: `https://recipes.example` passes every test
+ * here and can resolve to 10.0.0.5. `safeFetch` does the resolving. This is
+ * the cheap half, the one that needs no network and can refuse before a
+ * socket is opened.
+ */
+export function isSafePublicUrl(candidate: string): boolean {
+    let url: URL;
+    try {
+        url = new URL(candidate);
+    } catch {
+        return false;
+    }
+
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return false;
+
+    const host = url.hostname.toLowerCase();
+    if (host === '') return false;
+
+    if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal')) {
+        return false;
+    }
+
+    // An IPv6 literal keeps its brackets in `hostname`; a bare IPv4 does not.
+    // Both are handed to the range tables, which are the single source of
+    // truth for what is private. The URL parser has already normalised the
+    // creative spellings — `0x7f000001`, `2130706433`, `127.1` all arrive
+    // here as `127.0.0.1`.
+    if (host.startsWith('[')) return !isPrivateIPv6(host);
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return !isPrivateIPv4(host);
+
+    return true;
 }

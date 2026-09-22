@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
-// @ts-expect-error - heic-convert ships no type declarations
-import convert from 'heic-convert';
 import { requireAdmin } from '@/lib/auth';
-import { checkImageUpload, looksLikeHeic } from '@/lib/uploadImage';
+import { checkImageUpload, convertHeicToJpeg, normaliseUpload } from '@/lib/uploadImage';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * The admin form's upload: a recipe's own photography.
@@ -35,7 +34,7 @@ export async function POST(request: Request) {
         const file = formData.get('file');
 
         if (!(file instanceof File)) {
-            return NextResponse.json({ error: 'No file received.' }, { status: 400 });
+            return NextResponse.json({ message: 'No file received.' }, { status: 400 });
         }
 
         const check = checkImageUpload(
@@ -45,35 +44,40 @@ export async function POST(request: Request) {
 
         if (!check.ok) {
             const messages = {
-                empty: { error: 'No file received.', status: 400 },
+                empty: { message: 'No file received.', status: 400 },
                 'too-large': {
-                    error: `File is too large. Maximum size is ${MAX_FILE_BYTES / (1024 * 1024)} MB.`,
+                    message: `File is too large. Maximum size is ${MAX_FILE_BYTES / (1024 * 1024)} MB.`,
                     status: 413,
                 },
                 'unsupported-type': {
-                    error: 'Unsupported file type. Please upload an image.',
+                    message: 'Unsupported file type. Please upload an image.',
                     status: 415,
                 },
             } as const;
 
-            const { error, status } = messages[check.reason];
-            return NextResponse.json({ error }, { status });
+            // `{ message }`, like the other forty-eight routes. This was the one
+            // that said `{ error }`, and the form reading it had to know.
+            const { message, status } = messages[check.reason];
+            return NextResponse.json({ message }, { status });
         }
 
-        let buffer = Buffer.from(await file.arrayBuffer());
-        let finalFilename = check.filename;
-        let contentType = file.type || 'application/octet-stream';
+        /*
+         * Admitted by its bytes, not by its name or its declared type — both
+         * of which the uploader wrote. See lib/uploadImage: a `photo.jpg`
+         * that is HTML used to be stored as image/jpeg on the word of the
+         * person uploading it.
+         */
+        const normalised = await normaliseUpload(
+            check.filename,
+            Buffer.from(await file.arrayBuffer()),
+            convertHeicToJpeg
+        );
 
-        if (looksLikeHeic(buffer)) {
-            const convertedBuffer = await convert({
-                buffer: buffer as unknown as ArrayBufferLike,
-                format: 'JPEG',
-                quality: 0.8,
-            });
-            buffer = Buffer.from(convertedBuffer as ArrayBuffer);
-            finalFilename = finalFilename.replace(/\.(heic|heif)$/i, '') + '.jpg';
-            contentType = 'image/jpeg';
+        if (!normalised.ok) {
+            return NextResponse.json({ message: 'That file is not a picture.' }, { status: 415 });
         }
+
+        const { buffer, filename: finalFilename, contentType } = normalised.image;
 
         const blob = await put(`${Date.now()}_${finalFilename}`, buffer, {
             access: 'public',
@@ -82,7 +86,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, url: blob.url });
     } catch (error) {
-        console.error('Upload error:', error);
-        return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+        failed('Upload error:', error);
+        return NextResponse.json({ message: 'Upload failed' }, { status: 500 });
     }
 }

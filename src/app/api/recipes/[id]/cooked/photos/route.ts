@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
-// @ts-expect-error - heic-convert ships no type declarations
-import convert from 'heic-convert';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { rateLimitShared } from '@/lib/rateLimitShared';
 import { isPrismaError } from '@/lib/prismaErrors';
-import { checkImageUpload, looksLikeHeic } from '@/lib/uploadImage';
+import { checkImageUpload, convertHeicToJpeg, normaliseUpload } from '@/lib/uploadImage';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { ownerScope } from '@/lib/ownership';
+import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * The pictures on a cooking entry.
@@ -53,13 +53,11 @@ const REASONS: Record<string, { message: string; status: number }> = {
 
 async function recipeIdFrom(params: Promise<{ id: string }>): Promise<number | null> {
     const { id } = await params;
-    const parsed = Number.parseInt(id, 10);
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+    return positiveIntId(id);
 }
 
 function numberParam(req: NextRequest, name: string): number | null {
-    const parsed = Number.parseInt(new URL(req.url).searchParams.get(name) ?? '', 10);
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+    return positiveIntId(new URL(req.url).searchParams.get(name));
 }
 
 /**
@@ -151,20 +149,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             position = target._count.photos;
         }
 
-        let buffer = Buffer.from(await file.arrayBuffer());
-        let filename = check.filename;
-        let contentType = file.type || 'application/octet-stream';
+        /*
+         * Admitted by its bytes, not by its name or its declared type — both
+         * of which the uploader wrote. See lib/uploadImage: a `photo.jpg`
+         * that is HTML used to be stored as image/jpeg on the word of the
+         * person uploading it.
+         */
+        const normalised = await normaliseUpload(
+            check.filename,
+            Buffer.from(await file.arrayBuffer()),
+            convertHeicToJpeg
+        );
 
-        if (looksLikeHeic(buffer)) {
-            const converted = await convert({
-                buffer: buffer as unknown as ArrayBufferLike,
-                format: 'JPEG',
-                quality: 0.8,
-            });
-            buffer = Buffer.from(converted as ArrayBuffer);
-            filename = filename.replace(/\.(heic|heif)$/i, '') + '.jpg';
-            contentType = 'image/jpeg';
+        if (!normalised.ok) {
+            return NextResponse.json({ message: 'That file is not a picture.' }, { status: 415 });
         }
+
+        const { buffer, filename, contentType } = normalised.image;
 
         const blob = await put(`cooked_${Date.now()}_${filename}`, buffer, {
             access: 'public',
@@ -194,7 +195,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             return NextResponse.json({ message: 'That recipe no longer exists.' }, { status: 404 });
         }
 
-        console.error('Cooked-photo upload failed:', error);
+        failed('Cooked-photo upload failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }
@@ -231,7 +232,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
         return NextResponse.json({ success: true, removed: removed.count });
     } catch (error) {
-        console.error('Cooked-photo deletion failed:', error);
+        failed('Cooked-photo deletion failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }

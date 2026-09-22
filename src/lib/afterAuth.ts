@@ -19,7 +19,7 @@
  * means a path that somehow arrived with a host in it cannot send anybody
  * anywhere else.
  */
-export function localeHref(locale: string, path: string): string {
+function localeHref(locale: string, path: string): string {
     const clean = path.startsWith('/') ? path : `/${path}`;
     return clean === '/' ? `/${locale}` : `/${locale}${clean}`;
 }

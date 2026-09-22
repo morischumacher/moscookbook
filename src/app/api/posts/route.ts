@@ -5,6 +5,7 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import { slugify } from '@/lib/recipe';
 import { postInputSchema, formatPostError } from '@/lib/postSchema';
 import { postSearchFields } from '@/lib/searchText';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * A slug nobody has taken yet.
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
 
         if (recipe?.isDraft) {
             return NextResponse.json(
-                { message: 'Zu einem Entwurf lässt sich kein Beitrag schreiben. Stelle das Rezept zuerst fertig.' },
+                { message: 'A post cannot be written about a draft. Finish the recipe first.' },
                 { status: 409 }
             );
         }
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'That recipe no longer exists.' }, { status: 400 });
         }
 
-        console.error('Post creation failed:', error);
+        failed('Post creation failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

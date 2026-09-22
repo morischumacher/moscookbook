@@ -1,5 +1,5 @@
 import RecipeForm from '@/components/recipe-form/RecipeForm';
-import { canUseAi } from '@/lib/aiImport';
+import { canUseAi } from '@/lib/aiProviders';
 import { aiCapability } from '@/lib/aiConfig';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';

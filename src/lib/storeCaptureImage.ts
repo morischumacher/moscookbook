@@ -1,4 +1,5 @@
 import { put } from '@vercel/blob';
+import { CONTENT_TYPE_OF, imageTypeOf } from './uploadImage';
 
 /**
  * A screenshot that arrived with a share, put into our own store.
@@ -20,7 +21,7 @@ const EXTENSIONS: Record<string, string> = {
     'image/gif': 'gif',
 };
 
-export const CAPTURE_IMAGE_TYPES = new Set(Object.keys(EXTENSIONS));
+const CAPTURE_IMAGE_TYPES = new Set(Object.keys(EXTENSIONS));
 
 /** Roughly 5 MB of binary once decoded — well beyond any phone screenshot. */
 export const MAX_CAPTURE_IMAGE_BASE64 = 7 * 1024 * 1024;
@@ -47,10 +48,26 @@ export async function storeCaptureImage(base64: string, mediaType: string): Prom
 
     if (buffer.byteLength === 0) return { ok: false, reason: 'empty' };
 
+    /*
+     * The bytes decide, not the declared type. This is the one write path that
+     * needs no session — a device token is enough — so a claim in the JSON
+     * body is exactly the thing not to sign. An iPhone screenshot is a PNG
+     * whatever the shortcut said; a JPEG called png is stored as the JPEG it
+     * is; anything that is not a picture at all is refused before it costs a
+     * blob write.
+     */
+    const actual = imageTypeOf(buffer);
+    if (!actual) return { ok: false, reason: 'not-an-image' };
+
+    // A capture is never converted: the model reads HEIC directly, and a
+    // picture stored for a human to look at goes through the upload routes.
+    const contentType = CONTENT_TYPE_OF[actual];
+    const extension = actual === 'jpeg' ? 'jpg' : actual;
+
     try {
-        const blob = await put(`capture_${Date.now()}.${EXTENSIONS[type]}`, buffer, {
+        const blob = await put(`capture_${Date.now()}.${extension}`, buffer, {
             access: 'public',
-            contentType: type,
+            contentType,
         });
 
         return { ok: true, url: blob.url };

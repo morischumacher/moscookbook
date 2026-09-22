@@ -11,38 +11,9 @@ import type { AiCapability, AiKey } from '../src/lib/aiImport';
  * structure of a watch page (see youtube.test.ts for the caveat on that).
  */
 
+import { stubFetch } from './stubFetch';
+
 type Fetch = typeof globalThis.fetch;
-
-function stubFetch(pages: Record<string, { html: string; status?: number }>): () => void {
-    const original = globalThis.fetch;
-
-    globalThis.fetch = (async (input: string | URL | Request) => {
-        const url = typeof input === 'string' ? input : input.toString();
-        const page = pages[url];
-
-        if (!page) {
-            return {
-                ok: false,
-                status: 404,
-                url,
-                headers: new Headers({ 'content-type': 'text/html' }),
-                text: async () => '',
-            } as Response;
-        }
-
-        return {
-            ok: (page.status ?? 200) < 400,
-            status: page.status ?? 200,
-            url,
-            headers: new Headers({ 'content-type': 'text/html; charset=utf-8' }),
-            text: async () => page.html,
-        } as Response;
-    }) as Fetch;
-
-    return () => {
-        globalThis.fetch = original;
-    };
-}
 
 const YOUTUBE_HTML = `<!DOCTYPE html><html><head>
 <meta property="og:image" content="https://i.ytimg.com/vi/abcdefghijk/maxresdefault.jpg">

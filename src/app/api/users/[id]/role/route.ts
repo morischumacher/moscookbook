@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 const roleSchema = z.object({
     admin: z.boolean(),
@@ -17,9 +19,9 @@ export async function PATCH(
 
     try {
         const { id } = await params;
-        const userId = Number.parseInt(id, 10);
+        const userId = positiveIntId(id);
 
-        if (Number.isNaN(userId)) {
+        if (userId === null) {
             return NextResponse.json({ message: 'Invalid user ID' }, { status: 400 });
         }
 
@@ -51,7 +53,7 @@ export async function PATCH(
             return NextResponse.json({ message: 'User not found' }, { status: 404 });
         }
 
-        console.error('Update role error:', error);
+        failed('Update role error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

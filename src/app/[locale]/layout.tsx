@@ -9,6 +9,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import VerifyBanner from "@/components/auth/VerifyBanner";
 import ServiceWorker from "@/components/ServiceWorker";
+import GlobalErrorReporter from "@/components/GlobalErrorReporter";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -124,6 +125,7 @@ export default async function LocaleLayout({
                         Registers after load, never blocks anything, and is
                         network-first — see public/sw.js. */}
                     <ServiceWorker />
+                    <GlobalErrorReporter />
                     <Navbar locale={locale} />
                     <VerifyBanner />
                     <div style={{ minHeight: 'calc(100dvh - 140px)', display: 'flex', flexDirection: 'column' }}>

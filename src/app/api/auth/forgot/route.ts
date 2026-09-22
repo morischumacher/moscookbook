@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
-import { clientKey } from '@/lib/rateLimit';
-import { rateLimitShared } from '@/lib/rateLimitShared';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { issueToken } from '@/lib/issueToken';
+import { failed } from '@/lib/reportServerError';
 
 const schema = z.object({
     email: z.string().trim().email().max(320),
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         // Logged, not reported. The person is told the same thing either way,
         // so that a failure here cannot be used to probe for accounts.
-        console.error('Password reset request failed:', error);
+        failed('Password reset request failed:', error);
     }
 
     return NextResponse.json({ ok: true });

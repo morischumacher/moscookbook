@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'node:crypto';
 import { put, list, del } from '@vercel/blob';
 import prisma from '@/lib/prisma';
 import { sweepRateLimits } from '@/lib/rateLimitShared';
@@ -11,6 +12,8 @@ import {
     type ExportableCookEntry,
     type ExportableCollection,
 } from '@/lib/archive';
+import { failed } from '@/lib/reportServerError';
+import { recordBackupRun } from '@/lib/backupStatus';
 
 /**
  * A backup nobody has to remember.
@@ -44,7 +47,17 @@ const PREFIX = BACKUP_PREFIX;
 function authorised(req: NextRequest): boolean {
     const secret = process.env.CRON_SECRET;
     if (!secret) return false;
-    return req.headers.get('authorization') === `Bearer ${secret}`;
+
+    /*
+     * Constant-time, because this header guards a route that deletes blobs.
+     * `===` on strings returns at the first byte that differs, which leaks how
+     * much of a guess was right. The length check first is not a leak in the
+     * other direction — the secret's length is not the secret — and
+     * timingSafeEqual requires equal lengths.
+     */
+    const expected = Buffer.from(`Bearer ${secret}`);
+    const given = Buffer.from(req.headers.get('authorization') ?? '');
+    return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
 export async function GET(req: NextRequest) {
@@ -167,9 +180,14 @@ export async function GET(req: NextRequest) {
             await del(old.map((entry) => entry.url)).catch((error) => {
                 // A prune that fails costs a little storage. Saying the backup
                 // failed because of it would be worse than wrong.
-                console.error('Could not prune old backups:', error);
+                failed('Could not prune old backups:', error);
             });
         }
+
+        await recordBackupRun(
+            `${recipes.length} recipes, ${posts.length} posts, ${cookEntries.length} cook entries`,
+            true
+        );
 
         return NextResponse.json({
             url: blob.url,
@@ -180,7 +198,8 @@ export async function GET(req: NextRequest) {
             pruned: old.length,
         });
     } catch (error) {
-        console.error('Scheduled backup failed:', error);
+        failed('Scheduled backup failed:', error);
+        await recordBackupRun(error instanceof Error ? error.message.slice(0, 200) : 'unknown', false);
         return NextResponse.json({ message: 'The backup did not run.' }, { status: 500 });
     }
 }

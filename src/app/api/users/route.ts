@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { failed } from '@/lib/reportServerError';
 
 export async function GET() {
     const auth = await requireAdmin();
@@ -19,7 +20,7 @@ export async function GET() {
 
         return NextResponse.json({ users });
     } catch (error) {
-        console.error('Fetch users error:', error);
+        failed('Fetch users error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

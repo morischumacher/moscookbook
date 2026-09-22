@@ -112,13 +112,28 @@ export interface StoredError {
     path: string | null;
 }
 
+/**
+ * Query-string secrets, wherever they turn up in a message or a stack.
+ *
+ * `safePath` already keeps the query off the stored path. But a fetch that
+ * failed says so with its URL in the message — "Failed to fetch
+ * https://…/reset?token=…" — and a stack frame can carry the same. The two
+ * flows that put a secret in a URL are the reset link and the invitation,
+ * so those two parameter names are blanked wherever they appear.
+ */
+const SECRET_PARAM = /([?&](?:token|invite|code)=)[^&\s"')]+/gi;
+
+function withoutQuerySecrets(text: string): string {
+    return text.replace(SECRET_PARAM, '$1«redacted»');
+}
+
 /** Everything a report needs before it touches the database. */
 export function prepareErrorReport(report: ErrorReport): StoredError {
     return {
         fingerprint: fingerprint(report),
         source: report.source,
-        message: report.message.slice(0, MAX_MESSAGE),
-        stack: report.stack ? report.stack.slice(0, MAX_STACK) : null,
+        message: withoutQuerySecrets(report.message).slice(0, MAX_MESSAGE),
+        stack: report.stack ? withoutQuerySecrets(report.stack).slice(0, MAX_STACK) : null,
         path: safePath(report.path),
     };
 }

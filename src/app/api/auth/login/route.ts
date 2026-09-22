@@ -3,9 +3,9 @@ import { getIronSession } from 'iron-session';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { sessionOptions, SessionData } from '@/lib/session';
-import { clientKey } from '@/lib/rateLimit';
-import { rateLimitShared } from '@/lib/rateLimitShared';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import prisma from '@/lib/prisma';
+import { failed } from '@/lib/reportServerError';
 
 const loginSchema = z.object({
     email: z.string().trim().email().max(320),
@@ -29,13 +29,35 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const parsed = loginSchema.safeParse(await req.json());
+        const parsed = loginSchema.safeParse(await req.json().catch(() => null));
 
         if (!parsed.success) {
             return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
         }
 
         const { email, password } = parsed.data;
+
+        /*
+         * A second bucket, per account.
+         *
+         * The one above is per address, which stops one machine guessing. It
+         * does nothing against many machines guessing at one account: ten
+         * tries each from a rotating pool is unlimited tries. So the account
+         * gets its own count, keyed on the lowercased address — twenty in
+         * fifteen minutes, wider than the per-address one so that a household
+         * behind one router does not lock its own member out after a typo,
+         * but a ceiling all the same.
+         *
+         * Counted before the lookup, and for addresses that exist and ones
+         * that do not alike, so the count itself does not say which is which.
+         */
+        const account = await rateLimitShared(`login:account:${email.toLowerCase()}`, 20, 15 * 60 * 1000);
+        if (!account.ok) {
+            return NextResponse.json(
+                { message: 'Too many login attempts. Please try again later.' },
+                { status: 429, headers: { 'Retry-After': String(account.retryAfterSeconds) } }
+            );
+        }
 
         // Exact match first, then case-insensitive so that "Moritz@..." and
         // "moritz@..." both reach the same account.
@@ -71,7 +93,7 @@ export async function POST(req: NextRequest) {
 
         return res;
     } catch (error) {
-        console.error('Login error:', error);
+        failed('Login error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

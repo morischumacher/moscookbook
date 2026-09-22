@@ -13,6 +13,7 @@ import {
     type ExportableCookEntry,
     type ExportableCollection,
 } from '@/lib/archive';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * Downloads the whole cookbook as one JSON file.
@@ -52,7 +53,7 @@ export async function GET() {
     try {
         recipeCount = await prisma.recipe.count();
     } catch (error) {
-        console.error('Export error:', error);
+        failed('Export error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 
@@ -219,7 +220,7 @@ export async function GET() {
                 // 500. Breaking the stream is what makes the browser report a
                 // failed download rather than saving an archive that stops in
                 // the middle of a recipe and parses as nothing.
-                console.error('Export failed mid-stream:', error);
+                failed('Export failed mid-stream:', error);
                 controller.error(error);
             }
         },

@@ -3,12 +3,13 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { collectionInputSchema, formatCollectionError } from '@/lib/collectionSchema';
+import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 /** Editing and removing one collection. Admin only, like making one. */
 
 function parseId(raw: string): number | null {
-    const id = Number.parseInt(raw, 10);
-    return Number.isInteger(id) && id > 0 ? id : null;
+    return positiveIntId(raw);
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -63,7 +64,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             );
         }
 
-        console.error('Collection could not be saved:', error);
+        failed('Collection could not be saved:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }
@@ -82,7 +83,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
         const removed = await prisma.collection.deleteMany({ where: { id } });
         return NextResponse.json({ success: true, removed: removed.count });
     } catch (error) {
-        console.error('Collection could not be deleted:', error);
+        failed('Collection could not be deleted:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

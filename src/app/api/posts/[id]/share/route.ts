@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { generateShareToken, shareUrl } from '@/lib/shareToken';
+import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * The public link for one entry. Exactly the recipe route, one table over —
@@ -16,8 +18,7 @@ function localeOf(request: Request): string {
 
 async function postId(params: Promise<{ id: string }>): Promise<number | null> {
     const { id } = await params;
-    const parsed = Number.parseInt(id, 10);
-    return Number.isNaN(parsed) ? null : parsed;
+    return positiveIntId(id);
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -76,7 +77,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             url: shareUrl(getSiteUrl(), localeOf(req), token, 'post'),
         });
     } catch (error) {
-        console.error('Post share link creation failed:', error);
+        failed('Post share link creation failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }
@@ -93,7 +94,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
         await prisma.post.updateMany({ where: { id }, data: { shareToken: null } });
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Post share link removal failed:', error);
+        failed('Post share link removal failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

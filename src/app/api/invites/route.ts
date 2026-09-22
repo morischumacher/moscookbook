@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { generateInviteCode, inviteExpiryFromNow, inviteState, INVITE_VALID_DAYS } from '@/lib/invite';
+import { failed } from '@/lib/reportServerError';
 
 const createSchema = z.object({
     note: z.string().trim().max(200).default(''),
@@ -51,7 +52,7 @@ export async function GET() {
             })),
         });
     } catch (error) {
-        console.error('List invites error:', error);
+        failed('List invites error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
-        console.error('Create invite error:', error);
+        failed('Create invite error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

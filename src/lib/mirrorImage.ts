@@ -1,5 +1,5 @@
 import { put } from '@vercel/blob';
-import { isSafePublicUrl } from './recipeFromHtml';
+import { isSafePublicUrl } from './privateAddress';
 import { safeFetch } from './safeFetch';
 
 /**

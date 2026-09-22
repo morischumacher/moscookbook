@@ -68,6 +68,18 @@ jobs:
       - name: Backup coverage
         run: npm run check:backup
 
+      # The two guards that were in package.json and not here. The first was
+      # written after a red deploy to catch the one class of error a local
+      # type-check cannot see, and then ran nowhere.
+      - name: Prisma typing a local tsc cannot see
+        run: npm run check:prisma
+
+      - name: Every test file is registered
+        run: npm run check:tests
+
+      - name: Interaction map is current
+        run: npm run check:map
+
       - name: Lint
         run: npm run lint
 

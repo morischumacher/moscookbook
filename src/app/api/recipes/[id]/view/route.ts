@@ -4,6 +4,8 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
+import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 export async function POST(
     req: NextRequest,
@@ -11,9 +13,9 @@ export async function POST(
 ) {
     try {
         const { id } = await params;
-        const recipeId = Number.parseInt(id, 10);
+        const recipeId = positiveIntId(id);
 
-        if (Number.isNaN(recipeId)) {
+        if (recipeId === null) {
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
         }
 
@@ -64,7 +66,7 @@ export async function POST(
             return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
         }
 
-        console.error('View tracking error:', error);
+        failed('View tracking error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

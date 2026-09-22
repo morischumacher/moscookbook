@@ -17,6 +17,8 @@
  * than by hoping.
  */
 
+import { decodeEntities } from './htmlMeta';
+
 /** Tags whose contents are never prose, removed wholesale. */
 const DROP = ['script', 'style', 'noscript', 'template', 'svg', 'iframe', 'head', 'nav', 'footer'];
 
@@ -27,59 +29,8 @@ const DROP = ['script', 'style', 'noscript', 'template', 'svg', 'iframe', 'head'
  */
 const BREAK = /<\/?(?:p|div|br|li|tr|h[1-6]|section|article|header|ul|ol|table|dt|dd)\b[^>]*>/gi;
 
-/**
- * The entities that change a word, and no others.
- *
- * This started as five — the structural ones plus the numeric forms — on the
- * reasoning that an unrecognised `&hellip;` reaching the model as itself costs
- * nothing, because a model reads it as an ellipsis. True, and beside the point
- * for the pages this is aimed at: `Ofengem&uuml;se` is not a stray ellipsis, it
- * is a German word with rubble in the middle of it, and half the recipe titles
- * on a German site are written that way. A test caught it; reading would not
- * have, because the mangled form looks like text.
- *
- * So the accented Latin-1 names are here too. Not a full table — the rest
- * genuinely do degrade harmlessly — but every one that turns up inside a word
- * in German, French or Spanish.
- */
-const NAMED: Record<string, string> = {
-    auml: 'ä', ouml: 'ö', uuml: 'ü', Auml: 'Ä', Ouml: 'Ö', Uuml: 'Ü', szlig: 'ß',
-    agrave: 'à', aacute: 'á', acirc: 'â', atilde: 'ã', aring: 'å', aelig: 'æ',
-    egrave: 'è', eacute: 'é', ecirc: 'ê', euml: 'ë',
-    igrave: 'ì', iacute: 'í', icirc: 'î', iuml: 'ï',
-    ograve: 'ò', oacute: 'ó', ocirc: 'ô', otilde: 'õ', oslash: 'ø',
-    ugrave: 'ù', uacute: 'ú', ucirc: 'û',
-    ccedil: 'ç', ntilde: 'ñ', yacute: 'ý',
-    Agrave: 'À', Aacute: 'Á', Acirc: 'Â', Aring: 'Å', AElig: 'Æ',
-    Egrave: 'È', Eacute: 'É', Ecirc: 'Ê',
-    Ograve: 'Ò', Oacute: 'Ó', Ocirc: 'Ô', Oslash: 'Ø',
-    Ugrave: 'Ù', Uacute: 'Ú', Ucirc: 'Û',
-    Ccedil: 'Ç', Ntilde: 'Ñ',
-    deg: '°', frac12: '½', frac14: '¼', frac34: '¾',
-    ndash: '–', mdash: '—', hellip: '…', bull: '•',
-    laquo: '«', raquo: '»', bdquo: '„', ldquo: '“', rdquo: '”', rsquo: '’',
-};
-
-function decode(text: string): string {
-    return text
-        .replace(/&nbsp;/gi, ' ')
-        // Case-sensitive on purpose: &Uuml; and &uuml; are different letters.
-        .replace(/&([A-Za-z][A-Za-z0-9]{1,8});/g, (whole, name: string) =>
-            Object.prototype.hasOwnProperty.call(NAMED, name) ? NAMED[name] : whole
-        )
-        .replace(/&amp;/gi, '&')
-        .replace(/&lt;/gi, '<')
-        .replace(/&gt;/gi, '>')
-        .replace(/&quot;/gi, '"')
-        .replace(/&#(\d{1,6});/g, (_, code: string) => {
-            const value = Number(code);
-            return value > 0 && value < 0x110000 ? String.fromCodePoint(value) : '';
-        })
-        .replace(/&#x([0-9a-f]{1,6});/gi, (_, code: string) => {
-            const value = Number.parseInt(code, 16);
-            return value > 0 && value < 0x110000 ? String.fromCodePoint(value) : '';
-        });
-}
+// Entities are decoded by the one shared table. See htmlMeta.
+const decode = decodeEntities;
 
 /**
  * The largest `<article>` or `<main>` on the page.
@@ -132,8 +83,7 @@ export const MAX_READABLE = 12_000;
  * Split out from `readableText` so the same work can be done twice: once on
  * the narrowed container and once on the whole page, which is how narrowing
  * can be checked rather than trusted.
- */
-/**
+ *
  * Exported for `siteProfile`, whose CSS-selector strategy needs a page with
  * the scripts and styles already gone — `node-html-parser` counts their
  * contents as text, so a selector over the raw page can return a stylesheet.

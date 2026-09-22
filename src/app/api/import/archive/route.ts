@@ -4,6 +4,8 @@ import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { requireAdmin } from '@/lib/auth';
 import { parseArchive, cookEntriesFrom, type ArchiveRecipe } from '@/lib/archive';
 import { searchFields } from '@/lib/searchText';
+import { describeWriteFailure } from '@/lib/prismaErrors';
+import { failed as reportFailure } from '@/lib/reportServerError';
 
 const MAX_BODY_BYTES = 20 * 1024 * 1024;
 
@@ -149,9 +151,9 @@ export async function POST(req: NextRequest) {
                 // being told a number.
                 failed.push({
                     slug: recipe.slug,
-                    reason: error instanceof Error ? error.message : 'unknown',
+                    reason: describeWriteFailure(error),
                 });
-                console.error(`Archive import: recipe ${recipe.slug} failed`, error);
+                reportFailure(`Archive import: recipe ${recipe.slug} failed`, error);
             }
         }
 
@@ -207,9 +209,9 @@ export async function POST(req: NextRequest) {
             } catch (error) {
                 failed.push({
                     slug: post.slug,
-                    reason: error instanceof Error ? error.message : 'unknown',
+                    reason: describeWriteFailure(error),
                 });
-                console.error(`Archive import: post ${post.slug} failed`, error);
+                reportFailure(`Archive import: post ${post.slug} failed`, error);
             }
         }
 
@@ -269,7 +271,7 @@ export async function POST(req: NextRequest) {
                     photos += 1;
                 }
             } catch (error) {
-                console.error(`Archive import: cooking for ${entry.recipeSlug} failed`, error);
+                reportFailure(`Archive import: cooking for ${entry.recipeSlug} failed`, error);
             }
         }
 
@@ -318,9 +320,9 @@ export async function POST(req: NextRequest) {
             } catch (error) {
                 failed.push({
                     slug: collection.slug,
-                    reason: error instanceof Error ? error.message : 'unknown',
+                    reason: describeWriteFailure(error),
                 });
-                console.error(`Archive import: collection ${collection.slug} failed`, error);
+                reportFailure(`Archive import: collection ${collection.slug} failed`, error);
             }
         }
 
@@ -338,7 +340,7 @@ export async function POST(req: NextRequest) {
             failed,
         });
     } catch (error) {
-        console.error('Archive import error:', error);
+        reportFailure('Archive import error:', error);
         return NextResponse.json({ message: 'The archive could not be imported.' }, { status: 500 });
     }
 }

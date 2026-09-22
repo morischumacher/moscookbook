@@ -1,5 +1,5 @@
 /** invitation codes and their lifecycle */
-import { generateInviteCode, inviteState, inviteUrl, inviteExpiryFromNow } from '../src/lib/invite';
+import { generateInviteCode, inviteState, inviteExpiryFromNow } from '../src/lib/invite';
 import { suite, check } from './harness';
 
 export default function run() {
@@ -39,14 +39,4 @@ export default function run() {
     const days = (in14.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
     check('defaults to about 14 days', days > 13.9 && days < 14.1, days);
 
-    suite('inviteUrl');
-
-    check('builds a register link',
-        inviteUrl('https://example.com', 'de', 'abc') === 'https://example.com/de/register?invite=abc',
-        inviteUrl('https://example.com', 'de', 'abc'));
-    check('tolerates a trailing slash',
-        inviteUrl('https://example.com/', 'en', 'abc') === 'https://example.com/en/register?invite=abc');
-    check('escapes the code',
-        inviteUrl('https://example.com', 'en', 'a b&c').endsWith('invite=a%20b%26c'),
-        inviteUrl('https://example.com', 'en', 'a b&c'));
 }

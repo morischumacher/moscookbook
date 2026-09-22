@@ -119,32 +119,6 @@ function hasQuantity(amount: string, item: string): boolean {
 }
 
 /**
- * How many steps does this method have?
- *
- * Counted three ways because three formats arrive: a markdown numbered list, a
- * list of lines, and one paragraph of sentences. The last is the case that
- * matters — a method that is genuinely one long sentence is the thing the
- * "clearer steps" button exists for, and it should count as one step so that
- * it registers as thin.
- */
-export function countSteps(instructions: string): number {
-    const text = instructions.trim();
-    if (text === '') return 0;
-
-    const numbered = text.match(/^\s*\d+[.)]\s+/gm);
-    if (numbered && numbered.length > 1) return numbered.length;
-
-    const lines = text.split('\n').filter((line) => line.trim().length > 15);
-    if (lines.length > 1) return lines.length;
-
-    // Sentences, roughly. A full stop followed by a capital or a digit; this
-    // does not try to be right about "z. B." and does not need to be, since
-    // what is being asked is "more than one, or not".
-    const sentences = text.split(/[.!?]\s+(?=[A-ZÄÖÜ0-9])/).filter((part) => part.trim().length > 15);
-    return Math.max(1, sentences.length);
-}
-
-/**
  * A title that is the page rather than the dish.
  *
  * Exported because the merge needs it: when the rules' title is one of these,

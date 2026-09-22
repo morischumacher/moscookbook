@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
-import { rateLimit, clientKey } from '@/lib/rateLimit';
-import { extractRecipeFromHtml, isSafePublicUrl } from '@/lib/recipeFromHtml';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
+import { extractRecipeFromHtml } from '@/lib/recipeFromHtml';
+import { fetchPage, type FetchFailure } from '@/lib/fetchPage';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { readableText } from '@/lib/readableText';
 import { assistsText, canUseAi, extractRecipeWithAi } from '@/lib/aiImport';
 import { aiCapability, rememberModel } from '@/lib/aiConfig';
+import { failed } from '@/lib/reportServerError';
 
 const importSchema = z.object({
     url: z.string().trim().min(1).max(2048),
@@ -21,14 +23,21 @@ const importSchema = z.object({
     force: z.boolean().optional(),
 });
 
-const FETCH_TIMEOUT_MS = 12_000;
-const MAX_HTML_BYTES = 4 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    const limit = rateLimit(clientKey(req, 'import-url'), 30, 10 * 60 * 1000);
+    /*
+     * The shared limiter, because this route spends money.
+     *
+     * It used the in-memory one, whose own comment says it multiplies by the
+     * number of warm instances and resets on every cold start — fine for a
+     * view counter, and the wrong tool for a route where each call past the
+     * limit is a charge at a provider. The database-backed count is the only
+     * one that is actually a ceiling.
+     */
+    const limit = await rateLimitShared(clientKey(req, 'import-url'), 30, 10 * 60 * 1000);
     if (!limit.ok) {
         return NextResponse.json(
             { message: 'Too many imports. Please wait a moment.' },
@@ -41,46 +50,34 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Please provide a URL.' }, { status: 400 });
     }
 
-    const url = parsed.data.url.startsWith('http') ? parsed.data.url : `https://${parsed.data.url}`;
+    /*
+     * Through `fetchPage`, which is the point of this change.
+     *
+     * For a year this route called `fetch(url, { redirect: 'follow' })` itself,
+     * with a textual URL check in front of it and nothing else. The runtime
+     * followed redirects without re-checking a single hop and never resolved
+     * a hostname, so a public page answering `302 → http://169.254.169.254/…`
+     * returned the cloud metadata service into a recipe draft. That is the
+     * exact hole `safeFetch` was written to close — and this route, the one
+     * with "import" in its name, was the one place still going round it.
+     *
+     * `fetchPage` does the textual check, the DNS resolution, the per-hop
+     * redirect check, the timeout, the size cap and the content-type test.
+     * Nothing below needed any of that to be here.
+     */
+    const page = await fetchPage(parsed.data.url);
 
-    if (!isSafePublicUrl(url)) {
-        return NextResponse.json(
-            { message: 'That URL cannot be imported. Please use a public http(s) address.' },
-            { status: 400 }
-        );
+    if (!page.ok) {
+        return NextResponse.json({ message: FETCH_MESSAGES[page.failure] }, {
+            status: FETCH_STATUS[page.failure],
+        });
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    const html = page.html;
+    const url = page.finalUrl;
 
     try {
-        const response = await fetch(url, {
-            signal: controller.signal,
-            redirect: 'follow',
-            headers: {
-                // Some sites serve a stripped page to unknown agents.
-                'User-Agent': 'Mozilla/5.0 (compatible; moscookbook-import/1.0)',
-                Accept: 'text/html,application/xhtml+xml',
-            },
-        });
-
-        if (!response.ok) {
-            return NextResponse.json(
-                { message: `The page could not be loaded (HTTP ${response.status}).` },
-                { status: 502 }
-            );
-        }
-
-        const contentType = response.headers.get('content-type') ?? '';
-        if (!contentType.includes('html') && !contentType.includes('xml')) {
-            return NextResponse.json(
-                { message: 'That link does not point to a web page.' },
-                { status: 415 }
-            );
-        }
-
-        const html = (await response.text()).slice(0, MAX_HTML_BYTES);
-        let recipe = extractRecipeFromHtml(html, response.url || url);
+        let recipe = extractRecipeFromHtml(html, url);
 
         /*
          * The rules first, always — a page with schema.org markup is read here
@@ -126,7 +123,7 @@ export async function POST(req: NextRequest) {
                 // The rules' answer is still on the table. An import that
                 // returns less than it might is a far better outcome than one
                 // that returns an error because an optional extra was down.
-                console.error('The AI could not help with this import:', error);
+                failed('The AI could not help with this import:', error);
             }
         }
 
@@ -152,12 +149,24 @@ export async function POST(req: NextRequest) {
             usedAi,
         });
     } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
-            return NextResponse.json({ message: 'The page took too long to respond.' }, { status: 504 });
-        }
-        console.error('URL import error:', error);
-        return NextResponse.json({ message: 'The page could not be loaded.' }, { status: 502 });
-    } finally {
-        clearTimeout(timeout);
+        failed('URL import error:', error);
+        return NextResponse.json({ message: 'The page could not be read.' }, { status: 502 });
     }
 }
+
+/** One sentence per way a page can fail to arrive, and the status to go with it. */
+const FETCH_MESSAGES: Record<FetchFailure, string> = {
+    'unsafe-url': 'That URL cannot be imported. Please use a public http(s) address.',
+    'http-error': 'The page could not be loaded.',
+    'not-a-page': 'That link does not point to a web page.',
+    timeout: 'The page took too long to respond.',
+    network: 'The page could not be loaded.',
+};
+
+const FETCH_STATUS: Record<FetchFailure, number> = {
+    'unsafe-url': 400,
+    'http-error': 502,
+    'not-a-page': 415,
+    timeout: 504,
+    network: 502,
+};

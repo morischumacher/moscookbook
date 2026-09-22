@@ -1,5 +1,5 @@
 import { safeFetch, UnsafeUrlError } from './safeFetch';
-import { isSafePublicUrl } from './recipeFromHtml';
+import { isSafePublicUrl } from './privateAddress';
 
 /**
  * Fetching a page someone shared.
@@ -25,7 +25,7 @@ export type FetchPageResult =
     | { ok: true; html: string; finalUrl: string }
     | { ok: false; failure: FetchFailure; status?: number };
 
-export function normaliseUrl(input: string): string {
+function normaliseUrl(input: string): string {
     const trimmed = input.trim();
     return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }

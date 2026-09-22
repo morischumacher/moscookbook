@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { BCRYPT_COST } from '@/lib/passwordHash';
 import prisma from '@/lib/prisma';
 import { sessionOptions, SessionData } from '@/lib/session';
-import { clientKey } from '@/lib/rateLimit';
-import { rateLimitShared } from '@/lib/rateLimitShared';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { hashToken, tokenState } from '@/lib/authTokens';
+import { failed } from '@/lib/reportServerError';
 
 const schema = z.object({
     token: z.string().trim().min(1).max(200),
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'Unknown link.', reason: 'unknown' }, { status: 400 });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_COST);
 
         const user = await prisma.user.update({
             where: { id: record.userId },
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
 
         return res;
     } catch (error) {
-        console.error('Password reset failed:', error);
+        failed('Password reset failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

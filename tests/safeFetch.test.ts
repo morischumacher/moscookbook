@@ -115,6 +115,25 @@ export default async function safeFetchTests() {
         'http://192.168.1.1/',
         'http://172.16.0.9/',
         'file:///etc/passwd',
+        /*
+         * The IPv6 spellings. Every one of these was fetched until today:
+         * `isSafePublicUrl` knew only `::1`, and `resolvesPublicly` waved
+         * through anything with a colon on the assumption that the text check
+         * had done the work. Two guards each trusting the other is no guard.
+         * The `::ffff:7f00:1` form is what the URL parser makes of
+         * `::ffff:127.0.0.1`, and it is the one the old dotted regex could
+         * never have matched.
+         */
+        'http://[::ffff:127.0.0.1]/',
+        'http://[::ffff:7f00:1]/',
+        'http://[::ffff:169.254.169.254]/latest/meta-data/',
+        'http://[fd00::1]/',
+        'http://[fe80::1]/',
+        'http://[::1]:5432/',
+        // And the numeric disguises the parser normalises before we see them.
+        'http://2130706433/',
+        'http://0x7f000001/',
+        'http://127.1/',
     ]) {
         const net = scripted({ 'https://example.test/a': { status: 302, location: inward } });
 

@@ -2,6 +2,11 @@ import { withoutSiteName } from './pageTitle';
 import { parseIngredientLine } from './recipeParser';
 import { isoDurationToMinutes, parseServings } from './amount';
 import type { ParsedRecipe } from './recipeParser';
+import { decodeEntities, jsonLdBlockCount, jsonLdDocuments, metaContent, plainText } from './htmlMeta';
+
+// Re-exported: five modules reach for these through this file today, and
+// the honest home is htmlMeta. Kept so the move is one commit, not five.
+export { metaContent, metaLines } from './htmlMeta';
 
 /**
  * Extracts a recipe from a page's HTML using the schema.org/Recipe JSON-LD that
@@ -30,31 +35,6 @@ const EMPTY: Omit<ImportedRecipe, 'sourceUrl'> = {
     prepMinutes: null,
     cookMinutes: null,
 };
-
-const HTML_ENTITIES: Record<string, string> = {
-    amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
-    auml: 'ä', ouml: 'ö', uuml: 'ü', Auml: 'Ä', Ouml: 'Ö', Uuml: 'Ü', szlig: 'ß',
-    eacute: 'é', egrave: 'è', agrave: 'à', ccedil: 'ç', deg: '°',
-};
-
-function decodeEntities(text: string): string {
-    return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, entity: string) => {
-        if (entity.startsWith('#x') || entity.startsWith('#X')) {
-            return String.fromCodePoint(Number.parseInt(entity.slice(2), 16));
-        }
-        if (entity.startsWith('#')) {
-            return String.fromCodePoint(Number.parseInt(entity.slice(1), 10));
-        }
-        return HTML_ENTITIES[entity] ?? match;
-    });
-}
-
-function plainText(value: unknown): string {
-    if (typeof value !== 'string') return '';
-    return decodeEntities(value.replace(/<[^>]*>/g, ' '))
-        .replace(/\s+/g, ' ')
-        .trim();
-}
 
 function firstString(value: unknown): string {
     if (typeof value === 'string') return plainText(value);
@@ -172,70 +152,6 @@ function findRecipeNode(value: unknown, depth = 0): Record<string, unknown> | nu
 }
 
 /**
- * A meta tag with its line breaks left in.
- *
- * `metaContent` collapses all whitespace, which is right for a title and wrong
- * for a caption: Instagram writes the whole recipe into `og:title` with
- * `&#10;` between the lines, and the rule-based parser is line-based. Flatten
- * it and a perfectly structured ingredient list arrives as one sentence, which
- * parses to nothing.
- *
- * So: entities decoded, runs of spaces and tabs squeezed, newlines kept, and
- * three or more of them reduced to two — a caption often has a dozen blank
- * lines before the hashtags.
- */
-export function metaLines(html: string, property: string): string {
-    const pattern = new RegExp(
-        `<meta[^>]+(?:property|name)\\s*=\\s*["']${property}["'][^>]*>`,
-        'i'
-    );
-    const tag = pattern.exec(html)?.[0];
-    if (!tag) return '';
-
-    const content = /content\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
-    if (!content) return '';
-
-    return decodeEntities(content.replace(/<[^>]*>/g, ' '))
-        .replace(/\r\n?/g, '\n')
-        .split('\n')
-        .map((line) => line.replace(/[ \t\u00a0]+/g, ' ').trim())
-        .join('\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
-}
-
-/** Exported so a learned site profile can name a meta tag as a source. */
-export function metaContent(html: string, property: string): string {
-    const pattern = new RegExp(
-        `<meta[^>]+(?:property|name)\\s*=\\s*["']${property}["'][^>]*>`,
-        'i'
-    );
-    const tag = pattern.exec(html)?.[0];
-    if (!tag) return '';
-    const content = /content\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
-    return content ? plainText(content) : '';
-}
-
-const LD_JSON = /<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-
-/** Every `application/ld+json` block on the page that is valid JSON. */
-function jsonLdDocuments(html: string): unknown[] {
-    const documents: unknown[] = [];
-
-    for (const block of html.matchAll(LD_JSON)) {
-        try {
-            // Strip CDATA wrappers some CMSs add.
-            const raw = block[1].replace(/^\s*<!\[CDATA\[/, '').replace(/\]\]>\s*$/, '');
-            documents.push(JSON.parse(raw));
-        } catch {
-            continue;
-        }
-    }
-
-    return documents;
-}
-
-/**
  * What the page's structured data actually says.
  *
  * Purely for the diagnose script, and it exists because the line it replaces
@@ -281,7 +197,7 @@ function collectTypes(value: unknown, into: Set<string>, depth = 0): void {
 }
 
 export function describeJsonLd(html: string): JsonLdReport {
-    const blocks = [...html.matchAll(LD_JSON)].length;
+    const blocks = jsonLdBlockCount(html);
     const documents = jsonLdDocuments(html);
 
     const types = new Set<string>();
@@ -345,35 +261,4 @@ export function extractRecipeFromHtml(html: string, sourceUrl = ''): ImportedRec
         imageUrl: metaContent(html, 'og:image'),
         sourceUrl,
     };
-}
-
-/** Blocks loopback and private ranges so the importer cannot be pointed inwards. */
-export function isSafePublicUrl(candidate: string): boolean {
-    let url: URL;
-    try {
-        url = new URL(candidate);
-    } catch {
-        return false;
-    }
-
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return false;
-
-    const host = url.hostname.toLowerCase();
-
-    if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal')) {
-        return false;
-    }
-    if (host === '[::1]' || host === '::1') return false;
-
-    const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
-    if (ipv4) {
-        const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
-        if (a === 127 || a === 10 || a === 0) return false;
-        if (a === 172 && b >= 16 && b <= 31) return false;
-        if (a === 192 && b === 168) return false;
-        if (a === 169 && b === 254) return false;
-        if (a === 100 && b >= 64 && b <= 127) return false;
-    }
-
-    return true;
 }

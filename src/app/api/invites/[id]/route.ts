@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
+import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 /** Revokes an invite. */
 export async function DELETE(
@@ -13,9 +15,9 @@ export async function DELETE(
 
     try {
         const { id } = await params;
-        const inviteId = Number.parseInt(id, 10);
+        const inviteId = positiveIntId(id);
 
-        if (Number.isNaN(inviteId)) {
+        if (inviteId === null) {
             return NextResponse.json({ message: 'Invalid invite ID' }, { status: 400 });
         }
 
@@ -26,7 +28,7 @@ export async function DELETE(
         if (isPrismaError(error, 'P2025')) {
             return NextResponse.json({ message: 'Invite not found' }, { status: 404 });
         }
-        console.error('Delete invite error:', error);
+        failed('Delete invite error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

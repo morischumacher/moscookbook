@@ -2,7 +2,6 @@ import { suite, equal, check } from './harness';
 import {
     generateCaptureToken,
     hashCaptureToken,
-    captureTokenMatches,
     tokenFromHeader,
     sourceForUrl,
     firstUrlIn,
@@ -10,6 +9,7 @@ import {
     captureLabel,
     withoutBareUrls,
 } from '../src/lib/capture';
+import { tokenMatches } from '../src/lib/tokens';
 
 export default function captureTests() {
     suite('capture tokens');
@@ -23,19 +23,14 @@ export default function captureTests() {
     check('the hash is not the token', hash !== token, true);
     check('hashing is stable', hashCaptureToken(token) === hash, true);
 
-    check('accepts the right token', captureTokenMatches(token, hash), true);
-    check('rejects a different token', !captureTokenMatches(generateCaptureToken(), hash), true);
-    check('rejects an empty token', !captureTokenMatches('', hash), true);
-    check(
-        'rejects a malformed stored hash instead of throwing',
-        !captureTokenMatches(token, 'not-hex'),
-        true
-    );
-    check(
-        'rejects a hash of the wrong length',
-        !captureTokenMatches(token, hash.slice(0, 20)),
-        true
-    );
+    // The compare lives in lib/tokens now, shared with the auth tokens. The
+    // route looks the token up by hash and never compares, so these pin the
+    // shared helper for the day something does.
+    check('accepts the right token', tokenMatches(token, hash), true);
+    check('rejects a different token', !tokenMatches(generateCaptureToken(), hash), true);
+    check('rejects an empty token', !tokenMatches('', hash), true);
+    check('rejects a malformed stored hash instead of throwing', !tokenMatches(token, 'not-hex'), true);
+    check('rejects a hash of the wrong length', !tokenMatches(token, hash.slice(0, 20)), true);
 
     suite('tokenFromHeader');
 

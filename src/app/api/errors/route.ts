@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
-import { clientKey } from '@/lib/rateLimit';
-import { rateLimitShared } from '@/lib/rateLimitShared';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { prepareErrorReport } from '@/lib/errorReport';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * Where a broken page says so.
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         });
     } catch (error) {
         // Reporting must never be the thing that breaks a page.
-        console.error('Could not store an error report:', error);
+        failed('Could not store an error report:', error);
     }
 
     return new NextResponse(null, { status: 204 });

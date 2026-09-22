@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
+import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * Finishing a draft.
@@ -27,9 +29,9 @@ export async function POST(_: Request, context: { params: Promise<{ id: string }
     if ('response' in auth) return auth.response;
 
     const { id } = await context.params;
-    const recipeId = Number.parseInt(id, 10);
+    const recipeId = positiveIntId(id);
 
-    if (!Number.isInteger(recipeId) || recipeId <= 0) {
+    if (recipeId === null) {
         return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
     }
 
@@ -62,7 +64,7 @@ export async function POST(_: Request, context: { params: Promise<{ id: string }
 
         return NextResponse.json({ success: true, isDraft: false });
     } catch (error) {
-        console.error('Finishing a draft failed:', error);
+        failed('Finishing a draft failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }

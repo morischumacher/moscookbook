@@ -1,5 +1,5 @@
 import { lookup } from 'node:dns/promises';
-import { isSafePublicUrl } from './recipeFromHtml';
+import { isSafePublicUrl } from './privateAddress';
 import { isPrivateAddress } from './privateAddress';
 
 /**
@@ -58,10 +58,24 @@ export interface SafeFetchOptions {
  * "refused" would.
  */
 async function resolvesPublicly(hostname: string): Promise<boolean> {
-    // An address typed directly has already been checked by isSafePublicUrl,
-    // and asking a resolver about it would be asking a question with no answer.
+    /*
+     * A literal address is checked here, not waved through.
+     *
+     * The old line said "already checked by isSafePublicUrl" and returned true
+     * for anything with a colon in it. That was only ever true for IPv4 —
+     * `isSafePublicUrl` knew one IPv6 address, `::1`, so `http://[fd00::1]/`
+     * and `http://[::ffff:7f00:1]/` passed the textual check *and* skipped
+     * this one, and were fetched. Two checks each assuming the other had done
+     * the work is zero checks.
+     *
+     * Now both ask the same range tables. Asking twice costs nothing and means
+     * a hop that redirects to a literal is caught here even if it was never
+     * seen as text.
+     */
     const bare = hostname.replace(/^\[|\]$/g, '');
-    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(bare) || bare.includes(':')) return true;
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(bare) || bare.includes(':')) {
+        return !isPrivateAddress(bare);
+    }
 
     try {
         const answers = await lookup(hostname, { all: true });

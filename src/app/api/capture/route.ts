@@ -3,8 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
-import { clientKey } from '@/lib/rateLimit';
-import { rateLimitShared } from '@/lib/rateLimitShared';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { tokenFromHeader, hashCaptureToken } from '@/lib/capture';
 import { captureInputFrom } from '@/lib/captureInput';
 import { storeCaptureImage, MAX_CAPTURE_IMAGE_BASE64 } from '@/lib/storeCaptureImage';
@@ -14,6 +13,7 @@ import { aiCapability, rememberModel } from '@/lib/aiConfig';
 import { canUseAi } from '@/lib/aiImport';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { toJsonObject } from '@/lib/json';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * The capture endpoint.
@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
          */
         if (imageUrl) await deleteBlobs([imageUrl]);
 
-        console.error('Capture could not be stored:', error);
+        failed('Capture could not be stored:', error);
         return NextResponse.json(
             { message: 'The capture could not be saved. Nothing was kept — please send it again.' },
             { status: 500 }
@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
                 },
             });
         } catch (error) {
-            console.error('Capture was saved but could not be read:', error);
+            failed('Capture was saved but could not be read:', error);
 
             await prisma.capture
                 .updateMany({

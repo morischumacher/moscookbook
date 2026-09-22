@@ -45,7 +45,7 @@ import { z } from 'zod';
 import { parse as parseHtml } from 'node-html-parser';
 
 import { readableBlocks, withoutNoise, type Block } from './readableText';
-import { metaContent } from './recipeFromHtml';
+import { jsonLdDocuments, metaContent } from './htmlMeta';
 
 /* -------------------------------------------------------------------------- */
 /*  The vocabulary                                                            */
@@ -227,11 +227,29 @@ function textAfterHeading(blocks: Block[], heading: string): string {
 }
 
 /** Follows a dotted path into a value, tolerating arrays by index. */
+/**
+ * Segments that name the prototype chain rather than the document.
+ *
+ * Honest about what this buys, because the first version of this comment
+ * claimed more. `atPath` only reads, so pollution was never possible. And the
+ * `typeof current !== 'object'` check on every step already stops
+ * `constructor.name` — `constructor` is a function, so the walk ends there and
+ * nothing is returned. On a JSON-parsed object every prototype property is a
+ * function, and nothing reachable through the chain is a string. Tried, not
+ * reasoned: the deny-list removed, the probes still found nothing.
+ *
+ * So this is not closing a hole. It is a statement of intent that survives
+ * the day somebody loosens the typeof check: a path into the prototype chain
+ * has no business in a site profile, whatever the traversal happens to do.
+ */
+const FORBIDDEN_SEGMENT = new Set(['__proto__', 'constructor', 'prototype']);
+
 function atPath(value: unknown, path: string): unknown {
     let current = value;
 
     for (const step of path.split('.')) {
         if (step === '') continue;
+        if (FORBIDDEN_SEGMENT.has(step)) return undefined;
         if (current === null || typeof current !== 'object') return undefined;
 
         if (Array.isArray(current)) {
@@ -247,18 +265,7 @@ function atPath(value: unknown, path: string): unknown {
 }
 
 function jsonLdValue(html: string, path: string): unknown {
-    const blocks = html.matchAll(
-        /<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
-    );
-
-    for (const block of blocks) {
-        let data: unknown;
-        try {
-            data = JSON.parse(block[1].replace(/^\s*<!\[CDATA\[/, '').replace(/\]\]>\s*$/, ''));
-        } catch {
-            continue;
-        }
-
+    for (const data of jsonLdDocuments(html)) {
         const found = atPath(data, path);
         if (found !== undefined && found !== null && found !== '') return found;
     }

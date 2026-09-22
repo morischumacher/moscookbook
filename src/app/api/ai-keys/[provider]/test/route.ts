@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
-import { clientKey, rateLimit } from '@/lib/rateLimit';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { extractWithKey, isAiProvider, PROVIDER_LABEL } from '@/lib/aiImport';
 import { keyFor, listAiCredentials, recordCheck, rememberModel } from '@/lib/aiConfig';
 import { scrub } from '@/lib/secretBox';
@@ -51,7 +51,16 @@ export async function POST(req: NextRequest, context: { params: Promise<{ provid
 
     // Each press costs money at somebody's provider. Twenty in ten minutes is
     // more than anybody needs to convince themselves a key works.
-    const limit = rateLimit(clientKey(req, 'ai-test'), 20, 10 * 60 * 1000);
+    /*
+     * The shared limiter, because this route spends money.
+     *
+     * It used the in-memory one, whose own comment says it multiplies by the
+     * number of warm instances and resets on every cold start — fine for a
+     * view counter, and the wrong tool for a route where each call past the
+     * limit is a charge at a provider. The database-backed count is the only
+     * one that is actually a ceiling.
+     */
+    const limit = await rateLimitShared(clientKey(req, 'ai-test'), 20, 10 * 60 * 1000);
     if (!limit.ok) {
         return NextResponse.json(
             { message: 'Too many tests. Please wait a moment.' },

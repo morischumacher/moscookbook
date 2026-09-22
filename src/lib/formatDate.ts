@@ -22,7 +22,7 @@ type Style = 'long' | 'short';
 const cache = new Map<string, Intl.DateTimeFormat>();
 
 /** The site's locale as a BCP 47 tag. Everything not German is English. */
-export function localeTag(locale: string): string {
+function localeTag(locale: string): string {
     return locale === 'de' ? 'de-DE' : 'en-US';
 }
 

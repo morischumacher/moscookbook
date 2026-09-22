@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { localeUrl, randomToken } from './tokens';
 
 /**
  * The public address of a recipe that is otherwise only for people with an
@@ -18,7 +18,7 @@ import { randomBytes } from 'node:crypto';
  * never notice anything.
  */
 export function generateShareToken(): string {
-    return randomBytes(16).toString('base64url');
+    return randomToken(16);
 }
 
 export type ShareKind = 'recipe' | 'post' | 'collection';
@@ -40,5 +40,5 @@ export function shareUrl(
     token: string,
     kind: ShareKind = 'recipe'
 ): string {
-    return `${baseUrl.replace(/\/$/, '')}/${locale}/${SEGMENT[kind]}/${token}`;
+    return localeUrl(baseUrl, locale, `${SEGMENT[kind]}/${token}`);
 }

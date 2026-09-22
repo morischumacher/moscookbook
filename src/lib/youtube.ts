@@ -45,10 +45,6 @@ export function youtubeVideoId(url: string): string | null {
     return path ? path[1] : null;
 }
 
-export function youtubeWatchUrl(videoId: string): string {
-    return `https://www.youtube.com/watch?v=${videoId}`;
-}
-
 /**
  * Reads one JSON string value out of raw page source.
  *

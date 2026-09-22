@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomToken } from './tokens';
 
 /**
  * Registration is invite-only. An admin creates a single-use link, sends it,
@@ -9,7 +9,7 @@ export const INVITE_VALID_DAYS = 14;
 
 /** 128 bits, URL-safe, no characters that get mangled in a chat message. */
 export function generateInviteCode(): string {
-    return randomBytes(16).toString('base64url');
+    return randomToken(16);
 }
 
 export function inviteExpiryFromNow(days = INVITE_VALID_DAYS): Date {
@@ -32,6 +32,3 @@ export function inviteState(invite: InviteRecord | null, now = new Date()): Invi
     return 'valid';
 }
 
-export function inviteUrl(baseUrl: string, locale: string, code: string): string {
-    return `${baseUrl.replace(/\/$/, '')}/${locale}/register?invite=${encodeURIComponent(code)}`;
-}

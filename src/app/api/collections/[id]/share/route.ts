@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { generateShareToken, shareUrl } from '@/lib/shareToken';
+import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * The public link for a collection.
@@ -19,8 +21,7 @@ function localeOf(request: Request): string {
 }
 
 function parseId(raw: string): number | null {
-    const id = Number.parseInt(raw, 10);
-    return Number.isInteger(id) && id > 0 ? id : null;
+    return positiveIntId(raw);
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -75,7 +76,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             url: shareUrl(getSiteUrl(), localeOf(req), token, 'collection'),
         });
     } catch (error) {
-        console.error('Collection share link failed:', error);
+        failed('Collection share link failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }
@@ -94,7 +95,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
         await prisma.collection.updateMany({ where: { id }, data: { shareToken: null } });
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Collection share removal failed:', error);
+        failed('Collection share removal failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

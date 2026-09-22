@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser, requireAdmin } from '@/lib/auth';
 import { rateLimitShared } from '@/lib/rateLimitShared';
 import { safeTicketPath } from '@/lib/ticketPath';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * What somebody thinks is wrong with the tool, or wants it to do.
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(entry, { status: 201 });
     } catch (error) {
-        console.error('Ticket failed:', error);
+        failed('Ticket failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }
@@ -95,23 +96,28 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({ entries });
     } catch (error) {
-        console.error('Could not read tickets:', error);
+        failed('Could not read tickets:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }
+
+const resolveSchema = z.object({
+    id: z.number().int().positive(),
+    resolved: z.boolean().default(false),
+});
 
 /** Marking one dealt with, or putting it back. */
 export async function PATCH(req: NextRequest) {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    const body = await req.json().catch(() => null);
-    const id = Number.parseInt(String((body as { id?: unknown })?.id ?? ''), 10);
-    const done = Boolean((body as { resolved?: unknown })?.resolved);
-
-    if (!Number.isInteger(id) || id <= 0) {
+    // The file already had a schema for its POST and abandoned it for this,
+    // which made it the one PATCH in the codebase parsed by hand.
+    const parsed = resolveSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
         return NextResponse.json({ message: 'Which one?' }, { status: 400 });
     }
+    const { id, resolved: done } = parsed.data;
 
     try {
         const updated: { count: number } = await prisma.ticket.updateMany({
@@ -125,7 +131,7 @@ export async function PATCH(req: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Could not update ticket:', error);
+        failed('Could not update ticket:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { positiveIntId } from '@/lib/routeParams';
 
 /**
  * Revokes a token.
@@ -13,9 +14,9 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     if ('response' in auth) return auth.response;
 
     const { id } = await context.params;
-    const tokenId = Number.parseInt(id, 10);
+    const tokenId = positiveIntId(id);
 
-    if (Number.isNaN(tokenId)) {
+    if (tokenId === null) {
         return NextResponse.json({ message: 'Invalid token id' }, { status: 400 });
     }
 

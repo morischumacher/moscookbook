@@ -50,6 +50,6 @@ export function collectionSlug(title: string): string {
 }
 
 /** The first line of the error, in the shape the routes already answer with. */
-export function formatCollectionError(error: z.ZodError): string {
-    return error.issues[0]?.message ?? 'Invalid input data';
-}
+// The one formatter, which names the field. `formatCollectionError` was the same
+// one-liner as its sibling and dropped the field name.
+export { formatZodError as formatCollectionError } from './zodMessage';

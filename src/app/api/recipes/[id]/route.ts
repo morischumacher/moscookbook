@@ -7,10 +7,11 @@ import { deleteBlobs } from '@/lib/blobCleanup';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
 import { searchFields } from '@/lib/searchText';
+import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 function parseRecipeId(raw: string): number | null {
-    const id = Number.parseInt(raw, 10);
-    return Number.isNaN(id) ? null : id;
+    return positiveIntId(raw);
 }
 
 export async function PUT(
@@ -133,7 +134,7 @@ export async function PUT(
             return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
         }
 
-        console.error('Update recipe error:', error);
+        failed('Update recipe error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }
@@ -192,7 +193,7 @@ export async function DELETE(
             return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
         }
 
-        console.error('Delete recipe error:', error);
+        failed('Delete recipe error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

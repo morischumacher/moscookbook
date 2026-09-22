@@ -59,6 +59,26 @@ const RECIPE_PATH = /^\/(?:en|de)\/recipe\/[^/]+\/?$/;
  */
 const OPEN_PATH = /^\/(?:en|de)\/(?:login|register|forgot|reset|verify|r|p|c|imprint|privacy)(?:\/|$)/;
 
+/**
+ * Whether the proxy lets a request through without looking at the session.
+ *
+ * Three of the five values. `open` and `unmatched` always did. `recipe` was
+ * *defined* above as "the proxy steps aside and the page decides" and
+ * *tested* to be returned for a recipe path — and the proxy's own line
+ * listed only the other two, so `recipe` fell through to the account check.
+ * A public recipe was not reachable at its own address without an account,
+ * only through a share link, and the page's public branch and the JSON-LD
+ * it emits for search engines were unreachable code. The feature that
+ * introduced `recipe` touched the rules and the page and never the proxy.
+ *
+ * The interaction map found it — by walking the edges, not by reading any
+ * one file, since each file was consistent with itself. The decision lives
+ * here now so that a test can hold all five values against it.
+ */
+export function proxyStepsAside(access: Access): boolean {
+    return access === 'unmatched' || access === 'open' || access === 'recipe';
+}
+
 export function pathAccess(pathname: string): Access {
     if (!LOCALISED.test(pathname)) return 'unmatched';
     if (ADMIN_PATH.test(pathname)) return 'admin';
@@ -67,4 +87,95 @@ export function pathAccess(pathname: string): Access {
     // a slug that happens to look like one of them.
     if (RECIPE_PATH.test(pathname)) return 'recipe';
     return 'account';
+}
+
+/* -------------------------------------------------------------------------- */
+/*  The API                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Whether an API path may be called without a session.
+ *
+ * Until now the proxy never ran on `/api` at all — its matcher listed only
+ * the localised pages — so every guard was per-route and a route added
+ * without `requireAdmin` was open by default. That is the opposite of the
+ * rule the rest of this file exists for. Now the safe way round applies here
+ * too: an API path needs a session unless it is named as open.
+ *
+ * What is named, and why each one has to be:
+ *
+ * - `auth/*` — signing in, registering, the three e-mail-link flows, signing
+ *   out. There is no session yet, or the point is to end one.
+ * - `capture` — the iPhone shortcut. Authenticated by a device token in the
+ *   body, not a cookie; a phone has no session and is not going to get one.
+ * - `errors` — the client-side error reporter. It runs on the error page,
+ *   which may be the page that broke *because* the session was broken.
+ * - `recipes/<id>/view` — the view counter, which a public recipe's visitor
+ *   increments without an account.
+ * - `cron/*` — Vercel's scheduler, authenticated by `CRON_SECRET`.
+ *
+ * Every route still does its own check. This is the net under them, not a
+ * replacement for them: `errors` GET is admin-only inside the route even
+ * though the path is open here, because the path is open for its POST.
+ */
+const OPEN_API = /^\/api\/(?:auth\/[a-z-]+|capture|errors|recipes\/\d+\/view|cron\/[a-z-]+)\/?$/;
+
+export type ApiAccess = 'open' | 'session';
+
+export function apiAccess(pathname: string): ApiAccess {
+    return OPEN_API.test(pathname) ? 'open' : 'session';
+}
+
+/**
+ * Whether a request that changes something came from our own pages.
+ *
+ * The session cookie is `SameSite=Lax`, which stops a cross-site form from
+ * carrying it on a PUT, PATCH or DELETE — but Lax makes an exception for
+ * top-level navigations, and a plain `<form method="POST">` is one. Next's
+ * `Request.json()` does not check `Content-Type`, so a form with
+ * `enctype="text/plain"` can deliver a syntactically valid JSON body to any
+ * route. Lax was the only thing in the way, and this is the second thing.
+ *
+ * Two headers, both set by the browser and neither settable by a page:
+ *
+ * `Sec-Fetch-Site` says where the request came from relative to its target.
+ * `cross-site` is refused outright. `same-origin`, `none` (typed into the
+ * address bar, or a non-browser client) and absent (older browsers, curl,
+ * the iPhone shortcut) are allowed through to the next check.
+ *
+ * `Origin` is compared, host to host, with the `Host` the request arrived on.
+ * A request with no `Origin` at all is allowed: that is what a non-browser
+ * client sends, and a non-browser client has no cookie jar to be tricked out
+ * of. It is also what some browsers send on a same-origin GET, but GETs are
+ * not checked here.
+ *
+ * Reads are not checked. A cross-site GET carries the cookie under Lax and
+ * always has; refusing it would break links from anywhere, and a GET that
+ * changes state is a bug in the route, not something this can fix.
+ */
+const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+export function isCrossSiteWrite(
+    method: string,
+    headers: { get(name: string): string | null }
+): boolean {
+    if (!MUTATING.has(method.toUpperCase())) return false;
+
+    const site = headers.get('sec-fetch-site');
+    if (site === 'cross-site') return true;
+
+    const origin = headers.get('origin');
+    if (!origin) return false;
+
+    // Vercel puts the public host in x-forwarded-host; a request that never
+    // went through a proxy has it in Host. Either is the host the browser
+    // believes it is talking to, which is what Origin must match.
+    const host = headers.get('x-forwarded-host') ?? headers.get('host');
+    if (!host) return true;
+
+    try {
+        return new URL(origin).host.toLowerCase() !== host.toLowerCase();
+    } catch {
+        return true;
+    }
 }

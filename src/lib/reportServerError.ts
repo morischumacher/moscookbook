@@ -32,3 +32,21 @@ export async function reportServerError(
         console.error('Could not store a server error report:', reportingError);
     }
 }
+
+/**
+ * What a route's catch block calls.
+ *
+ * `console.error(label, error)` stays — the platform log is still where the
+ * full stack is read when somebody is looking — and the same failure is
+ * recorded where somebody will *see* it. Fire-and-forget: the response goes
+ * out at once, and a reporter that could not write says so in the log and
+ * nowhere else.
+ *
+ * `label` is the human name of the operation ("Delete user error") and
+ * becomes the path column, because a server error has no page and the label
+ * is what tells two of them apart on the list.
+ */
+export function failed(label: string, error: unknown): void {
+    console.error(label, error);
+    void reportServerError(error, { path: label });
+}
