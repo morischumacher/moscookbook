@@ -27,6 +27,32 @@
  * recipe.
  */
 
+/**
+ * `Ben Slater auf Instagram: "Perfect lasagne. Recipe in my newsletter."`
+ *
+ * Not a suffix, so `withoutSiteName` does not see it — the platform's name is
+ * in the *middle*, wrapped around a quotation. Three real captures came in
+ * that shape this afternoon and all three went into the cookbook with the
+ * whole construction as the recipe's name.
+ *
+ * The author and the platform come off; the caption stays. Whether the caption
+ * is a dish name is a separate question, answered by `titleProblem` — "Perfect
+ * lasagne. Recipe in my newsletter." is not one either, and knowing that is
+ * what lets a model's title replace it.
+ *
+ * `auf` and `on` because Instagram localises this line; the quotation marks
+ * are the typographic ones it actually emits.
+ */
+// `[\s\S]` rather than the `s` flag: the build targets a year that predates
+// it, and a caption with a newline in it is the normal case here.
+const PLATFORM_WRAPPER =
+    /^.{1,80}?\s+(?:auf|on)\s+(?:Instagram|TikTok|Facebook|Threads|X)\s*:\s*[«"“„']([\s\S]+)[»"”“']\s*$/;
+
+export function withoutPlatformWrapper(title: string): string {
+    const match = PLATFORM_WRAPPER.exec(title.trim());
+    return match ? match[1].trim() : title.trim();
+}
+
 /** The separators a CMS puts between a page and its site. */
 const SEPARATORS = ['|', '·', '•', '—', '–', '-', '::', '»', '«'];
 
@@ -68,7 +94,7 @@ function siteNames(siteName: string, sourceUrl: string): string[] {
  * the time, and is the intended behaviour.
  */
 export function withoutSiteName(title: string, siteName: string, sourceUrl: string): string {
-    const text = title.trim();
+    const text = withoutPlatformWrapper(title);
     if (text === '') return text;
 
     const names = siteNames(siteName, sourceUrl).map(squash).filter((name) => name.length >= 3);

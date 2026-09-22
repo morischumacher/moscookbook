@@ -189,6 +189,17 @@ interface AiTrace {
     provider: string | null;
     asked: boolean;
     failed: boolean;
+    /**
+     * Not asked because there was nothing worth asking about.
+     *
+     * Different from "not asked because the AI is off", and the difference is
+     * the sentence the inbox prints. An Instagram reel whose whole caption is
+     * "Recipe up now in my newsletter" gives fifty-seven characters once the
+     * platform's wrapper comes off — under the floor, so no model is asked,
+     * and the right thing to say is that there was no recipe rather than that
+     * the page held part of one.
+     */
+    tooThin?: boolean;
 }
 
 const NOT_ASKED: AiTrace = { provider: null, asked: false, failed: false };
@@ -251,7 +262,9 @@ async function fillGapsWithAi(
      * text, and the entire recipe, ingredients and steps, is sitting in the
      * page's `og:title`. The floor saw an empty string and declined to ask.
      */
-    if (text.trim().length < 80) return { draft, trace: NOT_ASKED };
+    if (text.trim().length < 80) {
+        return { draft, trace: { ...NOT_ASKED, tooThin: true } };
+    }
 
     try {
         const parsed = await extractRecipeWithAi({ kind: 'text', text }, ai.keys, options.onModel);
@@ -325,6 +338,48 @@ function aiInput(draft: ImportedRecipe, pageText: string, shared: string): strin
     return parts.join('\n\n');
 }
 
+/**
+ * What to say about a draft that is not ready.
+ *
+ * "The page held only part of a recipe" was said about three Instagram reels
+ * whose captions were, in full, "Leftover bacon? Cook this. Recipe up now in
+ * my newsletter." There was no part of a recipe. There was an advertisement
+ * for one, and a model was asked, read it correctly, and returned nothing —
+ * which is the right answer and was reported as a shortfall.
+ *
+ * The distinction is worth drawing because the two want different things from
+ * whoever reads the inbox. A page that gave up half a recipe wants finishing.
+ * A page that never had one wants deleting, and saying so saves somebody
+ * opening it to find out.
+ */
+function reasonFor(
+    status: 'ready' | 'needsWork' | 'failed',
+    draft: ImportedRecipe,
+    trace: AiTrace,
+    kind: 'page' | 'video'
+): string | null {
+    if (status === 'ready') return null;
+
+    const empty = draft.ingredients.length === 0 && draft.instructions.trim() === '';
+
+    /*
+     * Two ways of knowing there was nothing here, and they deserve the same
+     * sentence.
+     *
+     * A model looked and found nothing — that is an answer, not a shortfall.
+     * Or there was too little to be worth showing a model at all: fifty-seven
+     * characters of "Recipe up now in my newsletter" is not a recipe that
+     * failed to parse, it is an advertisement for one.
+     */
+    if (empty && ((trace.asked && !trace.failed) || trace.tooThin === true)) {
+        return 'There was no recipe on this page — only a mention of one.';
+    }
+
+    return kind === 'video'
+        ? 'The description did not hold a full recipe — it may only be spoken in the video.'
+        : 'The page held only part of a recipe.';
+}
+
 /* -------------------------------------------------------------------------- */
 /* One path per kind of thing                                                  */
 /* -------------------------------------------------------------------------- */
@@ -395,14 +450,7 @@ async function processYoutube(
 
     const status = completeness(merged);
 
-    return outcome(
-        status,
-        merged,
-        status === 'ready'
-            ? null
-            : 'The description did not hold a full recipe — it may only be spoken in the video.',
-        trace
-    );
+    return outcome(status, merged, reasonFor(status, merged, trace, 'video'), trace);
 }
 
 async function processWebPage(
@@ -467,12 +515,7 @@ async function processWebPage(
     }
 
     const status = completeness(draft);
-    return outcome(
-        status,
-        draft,
-        status === 'ready' ? null : 'The page held only part of a recipe.',
-        trace
-    );
+    return outcome(status, draft, reasonFor(status, draft, trace, 'page'), trace);
 }
 
 /**

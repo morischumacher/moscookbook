@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { deleteBlobs } from '@/lib/blobCleanup';
@@ -26,8 +26,21 @@ import { toJsonObject } from '@/lib/json';
  *     against a stored hash.
  *   - It writes the raw capture *before* trying to parse it. A share made in a
  *     supermarket must not be lost because a recipe site was slow.
- *   - It answers as soon as the capture is safe, even if parsing then fails.
- *     Standing in a shop waiting for a spinner is the thing being fixed here.
+ *   - It answers as soon as the capture is safe, and reads it afterwards.
+ *
+ * The third of those was a comment rather than a behaviour for a year. The
+ * code awaited the whole pipeline before answering, so a share waited for the
+ * page to be fetched, the rules to run and — since the AI arrived — a model to
+ * think. Measured against real pages this afternoon: 2.8 s for a YouTube
+ * video, 7.1 s for a Chefkoch article, **15.0 s** for a Squarespace recipe.
+ * Fifteen seconds is a person standing in a supermarket wondering whether the
+ * share worked, with a spinner that this file's own documentation says was the
+ * thing being fixed.
+ *
+ * `after()` runs the reading once the response has been sent. The capture is
+ * already durable by then — that is the whole point of writing it first — so
+ * nothing is at risk, and the inbox gets the draft a few seconds later whether
+ * or not anybody is still looking at the phone.
  */
 
 const captureSchema = z.object({
@@ -167,84 +180,89 @@ export async function POST(req: NextRequest) {
         .updateMany({ where: { id: record.id }, data: { lastUsedAt: new Date() } })
         .catch(() => undefined);
 
-    // Step two: try to read it, here and now, so that the common case is
-    // already sorted by the time the inbox is next opened. A failure is
-    // recorded on the capture, not returned as an error — the capture itself
-    // succeeded.
     /*
-     * Wrapped, because the row already exists and the person has already been
-     * told nothing by then. A site that will not load, an image host that
-     * hangs, a page that parses into something unexpected — none of those may
-     * turn a capture that *was* saved into a 500 that says it was not. The
-     * failure is recorded on the capture, which is what the inbox's "retry" is
-     * for.
+     * Step two: read it — after the answer has gone.
+     *
+     * Everything below runs once the phone has its 201 and the share sheet has
+     * closed. The row exists, the picture is stored, nothing here can lose
+     * either; the worst case is a capture that sits in the inbox as `new` for
+     * a few seconds longer, which is what the inbox's own retry is for.
+     *
+     * A failure is recorded on the capture rather than returned, because there
+     * is nobody left to return it to — and that was already true before this
+     * moved, since a site that will not load must never turn a capture that
+     * *was* saved into a 500 saying it was not.
      */
-    let status = 'failed';
-    let title = '';
+    after(async () => {
+        try {
+            // Read here rather than inside the pipeline: `captureProcess` must
+            // not import Prisma, because the test suite imports `captureProcess`.
+            // With the stored address put back on it.
+            //
+            // The second half of the same bug: classification happens before the
+            // upload, so `classified.imageUrl` is null for a screenshot, and
+            // handing that to the pipeline made it answer "No picture was stored"
+            // about a picture that had just been stored perfectly.
+            const result = await processCapture(
+                { ...classified, imageUrl: imageUrl ?? classified.imageUrl },
+                await aiCapability(),
+                { onModel: (provider, model) => void rememberModel(provider, model) }
+            );
 
-    try {
-        // Read here rather than inside the pipeline: `captureProcess` must
-        // not import Prisma, because the test suite imports `captureProcess`.
-        // With the stored address put back on it.
-        //
-        // The second half of the same bug: classification happens before the
-        // upload, so `classified.imageUrl` is null for a screenshot, and
-        // handing that to the pipeline made it answer "No picture was stored"
-        // about a picture that had just been stored perfectly.
-        const result = await processCapture(
-            { ...classified, imageUrl: imageUrl ?? classified.imageUrl },
-            await aiCapability(),
-            { onModel: (provider, model) => void rememberModel(provider, model) }
-        );
+            // Foreign image hosts are rejected by next/image, so the picture is
+            // copied into our own store rather than kept as a link that will not
+            // render.
+            const draft =
+                result.draft && result.draft.imageUrl
+                    ? { ...result.draft, imageUrl: await mirrorImageToBlob(result.draft.imageUrl) }
+                    : result.draft;
 
-        // Foreign image hosts are rejected by next/image, so the picture is
-        // copied into our own store rather than kept as a link that will not
-        // render.
-        const draft =
-            result.draft && result.draft.imageUrl
-                ? { ...result.draft, imageUrl: await mirrorImageToBlob(result.draft.imageUrl) }
-                : result.draft;
-
-        status = result.status;
-        title = draft?.title ?? '';
-
-        await prisma.capture.update({
-            where: { id: capture.id },
-            data: {
-                status: result.status,
-                error: result.error,
-                readBy: result.readBy,
-                aiProvider: result.provider,
-                // Widened before storing: see src/lib/json.ts, and
-                // tests/prismaJsonCompat.ts for why the compiler insists.
-                draft: draft ? toJsonObject(draft) : undefined,
-                imageUrl: draft?.imageUrl || imageUrl || null,
-                processedAt: new Date(),
-            },
-        });
-    } catch (error) {
-        console.error('Capture was saved but could not be read:', error);
-
-        await prisma.capture
-            .updateMany({
+            await prisma.capture.update({
                 where: { id: capture.id },
                 data: {
-                    status: 'failed',
-                    error: error instanceof Error ? error.message.slice(0, 500) : 'unknown',
+                    status: result.status,
+                    error: result.error,
+                    readBy: result.readBy,
+                    aiProvider: result.provider,
+                    // Widened before storing: see src/lib/json.ts, and
+                    // tests/prismaJsonCompat.ts for why the compiler insists.
+                    draft: draft ? toJsonObject(draft) : undefined,
+                    imageUrl: draft?.imageUrl || imageUrl || null,
                     processedAt: new Date(),
                 },
-            })
-            .catch(() => undefined);
-    }
+            });
+        } catch (error) {
+            console.error('Capture was saved but could not be read:', error);
+
+            await prisma.capture
+                .updateMany({
+                    where: { id: capture.id },
+                    data: {
+                        status: 'failed',
+                        error: error instanceof Error ? error.message.slice(0, 500) : 'unknown',
+                        processedAt: new Date(),
+                    },
+                })
+                .catch(() => undefined);
+        }
+    });
 
     return NextResponse.json(
         {
             id: capture.id,
-            status,
-            title,
+            /*
+             * `queued`, not the parsed status — because at this instant the
+             * parsing has not happened, and the alternative is answering with
+             * a guess.
+             *
+             * The Shortcut shows this, so it is a word somebody reads while
+             * standing in a shop: it says the thing arrived, which is the only
+             * question they have. What it turned into is a question for the
+             * inbox, later, on a bigger screen.
+             */
+            status: 'queued',
             // No prose here: this answer is read by a Shortcut, which has no
-            // locale to pick from. The Shortcut builds its own notification
-            // out of `status` and `title`.
+            // locale to pick from.
         },
         { status: 201 }
     );

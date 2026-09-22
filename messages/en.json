@@ -390,7 +390,8 @@
     "trouble413Q": "413 That is too large to capture",
     "trouble413A": "The picture is over 10 MB. Combine fewer screenshots, or lower the quality in “Convert Image”.",
     "troubleSilentQ": "Nothing happens at all",
-    "troubleSilentA": "Usually the order of the actions: encoding has to happen before sending, not after."
+    "troubleSilentA": "Usually the order of the actions: encoding has to happen before sending, not after.",
+    "queuedNote": "The reply now only says that something arrived; the reading happens afterwards. The shortcut used to wait for the page to be fetched, parsed and — since the AI — read by a model, which on one recipe page was a measured fifteen seconds with the phone in your hand."
   },
   "Share": {
     "share": "Share",

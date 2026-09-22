@@ -1,5 +1,5 @@
 import { suite, equal } from './harness';
-import { withoutSiteName } from '../src/lib/pageTitle';
+import { withoutPlatformWrapper, withoutSiteName } from '../src/lib/pageTitle';
 
 /**
  * Taking the site's name off a page title.
@@ -119,5 +119,71 @@ export default function pageTitleTests() {
         'whitespace is trimmed but nothing else',
         withoutSiteName('  Pasta Calabrese  ', 'Kochblog', 'https://kochblog.de/x'),
         'Pasta Calabrese'
+    );
+
+    suite('pageTitle: the platform wrapper');
+
+    /*
+     * Three real captures, all from his inbox, all filed under the whole
+     * construction as the recipe's name:
+     *
+     *   Ben Slater auf Instagram: "Perfect lasagne. Recipe in my newsletter."
+     *
+     * `withoutSiteName` cannot see it — the platform's name is in the middle,
+     * not at the end.
+     */
+    equal(
+        'the author and the platform come off',
+        withoutPlatformWrapper('Ben Slater auf Instagram: "Perfect lasagne. Recipe in my newsletter."'),
+        'Perfect lasagne. Recipe in my newsletter.'
+    );
+
+    equal(
+        'in English too',
+        withoutPlatformWrapper('Maxime on Instagram: "Porchetta & Polenta"'),
+        'Porchetta & Polenta'
+    );
+
+    equal(
+        'and on TikTok',
+        withoutPlatformWrapper('jemand on TikTok: "Chili Öl"'),
+        'Chili Öl'
+    );
+
+    // Instagram emits typographic quotes, and a caption runs over lines.
+    equal(
+        'curly quotes and newlines',
+        withoutPlatformWrapper('Maxime Saccomanno auf Instagram: \u201cPORCHETTA\n\nIngrédients : Persil\u201d'),
+        'PORCHETTA\n\nIngrédients : Persil'
+    );
+
+    // What must not be touched.
+    equal(
+        'a dish that merely mentions a platform',
+        withoutPlatformWrapper('Der Kuchen von Instagram'),
+        'Der Kuchen von Instagram'
+    );
+
+    equal(
+        'an ordinary title',
+        withoutPlatformWrapper('Ofengemüse mit Feta'),
+        'Ofengemüse mit Feta'
+    );
+
+    equal(
+        'a quotation that is not a platform line',
+        withoutPlatformWrapper('Omas Rezept: "das beste Gulasch"'),
+        'Omas Rezept: "das beste Gulasch"'
+    );
+
+    // It runs inside withoutSiteName, so a page that has both is handled once.
+    equal(
+        'both wrappers at once',
+        withoutSiteName(
+            'Ben Slater auf Instagram: "Perfect lasagne - Kochblog"',
+            'Kochblog',
+            'https://kochblog.de/x'
+        ),
+        'Perfect lasagne'
     );
 }

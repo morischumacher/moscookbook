@@ -390,7 +390,8 @@
     "trouble413Q": "413 That is too large to capture",
     "trouble413A": "Das Bild ist über 10 MB. Weniger Screenshots kombinieren oder bei „Convert Image“ die Qualität senken.",
     "troubleSilentQ": "Es passiert gar nichts",
-    "troubleSilentA": "Meistens die Reihenfolge der Aktionen: kodiert werden muss vor dem Senden, nicht danach."
+    "troubleSilentA": "Meistens die Reihenfolge der Aktionen: kodiert werden muss vor dem Senden, nicht danach.",
+    "queuedNote": "Die Antwort sagt jetzt nur noch, dass etwas angekommen ist — gelesen wird es danach. Vorher wartete der Kurzbefehl, bis die Seite geholt, gelesen und gegebenenfalls ein Modell gefragt war; bei einer Rezeptseite waren das gemessene fünfzehn Sekunden mit dem Handy in der Hand."
   },
   "Share": {
     "share": "Teilen",
