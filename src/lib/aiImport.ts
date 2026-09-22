@@ -41,18 +41,26 @@ export function isAiProvider(value: string): value is AiProvider {
 }
 
 /**
- * Defaults, and they are a guess with a shelf life.
+ * Defaults, and two of them are a guess with a shelf life.
  *
- * Model names change faster than this cookbook does, so every one of these is
- * overridable on the admin screen and the "test" button reports the provider's
- * own error verbatim — which for a model that no longer exists is a sentence
- * naming it. That is the whole mitigation: not being right forever, but being
- * obviously wrong in one click.
+ * Google's is not, and that is worth the note. `gemini-flash-latest` is an
+ * **alias** that Google points at whatever the current Flash model is — it
+ * came out of the copy-pasteable cURL in Google's own console, which is where
+ * a name that stays right is most likely to be found. This used to say
+ * `gemini-2.0-flash`, pinned, and by the time anybody read it the console was
+ * offering Gemini 3 and the pin was a name for something two generations old.
+ *
+ * The other two are pinned because those providers do not publish an
+ * equivalent alias that is safe to rely on, and a wrong guess there is at
+ * least a loud one: every model name is overridable on the admin screen, and
+ * the "test" button reports the provider's own error verbatim, which for a
+ * model that does not exist is a sentence naming it. That is the mitigation —
+ * not being right forever, but being obviously wrong in one click.
  */
 export const DEFAULT_MODEL: Record<AiProvider, string> = {
     anthropic: 'claude-sonnet-5',
     openai: 'gpt-4o',
-    google: 'gemini-2.0-flash',
+    google: 'gemini-flash-latest',
 };
 
 /** Human-readable, for error messages that an admin reads. */
