@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Rating from './Rating';
 import Oyster from './brand/Oyster';
 import FavoriteButton from './FavoriteButton';
-import { photoBadge, photoControl } from '@/lib/ui';
+import { photoControl } from '@/lib/ui';
 
 interface RecipeCardProps {
     id: number; // For FavoriteButton
@@ -31,19 +31,33 @@ interface RecipeCardProps {
  * and an ellipsis, and the recipe's own page is one tap away.
  *
  * The words used to sit *on* the picture, in a dark band — title on one line,
- * five oysters under it on another. Two things were wrong with that. Half of
- * every photograph was covered by a black slab, and the oysters, drawn at 14
- * pixels in the page colour on near-black, lost their growth rings and turned
- * into five grey smudges. Counting five smudges is not a glance; it is a task,
- * and a tile is a thing you glance at.
+ * five oysters under it on another. Half of every photograph was covered by a
+ * black slab, and the oysters, drawn at 14 pixels in the page colour on
+ * near-black, lost their growth rings and turned into five grey smudges.
+ * Counting five smudges is not a glance; it is a task, and a tile is a thing
+ * you glance at.
  *
- * So the photograph is whole again, the title sits on paper under it, and the
- * rating is one oyster and one number in the corner — read in the time it takes
- * to see it, and comparable between two tiles without counting anything. The
- * full five, big enough to have rings, are on the recipe's own page, which is
- * where somebody is actually deciding rather than browsing.
+ * That was replaced by one oyster and one number on a dark pill in the corner,
+ * which was better and still wrong, and it took three rounds of trying to fix
+ * the *drawing* before the actual cause was measured: **the oyster does not
+ * read below about twenty-two pixels.** A shell is an outline with rings cut
+ * inside it, and at sixteen pixels the stroke that makes a ring visible is
+ * wide enough to eat the shell it is cut from. Every fix at that size traded
+ * one failure for another — rings that closed up into a bean, or a ring so
+ * dominant the shell became a sliver — and `detail()` in lib/oysterMark.ts
+ * says as much in its own thresholds. The badge was asking for a size the mark
+ * does not have.
  *
- * What this gives up: with one rating in, "5.0" looks like a verdict. That is
+ * A pill on a photograph cannot be twenty-two pixels; it would be a sticker.
+ * So the rating comes off the picture entirely and sits **on paper, on the
+ * title's line** — where it can be the size it needs to be, in the accent
+ * colour rather than white-on-scrim, with no backing plate and nothing covering
+ * the food. The photograph is now completely clean apart from the heart.
+ *
+ * The full five, which need room to be counted, are on the recipe's own page,
+ * where somebody is deciding rather than browsing.
+ *
+ * What this gives up: with one rating in, "5,0" looks like a verdict. That is
  * the honest cost of a number, and the page behind it says how many people
  * voted.
  */
@@ -85,35 +99,6 @@ export default function RecipeCard({
                             sizes="(min-width: 640px) 320px, 45vw"
                             className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                         />
-
-                        {/*
-                            A pill, not a gradient. The number has to clear
-                            4.5:1 over whatever photograph happens to be
-                            underneath, and only a flat backing can promise
-                            that — a fade promises it over a dark sky and
-                            breaks it over a plate of polenta. The colours come
-                            from lib/ui.ts and deliberately do not follow the
-                            colour scheme; the reason is written there.
-                        */}
-                        {rating > 0 && (
-                            <span className={`${photoBadge} gap-1 py-1 pl-1.5 pr-2.5`}>
-                                {/* 16 rather than 14: the shell's two growth
-                                    rings are cut out of a filled shell, and at
-                                    fourteen pixels on a dark pill they close up
-                                    and the oyster becomes a bean. They are cut
-                                    in the scrim, not the page — on this badge
-                                    the page colour is what the shell is filled
-                                    with, and cutting a shape out of itself
-                                    leaves a blob. */}
-                                <Oyster variant="solid" size={16} cutColor="var(--color-scrim)" />
-                                <span className="text-xs font-semibold leading-none">
-                                    {averageLabel}
-                                </span>
-                                <span className="sr-only">
-                                    {tRating('screenReader', { average: averageLabel, max: 5 })}
-                                </span>
-                            </span>
-                        )}
                     </span>
                 ) : (
                     /*
@@ -152,9 +137,55 @@ export default function RecipeCard({
                     heading in every sense except the markup. h3 because the
                     page's h1 is the cookbook and h2 is the section. */}
                 {imageUrl && (
-                    <h3 className="mt-2 text-[15px] font-bold leading-tight text-ink">
-                        {title}
-                    </h3>
+                    /*
+                        Under the title, on a line of its own — which costs a
+                        row of height and was still the right answer.
+
+                        On the title's line it looked better, for a tile whose
+                        recipe is called "Pasta". A tile is 170px wide, the
+                        rating takes 50 of them, and "Gebratene Nudeln mit
+                        Erdnusssauce und Frühlingszwiebeln" then wraps into five
+                        lines of two words. Clamping the title to two lines fixes
+                        the shape by throwing away the name of the dish, which on
+                        a screen whose entire job is telling you which dish this
+                        is, is the one thing not available to spend.
+
+                        So the title keeps the full width and the rating goes
+                        below it. Three of four real titles are two words and it
+                        looks the same either way; the fourth is why.
+                    */
+                    <div className="mt-2">
+                        <h3 className="text-[15px] font-bold leading-tight text-ink">
+                            {title}
+                        </h3>
+
+                        {rating > 0 && (
+                            <span className="mt-1 flex items-center gap-1 text-accent-text">
+                                {/*
+                                    Twenty-two, which is not a taste: it is the
+                                    first rung of `detail()` that gives the shell
+                                    two growth rings, and two rings is the least
+                                    that reads as a shell rather than as a bean.
+                                    Below it the mark has one central ring, which
+                                    is fine as an icon and not as a thing you
+                                    recognise. Changing this number means looking
+                                    at the result, not interpolating.
+
+                                    `cutColor` is left at its default — the page —
+                                    because that is exactly what is behind it
+                                    here. The whole reason this moved off the
+                                    photograph is that on a photograph it was not.
+                                */}
+                                <Oyster variant="solid" size={22} />
+                                <span className="text-[13px] font-semibold leading-none">
+                                    {averageLabel}
+                                </span>
+                                <span className="sr-only">
+                                    {tRating('screenReader', { average: averageLabel, max: 5 })}
+                                </span>
+                            </span>
+                        )}
+                    </div>
                 )}
             </Link>
 

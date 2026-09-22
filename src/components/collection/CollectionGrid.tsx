@@ -52,9 +52,14 @@ export default async function CollectionGrid({
                                 />
                             )}
 
-                            {/* The position, on the picture — the same badge
-                                the rating uses on the front page, because they
-                                are the same idea and were two shapes. */}
+                            {/* The position, on the picture.
+                                
+                                This used to be "the same badge the rating uses
+                                on the front page". The rating has since come
+                                off the photograph, because the oyster does not
+                                read at the size a badge can be. A digit does —
+                                that is the whole difference, and it is why this
+                                one stays where it is rather than following. */}
                             <span className={`${photoBadge} h-7 min-w-7 justify-center px-2 text-xs font-semibold`}>
                                 {index + 1}
                             </span>
