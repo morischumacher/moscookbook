@@ -6,11 +6,11 @@ import { slugify } from '@/lib/recipe';
 import { postInputSchema, formatPostError } from '@/lib/postSchema';
 import { postSearchFields } from '@/lib/searchText';
 import { deleteBlobs } from '@/lib/blobCleanup';
+import { positiveIntId } from '@/lib/routeParams';
 
 async function postId(params: Promise<{ id: string }>): Promise<number | null> {
     const { id } = await params;
-    const parsed = Number.parseInt(id, 10);
-    return Number.isNaN(parsed) ? null : parsed;
+    return positiveIntId(id);
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

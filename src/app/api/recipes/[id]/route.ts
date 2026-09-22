@@ -7,10 +7,10 @@ import { deleteBlobs } from '@/lib/blobCleanup';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
 import { searchFields } from '@/lib/searchText';
+import { positiveIntId } from '@/lib/routeParams';
 
 function parseRecipeId(raw: string): number | null {
-    const id = Number.parseInt(raw, 10);
-    return Number.isNaN(id) ? null : id;
+    return positiveIntId(raw);
 }
 
 export async function PUT(

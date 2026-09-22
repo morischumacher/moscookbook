@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { positiveIntId } from '@/lib/routeParams';
 
 export async function DELETE(
     req: NextRequest,
@@ -12,9 +13,9 @@ export async function DELETE(
 
     try {
         const { id } = await params;
-        const targetUserId = Number.parseInt(id, 10);
+        const targetUserId = positiveIntId(id);
 
-        if (Number.isNaN(targetUserId)) {
+        if (targetUserId === null) {
             return NextResponse.json({ message: 'Invalid user ID' }, { status: 400 });
         }
 

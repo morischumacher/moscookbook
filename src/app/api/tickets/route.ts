@@ -100,18 +100,23 @@ export async function GET(req: NextRequest) {
     }
 }
 
+const resolveSchema = z.object({
+    id: z.number().int().positive(),
+    resolved: z.boolean().default(false),
+});
+
 /** Marking one dealt with, or putting it back. */
 export async function PATCH(req: NextRequest) {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    const body = await req.json().catch(() => null);
-    const id = Number.parseInt(String((body as { id?: unknown })?.id ?? ''), 10);
-    const done = Boolean((body as { resolved?: unknown })?.resolved);
-
-    if (!Number.isInteger(id) || id <= 0) {
+    // The file already had a schema for its POST and abandoned it for this,
+    // which made it the one PATCH in the codebase parsed by hand.
+    const parsed = resolveSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
         return NextResponse.json({ message: 'Which one?' }, { status: 400 });
     }
+    const { id, resolved: done } = parsed.data;
 
     try {
         const updated: { count: number } = await prisma.ticket.updateMany({

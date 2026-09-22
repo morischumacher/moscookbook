@@ -49,6 +49,7 @@ import readableText from './readableText.test';
 import siteProfile from './siteProfile.test';
 import siteLearn from './siteLearn.test';
 import drafts from './drafts.test';
+import routeParams from './routeParams.test';
 import aiProviders from './aiProviders.test';
 import aiPolish from './aiPolish.test';
 import draftQuality from './draftQuality.test';
@@ -101,6 +102,7 @@ async function main() {
     await aiPolish();
     await siteLearn();
     drafts();
+    routeParams();
     draftQuality();
     await fixtures();
     pageTitle();

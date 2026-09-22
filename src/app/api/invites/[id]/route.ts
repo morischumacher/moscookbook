@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
+import { positiveIntId } from '@/lib/routeParams';
 
 /** Revokes an invite. */
 export async function DELETE(
@@ -13,9 +14,9 @@ export async function DELETE(
 
     try {
         const { id } = await params;
-        const inviteId = Number.parseInt(id, 10);
+        const inviteId = positiveIntId(id);
 
-        if (Number.isNaN(inviteId)) {
+        if (inviteId === null) {
             return NextResponse.json({ message: 'Invalid invite ID' }, { status: 400 });
         }
 

@@ -165,6 +165,23 @@ export default function siteProfileTests() {
     );
     equal('an array index in a path', indexed.title, 'Linsensuppe');
 
+    /*
+     * These pin *behaviour*, not the deny-list. With the list removed they
+     * still pass, because the `typeof !== 'object'` step-check already ends
+     * the walk at `constructor` (a function). That is worth knowing: the
+     * sabotage run found it, and the first version of this comment claimed a
+     * hole that was not there. The list stays as a statement of intent; these
+     * checks stay as the guarantee that nothing in the prototype chain ever
+     * reaches a field, by whichever mechanism.
+     */
+    for (const forbidden of ['__proto__.x', 'constructor.name', 'a.prototype.b', 'constructor']) {
+        const probed = applyProfile(
+            '<html><body><script type="application/ld+json">{"a":{"b":"x"}}</script></body></html>',
+            { title: { kind: 'jsonLd', path: forbidden } }
+        );
+        check(`a path through ${forbidden} finds nothing`, probed.title === '' && probed.missing.includes('title'), probed);
+    }
+
     const nonsense = applyProfile(
         '<html><body><script type="application/ld+json">{ not json </script></body></html>',
         { title: { kind: 'jsonLd', path: 'name' } }

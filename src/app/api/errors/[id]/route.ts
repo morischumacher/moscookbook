@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { positiveIntId } from '@/lib/routeParams';
 
 /**
  * Marks an error as dealt with.
@@ -14,9 +15,9 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     if ('response' in auth) return auth.response;
 
     const { id } = await context.params;
-    const errorId = Number.parseInt(id, 10);
+    const errorId = positiveIntId(id);
 
-    if (Number.isNaN(errorId)) {
+    if (errorId === null) {
         return NextResponse.json({ message: 'Invalid id' }, { status: 400 });
     }
 
@@ -33,9 +34,9 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     if ('response' in auth) return auth.response;
 
     const { id } = await context.params;
-    const errorId = Number.parseInt(id, 10);
+    const errorId = positiveIntId(id);
 
-    if (Number.isNaN(errorId)) {
+    if (errorId === null) {
         return NextResponse.json({ message: 'Invalid id' }, { status: 400 });
     }
 

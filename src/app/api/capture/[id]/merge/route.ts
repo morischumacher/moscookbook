@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { positiveIntId } from '@/lib/routeParams';
 
 const bodySchema = z.object({ recipeId: z.number().int().positive() });
 
@@ -32,8 +33,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if ('response' in auth) return auth.response;
 
     const { id } = await params;
-    const captureId = Number.parseInt(id, 10);
-    if (Number.isNaN(captureId)) {
+    const captureId = positiveIntId(id);
+
+    if (captureId === null) {
         return NextResponse.json({ message: 'Invalid capture ID' }, { status: 400 });
     }
 

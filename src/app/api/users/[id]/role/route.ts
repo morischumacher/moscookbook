@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { positiveIntId } from '@/lib/routeParams';
 
 const roleSchema = z.object({
     admin: z.boolean(),
@@ -17,9 +18,9 @@ export async function PATCH(
 
     try {
         const { id } = await params;
-        const userId = Number.parseInt(id, 10);
+        const userId = positiveIntId(id);
 
-        if (Number.isNaN(userId)) {
+        if (userId === null) {
             return NextResponse.json({ message: 'Invalid user ID' }, { status: 400 });
         }
 

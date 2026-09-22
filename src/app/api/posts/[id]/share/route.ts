@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { generateShareToken, shareUrl } from '@/lib/shareToken';
+import { positiveIntId } from '@/lib/routeParams';
 
 /**
  * The public link for one entry. Exactly the recipe route, one table over —
@@ -16,8 +17,7 @@ function localeOf(request: Request): string {
 
 async function postId(params: Promise<{ id: string }>): Promise<number | null> {
     const { id } = await params;
-    const parsed = Number.parseInt(id, 10);
-    return Number.isNaN(parsed) ? null : parsed;
+    return positiveIntId(id);
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {

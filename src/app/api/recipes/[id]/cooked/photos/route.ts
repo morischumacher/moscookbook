@@ -9,6 +9,7 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import { checkImageUpload, looksLikeHeic } from '@/lib/uploadImage';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { ownerScope } from '@/lib/ownership';
+import { positiveIntId } from '@/lib/routeParams';
 
 /**
  * The pictures on a cooking entry.
@@ -53,13 +54,11 @@ const REASONS: Record<string, { message: string; status: number }> = {
 
 async function recipeIdFrom(params: Promise<{ id: string }>): Promise<number | null> {
     const { id } = await params;
-    const parsed = Number.parseInt(id, 10);
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+    return positiveIntId(id);
 }
 
 function numberParam(req: NextRequest, name: string): number | null {
-    const parsed = Number.parseInt(new URL(req.url).searchParams.get(name) ?? '', 10);
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+    return positiveIntId(new URL(req.url).searchParams.get(name));
 }
 
 /**

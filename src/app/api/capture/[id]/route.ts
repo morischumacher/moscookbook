@@ -11,6 +11,7 @@ import { processCapture } from '@/lib/captureProcess';
 import { aiCapability, rememberModel } from '@/lib/aiConfig';
 import type { ImportedRecipe } from '@/lib/recipeFromHtml';
 import { toJsonObject } from '@/lib/json';
+import { positiveIntId } from '@/lib/routeParams';
 
 /**
  * `askAi` is the button on a draft the scoring called good.
@@ -38,8 +39,7 @@ import { toJsonObject } from '@/lib/json';
 const actionSchema = z.object({ action: z.enum(['retry', 'askAi', 'publish', 'stage']) });
 
 function parseId(raw: string): number | null {
-    const id = Number.parseInt(raw, 10);
-    return Number.isNaN(id) ? null : id;
+    return positiveIntId(raw);
 }
 
 /**

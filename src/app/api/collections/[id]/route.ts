@@ -3,12 +3,12 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { collectionInputSchema, formatCollectionError } from '@/lib/collectionSchema';
+import { positiveIntId } from '@/lib/routeParams';
 
 /** Editing and removing one collection. Admin only, like making one. */
 
 function parseId(raw: string): number | null {
-    const id = Number.parseInt(raw, 10);
-    return Number.isInteger(id) && id > 0 ? id : null;
+    return positiveIntId(raw);
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

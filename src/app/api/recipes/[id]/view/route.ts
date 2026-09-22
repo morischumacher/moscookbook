@@ -4,6 +4,7 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
+import { positiveIntId } from '@/lib/routeParams';
 
 export async function POST(
     req: NextRequest,
@@ -11,9 +12,9 @@ export async function POST(
 ) {
     try {
         const { id } = await params;
-        const recipeId = Number.parseInt(id, 10);
+        const recipeId = positiveIntId(id);
 
-        if (Number.isNaN(recipeId)) {
+        if (recipeId === null) {
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
         }
 

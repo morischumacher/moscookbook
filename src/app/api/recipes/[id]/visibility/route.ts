@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
+import { positiveIntId } from '@/lib/routeParams';
 
 /**
  * Publishing one recipe, or taking it back.
@@ -26,9 +27,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if ('response' in auth) return auth.response;
 
     const { id } = await params;
-    const recipeId = Number.parseInt(id, 10);
+    const recipeId = positiveIntId(id);
 
-    if (!Number.isInteger(recipeId) || recipeId <= 0) {
+    if (recipeId === null) {
         return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
     }
 

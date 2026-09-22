@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'node:crypto';
 import { put, list, del } from '@vercel/blob';
 import prisma from '@/lib/prisma';
 import { sweepRateLimits } from '@/lib/rateLimitShared';
@@ -44,7 +45,17 @@ const PREFIX = BACKUP_PREFIX;
 function authorised(req: NextRequest): boolean {
     const secret = process.env.CRON_SECRET;
     if (!secret) return false;
-    return req.headers.get('authorization') === `Bearer ${secret}`;
+
+    /*
+     * Constant-time, because this header guards a route that deletes blobs.
+     * `===` on strings returns at the first byte that differs, which leaks how
+     * much of a guess was right. The length check first is not a leak in the
+     * other direction — the secret's length is not the secret — and
+     * timingSafeEqual requires equal lengths.
+     */
+    const expected = Buffer.from(`Bearer ${secret}`);
+    const given = Buffer.from(req.headers.get('authorization') ?? '');
+    return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
 export async function GET(req: NextRequest) {

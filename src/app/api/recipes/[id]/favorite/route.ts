@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { requireUser } from '@/lib/auth';
+import { positiveIntId } from '@/lib/routeParams';
 
 export async function POST(
     req: NextRequest,
@@ -12,9 +13,9 @@ export async function POST(
 
     try {
         const { id } = await params;
-        const recipeId = Number.parseInt(id, 10);
+        const recipeId = positiveIntId(id);
 
-        if (Number.isNaN(recipeId)) {
+        if (recipeId === null) {
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
         }
 
@@ -49,9 +50,9 @@ export async function DELETE(
 
     try {
         const { id } = await params;
-        const recipeId = Number.parseInt(id, 10);
+        const recipeId = positiveIntId(id);
 
-        if (Number.isNaN(recipeId)) {
+        if (recipeId === null) {
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
         }
 

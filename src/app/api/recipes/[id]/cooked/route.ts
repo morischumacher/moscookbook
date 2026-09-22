@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { ownerScope } from '@/lib/ownership';
+import { positiveIntId } from '@/lib/routeParams';
 
 /**
  * "I cooked this" — the entry itself. Its photographs are in ./photos.
@@ -28,13 +29,11 @@ const MAX_NOTE = 280;
 
 async function recipeIdFrom(params: Promise<{ id: string }>): Promise<number | null> {
     const { id } = await params;
-    const parsed = Number.parseInt(id, 10);
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+    return positiveIntId(id);
 }
 
 function entryIdFrom(req: NextRequest): number | null {
-    const parsed = Number.parseInt(new URL(req.url).searchParams.get('entry') ?? '', 10);
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+    return positiveIntId(new URL(req.url).searchParams.get('entry'));
 }
 
 function noteFrom(body: unknown): string | null {

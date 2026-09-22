@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { generateShareToken, shareUrl } from '@/lib/shareToken';
+import { positiveIntId } from '@/lib/routeParams';
 
 /**
  * The public link for a collection.
@@ -19,8 +20,7 @@ function localeOf(request: Request): string {
 }
 
 function parseId(raw: string): number | null {
-    const id = Number.parseInt(raw, 10);
-    return Number.isInteger(id) && id > 0 ? id : null;
+    return positiveIntId(raw);
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
