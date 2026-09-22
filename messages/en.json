@@ -56,6 +56,7 @@
     "Indian": "Indian"
   },
   "Recipe": {
+    "loadingRecipe": "Fetching the recipe\u2026",
     "ingredients": "Ingredients",
     "instructions": "Method",
     "noIngredients": "No ingredients recorded for this recipe.",
@@ -146,6 +147,7 @@
     "inviteExpired": "This invitation has expired. Ask Mo for a new link."
   },
   "Admin": {
+    "loadingPage": "Fetching the page\u2026",
     "dashboard": "Recipes",
     "lastBackup": "Last scheduled backup: {date} — {result}",
     "noBackupYet": "No scheduled backup has run yet. It runs Mondays at 4 a.m. once CRON_SECRET is set in Vercel.",
@@ -298,6 +300,7 @@
     "title": "Inbox",
     "explanation": "Everything shared from your phone lands here first. Take it, finish it, or bin it.",
     "loading": "Loading the inbox…",
+    "rereading": "Reading it again with the rules…",
     "empty": "Nothing waiting. Share something from your phone.",
     "untitled": "Untitled",
     "accept": "Take it",
@@ -652,6 +655,7 @@
     "title": "AI import",
     "intro": "Recipes are read with rules first — structured data on the page, a video's description, pasted text. That costs nothing and works without any of this. A key is the second attempt: for a photograph, because pixels have no rule, and for the many blogs that write their ingredients with no markup at all.",
     "loading": "Loading …",
+    "reading": "A model is reading this…",
     "cannotStore": "This installation has no session secret to seal a key under. Until SECRET_COOKIE_PASSWORD is set, nothing can be stored here.",
     "modeHeading": "When it gets asked",
     "modeIntro": "The rules run first in every setting. This only says whether anything is asked afterwards.",

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/lib/formatDate';
 import { buttonSecondary } from '@/lib/ui';
+import Loading from '@/components/ui/Loading';
 
 interface TicketRow {
     id: number;
@@ -137,7 +138,7 @@ export default function TicketsPanel() {
             )}
 
             {loading ? (
-                <p className="mt-8 text-muted">{t('loading')}</p>
+                <Loading label={t('loading')} className="mt-8" />
             ) : entries.length === 0 ? (
                 <p className="mt-8 text-muted">{showResolved ? t('noneResolved') : t('noneOpen')}</p>
             ) : (

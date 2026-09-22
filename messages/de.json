@@ -56,6 +56,7 @@
     "Indian": "Indisch"
   },
   "Recipe": {
+    "loadingRecipe": "Rezept wird geholt\u2026",
     "ingredients": "Zutaten",
     "instructions": "Zubereitung",
     "noIngredients": "Für dieses Rezept sind keine Zutaten hinterlegt.",
@@ -146,6 +147,7 @@
     "inviteExpired": "Diese Einladung ist abgelaufen. Frag Mo nach einem neuen Link."
   },
   "Admin": {
+    "loadingPage": "Seite wird geholt\u2026",
     "dashboard": "Rezepte",
     "lastBackup": "Letzte automatische Sicherung: {date} — {result}",
     "noBackupYet": "Noch keine automatische Sicherung gelaufen. Sie läuft montags um 4 Uhr, sobald CRON_SECRET in Vercel gesetzt ist.",
@@ -298,6 +300,7 @@
     "title": "Eingang",
     "explanation": "Alles, was du vom Handy teilst, landet erst hier. Übernehmen, fertigstellen oder wegwerfen.",
     "loading": "Eingang wird geladen…",
+    "rereading": "Wird noch einmal mit den Regeln gelesen…",
     "empty": "Nichts da. Teile etwas von deinem Handy.",
     "untitled": "Ohne Titel",
     "accept": "Übernehmen",
@@ -652,6 +655,7 @@
     "title": "KI-Import",
     "intro": "Rezepte werden zuerst mit Regeln gelesen — strukturierte Daten auf der Seite, die Beschreibung eines Videos, ein eingefügter Text. Das kostet nichts und funktioniert ohne alles hier. Ein Schlüssel ist der zweite Versuch: für ein Foto, weil Pixel keine Regel haben, und für die vielen Blogs, die ihre Zutaten ohne jede Auszeichnung hinschreiben.",
     "loading": "Wird geladen …",
+    "reading": "Ein Modell liest das gerade\u2026",
     "cannotStore": "Diese Installation hat kein Sitzungsgeheimnis, unter dem ein Schlüssel verschlossen werden könnte. Bis SECRET_COOKIE_PASSWORD gesetzt ist, lässt sich hier nichts speichern.",
     "modeHeading": "Wann gefragt wird",
     "modeIntro": "Die Regeln laufen in jeder Einstellung zuerst. Hier steht nur, ob danach noch jemand gefragt wird.",

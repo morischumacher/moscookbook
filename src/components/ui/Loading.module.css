@@ -1,0 +1,41 @@
+/*
+ * The oyster's growth rings, arriving one after another.
+ *
+ * Nothing is drawn here. The mark is brand/Oyster — the same shell as the
+ * wordmark and the rating, because a second drawing of it would be a second
+ * mark — and this only animates the paths it already renders: inside the
+ * tilted group, the first path is the shell and every one after it is a ring,
+ * drawn outermost first.
+ *
+ * Running them inward is the motion a shell actually has, which is the whole
+ * reason this is not a spinning arc: a spinner says "something is happening
+ * somewhere", and a shell filling in says "this is mo'scookbook, working".
+ */
+.loader svg g path:nth-child(n + 2) {
+    opacity: 0.15;
+    animation: ring 1.6s ease-in-out infinite;
+}
+
+.loader svg g path:nth-child(2) { animation-delay: 0ms; }
+.loader svg g path:nth-child(3) { animation-delay: 160ms; }
+.loader svg g path:nth-child(4) { animation-delay: 320ms; }
+.loader svg g path:nth-child(5) { animation-delay: 480ms; }
+.loader svg g path:nth-child(6) { animation-delay: 640ms; }
+
+@keyframes ring {
+    0%, 70%, 100% { opacity: 0.15; }
+    35% { opacity: 1; }
+}
+
+/*
+ * Movement is the thing most likely to make somebody feel ill, and a loading
+ * indicator is on screen precisely when they cannot look away from it. The
+ * shell is drawn whole and still instead, which says the same thing: the
+ * label beside it is what carries the meaning either way.
+ */
+@media (prefers-reduced-motion: reduce) {
+    .loader svg g path:nth-child(n + 2) {
+        opacity: 1;
+        animation: none;
+    }
+}

@@ -10,7 +10,7 @@ import { storeCaptureImage, MAX_CAPTURE_IMAGE_BASE64 } from '@/lib/storeCaptureI
 import { findDuplicate, type ExistingRecipe } from '@/lib/duplicates';
 import { processCapture } from '@/lib/captureProcess';
 import { aiCapability, rememberModel } from '@/lib/aiConfig';
-import { canUseAi } from '@/lib/aiImport';
+import { DEFAULT_MODEL, canUseAi } from '@/lib/aiImport';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { toJsonObject } from '@/lib/json';
 import { failed } from '@/lib/reportServerError';
@@ -331,5 +331,23 @@ export async function GET() {
      * already making is cheaper than a second request that can fail on its
      * own and leave the buttons in a state nobody chose.
      */
-    return NextResponse.json({ captures: withHints, aiAvailable: canUseAi(await aiCapability()) });
+    /*
+     * And *which* model would be asked, so the inbox can say so while it
+     * waits. Waiting on a provider is a different kind of wait from waiting
+     * on our own database — seconds rather than milliseconds, it costs money,
+     * and it can come back with nothing — and naming the model is how the
+     * person watching knows which of those they are in.
+     *
+     * The first key is the one that would be tried; the others are its
+     * fallbacks. Its own model when one is set, otherwise that provider's
+     * default. No key material leaves here, only the name of a model.
+     */
+    const ai = await aiCapability();
+    const next = ai.keys[0] ?? null;
+
+    return NextResponse.json({
+        captures: withHints,
+        aiAvailable: canUseAi(ai),
+        aiModel: next ? next.model?.trim() || DEFAULT_MODEL[next.provider] : null,
+    });
 }

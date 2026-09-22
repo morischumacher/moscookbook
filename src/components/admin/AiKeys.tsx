@@ -6,6 +6,7 @@ import InlineConfirm from '@/components/ui/InlineConfirm';
 import { formatDate } from '@/lib/formatDate';
 import { messageFrom } from '@/lib/apiMessage';
 import { buttonPrimarySmall, chip } from '@/lib/ui';
+import Loading from '@/components/ui/Loading';
 
 /**
  * Where the AI keys are set.
@@ -241,7 +242,7 @@ export default function AiKeys() {
         }
     };
 
-    if (loading) return <p className="text-muted">{t('loading')}</p>;
+    if (loading) return <Loading label={t('loading')} />;
 
     // "Configured" for the menu, "usable" for the sentence about what runs:
     // an untested key is set up and is not being used, and saying otherwise

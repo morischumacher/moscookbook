@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import InlineConfirm from '@/components/ui/InlineConfirm';
 import { formatDate } from '@/lib/formatDate';
 import { buttonPrimarySmall } from '@/lib/ui';
+import Loading from '@/components/ui/Loading';
 
 interface Invite {
     id: number;
@@ -131,7 +132,7 @@ export default function InvitationList() {
             {error && <p className="py-4 text-sm text-danger">{error}</p>}
 
             {loading ? (
-                <p className="py-20 text-center text-muted">{t('loading')}</p>
+                <Loading label={t('loading')} className="py-20" />
             ) : invites.length === 0 ? (
                 <p className="py-20 text-center text-muted">{t('none')}</p>
             ) : (

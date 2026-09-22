@@ -7,6 +7,7 @@ import { captureLabel } from '@/lib/capture';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { formatDate } from '@/lib/formatDate';
 import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import Loading from '@/components/ui/Loading';
 
 interface DraftSummary {
     title?: string;
@@ -77,6 +78,10 @@ export default function AdminInboxPage() {
     const [error, setError] = useState('');
     /** Whether "read this with the AI" can do anything. Reported by the list. */
     const [aiAvailable, setAiAvailable] = useState(false);
+    /** And which model would be asked, so the wait can say who is working. */
+    const [aiModel, setAiModel] = useState<string | null>(null);
+    /** Which row is busy doing what, so the right thing can be said about it. */
+    const [busyAction, setBusyAction] = useState<'retry' | 'askAi' | 'publish' | 'stage' | null>(null);
 
     const load = useCallback(async () => {
         try {
@@ -85,6 +90,7 @@ export default function AdminInboxPage() {
             const data = await res.json();
             setCaptures(data.captures);
             setAiAvailable(Boolean(data.aiAvailable));
+            setAiModel(typeof data.aiModel === 'string' ? data.aiModel : null);
         } catch (err) {
             setError(err instanceof Error ? err.message : tAdmin('genericError'));
         } finally {
@@ -98,6 +104,7 @@ export default function AdminInboxPage() {
 
     const act = async (id: number, action: 'retry' | 'askAi' | 'publish' | 'stage') => {
         setBusyId(id);
+        setBusyAction(action);
         setError('');
         try {
             const res = await fetch(`/api/capture/${id}`, {
@@ -133,6 +140,7 @@ export default function AdminInboxPage() {
             setError(tAdmin('genericError'));
         } finally {
             setBusyId(null);
+            setBusyAction(null);
         }
     };
 
@@ -212,7 +220,7 @@ export default function AdminInboxPage() {
             )}
 
             {loading ? (
-                <p className="text-muted">{t('loading')}</p>
+                <Loading label={t('loading')} />
             ) : open.length === 0 ? (
                 <p className="border-t border-line py-16 text-center text-muted">{t('empty')}</p>
             ) : (
@@ -222,6 +230,8 @@ export default function AdminInboxPage() {
                             key={capture.id}
                             capture={capture}
                             busy={busyId === capture.id}
+                            busyAction={busyId === capture.id ? busyAction : null}
+                            aiModel={aiModel}
                             onPublish={() => act(capture.id, 'publish')}
                             onStage={() => act(capture.id, 'stage')}
                             onRetry={() => act(capture.id, 'retry')}
@@ -275,6 +285,8 @@ export default function AdminInboxPage() {
 function CaptureRow({
     capture,
     busy,
+    busyAction,
+    aiModel,
     onPublish,
     onStage,
     onRetry,
@@ -285,6 +297,10 @@ function CaptureRow({
 }: {
     capture: Capture;
     busy: boolean;
+    /** What this row is doing, when it is doing something. */
+    busyAction: 'retry' | 'askAi' | 'publish' | 'stage' | null;
+    /** The model that would be asked, for the one wait that is somebody else's. */
+    aiModel: string | null;
     onPublish: () => void;
     onStage: () => void;
     onRetry: () => void;
@@ -408,6 +424,24 @@ function CaptureRow({
             )}
 
             {capture.error && <p className="mt-1 text-sm text-muted">{capture.error}</p>}
+
+            {/*
+                The row is working, and this says on whose time.
+
+                Rereading with the rules is ours and takes a moment; asking a
+                model is somebody else's, takes seconds, costs money and can
+                come back with nothing. The buttons all said "Just a moment…"
+                either way, which made the expensive wait look like the cheap
+                one — so the one that is not ours names the model doing it.
+            */}
+            {busy && (busyAction === 'askAi' || busyAction === 'retry') && (
+                <Loading
+                    className="mt-3"
+                    size={22}
+                    label={busyAction === 'askAi' ? tAi('reading') : t('rereading')}
+                    model={busyAction === 'askAi' ? aiModel : null}
+                />
+            )}
 
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
                 {canPublish && (

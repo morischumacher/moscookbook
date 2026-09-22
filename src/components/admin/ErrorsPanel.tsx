@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/lib/formatDate';
 import { messageFrom } from '@/lib/apiMessage';
 import InlineConfirm from '@/components/ui/InlineConfirm';
+import Loading from '@/components/ui/Loading';
 
 interface ErrorRow {
     id: number;
@@ -138,7 +139,7 @@ export default function ErrorsPanel() {
             )}
 
             {loading ? (
-                <p className="text-muted">{t('loading')}</p>
+                <Loading label={t('loading')} />
             ) : error ? null : errors.length === 0 ? (
                 <p className="border-t border-line py-16 text-center text-muted">
                     {showResolved ? t('noneResolved') : t('allQuiet')}
