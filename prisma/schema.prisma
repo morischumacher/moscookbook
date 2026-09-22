@@ -25,6 +25,19 @@ model User {
   /// becomes a credential when a password can be reset through it.
   emailVerifiedAt DateTime?
 
+  /// A round picture beside this person's contributions.
+  ///
+  /// Not in any backup, because accounts are not: an archive restored into a
+  /// fresh installation makes new accounts, and a URL pointing at a file that
+  /// belonged to the old one would be a broken picture with somebody else's
+  /// face missing from it.
+  ///
+  /// It *is* in scripts/sweep-blobs.mjs, and that is the part that matters.
+  /// The sweep deletes every file in the store that no row points at, so a
+  /// picture column it does not know about is a picture column whose files are
+  /// deleted on the next run — silently, and a week later.
+  avatarUrl      String?
+
   tokens         AuthToken[]
   posts          Post[]
   cookEntries    CookEntry[]

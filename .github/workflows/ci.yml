@@ -59,6 +59,9 @@ jobs:
       - name: The oyster is actually in the icons
         run: npm run check:icons
 
+      - name: The blob sweep knows every picture column
+        run: npm run check:blobs
+
       - name: Backup coverage
         run: npm run check:backup
 

@@ -39,7 +39,7 @@ const DELETE = process.argv.includes('--delete');
 const GRACE_HOURS = 24;
 
 async function referencedUrls() {
-    const [images, posts, cookedPhotos, captures] = await Promise.all([
+    const [images, posts, cookedPhotos, captures, avatars] = await Promise.all([
         prisma.image.findMany({ select: { url: true } }),
         prisma.post.findMany({ select: { imageUrl: true } }),
         prisma.cookEntryPhoto.findMany({ select: { url: true } }),
@@ -47,6 +47,10 @@ async function referencedUrls() {
         // recipe yet, and sweeping those away would empty the inbox of its
         // pictures.
         prisma.capture.findMany({ select: { imageUrl: true } }),
+        // Profile pictures. A column this script does not know about is a
+        // column whose files are deleted on the next run — silently, and a
+        // week later, which is the worst possible shape for that bug.
+        prisma.user.findMany({ select: { avatarUrl: true } }),
     ]);
 
     const urls = new Set();
@@ -54,6 +58,7 @@ async function referencedUrls() {
     for (const row of posts) if (row.imageUrl) urls.add(row.imageUrl);
     for (const row of cookedPhotos) if (row.url) urls.add(row.url);
     for (const row of captures) if (row.imageUrl) urls.add(row.imageUrl);
+    for (const row of avatars) if (row.avatarUrl) urls.add(row.avatarUrl);
 
     // A draft in the inbox holds the picture inside its JSON rather than in a
     // column of its own, so that is read too. Cheap, and the alternative is

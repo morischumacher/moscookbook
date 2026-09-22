@@ -195,6 +195,60 @@ function over(colour, alpha, backdrop) {
     }
 }
 
+/**
+ * The initials circle, swept across every hue it can produce.
+ *
+ * components/Avatar.tsx colours a person's initials from a hash of their name,
+ * which means the colour is not a decision anybody made and cannot be checked
+ * by looking at one of them. What *is* a decision is the saturation and the
+ * lightness, and those have to hold for all 360 hues at once.
+ *
+ * They did not. At 42% / 38% the worst hue is yellow at 3.64:1 — a perfectly
+ * ordinary name landing on a circle whose letters fail the contrast text
+ * needs, with nothing to notice unless you happen to be that person.
+ */
+{
+    const SATURATION = 0.45;
+    const LIGHTNESS = 0.32;
+
+    /** hsl to rgb, the plain formula from the specification. */
+    const fromHsl = (hue, saturation, lightness) => {
+        const c = (1 - Math.abs(2 * lightness - 1)) * saturation;
+        const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+        const m = lightness - c / 2;
+        const sector = Math.floor(hue / 60) % 6;
+        const [r, g, b] = [
+            [c, x, 0], [x, c, 0], [0, c, x], [0, x, c], [x, 0, c], [c, 0, x],
+        ][sector];
+        return [r, g, b].map((channel) => Math.round((channel + m) * 255));
+    };
+
+    const onScrim = toRgb(light.get('on-scrim') ?? '');
+    let worst = Infinity;
+    let worstHue = 0;
+
+    for (let hue = 0; hue < 360; hue += 1) {
+        const ratio = contrast(onScrim, fromHsl(hue, SATURATION, LIGHTNESS));
+        if (ratio < worst) {
+            worst = ratio;
+            worstHue = hue;
+        }
+    }
+
+    if (worst < 4.5) {
+        console.error(
+            `the initials circle is ${worst.toFixed(2)}:1 at hue ${worstHue}, ` +
+            'below the 4.5:1 two letters of text need. Lower the lightness in ' +
+            'components/Avatar.tsx and here.'
+        );
+        failures += 1;
+    } else {
+        console.log(
+            `  ok   initials circle      ${worst.toFixed(2)}:1  worst of 360 hues (${worstHue}°)`
+        );
+    }
+}
+
 // Named so that a reader of this file knows the omission is deliberate.
 console.log(`  --   not measured: ${[...DECORATIVE].join(', ')} (decorative by design)`);
 

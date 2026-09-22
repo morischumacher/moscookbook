@@ -596,5 +596,16 @@
         "copied": "Copied",
         "copyFailed": "Could not copy.",
         "ticketHint": "Copies a finished text with the page, the date and the description — to paste wherever it gets fixed."
+    },
+    "Account": {
+        "title": "Your account",
+        "pictureTitle": "Profile picture",
+        "pictureBody": "Shown beside your entries in the cooking log. Without one your initials stand there instead, which is also an answer.",
+        "choose": "Choose a picture",
+        "replace": "Replace the picture",
+        "remove": "Remove",
+        "working": "Just a moment…",
+        "failed": "That did not work. Please try again.",
+        "nav": "Account"
     }
 }
