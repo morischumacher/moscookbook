@@ -301,9 +301,16 @@ function CaptureRow({
                     the alternative is labelling it with a guess. */}
                 {capture.readBy && (
                     <>
+                        {/* The accent colour means "a model was involved", and
+                            that has to keep being true. A capture read from a
+                            learned site layout involves no model at all — it
+                            follows a mapping written down weeks ago — so it is
+                            plain, like the rules. Getting this wrong would say
+                            the AI wrote a recipe it never saw, which is the one
+                            thing this line exists to prevent. */}
                         <span
                             className={
-                                capture.readBy === 'rules'
+                                capture.readBy === 'rules' || capture.readBy === 'profile'
                                     ? undefined
                                     : capture.readBy === 'rules+ai-failed'
                                         ? 'text-danger'
@@ -312,15 +319,21 @@ function CaptureRow({
                         >
                             {capture.readBy === 'rules'
                                 ? tAi('usedRules')
-                                : capture.readBy === 'ai'
-                                    ? tAi('usedAi', { provider: providerLabel(capture.aiProvider) })
-                                    : capture.readBy === 'rules+ai-failed'
-                                        ? tAi('usedAiFailed', {
+                                : capture.readBy === 'profile'
+                                    ? tAi('usedProfile')
+                                    : capture.readBy === 'profile+ai'
+                                        ? tAi('usedProfileAndAi', {
                                             provider: providerLabel(capture.aiProvider),
                                         })
-                                        : tAi('usedRulesAndAi', {
-                                            provider: providerLabel(capture.aiProvider),
-                                        })}
+                                        : capture.readBy === 'ai'
+                                            ? tAi('usedAi', { provider: providerLabel(capture.aiProvider) })
+                                            : capture.readBy === 'rules+ai-failed'
+                                                ? tAi('usedAiFailed', {
+                                                    provider: providerLabel(capture.aiProvider),
+                                                })
+                                                : tAi('usedRulesAndAi', {
+                                                    provider: providerLabel(capture.aiProvider),
+                                                })}
                         </span>
                         <span aria-hidden="true">·</span>
                     </>

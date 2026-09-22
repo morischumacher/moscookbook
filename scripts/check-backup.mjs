@@ -51,6 +51,15 @@ const NOT_BACKED_UP = new Map([
     ['RateLimit', 'counters for windows measured in minutes; restoring one would be nonsense'],
     ['AiCredential', 'sealed API keys for this deployment; an export that carried them would be an export that leaks them, and they open only under this installation\u2019s secret anyway'],
     ['AppSetting', 'knobs belonging to this deployment, like whether the AI may be asked; a restore should take the new installation\u2019s settings, not the old one\u2019s'],
+    [
+        'SiteProfile',
+        'cached knowledge about public web pages, not content: every row can be ' +
+        'rebuilt by importing from that site once more. Worth saying plainly ' +
+        'that this is not free — a restore means one model call per site before ' +
+        'imports are cheap again — but the export is the cookbook, and the right ' +
+        'home for profiles is the planned `npm run profiles:export`, which writes ' +
+        'them into the repo where they can be read, corrected and shipped',
+    ],
     ['CollectionRecipe', "carried inside each collection's entry, in order, rather than as its own list"],
     ['CookEntryPhoto', "carried inside each cooking's entry, in order, rather than as its own list"],
 ]);

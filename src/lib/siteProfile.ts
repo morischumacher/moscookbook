@@ -375,3 +375,96 @@ export function applyProfile(html: string, profile: SiteProfile): ProfileResult 
 
     return { title, ingredients, method, imageUrl, missing };
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Storing one                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The key a profile is filed under.
+ *
+ * `www.` is dropped so that a share from a phone and a paste from a browser —
+ * which disagree about it more often than not — do not learn the same site
+ * twice and then disagree about it for ever.
+ */
+export function hostOf(url: string): string | null {
+    try {
+        const host = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+        return host === '' ? null : host;
+    } catch {
+        return null;
+    }
+}
+
+export interface StoredProfile {
+    host: string;
+    profile: SiteProfile;
+    learnedFrom: string;
+    learnedBy: string;
+    learnedAt: Date;
+    failures: number;
+    stale: boolean;
+}
+
+/**
+ * Where profiles live, as seen from the import.
+ *
+ * An interface rather than a direct call, for the same reason `AiCapability`
+ * is one: `captureProcess` must not import Prisma. A module that does cannot
+ * be loaded by the test runner, and the import pipeline is the part of this
+ * codebase that most needs to be testable offline.
+ *
+ * It also means the pipeline can be run with profiles switched off entirely,
+ * which is what `NO_PROFILES` is for and what the diagnose script uses to show
+ * the difference a profile makes.
+ */
+export interface SiteProfileStore {
+    load(host: string): Promise<StoredProfile | null>;
+    save(input: {
+        host: string;
+        profile: SiteProfile;
+        learnedFrom: string;
+        learnedBy: string;
+    }): Promise<void>;
+    /** Records that a profile was used, and whether what it produced held up. */
+    recordUse(host: string, ok: boolean, error?: string): Promise<void>;
+}
+
+/** A store that remembers nothing. The default, so nothing depends on a table. */
+export const NO_PROFILES: SiteProfileStore = {
+    load: async () => null,
+    save: async () => {},
+    recordUse: async () => {},
+};
+
+/**
+ * How many bad drafts in a row before a profile is set aside.
+ *
+ * Not one. A site that serves a broken page once, or a recipe page that really
+ * is thin, would otherwise throw away a mapping that has worked for months and
+ * cost a model call to rebuild. Three consecutive refusals is a site that has
+ * changed rather than a site having a bad day.
+ */
+export const FAILURES_BEFORE_STALE = 3;
+
+/**
+ * Reads a stored profile back, refusing anything that no longer validates.
+ *
+ * A row can outlive the vocabulary it was written in: a strategy removed in a
+ * later version leaves rows naming it. Re-validating on the way out means such
+ * a row is simply not used, and the next import re-learns the site — rather
+ * than a strategy name falling through a `switch` and reading nothing.
+ */
+export function profileFromStored(value: string): SiteProfile | null {
+    let data: unknown;
+    try {
+        data = JSON.parse(value);
+    } catch {
+        return null;
+    }
+
+    const parsed = profileSchema.safeParse(data);
+    if (!parsed.success) return null;
+
+    return isUsefulProfile(parsed.data) ? parsed.data : null;
+}

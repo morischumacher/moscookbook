@@ -681,6 +681,8 @@
     "usedAi": "Read with AI ({provider})",
     "usedRules": "Read without AI",
     "usedRulesAndAi": "Rules plus AI ({provider})",
+    "usedProfile": "Learned site layout, no AI",
+    "usedProfileAndAi": "Learned layout plus AI ({provider})",
     "polishHeading": "Revise with AI",
     "polishSpelling": "Spelling",
     "polishSteps": "Clearer steps",

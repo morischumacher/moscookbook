@@ -2,7 +2,7 @@ import type { CaptureSource, CaptureStatus } from './capture';
 import { withoutBareUrls } from './capture';
 import type { ImportedRecipe } from './recipeFromHtml';
 import { extractRecipeFromHtml } from './recipeFromHtml';
-import { parseRecipeText } from './recipeParser';
+import { parseRecipeText, parseIngredientLine } from './recipeParser';
 import { fetchPage } from './fetchPage';
 import { youtubeVideoId, extractYoutubePage, cleanYoutubeDescription } from './youtube';
 import { fetchImageAsBase64 } from './fetchImage';
@@ -14,8 +14,17 @@ import {
     capabilityFromEnv,
     extractRecipeWithAi,
     type AiCapability,
+    type AiKey,
     type ModelReport,
 } from './aiImport';
+import {
+    applyProfile,
+    hostOf,
+    NO_PROFILES,
+    type ProfileResult,
+    type SiteProfileStore,
+} from './siteProfile';
+import { learnSiteProfile } from './siteLearn';
 
 /**
  * Turning a capture into a recipe draft.
@@ -78,7 +87,24 @@ export interface ProcessedCapture {
      * working normally, and the way you would find out is by wondering, weeks
      * later, why the AI never seemed to do anything.
      */
-    readBy: 'rules' | 'rules+ai' | 'rules+ai-failed' | 'ai';
+    readBy:
+        | 'rules'
+        | 'rules+ai'
+        | 'rules+ai-failed'
+        | 'ai'
+        /**
+         * Read from what was learned about this site, with no model involved.
+         *
+         * The label matters as much as the others do: a profile is the one
+         * path where the cookbook is following an instruction a model wrote
+         * weeks ago, on a page nobody has looked at since. If a site starts
+         * importing badly, the first question is whether its profile is being
+         * used, and that question needs an answer in the row rather than a
+         * reconstruction from timestamps.
+         */
+        | 'profile'
+        /** The profile fell short on this page and a model finished the job. */
+        | 'profile+ai';
     /** Which provider answered, when one did. */
     provider: string | null;
 }
@@ -98,6 +124,24 @@ export interface ProcessedCapture {
  */
 export interface ProcessOptions {
     force?: boolean;
+    /**
+     * Where what we know about sites is kept.
+     *
+     * Passed in rather than imported, for the reason at the top of this file:
+     * nothing here may reach Prisma. The default remembers nothing, so every
+     * existing caller and every test behaves exactly as it did.
+     */
+    profiles?: SiteProfileStore;
+    /**
+     * The key the *learning* step may use, which need not be the key the
+     * import uses.
+     *
+     * A profile is written once and followed a hundred times, so a mistake
+     * here is multiplied in a way a mistake in one import is not. Left unset,
+     * nothing is learned — learning is never a side effect of an import
+     * somebody did not ask to be expensive.
+     */
+    learnWith?: AiKey;
     /**
      * Told which model answered, so a caller with a database can write it
      * down. See `rememberModel`: the fallback walks a list when the first
@@ -493,6 +537,42 @@ async function processWebPage(
     let draft = fromShare ? mergeDrafts(extracted, fromShare) : extracted;
 
     /*
+     * What we already know about this site.
+     *
+     * Only consulted when the rules fell short, and only ever merged into what
+     * they found — the same rule the AI follows, for the same reason. A site's
+     * JSON-LD, where it exists, is the site's own statement about its recipe
+     * and beats anything inferred from headings.
+     *
+     * A profile that has been retired is not loaded at all; that is the store's
+     * job, not this file's.
+     */
+    const host = hostOf(page.finalUrl);
+    const store = options.profiles ?? NO_PROFILES;
+    const known = host && shouldAsk(draft, options) ? await store.load(host) : null;
+    let usedProfile = false;
+
+    if (known && host) {
+        const read = applyProfile(page.html, known.profile);
+        const asRecipe = draftFromProfile(read, page.finalUrl);
+        const merged = mergeDrafts(draft, asRecipe);
+
+        /*
+         * And the profile is still not believed.
+         *
+         * It was verified once, against one page of this site, possibly months
+         * ago. Whether it worked *here* is decided by the same scoring every
+         * other path answers to — and if the merged draft is no better than
+         * what the rules had alone, the profile is not used and the failure is
+         * recorded. Three of those and the site is re-learned.
+         */
+        if (damageOf(merged) < damageOf(draft)) {
+            draft = merged;
+            usedProfile = true;
+        }
+    }
+
+    /*
      * This is the gap that was worth closing. A recipe site with schema.org
      * markup has always imported perfectly; a food blog that writes its
      * ingredients in a `<ul>` with no markup at all has always imported as a
@@ -515,7 +595,38 @@ async function processWebPage(
     }
 
     const status = completeness(draft);
-    return outcome(status, draft, reasonFor(status, draft, trace, 'page'), trace);
+
+    /*
+     * Book-keeping, after the fact and never in the way of the answer.
+     *
+     * A profile that was used and still needed a model is a profile that is
+     * drifting; three of those in a row and the site is marked for re-learning.
+     * One is not — a site that serves a thin page once has not been redesigned,
+     * and throwing away a mapping that has worked for months over a single bad
+     * day would cost a model call to rebuild for nothing.
+     */
+    if (usedProfile && host) {
+        await store
+            .recordUse(host, !trace.asked && status === 'ready', trace.asked ? 'the profile left gaps a model had to fill' : undefined)
+            .catch(() => undefined);
+    }
+
+    /*
+     * And learning, which happens only when a model actually read the page and
+     * actually helped. Learning from a failed call would store a map of a
+     * recipe nobody found.
+     */
+    if (host && !known && options.learnWith && trace.asked && !trace.failed && status === 'ready') {
+        await rememberThisSite(page.html, draft, host, page.finalUrl, options).catch(() => undefined);
+    }
+
+    const readBy: ProcessedCapture['readBy'] | undefined = usedProfile
+        ? trace.asked
+            ? 'profile+ai'
+            : 'profile'
+        : undefined;
+
+    return outcome(status, draft, reasonFor(status, draft, trace, 'page'), trace, readBy);
 }
 
 /**
@@ -669,4 +780,62 @@ export async function processCapture(
         console.error('Capture processing error:', error);
         return outcome('failed', null, 'Something went wrong while reading this.');
     }
+}
+
+/* -------------------------------------------------------------------------- */
+/* What we have learned about a site                                           */
+/* -------------------------------------------------------------------------- */
+
+/** The scoring as a single number, for comparing two drafts against each other. */
+function damageOf(draft: ImportedRecipe): number {
+    return assessDraft(draft).score;
+}
+
+/**
+ * What a profile read, in the shape the rest of the pipeline speaks.
+ *
+ * Only the four fields a profile can name. Everything else — servings, times,
+ * category — stays empty rather than being guessed at, because `mergeDrafts`
+ * fills holes and a guessed zero is not a hole.
+ */
+function draftFromProfile(read: ProfileResult, sourceUrl: string): ImportedRecipe {
+    return {
+        ...emptyDraft(sourceUrl),
+        title: read.title,
+        instructions: read.method,
+        imageUrl: read.imageUrl,
+        ingredients: read.ingredients
+            .map((line) => parseIngredientLine(line))
+            .filter((ingredient) => ingredient.item.trim() !== ''),
+    };
+}
+
+/**
+ * Learns how this site is laid out, having just paid a model to read it.
+ *
+ * Deliberately the *last* thing that happens, after the capture's own answer is
+ * settled, and wrapped by its caller so that a failure here can never affect
+ * the import. Somebody sharing a recipe from their kitchen is owed their
+ * recipe; whether the cookbook also got cleverer is nobody's business but ours.
+ */
+async function rememberThisSite(
+    html: string,
+    draft: ImportedRecipe,
+    host: string,
+    sourceUrl: string,
+    options: ProcessOptions
+): Promise<void> {
+    const key = options.learnWith;
+    const store = options.profiles;
+    if (!key || !store) return;
+
+    const learned = await learnSiteProfile(html, draft, key);
+    if (!learned.profile) return;
+
+    await store.save({
+        host,
+        profile: learned.profile,
+        learnedFrom: sourceUrl,
+        learnedBy: `${key.provider}${key.model ? `/${key.model}` : ''}`,
+    });
 }

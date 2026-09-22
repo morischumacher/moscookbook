@@ -681,6 +681,8 @@
     "usedAi": "Mit KI gelesen ({provider})",
     "usedRules": "Ohne KI gelesen",
     "usedRulesAndAi": "Regeln plus KI ({provider})",
+    "usedProfile": "Gelernte Seitenstruktur, ohne KI",
+    "usedProfileAndAi": "Gelernte Struktur plus KI ({provider})",
     "polishHeading": "Mit KI überarbeiten",
     "polishSpelling": "Rechtschreibung",
     "polishSteps": "Schritte klarer",

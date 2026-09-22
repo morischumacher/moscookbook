@@ -38,6 +38,8 @@ import { assessDraft } from '../src/lib/draftQuality';
 import { captureInputFrom } from '../src/lib/captureInput';
 import { processCapture } from '../src/lib/captureProcess';
 import prisma from '../src/lib/prisma';
+import { hostOf } from '../src/lib/siteProfile';
+import { siteProfiles } from '../src/lib/siteProfileDb';
 import { aiCapability } from '../src/lib/aiConfig';
 import { canUseAi, assistsText, PROVIDER_LABEL, type AiCapability } from '../src/lib/aiImport';
 import {
@@ -253,10 +255,58 @@ async function diagnose(url: string, keep: boolean): Promise<void> {
 
         line('classified as', `${classified.kind} / ${classified.source}`);
 
-        const result = await processCapture(classified, ai);
+        /*
+         * What we already know about this site, printed before the run rather
+         * than after, because it changes how everything below should be read.
+         * A profile in use means the recipe came from a mapping a model wrote
+         * some time ago against a page that may since have changed.
+         */
+        const host = hostOf(page.finalUrl);
+        const known = host ? await siteProfiles.load(host) : null;
+
+        if (!host) {
+            line('learned layout', dim('—'));
+        } else if (!known) {
+            line('learned layout', `${dim('nothing learned yet for')} ${host}`);
+        } else {
+            const age = Math.round((Date.now() - known.learnedAt.getTime()) / 86_400_000);
+            line(
+                'learned layout',
+                `${green(host)} — learned ${age === 0 ? 'today' : `${age} day(s) ago`} from ${known.learnedBy}`
+            );
+            for (const [field, strategy] of Object.entries(known.profile)) {
+                const how =
+                    strategy.kind === 'meta'
+                        ? strategy.property
+                        : strategy.kind === 'selector'
+                            ? strategy.selector
+                            : strategy.kind === 'jsonLd'
+                                ? strategy.path
+                                : strategy.heading;
+                console.log(dim(`      ${field.padEnd(12)} ${strategy.kind} · ${how}`));
+            }
+            if (known.failures > 0) {
+                console.log(yellow(`      ${known.failures} recent import(s) fell short of the scoring`));
+            }
+        }
+
+        const result = await processCapture(classified, ai, {
+            profiles: siteProfiles,
+            // The diagnose script learns with whatever key the import itself
+            // would use. The app gets its own setting for this; here the point
+            // is to exercise the path, not to spend more on it.
+            learnWith: ai.keys[0],
+        });
 
         line('status', result.status === 'ready' ? green(result.status) : yellow(result.status));
-        line('read by', result.readBy === 'rules' ? result.readBy : green(result.readBy));
+        // Plain for the two paths no model touched, so the colour keeps
+        // meaning "a model was involved" here as it does in the inbox.
+        line(
+            'read by',
+            result.readBy === 'rules' || result.readBy === 'profile'
+                ? result.readBy
+                : green(result.readBy)
+        );
         line('provider', result.provider ?? dim('—'));
         line('error', result.error ?? dim('—'));
         line('final title', JSON.stringify(result.draft?.title ?? ''));
