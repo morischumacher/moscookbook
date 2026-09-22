@@ -56,6 +56,9 @@ jobs:
       - name: Colour classes survive the build
         run: npm run check:tokens
 
+      - name: The oyster is actually in the icons
+        run: npm run check:icons
+
       - name: Backup coverage
         run: npm run check:backup
 
