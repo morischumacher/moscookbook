@@ -32,12 +32,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (id === null) return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
 
     try {
-        const recipe = await prisma.recipe.findUnique({
-            where: { id },
-            select: { shareToken: true },
-        });
+        const recipe: { shareToken: string | null; isDraft: boolean } | null =
+            await prisma.recipe.findUnique({
+                where: { id },
+                select: { shareToken: true, isDraft: true },
+            });
 
         if (!recipe) return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
+
+        /*
+         * No link for a draft. A share link is the one thing here that works
+         * without an account, so it is the shortest path from "still working on
+         * it" to "a stranger is reading it".
+         *
+         * Read-then-write is safe in this one direction: a recipe cannot become
+         * a draft, only stop being one, so a stale read can refuse a link that
+         * would now be allowed — an error the person fixes by pressing again —
+         * but can never grant one that should have been refused.
+         */
+        if (recipe.isDraft) {
+            return NextResponse.json({ message: 'draft', isDraft: true }, { status: 409 });
+        }
 
         /*
          * Asking twice gives the same link back rather than a second one. Two

@@ -45,6 +45,7 @@ function recipeData(recipe: ArchiveRecipe) {
         // given somebody having stopped working. An archive from before this
         // field existed defaults to false, which is the safe direction.
         isPublic: recipe.isPublic,
+        isDraft: recipe.isDraft,
         createdAt: safeDate(recipe.createdAt) ?? new Date(),
         ...searchFields({
             title: recipe.title,

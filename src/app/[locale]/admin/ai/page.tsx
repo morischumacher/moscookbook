@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import AiKeys from '@/components/admin/AiKeys';
+import SiteProfiles from '@/components/admin/SiteProfiles';
 import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
 
 /**
@@ -29,6 +30,7 @@ export default async function AdminAiPage() {
             <p className="mb-10 font-serif text-muted">{t('intro')}</p>
 
             <AiKeys />
+            <SiteProfiles />
         </main>
     );
 }

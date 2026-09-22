@@ -30,6 +30,15 @@ export interface RecipeRow {
     createdAt: Date;
     /** Whether the recipe's own address works without an account. */
     isPublic: boolean;
+    /**
+     * Imported and tidied, but not yet one of this cookbook's own.
+     *
+     * Carried on the row rather than looked up where it is needed, because
+     * every surface that renders a recipe has to be able to refuse a draft to
+     * somebody without an account, and a field that has to be fetched
+     * separately is a field somebody will forget to fetch.
+     */
+    isDraft: boolean;
     shareToken: string | null;
     /**
      * The recipe's own searchable wording. Not shown anywhere — it is what

@@ -39,7 +39,12 @@ export default async function EditPost({
                 publishedAt: true,
             },
         }),
-        prisma.recipe.findMany({ orderBy: { title: 'asc' }, select: { id: true, title: true } }),
+        prisma.recipe.findMany({
+        // A draft cannot carry a post, so it is not offered as a choice.
+        where: { isDraft: false },
+        orderBy: { title: 'asc' },
+        select: { id: true, title: true },
+    }),
     ]);
 
     if (!post) notFound();

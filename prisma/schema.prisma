@@ -340,6 +340,21 @@ model Recipe {
   /// somebody notices.
   isPublic     Boolean    @default(false)
 
+  /// Imported and tidied up, but not yet one of this cookbook's own recipes.
+  ///
+  /// The state between the inbox — where quality varies wildly — and a recipe
+  /// somebody stands behind. A draft is meant to be cooked once and adjusted
+  /// before it counts, and until it does it is deliberately not offered
+  /// anywhere: not in the list, not in search, not as a suggestion, never in
+  /// public, and no post can be written about it.
+  ///
+  /// One-way on purpose. A recipe can be finished; it cannot be sent back to
+  /// being a draft. The reverse would mean a recipe that was public yesterday
+  /// having to un-publish itself, revoke its share link and disappear from
+  /// collections other people can see — a lot of machinery for an act nobody
+  /// asked for. Making one again from the source is the honest alternative.
+  isDraft      Boolean    @default(false)
+
   /// The public link, or null when the recipe is only for people who are
   /// logged in. Unguessable rather than a flag on the normal address: a secret
   /// URL can be handed to one person and withdrawn again without renaming the
@@ -658,4 +673,59 @@ model AppSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+/// What we have learned about how one website lays out a recipe.
+///
+/// Written the first time a model reads a page from this host and can say
+/// where it found things; read on every later import from that host, which
+/// then needs no model at all. That is the point of the table: a key stops
+/// being something the import depends on and becomes something that makes the
+/// cookbook permanently better.
+///
+/// A row is never written on a model's say-so. The profile is applied to the
+/// page it was learned from and compared with what the model itself extracted;
+/// one that cannot reproduce that answer is discarded and never reaches here.
+/// See `lib/siteLearn.ts`.
+///
+/// Nothing secret lives in this table. It holds heading texts and meta tag
+/// names — facts about a public web page.
+model SiteProfile {
+  /// The hostname, lowercased and without `www.`, so that
+  /// `www.example.com/recipes/x` and `example.com/x` share what was learned.
+  host        String   @id
+
+  /// The strategies, validated against `profileSchema` before being written
+  /// and again after being read. Stored as text rather than Json because it is
+  /// only ever handled as a whole and this keeps the Prisma client's typing
+  /// out of the way of a zod schema that is already the source of truth.
+  profile     String
+
+  /// The page it was learned from, and by which model. Both are for the
+  /// person reading this table later and wondering whether to trust a row.
+  learnedFrom String
+  learnedBy   String
+  learnedAt   DateTime @default(now())
+
+  /// When it was last used successfully. A profile nobody has used in a year
+  /// is a candidate for re-learning even if it has never failed.
+  usedAt      DateTime?
+
+  /// Consecutive imports where the profile produced a draft the scoring
+  /// refused. Reset to zero on every success, because a site that returns a
+  /// bad page once is not a site that has been redesigned.
+  failures    Int      @default(0)
+
+  /// Set once `failures` passes the threshold. A stale profile is not deleted
+  /// — the next import re-learns and overwrites it, and until then the row is
+  /// the record of what the site used to look like.
+  stale       Boolean  @default(false)
+
+  /// Why it was last refused, for the diagnose script and for anyone asking
+  /// why a site suddenly costs a model call again.
+  lastError   String?
+
+  updatedAt   DateTime @updatedAt
+
+  @@index([stale, usedAt])
 }

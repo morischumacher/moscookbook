@@ -5,6 +5,8 @@ import { cookies } from 'next/headers';
 import RecipeArticle, { recipeInclude, type RecipeRow } from '@/components/recipe/RecipeArticle';
 import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
+import FinishDraft from '@/components/recipe/FinishDraft';
+import { pageContainer, pageTop } from '@/lib/ui';
 import { getTranslations } from 'next-intl/server';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { shareUrl } from '@/lib/shareToken';
@@ -88,7 +90,7 @@ export default async function RecipePage({
      * login form, carrying where they were headed, so following a link and
      * signing in still lands on the recipe.
      */
-    if (!session.user && !recipe?.isPublic) {
+    if (!session.user && (!recipe?.isPublic || recipe.isDraft)) {
         const next = encodeURIComponent(`/${locale}/recipe/${slug}`);
         redirect(`/${locale}/login?next=${next}`);
     }
@@ -173,7 +175,29 @@ export default async function RecipePage({
     // is already indexed. See lib/similarRecipes.
     const similar = isMember ? await similarRecipes(recipe) : [];
 
+    /*
+     * A draft says so on its own page.
+     *
+     * This is where he will be standing when it matters — cooking from it,
+     * adjusting it — and it is the only place the state is visible without
+     * going looking for it. The button is here too, because "I have now cooked
+     * this and it is good" is a thought you have at the stove, not later on a
+     * list page.
+     */
+    const tDrafts = await getTranslations({ locale, namespace: 'Drafts' });
+
+    const banner = recipe.isDraft ? (
+        <div className={`${pageContainer} ${pageTop}`}>
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-control p-4">
+                <p className="max-w-prose font-serif text-sm text-muted">{tDrafts('banner')}</p>
+                {session.user?.admin && <FinishDraft recipeId={recipe.id} />}
+            </div>
+        </div>
+    ) : null;
+
     return (
+        <>
+        {banner}
         <RecipeArticle
             recipe={recipe}
             similar={similar}
@@ -194,5 +218,6 @@ export default async function RecipePage({
             url={`${getSiteUrl()}/${locale}/recipe/${recipe.slug}`}
             publicUrl={recipe.shareToken ? shareUrl(getSiteUrl(), locale, recipe.shareToken) : null}
         />
+        </>
     );
 }

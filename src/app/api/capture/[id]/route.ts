@@ -21,7 +21,21 @@ import { toJsonObject } from '@/lib/json';
  * money and the first does not, and a name that says which is which is worth
  * the extra enum member.
  */
-const actionSchema = z.object({ action: z.enum(['retry', 'askAi', 'publish']) });
+/*
+ * `stage` is `publish` that stops one step short.
+ *
+ * Both take the capture out of the inbox and make a recipe of it; they differ
+ * in whether the recipe counts yet. `stage` leaves it a draft — findable at
+ * /drafts, nowhere else — for the case the inbox was never good at: a recipe
+ * worth keeping that nobody here has cooked, where the honest state is neither
+ * "still a raw capture" nor "one of ours".
+ *
+ * Both are kept, because sometimes you already know. A recipe you have cooked
+ * for years and are only typing up does not need a probation period, and
+ * making it serve one would teach people to press past the draft state without
+ * reading it.
+ */
+const actionSchema = z.object({ action: z.enum(['retry', 'askAi', 'publish', 'stage']) });
 
 function parseId(raw: string): number | null {
     const id = Number.parseInt(raw, 10);
@@ -150,6 +164,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     try {
         const recipe = await prisma.recipe.create({
             data: {
+                isDraft: parsed.data.action === 'stage',
                 title: draft.title.trim(),
                 slug: await freeSlug(draft.title),
                 description: draft.description || null,
@@ -180,6 +195,11 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
 
         // Publishing a capture is a recipe appearing, with a category the
         // filter rail has never seen. See lib/collectionFacets.
+        //
+        // A draft is not: the chips count only what the list shows, and the
+        // list does not show drafts. The cache is dropped anyway rather than
+        // reasoned about — it is rebuilt on the next request, and a stale chip
+        // count is a worse bug than a wasted query.
         forgetCollectionFacets();
 
         return NextResponse.json({ recipe }, { status: 201 });

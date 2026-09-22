@@ -120,6 +120,7 @@ export async function GET() {
                                 cookMinutes: true,
                                 views: true,
                                 isPublic: true,
+                                isDraft: true,
                                 createdAt: true,
                                 images: { orderBy: { position: 'asc' }, select: { url: true } },
                                 ingredients: {

@@ -51,6 +51,15 @@ async function main() {
             title: true, slug: true, description: true, instructions: true,
             category: true, nationality: true, servings: true, prepMinutes: true,
             cookMinutes: true, views: true, createdAt: true,
+            /*
+             * `isDraft` but still not `isPublic`, and the asymmetry is on
+             * purpose. Losing `isPublic` on a restore makes everything private
+             * — the safe direction, and arguably the right default for a
+             * cookbook restored into a new home. Losing `isDraft` would make
+             * every draft a finished recipe, which is the backup completing
+             * work nobody did.
+             */
+            isDraft: true,
             images: { orderBy: { position: 'asc' }, select: { url: true } },
             ingredients: {
                 orderBy: { position: 'asc' },

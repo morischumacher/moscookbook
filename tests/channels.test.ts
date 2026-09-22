@@ -880,4 +880,99 @@ Gesendet von meinem iPhone`,
     equal('but the gaps are still filled', kept.draft?.ingredients.length, 1);
     restore();
 
+
+    // ── 15. A page that only advertises a recipe ────────────────────────────
+    suite('channel: there was no recipe to find');
+
+    /*
+     * Three reels in his inbox, and the captions were, in full:
+     *
+     *   "Leftover bacon? Cook this. Recipe up now in my newsletter."
+     *
+     * A model was asked, read that correctly, and returned nothing — which is
+     * the right answer. The inbox reported "The page held only part of a
+     * recipe", which is not: there was no part of a recipe, there was an
+     * advertisement for one. The two want different things from whoever reads
+     * the row. Half a recipe wants finishing. This wants deleting.
+     */
+
+    const TEASER = `<!DOCTYPE html><html><head>
+<meta property="og:title" content="Ben Slater auf Instagram: &quot;Leftover bacon? Cook this. Recipe up now in my newsletter.&quot;">
+<meta property="og:image" content="https://instagram.example/bacon.jpg">
+</head><body><div id="root"></div></body></html>`;
+
+    const foundNothing = {
+        content: [
+            {
+                type: 'text',
+                text: JSON.stringify({
+                    title: '',
+                    description: '',
+                    category: '',
+                    nationality: '',
+                    ingredients: [],
+                    instructions: '',
+                    servings: null,
+                    prepMinutes: null,
+                    cookMinutes: null,
+                }),
+            },
+        ],
+    };
+
+    const teaserUrl = 'https://www.instagram.com/reel/Dc8-EkkoH1M/';
+
+    restore = stubFetch({
+        [teaserUrl]: { html: TEASER },
+        'https://api.anthropic.com/v1/messages': { html: '', json: foundNothing },
+    });
+
+    const teaser = await processCapture(
+        { kind: 'url', source: 'instagram', sourceUrl: teaserUrl, rawText: null },
+        { mode: 'always', keys: [key] }
+    );
+
+    equal('it still reaches the inbox', teaser.status, 'needsWork');
+
+    /*
+     * And no model is asked, which is the second half of the same fix.
+     *
+     * In the real run one *was* — the input was the title with the platform's
+     * wrapper still on it, which pushed it over the eighty-character floor.
+     * With the wrapper off, fifty-seven characters is left and the floor does
+     * what it is for: an advertisement for a recipe is not worth a paid call.
+     */
+    equal('and no model is asked about an advertisement', teaser.readBy, 'rules');
+    equal(
+        'and the row says there was nothing to find',
+        teaser.error,
+        'There was no recipe on this page — only a mention of one.'
+    );
+
+    // The platform's wrapper comes off even when nothing else can be rescued.
+    equal(
+        'the title is the caption, not the construction around it',
+        teaser.draft?.title,
+        'Leftover bacon? Cook this. Recipe up now in my newsletter.'
+    );
+
+    check('and the picture is kept', Boolean(teaser.draft?.imageUrl), teaser.draft?.imageUrl);
+    restore();
+
+    // A page that gave up *half* a recipe still says so, because that one
+    // wants finishing rather than deleting.
+    const HALF = `<!DOCTYPE html><html><head>
+<meta property="og:title" content="Ofengemüse mit Feta">
+</head><body><article><h2>Zutaten</h2><ul><li>1 Zucchini</li><li>200 g Feta</li><li>2 EL Olivenöl</li></ul>${'Ein langer Einleitungstext. '.repeat(20)}</article></body></html>`;
+
+    restore = stubFetch({ 'https://kochblog.example/h': { html: HALF } });
+
+    const half = await processCapture(
+        { kind: 'url', source: 'web', sourceUrl: 'https://kochblog.example/h', rawText: null },
+        { mode: 'off', keys: [] }
+    );
+
+    equal('half a recipe is still half a recipe', half.error, 'The page held only part of a recipe.');
+    restore();
+
 }

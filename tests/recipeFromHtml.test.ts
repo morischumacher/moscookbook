@@ -1,5 +1,5 @@
 /** recipeFromHtml (link import) */
-import { extractRecipeFromHtml, isSafePublicUrl } from '../src/lib/recipeFromHtml';
+import { describeJsonLd, extractRecipeFromHtml, isSafePublicUrl } from '../src/lib/recipeFromHtml';
 import { suite, check } from './harness';
 
 export default function run() {
@@ -100,6 +100,58 @@ export default function run() {
     check('empty html', extractRecipeFromHtml('').title === '');
     const multi = extractRecipeFromHtml(`<script type="application/ld+json">{"@type":"Organization"}</script>` + blogHtml);
     check('skips non-recipe block', multi.title === 'Spätzle mit Käse', multi.title);
+
+    /* ------------------------------------------------ what the page claims */
+
+    /*
+     * `describeJsonLd` exists because a diagnostic printed a green "has
+     * JSON-LD: yes" one line above "ingredients: 0", and read together those
+     * two lines accuse the parser of being broken. On the page in question
+     * both were true: Squarespace ships JSON-LD describing a blog post, with
+     * no Recipe in it anywhere. The parser had nothing to find.
+     *
+     * So the question worth answering is not whether there is JSON-LD but
+     * whether there is a recipe in it, because the two cases call for
+     * completely different work.
+     */
+    suite('describeJsonLd');
+
+    const blogOnly = `<html><head>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"The Perfect Fried Chicken Sandwich","author":{"@type":"Person","name":"Joshua Weissman"},"image":{"@type":"ImageObject","url":"https://example.com/a.jpg"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Joshua Weissman"}</script>
+</head><body><p>Rezepttext</p></body></html>`;
+
+    const blogReport = describeJsonLd(blogOnly);
+    check('counts both blocks', blogReport.blocks === 2, blogReport.blocks);
+    check('both parsed', blogReport.parsed === 2, blogReport.parsed);
+    check('no recipe is reported as no recipe', !blogReport.hasRecipe, blogReport);
+    check('and it names what is there instead', blogReport.types.includes('BlogPosting'), blogReport.types);
+    check('nested types are found too', blogReport.types.includes('Person'), blogReport.types);
+
+    // The rules agree with the report: nothing to extract.
+    const nothing = extractRecipeFromHtml(blogOnly, 'https://example.com/r');
+    check('and the rules indeed find no ingredients', nothing.ingredients.length === 0, nothing.ingredients);
+
+    const withRecipe = `<html><head><script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage"},{"@type":"Recipe","name":"Linsensuppe","recipeIngredient":["250 g Linsen"],"recipeInstructions":"Kochen."}]}</script></head><body></body></html>`;
+
+    const found = describeJsonLd(withRecipe);
+    check('a recipe behind @graph is found', found.hasRecipe, found);
+    check('and its type is listed', found.types.includes('Recipe'), found.types);
+
+    const broken = `<html><head><script type="application/ld+json">{ this is not json </script></head><body></body></html>`;
+    const brokenReport = describeJsonLd(broken);
+    check('a block that will not parse is still counted', brokenReport.blocks === 1, brokenReport);
+    check('but not counted as parsed', brokenReport.parsed === 0, brokenReport);
+    check('and it is not a recipe', !brokenReport.hasRecipe, brokenReport);
+
+    const bare = describeJsonLd('<html><body><p>nichts</p></body></html>');
+    check('a page with no JSON-LD reports none', bare.blocks === 0 && !bare.hasRecipe, bare);
+
+    // The module-level regex carries the `g` flag and is shared between
+    // `describeJsonLd` and the extractor. `matchAll` does not move its
+    // `lastIndex`, but a second call proving it is cheaper than trusting that.
+    const twice = describeJsonLd(blogOnly);
+    check('the shared pattern is not stateful', twice.blocks === 2 && twice.parsed === 2, twice);
 
     suite('isSafePublicUrl');
     for (const bad of ['http://localhost:3000/x','http://127.0.0.1/x','http://10.0.0.5/x','http://192.168.1.1/x','http://172.16.0.1/x','http://169.254.169.254/latest/meta-data','file:///etc/passwd','not a url','http://[::1]/x']) {

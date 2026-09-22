@@ -33,6 +33,15 @@ interface HasIngredient {
 }
 
 interface RecipeWhere {
+    /**
+     * Always false here.
+     *
+     * A draft is a recipe that has been tidied up but that nobody has cooked
+     * and stood behind yet, and the front page is the cookbook's answer to
+     * "what shall I make" — offering something unproven there is the one thing
+     * the draft state exists to prevent. They live at /drafts instead.
+     */
+    isDraft: false;
     category?: string;
     nationality?: string;
     id?: { in: number[] };
@@ -108,7 +117,7 @@ export default async function HomePage({
         )
         : new Set<number>();
 
-    const where: RecipeWhere = {};
+    const where: RecipeWhere = { isDraft: false };
     if (category) where.category = category;
     if (nationality) where.nationality = nationality;
 
@@ -165,7 +174,8 @@ export default async function HomePage({
             const ranked: { id: number }[] = await prisma.$queryRaw<{ id: number }[]>`
                 SELECT "id"
                 FROM "Recipe"
-                WHERE "searchVector" @@ to_tsquery('german', ${tsquery})
+                WHERE "isDraft" = false
+                  AND "searchVector" @@ to_tsquery('german', ${tsquery})
                 ORDER BY ts_rank("searchVector", to_tsquery('german', ${tsquery})) DESC,
                          "createdAt" DESC
                 LIMIT ${SEARCH_MATCH_CAP}
@@ -231,7 +241,11 @@ export default async function HomePage({
         if (pageIds.length === 0) return [];
 
         const unordered: RecipeListRow[] = await prisma.recipe.findMany({
-            where: { id: { in: pageIds } },
+            // `isDraft` again, even though every list of ids reaching here was
+            // built with it. This is the last query before the tiles are drawn,
+            // and it is the one that would be forgotten by whoever adds the
+            // seventh way of sorting.
+            where: { id: { in: pageIds }, isDraft: false },
             include,
         });
 

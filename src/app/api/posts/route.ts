@@ -40,6 +40,28 @@ export async function POST(req: NextRequest) {
 
     const { title, slug, body, imageUrl, recipeId, published } = parsed.data;
 
+    /*
+     * No post about a draft.
+     *
+     * This is the line he drew himself — "zwischen es ist in der queue und
+     * post" — and it is also a leak: a post can be shared at /p/<token>, which
+     * needs no account, and it shows its recipe's title and link. So a post
+     * about a draft is a draft with a public address by another route.
+     */
+    if (recipeId) {
+        const recipe: { isDraft: boolean } | null = await prisma.recipe.findUnique({
+            where: { id: recipeId },
+            select: { isDraft: true },
+        });
+
+        if (recipe?.isDraft) {
+            return NextResponse.json(
+                { message: 'Zu einem Entwurf lässt sich kein Beitrag schreiben. Stelle das Rezept zuerst fertig.' },
+                { status: 409 }
+            );
+        }
+    }
+
     try {
         const post = await prisma.post.create({
             data: {

@@ -390,7 +390,8 @@
     "trouble413Q": "413 That is too large to capture",
     "trouble413A": "The picture is over 10 MB. Combine fewer screenshots, or lower the quality in “Convert Image”.",
     "troubleSilentQ": "Nothing happens at all",
-    "troubleSilentA": "Usually the order of the actions: encoding has to happen before sending, not after."
+    "troubleSilentA": "Usually the order of the actions: encoding has to happen before sending, not after.",
+    "queuedNote": "The reply now only says that something arrived; the reading happens afterwards. The shortcut used to wait for the page to be fetched, parsed and — since the AI — read by a model, which on one recipe page was a measured fifteen seconds with the phone in your hand."
   },
   "Share": {
     "share": "Share",
@@ -680,6 +681,8 @@
     "usedAi": "Read with AI ({provider})",
     "usedRules": "Read without AI",
     "usedRulesAndAi": "Rules plus AI ({provider})",
+    "usedProfile": "Learned site layout, no AI",
+    "usedProfileAndAi": "Learned layout plus AI ({provider})",
     "polishHeading": "Revise with AI",
     "polishSpelling": "Spelling",
     "polishSteps": "Clearer steps",
@@ -698,5 +701,44 @@
     "modelHint": "Leaving it empty is usually right. If the default will not answer — busy, or out of quota — the next one is tried automatically and the one that worked is written in here.",
     "modelAuto": "Chosen automatically on {date}, because the previous one did not answer. Overwrite it whenever you like; your choice then stands.",
     "testModel": "Answered by: {model}."
+  },
+  "SiteProfiles": {
+    "title": "Learned sites",
+    "intro": "The first import from an unknown site teaches the cookbook where that site puts its recipe. Every later import from it needs no AI. This list fills itself \u2014 you are only here to teach a site in advance, or to correct one that has gone out of date.",
+    "urlLabel": "Address of a recipe page",
+    "learn": "Learn this site",
+    "learning": "Reading \u2026",
+    "failed": "That did not work.",
+    "none": "Nothing learned yet. That happens on the next import from a site without recipe markup.",
+    "learnedOn": "learned {date} by {by}",
+    "stale": "Set aside: three imports in a row fell short. The next import will learn the site again.",
+    "failures": "{count} recent import(s) below the threshold.",
+    "howItReads": "How this site is read",
+    "relearn": "Learn again",
+    "forget": "Forget",
+    "forgetConfirm": "Forget",
+    "field_title": "Title",
+    "field_ingredients": "Ingredients",
+    "field_method": "Method",
+    "field_image": "Picture",
+    "viaMeta": "from the meta tag {property}",
+    "viaJsonLd": "from the structured data at {path}",
+    "viaList": "the list under the heading \u201c{heading}\u201d",
+    "viaText": "the text under the heading \u201c{heading}\u201d",
+    "viaSelector": "via the CSS selector {selector}"
+  },
+  "Drafts": {
+    "title": "Drafts",
+    "intro": "Recipes that have been imported and tidied up but are not yet yours. They appear nowhere else \u2014 not in the list, not in search, not as a suggestion, never in public, and no post can be written about one. Cook it once, adjust it, then finish it.",
+    "none": "No drafts. From the inbox you can take a recipe here instead of taking it straight in.",
+    "added": "since {date}",
+    "addedFrom": "since {date}, from {host}",
+    "finish": "Finish",
+    "finishing": "One moment \u2026",
+    "finishFailed": "That did not work.",
+    "nav": "Drafts",
+    "banner": "This is a draft. It is not in your list, cannot be found by searching, and cannot be made public or shared.",
+    "stage": "Keep as draft",
+    "stageHint": "Takes the recipe in, but not yet into your list."
   }
 }

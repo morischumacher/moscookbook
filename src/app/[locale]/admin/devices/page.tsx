@@ -232,6 +232,7 @@ export default function AdminDevicesPage() {
                             <li>{t('sc1Step4')}</li>
                             <li>{t('sc1Step5')}</li>
                         </ol>
+                        <p className="mt-4 text-sm text-muted">{t('queuedNote')}</p>
                     </Disclosure>
 
                     <Disclosure title={t('sc2Title')} subtitle={t('sc2Intro')}>

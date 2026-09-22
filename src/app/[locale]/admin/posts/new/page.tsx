@@ -20,6 +20,10 @@ export default async function NewPost({
     // Annotated rather than inferred: without a generated Prisma client this
     // comes back as `any`, and the callback below then has no type to check.
     const recipes: { id: number; title: string }[] = await prisma.recipe.findMany({
+        // A draft cannot carry a post, so it is not offered as a choice. This
+        // also handles `?recipeId=` arriving for one: the validity check below
+        // looks the id up in this list, so an id that is not in it is dropped.
+        where: { isDraft: false },
         orderBy: { title: 'asc' },
         select: { id: true, title: true },
     });

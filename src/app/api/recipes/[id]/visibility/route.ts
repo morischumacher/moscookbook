@@ -39,12 +39,38 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     try {
+        /*
+         * A draft cannot be made public, and the refusal lives here rather than
+         * only in the button.
+         *
+         * `isDraft: false` in the WHERE clause rather than a read-then-write:
+         * the conditional update is the same trick the share route already uses
+         * for its token, and for the same reason — two requests that both read
+         * "not a draft" and then both write would each believe they were the
+         * one that checked.
+         *
+         * Turning something *off* is never refused. If a draft has somehow
+         * ended up public, the way out must not be blocked by the rule that
+         * should have stopped it going in.
+         */
         const updated: { count: number } = await prisma.recipe.updateMany({
-            where: { id: recipeId },
+            where: { id: recipeId, ...(parsed.data.isPublic ? { isDraft: false } : {}) },
             data: { isPublic: parsed.data.isPublic },
         });
 
         if (updated.count !== 1) {
+            const exists: { isDraft: boolean } | null = await prisma.recipe.findUnique({
+                where: { id: recipeId },
+                select: { isDraft: true },
+            });
+
+            if (exists?.isDraft) {
+                return NextResponse.json(
+                    { message: 'draft', isDraft: true },
+                    { status: 409 }
+                );
+            }
+
             return NextResponse.json({ message: 'That recipe no longer exists.' }, { status: 404 });
         }
 

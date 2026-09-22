@@ -1,21 +1,31 @@
 import type { CaptureSource, CaptureStatus } from './capture';
 import { withoutBareUrls } from './capture';
 import type { ImportedRecipe } from './recipeFromHtml';
-import { extractRecipeFromHtml } from './recipeFromHtml';
-import { parseRecipeText } from './recipeParser';
+import { extractRecipeFromHtml, metaContent, metaLines } from './recipeFromHtml';
+import { parseRecipeText, parseIngredientLine } from './recipeParser';
 import { fetchPage } from './fetchPage';
 import { youtubeVideoId, extractYoutubePage, cleanYoutubeDescription } from './youtube';
 import { fetchImageAsBase64 } from './fetchImage';
 import { readableText } from './readableText';
 import { assessDraft, titleProblem, worthAsking } from './draftQuality';
+import { withoutPlatformWrapper } from './pageTitle';
 import {
     assistsText,
     canUseAi,
     capabilityFromEnv,
     extractRecipeWithAi,
     type AiCapability,
+    type AiKey,
     type ModelReport,
 } from './aiImport';
+import {
+    applyProfile,
+    hostOf,
+    NO_PROFILES,
+    type ProfileResult,
+    type SiteProfileStore,
+} from './siteProfile';
+import { learnSiteProfile } from './siteLearn';
 
 /**
  * Turning a capture into a recipe draft.
@@ -78,7 +88,24 @@ export interface ProcessedCapture {
      * working normally, and the way you would find out is by wondering, weeks
      * later, why the AI never seemed to do anything.
      */
-    readBy: 'rules' | 'rules+ai' | 'rules+ai-failed' | 'ai';
+    readBy:
+        | 'rules'
+        | 'rules+ai'
+        | 'rules+ai-failed'
+        | 'ai'
+        /**
+         * Read from what was learned about this site, with no model involved.
+         *
+         * The label matters as much as the others do: a profile is the one
+         * path where the cookbook is following an instruction a model wrote
+         * weeks ago, on a page nobody has looked at since. If a site starts
+         * importing badly, the first question is whether its profile is being
+         * used, and that question needs an answer in the row rather than a
+         * reconstruction from timestamps.
+         */
+        | 'profile'
+        /** The profile fell short on this page and a model finished the job. */
+        | 'profile+ai';
     /** Which provider answered, when one did. */
     provider: string | null;
 }
@@ -98,6 +125,24 @@ export interface ProcessedCapture {
  */
 export interface ProcessOptions {
     force?: boolean;
+    /**
+     * Where what we know about sites is kept.
+     *
+     * Passed in rather than imported, for the reason at the top of this file:
+     * nothing here may reach Prisma. The default remembers nothing, so every
+     * existing caller and every test behaves exactly as it did.
+     */
+    profiles?: SiteProfileStore;
+    /**
+     * The key the *learning* step may use, which need not be the key the
+     * import uses.
+     *
+     * A profile is written once and followed a hundred times, so a mistake
+     * here is multiplied in a way a mistake in one import is not. Left unset,
+     * nothing is learned — learning is never a side effect of an import
+     * somebody did not ask to be expensive.
+     */
+    learnWith?: AiKey;
     /**
      * Told which model answered, so a caller with a database can write it
      * down. See `rememberModel`: the fallback walks a list when the first
@@ -189,6 +234,17 @@ interface AiTrace {
     provider: string | null;
     asked: boolean;
     failed: boolean;
+    /**
+     * Not asked because there was nothing worth asking about.
+     *
+     * Different from "not asked because the AI is off", and the difference is
+     * the sentence the inbox prints. An Instagram reel whose whole caption is
+     * "Recipe up now in my newsletter" gives fifty-seven characters once the
+     * platform's wrapper comes off — under the floor, so no model is asked,
+     * and the right thing to say is that there was no recipe rather than that
+     * the page held part of one.
+     */
+    tooThin?: boolean;
 }
 
 const NOT_ASKED: AiTrace = { provider: null, asked: false, failed: false };
@@ -251,7 +307,9 @@ async function fillGapsWithAi(
      * text, and the entire recipe, ingredients and steps, is sitting in the
      * page's `og:title`. The floor saw an empty string and declined to ask.
      */
-    if (text.trim().length < 80) return { draft, trace: NOT_ASKED };
+    if (text.trim().length < 80) {
+        return { draft, trace: { ...NOT_ASKED, tooThin: true } };
+    }
 
     try {
         const parsed = await extractRecipeWithAi({ kind: 'text', text }, ai.keys, options.onModel);
@@ -325,6 +383,48 @@ function aiInput(draft: ImportedRecipe, pageText: string, shared: string): strin
     return parts.join('\n\n');
 }
 
+/**
+ * What to say about a draft that is not ready.
+ *
+ * "The page held only part of a recipe" was said about three Instagram reels
+ * whose captions were, in full, "Leftover bacon? Cook this. Recipe up now in
+ * my newsletter." There was no part of a recipe. There was an advertisement
+ * for one, and a model was asked, read it correctly, and returned nothing —
+ * which is the right answer and was reported as a shortfall.
+ *
+ * The distinction is worth drawing because the two want different things from
+ * whoever reads the inbox. A page that gave up half a recipe wants finishing.
+ * A page that never had one wants deleting, and saying so saves somebody
+ * opening it to find out.
+ */
+function reasonFor(
+    status: 'ready' | 'needsWork' | 'failed',
+    draft: ImportedRecipe,
+    trace: AiTrace,
+    kind: 'page' | 'video'
+): string | null {
+    if (status === 'ready') return null;
+
+    const empty = draft.ingredients.length === 0 && draft.instructions.trim() === '';
+
+    /*
+     * Two ways of knowing there was nothing here, and they deserve the same
+     * sentence.
+     *
+     * A model looked and found nothing — that is an answer, not a shortfall.
+     * Or there was too little to be worth showing a model at all: fifty-seven
+     * characters of "Recipe up now in my newsletter" is not a recipe that
+     * failed to parse, it is an advertisement for one.
+     */
+    if (empty && ((trace.asked && !trace.failed) || trace.tooThin === true)) {
+        return 'There was no recipe on this page — only a mention of one.';
+    }
+
+    return kind === 'video'
+        ? 'The description did not hold a full recipe — it may only be spoken in the video.'
+        : 'The page held only part of a recipe.';
+}
+
 /* -------------------------------------------------------------------------- */
 /* One path per kind of thing                                                  */
 /* -------------------------------------------------------------------------- */
@@ -395,14 +495,7 @@ async function processYoutube(
 
     const status = completeness(merged);
 
-    return outcome(
-        status,
-        merged,
-        status === 'ready'
-            ? null
-            : 'The description did not hold a full recipe — it may only be spoken in the video.',
-        trace
-    );
+    return outcome(status, merged, reasonFor(status, merged, trace, 'video'), trace);
 }
 
 async function processWebPage(
@@ -445,6 +538,75 @@ async function processWebPage(
     let draft = fromShare ? mergeDrafts(extracted, fromShare) : extracted;
 
     /*
+     * What we already know about this site.
+     *
+     * Only consulted when the rules fell short, and only ever merged into what
+     * they found — the same rule the AI follows, for the same reason. A site's
+     * JSON-LD, where it exists, is the site's own statement about its recipe
+     * and beats anything inferred from headings.
+     *
+     * A profile that has been retired is not loaded at all; that is the store's
+     * job, not this file's.
+     */
+    const host = hostOf(page.finalUrl);
+    const store = options.profiles ?? NO_PROFILES;
+    const known = host && shouldAsk(draft, options) ? await store.load(host) : null;
+    let usedProfile = false;
+
+    if (known && host) {
+        const read = applyProfile(page.html, known.profile);
+        const asRecipe = draftFromProfile(read, page.finalUrl);
+        const merged = mergeDrafts(draft, asRecipe);
+
+        /*
+         * And the profile is still not believed.
+         *
+         * It was verified once, against one page of this site, possibly months
+         * ago. Whether it worked *here* is decided by the same scoring every
+         * other path answers to — and if the merged draft is no better than
+         * what the rules had alone, the profile is not used and the failure is
+         * recorded. Three of those and the site is re-learned.
+         */
+        if (damageOf(merged) < damageOf(draft)) {
+            draft = merged;
+            usedProfile = true;
+        }
+    }
+
+    /*
+     * The caption, read by the rules.
+     *
+     * Instagram, TikTok and Threads send a page with nothing in it — the body
+     * is an empty mount point and the recipe is entirely in `og:title`. Until
+     * now the only thing that could read it was a model, which made those
+     * shares the one import that simply did not work without a key.
+     *
+     * But a great many of those captions are already written the way the rules
+     * understand: a line of ingredients, the word Zutaten or Ingredients, a
+     * couple of steps. `parseRecipeText` is the same parser that reads a shared
+     * note, and pointing it at the caption costs nothing and needs no model.
+     *
+     * Deliberately not a site profile. A profile would have to be learned
+     * first, which needs a key, on a site where the learning would fail anyway
+     * for want of anything to anchor to. Meta tags are on every page from the
+     * first request, so this works on the first import from a site nobody has
+     * ever visited.
+     *
+     * The same rule as everything else here decides whether it is used: it has
+     * to leave the draft *better* than it found it. A caption that is one
+     * sentence of prose parses into something with no quantities and no
+     * method, which scores worse, and is discarded.
+     */
+    if (shouldAsk(draft, options)) {
+        const fromCaption = captionDraft(page.html, page.finalUrl);
+
+        if (fromCaption) {
+            const merged = mergeDrafts(draft, fromCaption);
+            if (damageOf(merged) < damageOf(draft)) draft = merged;
+        }
+    }
+
+    /*
      * This is the gap that was worth closing. A recipe site with schema.org
      * markup has always imported perfectly; a food blog that writes its
      * ingredients in a `<ul>` with no markup at all has always imported as a
@@ -467,12 +629,38 @@ async function processWebPage(
     }
 
     const status = completeness(draft);
-    return outcome(
-        status,
-        draft,
-        status === 'ready' ? null : 'The page held only part of a recipe.',
-        trace
-    );
+
+    /*
+     * Book-keeping, after the fact and never in the way of the answer.
+     *
+     * A profile that was used and still needed a model is a profile that is
+     * drifting; three of those in a row and the site is marked for re-learning.
+     * One is not — a site that serves a thin page once has not been redesigned,
+     * and throwing away a mapping that has worked for months over a single bad
+     * day would cost a model call to rebuild for nothing.
+     */
+    if (usedProfile && host) {
+        await store
+            .recordUse(host, !trace.asked && status === 'ready', trace.asked ? 'the profile left gaps a model had to fill' : undefined)
+            .catch(() => undefined);
+    }
+
+    /*
+     * And learning, which happens only when a model actually read the page and
+     * actually helped. Learning from a failed call would store a map of a
+     * recipe nobody found.
+     */
+    if (host && !known && options.learnWith && trace.asked && !trace.failed && status === 'ready') {
+        await rememberThisSite(page.html, draft, host, page.finalUrl, options).catch(() => undefined);
+    }
+
+    const readBy: ProcessedCapture['readBy'] | undefined = usedProfile
+        ? trace.asked
+            ? 'profile+ai'
+            : 'profile'
+        : undefined;
+
+    return outcome(status, draft, reasonFor(status, draft, trace, 'page'), trace, readBy);
 }
 
 /**
@@ -626,4 +814,135 @@ export async function processCapture(
         console.error('Capture processing error:', error);
         return outcome('failed', null, 'Something went wrong while reading this.');
     }
+}
+
+/* -------------------------------------------------------------------------- */
+/* What we have learned about a site                                           */
+/* -------------------------------------------------------------------------- */
+
+/** The scoring as a single number, for comparing two drafts against each other. */
+function damageOf(draft: ImportedRecipe): number {
+    return assessDraft(draft).score;
+}
+
+/**
+ * What a profile read, in the shape the rest of the pipeline speaks.
+ *
+ * Only the four fields a profile can name. Everything else — servings, times,
+ * category — stays empty rather than being guessed at, because `mergeDrafts`
+ * fills holes and a guessed zero is not a hole.
+ */
+function draftFromProfile(read: ProfileResult, sourceUrl: string): ImportedRecipe {
+    return {
+        ...emptyDraft(sourceUrl),
+        title: read.title,
+        instructions: read.method,
+        imageUrl: read.imageUrl,
+        ingredients: read.ingredients
+            .map((line) => parseIngredientLine(line))
+            .filter((ingredient) => ingredient.item.trim() !== ''),
+    };
+}
+
+/**
+ * Learns how this site is laid out, having just paid a model to read it.
+ *
+ * Deliberately the *last* thing that happens, after the capture's own answer is
+ * settled, and wrapped by its caller so that a failure here can never affect
+ * the import. Somebody sharing a recipe from their kitchen is owed their
+ * recipe; whether the cookbook also got cleverer is nobody's business but ours.
+ */
+async function rememberThisSite(
+    html: string,
+    draft: ImportedRecipe,
+    host: string,
+    sourceUrl: string,
+    options: ProcessOptions
+): Promise<void> {
+    const key = options.learnWith;
+    const store = options.profiles;
+    if (!key || !store) return;
+
+    const learned = await learnSiteProfile(html, draft, key);
+    if (!learned.profile) return;
+
+    await store.save({
+        host,
+        profile: learned.profile,
+        learnedFrom: sourceUrl,
+        learnedBy: `${key.provider}${key.model ? `/${key.model}` : ''}`,
+    });
+}
+
+/* -------------------------------------------------------------------------- */
+/* The caption of a page that has no body                                      */
+/* -------------------------------------------------------------------------- */
+
+
+/**
+ * What a platform page says about itself.
+ *
+ * `og:title` first, because that is where Instagram puts the caption, with the
+ * platform's own wrapper taken off — `Ben Slater auf Instagram: "…"` is the
+ * author and the platform around the thing we want.
+ *
+ * Worth being precise about what that buys, because it is less than it looks:
+ * the parser reads the first line as a title and we do not take the title from
+ * a caption, so the author's name never reaches a field either way. What the
+ * stripping actually fixes is the closing quotation mark, which otherwise ends
+ * up glued to the last step of the method.
+ *
+ * `og:description` after it rather than instead: some platforms split the
+ * caption across both, and the two together are the caption. Duplication is
+ * handled by not caring — the parser reads a list of ingredients twice as the
+ * same list of ingredients, and `mergeDrafts` only fills holes anyway.
+ */
+function captionOf(html: string): string {
+    const title = withoutPlatformWrapper(metaLines(html, 'og:title'));
+    const description = metaLines(html, 'og:description');
+
+    if (description === '' || title.includes(description)) return title;
+    if (description.includes(title)) return description;
+
+    return `${title}\n\n${description}`;
+}
+
+/**
+ * The caption as a recipe, or null.
+ *
+ * Returns null rather than an empty draft when there is nothing in it, so the
+ * caller's "did this help" comparison is never asked about a draft that was
+ * never going to.
+ */
+function captionDraft(html: string, sourceUrl: string): ImportedRecipe | null {
+    /*
+     * No length floor, and its absence is the considered position rather than
+     * an omission.
+     *
+     * There was one, at 120 characters, chosen by feel. It rejected
+     * "Pasta / Zutaten: / 400 g Nudeln / 2 EL Öl" — 36 characters, two real
+     * ingredients with real quantities, a genuine if small recipe. Lowering it
+     * to 40 rejected the same caption by four characters, which is the same
+     * mistake wearing a smaller number.
+     *
+     * The guard that belongs here is the damage comparison at the call site:
+     * it looks at what came *out* instead of guessing from how much went in,
+     * and it throws away anything that does not leave the draft better. Two
+     * guards where one measures and the other guesses is not defence in depth;
+     * it is a measurement with a guess allowed to overrule it.
+     */
+    const parsed = parseRecipeText(captionOf(html));
+    if (parsed.ingredients.length === 0 && parsed.instructions.trim() === '') return null;
+
+    return {
+        ...emptyDraft(sourceUrl),
+        // The title is left to the rules and to `titleProblem`. A caption's
+        // first line is a good recipe name about half the time, and the half
+        // where it is not is "POV: you have 20 minutes and one pan".
+        description: parsed.description,
+        ingredients: parsed.ingredients,
+        instructions: parsed.instructions,
+        // The picture is the one thing these pages always get right.
+        imageUrl: metaContent(html, 'og:image'),
+    };
 }

@@ -432,13 +432,37 @@ export async function saveAiCredential(input: SaveCredential): Promise<boolean> 
  * half-applied version of this is two primaries.
  */
 export async function setPrimary(provider: AiProvider): Promise<void> {
-    const credentials = table('aiCredential');
-    if (!credentials) return;
+    if (!table('aiCredential')) return;
 
-    await prisma.$transaction([
-        credentials.updateMany({ where: {}, data: { priority: 10 } }),
-        credentials.updateMany({ where: { provider }, data: { priority: 0 } }),
-    ]);
+    /*
+     * The callback form, not the array form, and the reason is worth writing
+     * down because it cost a red deploy.
+     *
+     * `$transaction([...])` takes `PrismaPromise[]` — Prisma's own promise
+     * type, which carries the hidden handle the batch is assembled from. The
+     * delegates here come through `table()`, a hand-written interface that
+     * exists precisely because the generated client may not know this model
+     * yet, and it can only promise `Promise<unknown>`. The two are not the
+     * same type and the array form rejects ours.
+     *
+     * It compiled locally anyway. Without a generated client, `prisma` is
+     * loosely typed and `$transaction` accepts anything; the error only
+     * appeared on a machine that had run `prisma generate`. So this is a whole
+     * class of mistake the local type-check cannot see, and the only honest
+     * answer is to prefer the form that does not depend on Prisma's own
+     * promise type at all.
+     *
+     * `tx` is used rather than the outer delegates: statements issued on the
+     * outer client inside this callback would run outside the transaction,
+     * which would look identical and be exactly the bug this guards against.
+     */
+    await prisma.$transaction(async (tx: unknown) => {
+        const inside = (tx as unknown as Record<string, Delegate | undefined>).aiCredential;
+        if (!inside) return;
+
+        await inside.updateMany({ where: {}, data: { priority: 10 } });
+        await inside.updateMany({ where: { provider }, data: { priority: 0 } });
+    });
 }
 
 /**

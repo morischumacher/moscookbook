@@ -43,9 +43,12 @@ interface Group {
 
 async function readFacets(): Promise<CollectionFacets> {
     const [categoryGroups, cuisineGroups, total]: [Group[], Group[], number] = await Promise.all([
-        prisma.recipe.groupBy({ by: ['category'], _count: { _all: true } }),
-        prisma.recipe.groupBy({ by: ['nationality'], _count: { _all: true } }),
-        prisma.recipe.count(),
+        // Drafts are not in the list the chips filter, so counting them would
+        // promise results a click cannot deliver — a category chip reading "3"
+        // that opens onto two recipes.
+        prisma.recipe.groupBy({ by: ['category'], where: { isDraft: false }, _count: { _all: true } }),
+        prisma.recipe.groupBy({ by: ['nationality'], where: { isDraft: false }, _count: { _all: true } }),
+        prisma.recipe.count({ where: { isDraft: false } }),
     ]);
 
     // Shaped here rather than at the call site, so what is kept in the cache is
