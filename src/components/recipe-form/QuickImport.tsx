@@ -253,10 +253,19 @@ export default function QuickImport({
 
             {/*
                 What this box is for, in one line, because it was not obvious
-                and somebody said so. It is a shortcut for bringing a recipe in
-                from somewhere else — a person writing their own skips it and
-                types into the form below, and nothing on the screen used to
-                say that.
+                and somebody said so.
+                
+                The first version of this line said it was only for bringing a
+                recipe in from elsewhere, and that was wrong in a way worth
+                recording: writing a recipe *into* this box is often the nicer
+                way to write one at all. Typing "Käsespätzle, 400 g Spätzle,
+                200 g Bergkäse…" in one run beats tabbing between a title
+                field, a row of ingredient inputs and a textarea — especially
+                on a phone, where every one of those is a separate tap.
+
+                So it is a way in, not an import. The structured fields below
+                are still where a recipe is edited; this is how it arrives
+                there, whether it came from a website or from somebody's head.
             */}
             <p className="mb-4 mt-1 text-sm text-muted">{t('intro')}</p>
 
@@ -315,6 +324,7 @@ export default function QuickImport({
                         <pre className="overflow-x-auto rounded border border-line p-3 font-mono text-xs leading-relaxed">
                             {t('formatExample')}
                         </pre>
+                        <p className="mt-2 text-sm text-muted">{t('applyNote')}</p>
                     </Disclosure>
 
                     <div className="flex flex-wrap items-center gap-3">

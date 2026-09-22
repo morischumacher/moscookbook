@@ -230,10 +230,10 @@
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
-    "tabPaste": "Text einfügen",
+    "tabPaste": "Text",
     "tabLink": "Link importieren",
     "tabPhoto": "Foto",
-    "pastePlaceholder": "Rezept hier einfügen …",
+    "pastePlaceholder": "Rezept hier eintippen oder einfügen …",
     "apply": "Übernehmen",
     "reading": "Wird gelesen…",
     "useAi": "KI verwenden — genauer bei Fließtext",
@@ -252,10 +252,11 @@
     "partial": "Die Seite hatte nur Teilangaben — bitte den Rest ergänzen.",
     "imported": "Rezept übernommen. Bitte vor dem Speichern prüfen.",
     "importedWithAi": "Importiert, mit Hilfe der KI.",
-    "intro": "Nur zum Hereinholen von woanders — ein kopierter Text, ein Link, ein Foto. Für ein eigenes Rezept überspringst du das hier und tippst direkt ins Formular darunter.",
+    "intro": "Ein ganzes Rezept als Fließtext — von woanders kopiert oder gleich hier getippt. „Übernehmen“ zerlegt es in Titel, Zutaten und Zubereitung und füllt die Felder darunter aus.",
     "formatSummary": "Welches Format versteht er?",
     "formatIntro": "Am besten so, aber es muss nicht genau stimmen — Überschriften sind optional, und eine Zeile pro Zutat reicht.",
-    "formatExample": "Käsespätzle\n\nZutaten\n400 g Spätzle\n200 g Bergkäse\n2 Zwiebeln\nSalz\n\nZubereitung\nZwiebeln in Butter goldbraun braten.\nSpätzle kochen und abgießen.\nAlles schichten und servieren."
+    "formatExample": "Käsespätzle\n\nZutaten\n400 g Spätzle\n200 g Bergkäse\n2 Zwiebeln\nSalz\n\nZubereitung\nZwiebeln in Butter goldbraun braten.\nSpätzle kochen und abgießen.\nAlles schichten und servieren.",
+    "applyNote": "Danach wird unten weitergearbeitet: die Felder sind das Rezept, dieser Kasten nur der Weg hinein."
   },
   "Invites": {
     "title": "Einladungen",
