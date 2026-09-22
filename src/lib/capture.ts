@@ -40,14 +40,6 @@ export type CaptureSource =
  */
 export type CaptureStatus = 'new' | 'ready' | 'needsWork' | 'failed' | 'published';
 
-export const CAPTURE_STATUSES: CaptureStatus[] = [
-    'new',
-    'ready',
-    'needsWork',
-    'failed',
-    'published',
-];
-
 /* -------------------------------------------------------------------------- */
 /* Tokens                                                                      */
 /* -------------------------------------------------------------------------- */

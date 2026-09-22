@@ -123,12 +123,31 @@ const suites: [string, () => void | Promise<void>][] = [
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
 // they are run in order rather than fired off together. Each in its own
 // try/catch: a suite that throws is one failure, not the end of the run.
+/*
+ * What a suite may not leave behind.
+ *
+ * Suites stub `globalThis.fetch` and set API keys in `process.env`, and every
+ * one of them put things back on the happy path — and not one did it in a
+ * `finally`. A check that threw halfway left `fetch` stubbed and a fake key
+ * in the environment for every suite after it, so one real failure became
+ * a cascade of confusing ones. Fixing that in fifteen places is fifteen
+ * chances to miss one; restoring here, around every suite, is one.
+ */
 async function main() {
     for (const [name, run] of suites) {
+        const fetchBefore = globalThis.fetch;
+        const envBefore = { ...process.env };
+
         try {
             await run();
         } catch (error) {
             crashed(name, error);
+        } finally {
+            globalThis.fetch = fetchBefore;
+            for (const key of Object.keys(process.env)) {
+                if (!(key in envBefore)) delete process.env[key];
+            }
+            Object.assign(process.env, envBefore);
         }
     }
 

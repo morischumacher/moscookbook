@@ -69,7 +69,7 @@ export interface Transcript {
 }
 
 /** The three endpoints a recording cares about. Everything else is the page. */
-export const PROVIDER_HOSTS = [
+const PROVIDER_HOSTS = [
     'api.anthropic.com',
     'api.openai.com',
     'generativelanguage.googleapis.com',

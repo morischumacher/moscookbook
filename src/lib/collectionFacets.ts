@@ -26,7 +26,7 @@ import prisma from '@/lib/prisma';
  * search columns, which fail the same silent way.
  */
 
-export const RECIPE_COLLECTION_TAG = 'recipe-collection';
+const RECIPE_COLLECTION_TAG = 'recipe-collection';
 
 export interface CollectionFacets {
     categories: { value: string; count: number }[];

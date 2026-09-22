@@ -21,7 +21,7 @@ const EXTENSIONS: Record<string, string> = {
     'image/gif': 'gif',
 };
 
-export const CAPTURE_IMAGE_TYPES = new Set(Object.keys(EXTENSIONS));
+const CAPTURE_IMAGE_TYPES = new Set(Object.keys(EXTENSIONS));
 
 /** Roughly 5 MB of binary once decoded — well beyond any phone screenshot. */
 export const MAX_CAPTURE_IMAGE_BASE64 = 7 * 1024 * 1024;

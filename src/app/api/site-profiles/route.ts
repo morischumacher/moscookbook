@@ -49,10 +49,10 @@ export async function POST(req: NextRequest) {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    // Each press fetches a page and calls a model twice. Ten in ten minutes is
-    // more than teaching the cookbook a site ever needs.
     /*
-     * The shared limiter, because this route spends money.
+     * The shared limiter, because this route spends money. Each press fetches
+     * a page and calls a model twice; ten in ten minutes is more than teaching
+     * the cookbook a site ever needs.
      *
      * It used the in-memory one, whose own comment says it multiplies by the
      * number of warm instances and resets on every cold start — fine for a
@@ -63,14 +63,14 @@ export async function POST(req: NextRequest) {
     const limit = await rateLimitShared(clientKey(req, 'site-learn'), 10, 10 * 60 * 1000);
     if (!limit.ok) {
         return NextResponse.json(
-            { message: 'Zu viele Versuche. Bitte einen Moment warten.' },
+            { message: 'Too many attempts. Please wait a moment.' },
             { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
         );
     }
 
     const body = learnSchema.safeParse(await req.json().catch(() => null));
     if (!body.success) {
-        return NextResponse.json({ message: 'Keine Adresse angegeben.' }, { status: 400 });
+        return NextResponse.json({ message: 'Please provide a URL.' }, { status: 400 });
     }
 
     const ai = await aiCapability();
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     if (!key) {
         return NextResponse.json(
-            { message: 'Es ist kein geprüfter KI-Schlüssel hinterlegt. Ohne Modell lässt sich nichts lernen.' },
+            { message: 'No verified AI key is stored. Nothing can be learned without a model.' },
             { status: 400 }
         );
     }
@@ -86,14 +86,14 @@ export async function POST(req: NextRequest) {
     const page = await fetchPage(body.data.url);
     if (!page.ok) {
         return NextResponse.json(
-            { message: `Die Seite konnte nicht gelesen werden (${page.failure}).` },
+            { message: `The page could not be read (${page.failure}).` },
             { status: 400 }
         );
     }
 
     const host = hostOf(page.finalUrl);
     if (!host) {
-        return NextResponse.json({ message: 'Das ist keine Webadresse.' }, { status: 400 });
+        return NextResponse.json({ message: 'That is not a web address.' }, { status: 400 });
     }
 
     /*
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
         // request carried the key. The test route scrubs for the same reason.
         const detail = scrub(error instanceof Error ? error.message : 'unknown', key.apiKey).slice(0, 300);
         return NextResponse.json(
-            { message: `Das Modell konnte die Seite nicht lesen: ${detail}` },
+            { message: `The model could not read the page: ${detail}` },
             { status: 502 }
         );
     }
@@ -131,8 +131,8 @@ export async function POST(req: NextRequest) {
             learned: false,
             host,
             message:
-                'Auf dieser Seite hat das Modell kein vollständiges Rezept gefunden, also gibt es auch nichts zu lernen.' +
-                (rules.title ? ` Die Regeln erkennen nur den Titel: „${rules.title}“.` : ''),
+                'The model found no complete recipe on this page, so there is nothing to learn.' +
+                (rules.title ? ` The rules recognise only the title: “${rules.title}”.` : ''),
         });
     }
 
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
             learned: false,
             host,
-            message: `Nicht gelernt: ${result.note}`,
+            message: `Not learned: ${result.note}`,
             ingredientsFound: result.verification?.ingredientsFound ?? null,
             methodFound: result.verification?.methodFound ?? null,
         });
@@ -164,6 +164,6 @@ export async function POST(req: NextRequest) {
         learned: true,
         host,
         profile: result.profile,
-        message: `${host} gelernt und gegen diese Seite geprüft.`,
+        message: `${host} learned and verified against this page.`,
     });
 }

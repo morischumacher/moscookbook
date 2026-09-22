@@ -26,7 +26,7 @@ export async function DELETE(_: Request, context: { params: Promise<{ host: stri
     // screen next to the button might be either.
     const host = hostOf(raw.includes('://') ? raw : `https://${raw}`);
     if (!host) {
-        return NextResponse.json({ message: 'Das ist kein Hostname.' }, { status: 400 });
+        return NextResponse.json({ message: 'That is not a hostname.' }, { status: 400 });
     }
 
     await forgetSite(host);

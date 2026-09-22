@@ -45,6 +45,7 @@ import { canUseAi, assistsText, PROVIDER_LABEL, type AiCapability } from '../src
 import {
     isProviderCall,
     scrubTranscript,
+    isUsable,
     slimPage,
     type RecordedCall,
     type Transcript,
@@ -365,6 +366,18 @@ async function diagnose(url: string, keep: boolean): Promise<void> {
         .replace(/-+/g, '-')
         .slice(0, 70)
         .toLowerCase();
+
+    /*
+     * Checked before it is written. `isUsable`'s own comment said "checked at
+     * write time rather than at read time" — and then nothing at write time
+     * called it. A recording missing a field failed months later in a test
+     * run instead of now, on the machine that made it, with somebody looking.
+     */
+    const unusable = isUsable(transcript);
+    if (unusable) {
+        console.log(red(`\n   Not recorded: ${unusable}.`));
+        return;
+    }
 
     const secrets = ai.keys.map((key) => key.apiKey);
     const body = scrubTranscript(JSON.stringify(transcript, null, 2), secrets);

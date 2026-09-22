@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 
         if (recipe?.isDraft) {
             return NextResponse.json(
-                { message: 'Zu einem Entwurf lässt sich kein Beitrag schreiben. Stelle das Rezept zuerst fertig.' },
+                { message: 'A post cannot be written about a draft. Finish the recipe first.' },
                 { status: 409 }
             );
         }

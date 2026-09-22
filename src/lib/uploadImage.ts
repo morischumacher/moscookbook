@@ -11,7 +11,7 @@
  * ordinary one. The size limit differs by caller; everything else does not.
  */
 
-export const ALLOWED_MIME_TYPES = new Set([
+const ALLOWED_MIME_TYPES = new Set([
     'image/jpeg',
     'image/pjpeg',
     'image/png',
@@ -22,7 +22,7 @@ export const ALLOWED_MIME_TYPES = new Set([
     'image/heif',
 ]);
 
-export const ALLOWED_EXTENSIONS = new Set([
+const ALLOWED_EXTENSIONS = new Set([
     'jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'heic', 'heif',
 ]);
 

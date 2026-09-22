@@ -40,10 +40,6 @@ function settings(): MailSettings | null {
     };
 }
 
-export function isMailConfigured(): boolean {
-    return settings() !== null;
-}
-
 export interface Mail {
     to: string;
     subject: string;

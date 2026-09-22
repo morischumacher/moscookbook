@@ -83,7 +83,7 @@ export const DEFAULT_MODEL: Record<AiProvider, string> = {
  * deliberately; they are entirely capable of turning an ingredient list into
  * JSON, and they are the ones with quota left.
  */
-export const MODEL_CANDIDATES: Record<AiProvider, string[]> = {
+const MODEL_CANDIDATES: Record<AiProvider, string[]> = {
     google: [
         'gemini-flash-latest',
         'gemini-flash-lite-latest',
@@ -106,7 +106,7 @@ export const MODEL_CANDIDATES: Record<AiProvider, string[]> = {
  * somebody who typed a name in made a decision, and the most this may do is
  * carry on past it when it will not answer at all.
  */
-export function modelsFor(key: AiKey): string[] {
+function modelsFor(key: AiKey): string[] {
     const candidates = MODEL_CANDIDATES[key.provider] ?? [DEFAULT_MODEL[key.provider]];
     const chosen = key.model?.trim();
 
@@ -175,8 +175,6 @@ export interface AiCapability {
     /** In the order they should be tried. Empty means nothing is configured. */
     keys: AiKey[];
 }
-
-export const NO_AI: AiCapability = { mode: 'off', keys: [] };
 
 /** Whether this capability can actually be used. */
 export function canUseAi(ai: AiCapability): boolean {
