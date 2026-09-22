@@ -1,5 +1,12 @@
 /** the backup format, in both directions */
-import { buildArchive, parseArchive, archiveFilename, ARCHIVE_VERSION, type ExportableRecipe } from '../src/lib/archive';
+import {
+    buildArchive,
+    parseArchive,
+    cookEntriesFrom,
+    archiveFilename,
+    ARCHIVE_VERSION,
+    type ExportableRecipe,
+} from '../src/lib/archive';
 import { suite, check, equal } from './harness';
 
 function row(overrides: Partial<ExportableRecipe> = {}): ExportableRecipe {
@@ -111,7 +118,7 @@ export default function run() {
 
     check('a version 1 archive still reads', old.ok, old.error);
     equal('and gets an empty list of entries', old.archive?.posts, []);
-    equal('and of photographs', old.archive?.cookPhotos, []);
+    equal('and of cookings', old.archive?.cookEntries, []);
 
     const withExtras = buildArchive(
         [],
@@ -140,11 +147,11 @@ export default function run() {
         ],
         [
             {
-                url: 'https://blob.test/cooked.jpg',
-                caption: 'beim zweiten Versuch',
-                createdAt: new Date('2026-09-15T00:00:00.000Z'),
+                cookedAt: new Date('2026-09-15T00:00:00.000Z'),
+                note: 'beim zweiten Versuch',
                 recipe: { slug: 'zwetschgenkuchen' },
                 user: { name: 'Anna' },
+                photos: [{ url: 'https://blob.test/cooked.jpg' }],
             },
         ]
     );
@@ -155,14 +162,20 @@ export default function run() {
     equal('links an entry to its recipe by slug', withExtras.posts[0].recipeSlug, 'zwetschgenkuchen');
     equal('keeps a standalone entry standalone', withExtras.posts[1].recipeSlug, null);
     equal('keeps a draft a draft', withExtras.posts[1].publishedAt, null);
-    equal('carries the photograph', withExtras.cookPhotos.length, 1);
-    equal('with the recipe it belongs to', withExtras.cookPhotos[0].recipeSlug, 'zwetschgenkuchen');
-    equal('and its note', withExtras.cookPhotos[0].caption, 'beim zweiten Versuch');
+    equal('carries the cooking', withExtras.cookEntries.length, 1);
+    equal('with the recipe it belongs to', withExtras.cookEntries[0].recipeSlug, 'zwetschgenkuchen');
+    equal('and its note', withExtras.cookEntries[0].note, 'beim zweiten Versuch');
+    equal('and its photograph', withExtras.cookEntries[0].photos, ['https://blob.test/cooked.jpg']);
 
     const roundTripped = parseArchive(JSON.parse(JSON.stringify(withExtras)));
     check('survives being written out and read back', roundTripped.ok, roundTripped.error);
     equal('with both entries intact', roundTripped.archive?.posts.length, 2);
-    equal('and the photograph', roundTripped.archive?.cookPhotos.length, 1);
+    equal('and the cooking', roundTripped.archive?.cookEntries.length, 1);
+    equal(
+        'with its photograph still on it',
+        roundTripped.archive?.cookEntries[0].photos,
+        ['https://blob.test/cooked.jpg']
+    );
 
     // Dates go through JSON as strings and have to come back as the same
     // instant, or a restored entry quietly moves in the list.
@@ -188,13 +201,13 @@ export function archiveCollectionsTests() {
         [],
         new Date('2026-09-21T18:00:00Z'),
         [],
-        [],
         [
             {
                 cookedAt: new Date('2026-09-14T18:00:00Z'),
                 note: 'half the chilli',
                 recipe: { slug: 'thai-green-curry' },
                 user: { name: 'Moritz Schumacher' },
+                photos: [],
             },
         ],
         [
@@ -212,9 +225,9 @@ export function archiveCollectionsTests() {
         ]
     );
 
-    equal('the cooking note is carried', archive.cookLogs[0].note, 'half the chilli');
-    equal('by recipe slug', archive.cookLogs[0].recipeSlug, 'thai-green-curry');
-    equal('and by author name', archive.cookLogs[0].author, 'Moritz Schumacher');
+    equal('the cooking note is carried', archive.cookEntries[0].note, 'half the chilli');
+    equal('by recipe slug', archive.cookEntries[0].recipeSlug, 'thai-green-curry');
+    equal('and by author name', archive.cookEntries[0].author, 'Moritz Schumacher');
 
     equal('the collection is carried', archive.collections[0].title, 'Weihnachten');
     equal(
@@ -228,7 +241,7 @@ export function archiveCollectionsTests() {
     const parsed = parseArchive(JSON.parse(JSON.stringify(archive)));
 
     check('it parses again', parsed.ok, parsed.error);
-    equal('with the log intact', parsed.archive?.cookLogs.length, 1);
+    equal('with the cooking intact', parsed.archive?.cookEntries.length, 1);
     equal(
         'and the order intact',
         parsed.archive?.collections[0].recipeSlugs,
@@ -244,6 +257,75 @@ export function archiveCollectionsTests() {
     });
 
     check('an archive from before any of this still reads', older.ok, older.error);
-    equal('with no cooking logs rather than an error', older.archive?.cookLogs, []);
+    equal('with no cookings rather than an error', older.archive?.cookEntries, []);
     equal('and no collections', older.archive?.collections, []);
+
+    /* ------------------------------ an archive written before the two merged */
+
+    /*
+     * The property that makes an old backup worth keeping: restoring one has
+     * to produce what migrating the database it came from produced. So the
+     * same rule — one entry per recipe, per person, per day — has to hold here
+     * as it does in prisma/migrations/0015_cook_entries.
+     */
+    const beforeTheMerge = parseArchive({
+        version: 4,
+        exportedAt: '2026-09-20T00:00:00.000Z',
+        recipes: [],
+        cookPhotos: [
+            {
+                url: 'https://blob.test/one.jpg',
+                caption: 'mit Knoblauch',
+                createdAt: '2026-09-01T18:00:00.000Z',
+                recipeSlug: 'green-curry',
+                author: 'Moritz',
+            },
+            {
+                url: 'https://blob.test/two.jpg',
+                caption: 'mit Knoblauch',
+                createdAt: '2026-09-01T18:30:00.000Z',
+                recipeSlug: 'green-curry',
+                author: 'Moritz',
+            },
+        ],
+        cookLogs: [
+            {
+                recipeSlug: 'green-curry',
+                cookedAt: '2026-09-01T20:30:00.000Z',
+                note: 'weniger Fischsauce',
+                author: 'Moritz',
+            },
+            {
+                recipeSlug: 'green-curry',
+                cookedAt: '2026-09-08T19:00:00.000Z',
+                note: null,
+                author: 'Anna',
+            },
+        ],
+    });
+
+    check('a version 4 archive still reads', beforeTheMerge.ok, beforeTheMerge.error);
+
+    const folded = cookEntriesFrom(beforeTheMerge.archive!);
+
+    equal('one evening each, not one row each', folded.length, 2);
+    equal('the first is the one with everything on it', folded[0].recipeSlug, 'green-curry');
+    equal('both its photographs came along', folded[0].photos, [
+        'https://blob.test/one.jpg',
+        'https://blob.test/two.jpg',
+    ]);
+    // The caption appears twice in the source and once in the result; the note
+    // written later is joined onto it rather than replacing it.
+    equal('a repeated caption is written once', folded[0].note, 'mit Knoblauch · weniger Fischsauce');
+    equal('and the entry is dated from the earliest of them', folded[0].cookedAt, '2026-09-01T18:00:00.000Z');
+    equal('a different person on a different day stays separate', folded[1].author, 'Anna');
+    equal('with no pictures', folded[1].photos, []);
+
+    // A version-5 archive is already in the right shape and must be passed
+    // through untouched rather than re-folded.
+    equal(
+        'an archive that already has entries is left alone',
+        cookEntriesFrom(parsed.archive!).length,
+        1
+    );
 }

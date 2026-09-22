@@ -39,10 +39,10 @@ const DELETE = process.argv.includes('--delete');
 const GRACE_HOURS = 24;
 
 async function referencedUrls() {
-    const [images, posts, cookPhotos, captures] = await Promise.all([
+    const [images, posts, cookedPhotos, captures] = await Promise.all([
         prisma.image.findMany({ select: { url: true } }),
         prisma.post.findMany({ select: { imageUrl: true } }),
-        prisma.cookPhoto.findMany({ select: { url: true } }),
+        prisma.cookEntryPhoto.findMany({ select: { url: true } }),
         // The inbox counts: a capture holds a screenshot that has not become a
         // recipe yet, and sweeping those away would empty the inbox of its
         // pictures.
@@ -52,7 +52,7 @@ async function referencedUrls() {
     const urls = new Set();
     for (const row of images) if (row.url) urls.add(row.url);
     for (const row of posts) if (row.imageUrl) urls.add(row.imageUrl);
-    for (const row of cookPhotos) if (row.url) urls.add(row.url);
+    for (const row of cookedPhotos) if (row.url) urls.add(row.url);
     for (const row of captures) if (row.imageUrl) urls.add(row.imageUrl);
 
     // A draft in the inbox holds the picture inside its JSON rather than in a

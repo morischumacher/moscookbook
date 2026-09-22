@@ -33,6 +33,7 @@ import ingredientSearch from './ingredientSearch.test';
 import blobCleanup from './blobCleanup.test';
 import imageCompression from './imageCompression.test';
 import navigation from './navigation.test';
+import ownership from './ownership.test';
 import cookProgress from './cookProgress.test';
 import safeFetch from './safeFetch.test';
 import similarRecipes from './similarRecipes.test';
@@ -71,6 +72,7 @@ async function main() {
     blobCleanup();
     imageCompression();
     navigation();
+    ownership();
     cookProgress();
     await safeFetch();
     similarRecipes();

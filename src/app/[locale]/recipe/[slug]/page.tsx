@@ -91,34 +91,22 @@ export default async function RecipePage({
         },
     });
 
-    // Oldest first as well, for the same reason the notes are: a wall of
-    // pictures of one dish reads as a sequence of attempts.
-    const cooked = await prisma.cookPhoto.findMany({
-        where: { recipeId: recipe.id },
-        orderBy: { createdAt: 'asc' },
-        take: 60,
-        select: {
-            id: true,
-            url: true,
-            caption: true,
-            createdAt: true,
-            userId: true,
-            user: { select: { name: true } },
-        },
-    });
-
-    // Newest first: the question this answers is "when did I last make this",
-    // and the answer is the first row.
-    const cookLog = await prisma.cookLog.findMany({
+    // Newest first: the question this section answers is "when did I last
+    // make this", and the answer is then the first row.
+    //
+    // The pictures inside an entry go the other way, in the order somebody
+    // arranged them — within one evening a sequence reads forwards.
+    const cooked = await prisma.cookEntry.findMany({
         where: { recipeId: recipe.id },
         orderBy: { cookedAt: 'desc' },
-        take: 20,
+        take: 30,
         select: {
             id: true,
             cookedAt: true,
             note: true,
             userId: true,
             user: { select: { name: true } },
+            photos: { orderBy: { position: 'asc' }, select: { id: true, url: true } },
         },
     });
 
@@ -130,7 +118,6 @@ export default async function RecipePage({
         <RecipeArticle
             recipe={recipe}
             similar={similar}
-            cookLog={cookLog}
             notes={notes}
             cooked={cooked}
             currentUserId={session.user?.id ?? null}

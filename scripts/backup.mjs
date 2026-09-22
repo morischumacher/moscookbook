@@ -26,7 +26,7 @@ const prisma = new PrismaClient();
 // Kept in step with src/lib/archive.ts by hand, and checked by
 // scripts/check-backup.mjs — this file had quietly stayed at 1 while the
 // application moved to 2, which is exactly the drift that guard is for.
-const ARCHIVE_VERSION = 4;
+const ARCHIVE_VERSION = 5;
 
 function outputDir() {
     const flag = process.argv.indexOf('--out');
@@ -69,23 +69,16 @@ async function main() {
         },
     });
 
-    const cookPhotos = await prisma.cookPhoto.findMany({
-        orderBy: { createdAt: 'asc' },
-        select: {
-            url: true, caption: true, createdAt: true,
-            recipe: { select: { slug: true } },
-            user: { select: { name: true } },
-        },
-    });
-
     // Writing, and the only copy of it. "Half the chilli next time" is the
     // kind of line that is written once and missed by the person who wrote it.
-    const cookLogs = await prisma.cookLog.findMany({
+    // The pictures come with it, in the order they were arranged.
+    const cookEntries = await prisma.cookEntry.findMany({
         orderBy: { cookedAt: 'asc' },
         select: {
             cookedAt: true, note: true,
             recipe: { select: { slug: true } },
             user: { select: { name: true } },
+            photos: { orderBy: { position: 'asc' }, select: { url: true } },
         },
     });
 
@@ -124,19 +117,17 @@ async function main() {
             recipeSlug: post.recipe?.slug ?? null,
             author: post.author?.name ?? null,
         })),
-        cookPhotos: cookPhotos.map((photo) => ({
-            url: photo.url,
-            caption: photo.caption,
-            createdAt: photo.createdAt.toISOString(),
-            recipeSlug: photo.recipe.slug,
-            author: photo.user?.name ?? null,
-        })),
-        cookLogs: cookLogs.map((entry) => ({
+        cookEntries: cookEntries.map((entry) => ({
             recipeSlug: entry.recipe.slug,
             cookedAt: entry.cookedAt.toISOString(),
             note: entry.note,
             author: entry.user?.name ?? null,
+            photos: entry.photos.map((photo) => photo.url),
         })),
+        // Written empty so that an archive from this script still parses
+        // against a build that predates the merge. See lib/archive.ts.
+        cookPhotos: [],
+        cookLogs: [],
         collections: collections.map((collection) => ({
             title: collection.title,
             slug: collection.slug,
@@ -155,7 +146,7 @@ async function main() {
         ...new Set([
             ...recipes.flatMap((recipe) => recipe.images.map((image) => image.url)),
             ...posts.map((post) => post.imageUrl).filter(Boolean),
-            ...cookPhotos.map((photo) => photo.url),
+            ...cookEntries.flatMap((entry) => entry.photos.map((photo) => photo.url)),
         ]),
     ];
     const map = {};
@@ -181,7 +172,7 @@ async function main() {
     await writeFile(path.join(directory, 'images.json'), JSON.stringify(map, null, 2));
 
     console.log(
-        `\n${recipes.length} recipes, ${posts.length} entries, ${cookPhotos.length} cooked photos ` +
+        `\n${recipes.length} recipes, ${posts.length} entries, ${cookEntries.reduce((n, entry) => n + entry.photos.length, 0)} cooked photos ` +
         `and ${downloaded} images written to ${directory}`
     );
     if (failed > 0) console.log(`${failed} image(s) could not be fetched — see the warnings above.`);

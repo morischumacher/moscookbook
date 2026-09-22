@@ -54,9 +54,22 @@ import type { Config } from 'tailwindcss'
  * added in the wrong shape is caught at `npm run check` rather than by
  * somebody looking at their phone.
  */
-const token =
-  (name: string) =>
-  ({ opacityValue }: { opacityValue?: string | number } = {}) => {
+/*
+ * The cast is deliberate and it is the only dishonest line in this file.
+ *
+ * Tailwind's runtime calls a colour that is a function and hands it the
+ * opacity — `withAlphaValue` begins `if (typeof color === 'function') return
+ * color({ opacityValue })`. Its *published* types do not model that: a colour
+ * in the theme is declared `string | RecursiveKeyValuePair`, so `satisfies
+ * Config` rejects the very thing the implementation is built to accept.
+ *
+ * Asserting `string` here is therefore a statement about Tailwind's types
+ * being narrower than Tailwind, not about this value being a string. It is
+ * confined to this one line, and `npm run check:tokens` compiles the real
+ * config and fails if the functions ever stop being called.
+ */
+const token = (name: string): string =>
+  ((({ opacityValue }: { opacityValue?: string | number } = {}) => {
     const alpha = Number(opacityValue)
 
     // Undefined for a plain `bg-ink`; `var(--tw-bg-opacity)` — which is not a
@@ -68,7 +81,7 @@ const token =
     // One decimal. `0.55` arrives as 55.00000000000001 otherwise, which is
     // correct and looks like a mistake in the compiled stylesheet.
     return `color-mix(in srgb, var(${name}) ${Math.round(alpha * 1000) / 10}%, transparent)`
-  }
+  }) as unknown as string)
 
 export default {
   content: [

@@ -158,20 +158,28 @@ export async function DELETE(
         // that removed the files and then failed on the row would leave a
         // recipe pointing at pictures that no longer exist, which is worse
         // than a file nobody is pointing at.
-        const doomed: { images: { url: string }[]; cookPhotos: { url: string }[] } | null =
-            await prisma.recipe.findUnique({
-                where: { id: recipeId },
-                select: { images: { select: { url: true } }, cookPhotos: { select: { url: true } } },
-            });
+        const doomed: {
+            images: { url: string }[];
+            cookEntries: { photos: { url: string }[] }[];
+        } | null = await prisma.recipe.findUnique({
+            where: { id: recipeId },
+            select: {
+                images: { select: { url: true } },
+                cookEntries: { select: { photos: { select: { url: true } } } },
+            },
+        });
 
-        // Images, cooked photographs, ratings and favourites all cascade on
-        // delete in the schema, so removing the recipe is enough for the rows.
+        // Images, cooking entries with their photographs, ratings and
+        // favourites all cascade on delete in the schema, so removing the
+        // recipe is enough for the rows.
         await prisma.recipe.delete({ where: { id: recipeId } });
 
         if (doomed) {
             await deleteBlobs([
                 ...doomed.images.map((image) => image.url),
-                ...doomed.cookPhotos.map((photo) => photo.url),
+                ...doomed.cookEntries.flatMap((entry) =>
+                    entry.photos.map((photo) => photo.url)
+                ),
             ]);
         }
 

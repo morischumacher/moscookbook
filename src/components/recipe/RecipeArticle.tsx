@@ -7,8 +7,7 @@ import RecipeBody from '@/components/recipe/RecipeBody';
 import Gallery from '@/components/recipe/Gallery';
 import ShareLink from '@/components/recipe/ShareLink';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
-import CookedPhotos, { type CookedPhoto } from '@/components/recipe/CookedPhotos';
-import CookLog, { type CookLogEntry } from '@/components/recipe/CookLog';
+import Cooked, { type CookedEntry } from '@/components/recipe/Cooked';
 import SimilarRecipes from '@/components/recipe/SimilarRecipes';
 import type { SimilarRecipe } from '@/lib/similarRecipes';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
@@ -74,12 +73,14 @@ export interface RecipeArticleProps {
      */
     notes: RecipeNote[];
     /**
-     * Pictures of the dish as other people cooked it. Empty on the shared page:
-     * somebody who put a photograph into a private cookbook did not agree to it
+     * Who cooked this, when, what they would change and what it looked like.
+     *
+     * Empty on the shared page and on a public recipe: somebody who wrote a
+     * note or put a photograph into a private cookbook did not agree to it
      * travelling out of it on a link.
      */
-    cooked: CookedPhoto[];
-    /** Whose pictures are whose. Null for a reader with no account. */
+    cooked: CookedEntry[];
+    /** Whose entries are whose. Null for a reader with no account. */
     currentUserId: number | null;
     /**
      * Four recipes like this one. Empty on the shared page: somebody holding a
@@ -87,11 +88,6 @@ export interface RecipeArticleProps {
      * private cookbook.
      */
     similar: SimilarRecipe[];
-    /**
-     * Who cooked this and when. Empty on the shared page, for the same reason
-     * the notes are: a kitchen diary is not part of a link you send somebody.
-     */
-    cookLog: CookLogEntry[];
 }
 
 export default async function RecipeArticle({
@@ -109,7 +105,6 @@ export default async function RecipeArticle({
     cooked,
     currentUserId,
     similar,
-    cookLog,
 }: RecipeArticleProps) {
     const t = await getTranslations('Recipe');
     const tCategory = await getTranslations('Categories');
@@ -296,20 +291,12 @@ export default async function RecipeArticle({
 
                 {mode === 'private' && (
                     <>
-                        {/* Before the pictures: the fact comes first and the
-                            photograph is the thing you sometimes also took. */}
-                        <CookLog
+                        {/* One section, not two. The fact, the note and the
+                            pictures are one evening — see the component. */}
+                        <Cooked
                             recipeId={recipe.id}
-                            entries={cookLog}
+                            entries={cooked}
                             canLog={isLoggedIn}
-                            currentUserId={currentUserId}
-                            locale={locale}
-                        />
-
-                        <CookedPhotos
-                            recipeId={recipe.id}
-                            photos={cooked}
-                            canAdd={isLoggedIn}
                             isAdmin={isAdmin}
                             currentUserId={currentUserId}
                             locale={locale}

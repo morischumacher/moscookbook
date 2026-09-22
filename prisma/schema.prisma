@@ -27,8 +27,7 @@ model User {
 
   tokens         AuthToken[]
   posts          Post[]
-  cookPhotos     CookPhoto[]
-  cookLogs       CookLog[]
+  cookEntries    CookEntry[]
   ratings        Rating[]
   favorites      Favorite[]
   invitesCreated Invite[]   @relation("InviteCreatedBy")
@@ -207,25 +206,75 @@ model Post {
 /// written entry stands on its own once its recipe is gone, while a picture of
 /// a dish with no dish attached has nowhere to be shown and nothing to say.
 /// SetNull on the user, so deleting an account keeps the pictures it left.
-model CookPhoto {
+/// "I cooked this" — once, by one person, with what they would change and
+/// whatever they photographed.
+///
+/// This was two tables, and the note in the old one said, without apparent
+/// irony, "two ideas that turned out to be one" — about the date and the note,
+/// while keeping the photograph apart on the grounds that "a photograph is a
+/// thing you took and this is a thing that happened".
+///
+/// That distinction does not survive contact with the page. A photograph of a
+/// finished dish *is* the thing that happened; it is the evidence, not a
+/// separate event. Keeping them apart bought two headings, two buttons, two
+/// lists and two permission rules for one act, and the cost landed on whoever
+/// was reading the recipe and could not tell what either section was for.
+///
+/// So: one entry per cooking. The note is optional and added afterwards, the
+/// photographs are optional and added afterwards, and recording the fact is
+/// one tap with nothing in front of it — because the fact is the part that
+/// otherwise does not get recorded.
+model CookEntry {
   id        Int      @id @default(autoincrement())
-  url       String
-  /// Optional, short: "mit doppelt Knoblauch".
-  caption   String?
 
   recipeId  Int
   recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 
+  /// Nullable, and set to null rather than cascading when an account goes.
+  ///
+  /// CookLog used to cascade, on the grounds that a note about what to change
+  /// next time was private to its author. It never was — every account reads
+  /// every entry, notes included — and that false premise was quietly deleting
+  /// real contributions from a shared page. An entry is a contribution, like
+  /// the photograph always was, and it outlives the account as "Someone".
   userId    Int?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  createdAt DateTime @default(now())
+  cookedAt  DateTime @default(now())
 
-  @@index([recipeId, createdAt])
+  /// Short on purpose. A paragraph about a recipe is an entry on the blog.
+  note      String?
 
-  /// Deleting a person sets their photographs' userId to null, which without
-  /// this is a scan of every cooked photo on the site.
-  @@index([userId])
+  photos    CookEntryPhoto[]
+
+  /// "When was this last cooked", newest first — and the home page's
+  /// "not made in a while" order.
+  @@index([recipeId, cookedAt])
+
+  /// One person's own cooking, newest first; also what stops a deleted account
+  /// from scanning the whole table to null its rows.
+  @@index([userId, cookedAt])
+}
+
+/// A picture belonging to one entry.
+///
+/// Its own table rather than a column, because one evening produces three
+/// photographs as readily as one, and a url column would have forced those
+/// three to be three separate evenings — which is the duplication this whole
+/// merge exists to remove.
+model CookEntryPhoto {
+  id        Int       @id @default(autoincrement())
+  url       String
+
+  /// The order somebody arranged them in, not the order they uploaded.
+  position  Int       @default(0)
+
+  entryId   Int
+  entry     CookEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+
+  @@index([entryId, position])
 }
 
 model Recipe {
@@ -266,8 +315,7 @@ model Recipe {
   ingredients    Ingredient[]
   captures       Capture[]
   posts          Post[]
-  cookPhotos     CookPhoto[]
-  cookLogs       CookLog[]
+  cookEntries    CookEntry[]
   collections    CollectionRecipe[]
 
   /// This table had no index at all beyond the two unique columns and the
@@ -382,42 +430,6 @@ model RateLimit {
   expiresAt DateTime
 
   @@index([expiresAt])
-}
-
-/// "I cooked this", with what you would do differently.
-///
-/// Two ideas that turned out to be one. "When did I last make this" and "note
-/// to self: half the chilli next time" are the same moment — you cook it, and
-/// what you learned is worth a line. Two features would have meant two buttons
-/// and two lists for one act.
-///
-/// Separate from CookPhoto, which is the picture: a photograph is a thing you
-/// took and this is a thing that happened, and most cooking produces the second
-/// without the first.
-///
-/// The note is optional and added afterwards, like a photograph's caption, so
-/// that recording the cooking is one tap and nothing else.
-model CookLog {
-  id       Int      @id @default(autoincrement())
-
-  recipeId Int
-  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-
-  /// Whose log this is. Cascades, unlike a photograph's author: a picture on a
-  /// shared wall outlives the account that put it there, a private note about
-  /// what to change next time does not.
-  userId   Int
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  cookedAt DateTime @default(now())
-  /// Short on purpose. A paragraph about a recipe is an entry on the blog.
-  note     String?
-
-  /// "When was this last cooked", which is a lookup by recipe, newest first —
-  /// and the home page's "not made in a while" order.
-  @@index([recipeId, cookedAt])
-  /// One person's own cooking, newest first.
-  @@index([userId, cookedAt])
 }
 
 /// A handful of recipes with a name on it: "Weihnachten", "Schnell nach der
