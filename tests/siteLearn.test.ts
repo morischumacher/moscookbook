@@ -250,6 +250,52 @@ export default async function siteLearnTests() {
         withoutImage.profile
     );
 
+    /*
+     * Instagram, TikTok and everything else that renders itself in the browser.
+     *
+     * The page arrives as a shell: no headings, no list, no prose. The whole
+     * recipe is in `og:title`, which is why `aiInput` feeds the meta tags to
+     * the model and why those imports work at all.
+     *
+     * What must NOT happen is a profile being stored for such a site. There is
+     * nothing to anchor to, so anything stored would be a mapping that finds
+     * nothing — and every later import would follow it, find nothing, and only
+     * recover after three failures. A site that cannot be learned has to be
+     * refused rather than half-learned.
+     */
+    const RENDERED_IN_BROWSER = `<html><head>
+<meta property="og:title" content="Ben Slater auf Instagram: «Perfect lasagne. 500 g Hackfleisch, 2 Dosen Tomaten, Béchamel. Schichten und 40 Minuten backen.»">
+<meta property="og:image" content="https://instagram.example/p.jpg">
+</head><body><div id="mount"></div><div class="x1n2onr6"></div></body></html>`;
+
+    const platform = await learnSiteProfile(
+        RENDERED_IN_BROWSER,
+        extracted,
+        key,
+        answering(JSON.stringify(right))
+    );
+    check('a page rendered in the browser teaches nothing', platform.profile === null, platform);
+    check(
+        'and the reason is the page, not the model',
+        platform.note.includes('structure') || platform.note.startsWith('rejected'),
+        platform.note
+    );
+
+    // Even a model that confidently names meta tags for everything is refused,
+    // because a title and a picture are not a recipe.
+    const metaOnly = await learnSiteProfile(
+        RENDERED_IN_BROWSER,
+        extracted,
+        key,
+        answering(
+            JSON.stringify({
+                title: { kind: 'meta', property: 'og:title' },
+                image: { kind: 'meta', property: 'og:image' },
+            })
+        )
+    );
+    check('meta tags alone are not a profile', metaOnly.profile === null, metaOnly);
+
     const shapeless = await learnSiteProfile('', extracted, key, answering(JSON.stringify(right)));
     check('a page with no structure is not asked about at all', shapeless.profile === null, shapeless);
 }
