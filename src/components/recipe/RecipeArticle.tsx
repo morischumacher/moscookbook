@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import RatingDisplay from '@/components/RatingDisplay';
 import FavoriteButton from '@/components/FavoriteButton';
+import RecipeSource from '@/components/recipe/RecipeSource';
 import ViewTracker from '@/components/ViewTracker';
 import Logo from '@/components/brand/Logo';
 import RecipeBody from '@/components/recipe/RecipeBody';
@@ -50,6 +51,13 @@ export interface RecipeRow {
     images: { url: string }[];
     ratings: { value: number; userId: number }[];
     ingredients: StructuredIngredient[];
+    /**
+     * The share this recipe was made from, for its link and nothing else.
+     * Optional: a recipe typed in by hand has no capture behind it, and the
+     * surfaces that render a recipe without asking for one (the shared page
+     * builds its own row) should not have to invent an empty array.
+     */
+    captures?: { sourceUrl: string | null }[];
 }
 
 /** What the page needs from the database, in one place so both routes agree. */
@@ -57,6 +65,15 @@ export const recipeInclude = {
     images: { orderBy: { position: 'asc' } },
     ratings: true,
     ingredients: { orderBy: { position: 'asc' } },
+    /*
+     * The capture this recipe was made from, for the one field worth showing:
+     * where it came from. One row, because a recipe is made from one share —
+     * a merge attaches a second, and the first is the one that made it.
+     *
+     * Only ever read for the link. Everything else on a capture is the raw
+     * material the recipe replaced.
+     */
+    captures: { orderBy: { id: 'asc' }, take: 1, select: { sourceUrl: true } },
 } as const;
 
 export interface RecipeArticleProps {
@@ -263,6 +280,22 @@ export default async function RecipeArticle({
                         </span>
                     )}
                 </div>
+
+                {/*
+                    Where it came from, under the row about what people thought
+                    of it — which is the same kind of fact: something about the
+                    recipe rather than part of it.
+
+                    Shown to whoever can see the page, including somebody
+                    holding a shared link: crediting the blog a recipe was
+                    taken from is the right thing to do in front of a guest,
+                    not something to hide from one.
+                */}
+                {recipe.captures?.[0]?.sourceUrl && (
+                    <div className="print:hidden mt-4">
+                        <RecipeSource url={recipe.captures[0].sourceUrl} />
+                    </div>
+                )}
 
                 {/* One panel, not two. Publishing and the secret link are
                     two answers to one question — who can see this — and they

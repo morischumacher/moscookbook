@@ -177,7 +177,10 @@
     "columnId": "ID",
     "viewCount": "{count, plural, one {# view} other {# views}}",
     "people": "People",
-    "adminNavLabel": "Admin sections"
+    "adminNavLabel": "Admin sections",
+    "invitedBy": "Invited by {name}",
+    "invitedByOn": "Invited by {name} · joined {date}",
+    "unverified": "address not confirmed"
   },
   "RecipeForm": {
     "newRecipe": "New recipe",
@@ -449,7 +452,10 @@
     "delete": "Delete for good",
     "deleteConfirm": "Remove this row? Its history goes with it.",
     "deleteFailed": "That could not be deleted.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "exportMarkdown": "Copy all as Markdown",
+    "copied": "Copied",
+    "copyFailed": "Could not copy."
   },
   "ErrorPage": {
     "title": "This page did not load.",
@@ -642,7 +648,8 @@
     "copied": "Copied",
     "copyFailed": "Could not copy.",
     "ticketHint": "Copies a finished text with the page, the date and the description — to paste wherever it gets fixed.",
-    "dropPage": "Leave it out"
+    "dropPage": "Leave it out",
+    "exportMarkdown": "Copy all as Markdown"
   },
   "Account": {
     "title": "Your account",

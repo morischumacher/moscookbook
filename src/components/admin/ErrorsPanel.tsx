@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/lib/formatDate';
 import { messageFrom } from '@/lib/apiMessage';
 import InlineConfirm from '@/components/ui/InlineConfirm';
+import { useCopy } from '@/components/ui/useCopy';
 import Loading from '@/components/ui/Loading';
 
 interface ErrorRow {
@@ -48,6 +49,7 @@ export default function ErrorsPanel() {
     const [error, setError] = useState('');
     const [showResolved, setShowResolved] = useState(false);
     const [expanded, setExpanded] = useState<number | null>(null);
+    const { copy, copied, failed: copyRefused } = useCopy();
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -96,6 +98,28 @@ export default function ErrorsPanel() {
         }
     };
 
+    /**
+     * The list as Markdown, for pasting where it gets fixed.
+     *
+     * The stack traces come with it, inside fences — they are the reason
+     * anybody exports this rather than reading it here, and a stack pasted
+     * without a fence turns into a paragraph.
+     */
+    const asMarkdown = () =>
+        [
+            `# ${t('title')} — ${showResolved ? t('showResolved') : t('showOpen')}`,
+            '',
+            ...errors.flatMap((row) => [
+                `## ${row.message}`,
+                '',
+                `- ${t(`source.${row.source}`)} · ${t('seen', { count: row.count })}`,
+                `- ${formatDateTime(row.lastSeenAt, locale)}`,
+                ...(row.path ? [`- \`${row.path}\``] : []),
+                '',
+                ...(row.stack ? ['```', row.stack.trim(), '```', ''] : []),
+            ]),
+        ].join('\n');
+
     const resolve = async (id: number) => {
         // The row used to vanish whatever happened, so an expired session
         // looked exactly like a successful resolve until the next reload.
@@ -112,13 +136,31 @@ export default function ErrorsPanel() {
         <div>
             <p className="mb-6 font-serif text-muted">{t('explanation')}</p>
 
-            <button
-                type="button"
-                onClick={() => setShowResolved(!showResolved)}
-                className="mb-8 text-sm underline underline-offset-4"
-            >
-                {showResolved ? t('showOpen') : t('showResolved')}
-            </button>
+            <div className="mb-8 flex flex-wrap items-center gap-5">
+                <button
+                    type="button"
+                    onClick={() => setShowResolved(!showResolved)}
+                    className="text-sm underline underline-offset-4"
+                >
+                    {showResolved ? t('showOpen') : t('showResolved')}
+                </button>
+
+                {errors.length > 0 && (
+                    <button
+                        type="button"
+                        onClick={() => void copy(asMarkdown(), 'all')}
+                        className="text-sm underline underline-offset-4"
+                    >
+                        {copied === 'all' ? t('copied') : t('exportMarkdown')}
+                    </button>
+                )}
+            </div>
+
+            {copyRefused && (
+                <p role="alert" className="mb-4 text-sm text-danger">
+                    {t('copyFailed')}
+                </p>
+            )}
 
             {/* Before the list, and instead of it: "all quiet" must never be
                 shown when the truth is "could not ask". */}

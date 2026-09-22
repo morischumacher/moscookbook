@@ -177,7 +177,10 @@
     "columnId": "ID",
     "viewCount": "{count, plural, one {# Aufruf} other {# Aufrufe}}",
     "people": "Menschen",
-    "adminNavLabel": "Admin-Bereiche"
+    "adminNavLabel": "Admin-Bereiche",
+    "invitedBy": "Eingeladen von {name}",
+    "invitedByOn": "Eingeladen von {name} · dabei seit {date}",
+    "unverified": "Adresse nicht bestätigt"
   },
   "RecipeForm": {
     "newRecipe": "Neues Rezept",
@@ -449,7 +452,10 @@
     "delete": "Endgültig löschen",
     "deleteConfirm": "Diese Zeile entfernen? Ihre Vorgeschichte geht mit.",
     "deleteFailed": "Das konnte nicht gelöscht werden.",
-    "retry": "Nochmal versuchen"
+    "retry": "Nochmal versuchen",
+    "exportMarkdown": "Alle als Markdown kopieren",
+    "copied": "Kopiert",
+    "copyFailed": "Kopieren hat nicht geklappt."
   },
   "ErrorPage": {
     "title": "Diese Seite hat nicht geladen.",
@@ -642,7 +648,8 @@
     "copied": "Kopiert",
     "copyFailed": "Kopieren ging nicht.",
     "ticketHint": "Kopiert einen fertigen Text mit Seite, Datum und Beschreibung — zum Einfügen dort, wo es behoben wird.",
-    "dropPage": "Nicht mitschicken"
+    "dropPage": "Nicht mitschicken",
+    "exportMarkdown": "Alle als Markdown kopieren"
   },
   "Account": {
     "title": "Dein Konto",

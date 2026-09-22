@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/lib/formatDate';
 import { buttonSecondary } from '@/lib/ui';
+import { useCopy } from '@/components/ui/useCopy';
 import Loading from '@/components/ui/Loading';
 
 interface TicketRow {
@@ -40,7 +41,7 @@ export default function TicketsPanel() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showResolved, setShowResolved] = useState(false);
-    const [copiedId, setCopiedId] = useState<number | null>(null);
+    const { copy, copied, failed: copyRefused } = useCopy();
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -86,17 +87,30 @@ export default function TicketsPanel() {
             .filter((line) => line !== null)
             .join('\n');
 
-    const copy = async (entry: TicketRow) => {
-        setError('');
-
-        try {
-            await navigator.clipboard.writeText(asTicket(entry));
-            setCopiedId(entry.id);
-            window.setTimeout(() => setCopiedId(null), 2500);
-        } catch {
-            setError(t('copyFailed'));
-        }
-    };
+    /**
+     * The whole list as Markdown, for pasting somewhere it gets worked
+     * through — an issue tracker, a note, a message to whoever is fixing it.
+     *
+     * Markdown rather than the plain text a single ticket copies as: one
+     * ticket is a sentence and a few facts, and a list of them needs
+     * headings to stay readable. What is exported is what is on screen,
+     * open or resolved, which is the list somebody was already looking at.
+     */
+    const asMarkdown = () =>
+        [
+            `# ${t('adminTitle')} — ${showResolved ? t('showResolved') : t('showOpen')}`,
+            '',
+            ...entries.flatMap((entry) => [
+                `## ${t(`kind_${entry.kind}`)} · #${entry.id}`,
+                '',
+                entry.body.trim(),
+                '',
+                `- ${t('someone')}: ${entry.user?.name ?? t('someone')}`,
+                `- ${formatDateTime(new Date(entry.createdAt), locale)}`,
+                ...(entry.path ? [`- \`${entry.path}\``] : []),
+                '',
+            ]),
+        ].join('\n');
 
     const setResolved = async (id: number, resolved: boolean) => {
         try {
@@ -122,14 +136,32 @@ export default function TicketsPanel() {
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <p className="flex-1 font-serif text-muted">{t('adminExplanation')}</p>
 
-                <button
-                    type="button"
-                    onClick={() => setShowResolved(!showResolved)}
-                    className={buttonSecondary}
-                >
-                    {showResolved ? t('showOpen') : t('showResolved')}
-                </button>
+                <div className="flex flex-wrap items-center gap-4">
+                    {entries.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => void copy(asMarkdown(), 'all')}
+                            className="text-sm underline underline-offset-4"
+                        >
+                            {copied === 'all' ? t('copied') : t('exportMarkdown')}
+                        </button>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={() => setShowResolved(!showResolved)}
+                        className={buttonSecondary}
+                    >
+                        {showResolved ? t('showOpen') : t('showResolved')}
+                    </button>
+                </div>
             </div>
+
+            {copyRefused && (
+                <p role="alert" className="mb-4 text-sm text-danger">
+                    {t('copyFailed')}
+                </p>
+            )}
 
             {error && (
                 <p role="alert" className="mt-6 rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
@@ -161,11 +193,11 @@ export default function TicketsPanel() {
                             <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
                                 <button
                                     type="button"
-                                    onClick={() => void copy(entry)}
+                                    onClick={() => void copy(asTicket(entry), entry.id)}
                                     title={t('ticketHint')}
                                     className="text-xs text-muted underline underline-offset-4 hover:text-ink"
                                 >
-                                    {copiedId === entry.id ? t('copied') : t('copyTicket')}
+                                    {copied === entry.id ? t('copied') : t('copyTicket')}
                                 </button>
 
                                 <button
