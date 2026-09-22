@@ -29,6 +29,7 @@ export default function AdminNav() {
     const tCollections = useTranslations('Collections');
     const tErrors = useTranslations('Errors');
     const tDevices = useTranslations('Devices');
+    const tTickets = useTranslations('Tickets');
 
     const current = adminSectionFor(usePathname());
 
@@ -40,6 +41,7 @@ export default function AdminNav() {
         { href: '/admin/posts', label: tBlog('adminNav') },
         { href: '/admin/collections/new', label: tCollections('createNew') },
         { href: '/admin/users', label: t('people') },
+        { href: '/admin/tickets', label: tTickets('nav') },
         { href: '/admin/errors', label: tErrors('nav') },
         { href: '/admin/devices', label: tDevices('nav') },
     ];

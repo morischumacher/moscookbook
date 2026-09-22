@@ -17,6 +17,7 @@
     "check:design": "node scripts/check-design.mjs",
     "check:tokens": "node scripts/check-tokens.mjs",
     "check:icons": "node scripts/check-icons.mjs",
+    "check:blobs": "node scripts/check-blobs.mjs",
     "check:backup": "node scripts/check-backup.mjs",
     "fixtures": "node scripts/collect-import-fixtures.mjs",
     "reindex": "ts-node --transpile-only --project tests/tsconfig.json scripts/reindex-search.ts",

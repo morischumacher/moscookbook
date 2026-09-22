@@ -180,10 +180,17 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
                         id="mobile-menu"
                         className="absolute left-0 top-full z-50 flex w-full flex-col items-start border-b border-line bg-page px-4 py-4 shadow-lg md:hidden"
                     >
+                        {/* The greeting was a dead line of text at the top of
+                            the menu. It is the obvious place to look for your
+                            own account, so it leads there. */}
                         {user && (
-                            <p className="w-full pb-2 text-xs uppercase tracking-widest text-faint">
+                            <Link
+                                href="/account"
+                                onClick={close}
+                                className="w-full pb-2 text-xs uppercase tracking-widest text-faint underline-offset-4 hover:underline"
+                            >
                                 {t('greeting', { name: user.name })}
-                            </p>
+                            </Link>
                         )}
 
                         <div className="flex w-full flex-col items-start">

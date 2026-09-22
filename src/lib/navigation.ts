@@ -68,7 +68,7 @@ export function adminSectionFor(pathname: string): string | null {
     const path = withoutLocale(pathname);
     if (!path.startsWith('/admin')) return null;
 
-    for (const candidate of ['/admin/inbox', '/admin/posts', '/admin/collections', '/admin/users', '/admin/invites', '/admin/errors', '/admin/devices']) {
+    for (const candidate of ['/admin/inbox', '/admin/posts', '/admin/collections', '/admin/users', '/admin/invites', '/admin/tickets', '/admin/errors', '/admin/devices']) {
         if (path === candidate || path.startsWith(`${candidate}/`)) return candidate;
     }
 

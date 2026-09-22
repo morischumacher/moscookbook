@@ -4,37 +4,57 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import InlineConfirm from '@/components/ui/InlineConfirm';
+import ShareLink from '@/components/recipe/ShareLink';
 
 /**
- * Whether this recipe's own address works for somebody with no account.
+ * Who can see this recipe — the whole question, in one box.
  *
- * Two states, said plainly, with the consequence attached to each. "Public"
- * and "private" on their own are labels; what somebody needs to know before
- * pressing is that a public recipe can be opened by anybody who has the
- * address and kept by a search engine, and that taking it back removes the
- * page but not the copy somebody else already has.
+ * It was two boxes for about an hour: "Privat / Veröffentlichen" stacked on
+ * "Sichtbarkeit / Öffentlichen Link erstellen", each with its own heading,
+ * each describing the same recipe in slightly different words, sitting
+ * directly on top of each other. Two panels for one question is the same
+ * mistake as two sections for one act of cooking, made by the same person on
+ * the same day.
  *
- * Publishing asks first. Almost nothing else in this application does — the
- * cooking log records a fact in one tap, a note saves when you look away —
- * because almost nothing else leaves the cookbook. This does, and it is the
- * one direction that cannot be fully undone.
+ * So: one heading, one sentence saying where this recipe stands, and then the
+ * controls that apply to that state and no others.
  *
- * Taking it back does not ask. Making something less visible is not a
- * decision anybody needs protecting from, and a confirmation there would be
- * ceremony.
+ * **Published** shows the recipe's own address, which is the thing to hand
+ * somebody, and one way back. No secret link, because a secret link is what
+ * you make when the real address ends at a sign-in form — offering one here
+ * would be a worse version of what is already on screen.
+ *
+ * **Private** offers both directions, and they are genuinely different acts:
+ * publishing puts the recipe on the open web for anyone and for search
+ * engines; a secret link hands it to one person and can be taken back. The
+ * first asks before it happens, because it is the one that cannot be fully
+ * undone — taking a page down does not take back the copy somebody else made.
+ *
+ * Admin only, both here and in the two endpoints behind it. Everybody with an
+ * account is trusted; "trusted" and "may publish" are different permissions,
+ * and only one of them is irreversible.
  */
 export default function Visibility({
     recipeId,
     isPublic,
+    url,
+    shareUrl,
+    locale,
 }: {
     recipeId: number;
     isPublic: boolean;
+    /** The recipe's own address — what a published recipe is shared as. */
+    url: string;
+    /** The secret link, when one exists. */
+    shareUrl: string | null;
+    locale: string;
 }) {
     const t = useTranslations('Visibility');
     const router = useRouter();
 
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
+    const [copied, setCopied] = useState(false);
 
     const set = async (next: boolean) => {
         setBusy(true);
@@ -61,13 +81,24 @@ export default function Visibility({
         }
     };
 
-    return (
-        <div className="rounded-xl border border-line p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted">
-                {isPublic ? t('publicTitle') : t('privateTitle')}
-            </p>
+    const copy = async () => {
+        try {
+            await navigator.clipboard.writeText(url);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2500);
+        } catch {
+            // The field is readable and selectable, so the address can still be
+            // got out; nothing needs to be said.
+        }
+    };
 
-            <p className="mt-2 text-sm leading-snug text-muted">
+    return (
+        <section className="rounded-lg border border-line p-4">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
+                {t('heading')}
+            </h2>
+
+            <p className="mt-2 text-sm leading-relaxed">
                 {isPublic ? t('publicBody') : t('privateBody')}
             </p>
 
@@ -77,27 +108,66 @@ export default function Visibility({
                 </p>
             )}
 
-            <p className="mt-3">
-                {isPublic ? (
-                    <button
-                        type="button"
-                        onClick={() => void set(false)}
-                        disabled={busy}
-                        className="text-sm underline underline-offset-4 disabled:opacity-50"
-                    >
-                        {busy ? t('working') : t('makePrivate')}
-                    </button>
-                ) : (
-                    <InlineConfirm
-                        label={busy ? t('working') : t('makePublic')}
-                        question={t('sureQuestion')}
-                        confirmLabel={t('makePublic')}
-                        disabled={busy}
-                        onConfirm={() => set(true)}
-                        className="text-sm underline underline-offset-4 disabled:opacity-50"
+            {isPublic ? (
+                <div className="mt-3 flex flex-col gap-3">
+                    <input
+                        type="text"
+                        readOnly
+                        value={url}
+                        aria-label={t('addressLabel')}
+                        onFocus={(event) => event.currentTarget.select()}
+                        // 16px, or iOS Safari zooms the page when it takes focus.
+                        className="w-full min-w-0 rounded border border-control bg-transparent px-2 py-1 text-base"
                     />
-                )}
-            </p>
-        </div>
+
+                    <div className="flex flex-wrap items-center gap-4">
+                        <button
+                            type="button"
+                            onClick={copy}
+                            className="rounded-full border border-line px-4 py-2 text-sm font-medium"
+                        >
+                            {copied ? t('copied') : t('copyAddress')}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => void set(false)}
+                            disabled={busy}
+                            className="text-sm underline underline-offset-4 disabled:opacity-50"
+                        >
+                            {busy ? t('working') : t('makePrivate')}
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    {/* The secret link, in the same box rather than a second
+                        one. Its own heading and state line are suppressed
+                        because this panel has already said both. */}
+                    <ShareLink
+                        id={recipeId}
+                        kind="recipe"
+                        initialUrl={shareUrl}
+                        locale={locale}
+                        bare
+                    />
+
+                    <p className="mt-4 border-t border-line pt-4">
+                        <InlineConfirm
+                            label={busy ? t('working') : t('makePublic')}
+                            question={t('sureQuestion')}
+                            confirmLabel={t('makePublic')}
+                            disabled={busy}
+                            onConfirm={() => set(true)}
+                            className="text-sm underline underline-offset-4 disabled:opacity-50"
+                        />
+                    </p>
+                </>
+            )}
+
+            <span role="status" className="sr-only">
+                {copied ? t('copied') : ''}
+            </span>
+        </section>
     );
 }

@@ -3,6 +3,9 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
 import DeleteRecipeButton from '@/components/DeleteRecipeButton';
+import RecipeRowActions from '@/components/admin/RecipeRowActions';
+import { getSiteUrl } from '@/lib/siteUrl';
+import { shareUrl } from '@/lib/shareToken';
 import BackupPanel from '@/components/admin/BackupPanel';
 import { buttonPrimarySmall, pageContainer, pageHeading, pageTop } from '@/lib/ui';
 
@@ -12,12 +15,20 @@ interface AdminRecipeRow {
     slug: string;
     category: string | null;
     views: number;
+    isPublic: boolean;
+    shareToken: string | null;
     images: { url: string }[];
 }
 
-export default async function AdminDashboard() {
+export default async function AdminDashboard({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}) {
+    const { locale } = await params;
     const t = await getTranslations('Admin');
     const tCategory = await getTranslations('Categories');
+    const tVisibility = await getTranslations('Visibility');
 
     const recipes: AdminRecipeRow[] = await prisma.recipe.findMany({
         orderBy: { createdAt: 'desc' },
@@ -30,6 +41,8 @@ export default async function AdminDashboard() {
             slug: true,
             category: true,
             views: true,
+            isPublic: true,
+            shareToken: true,
             images: { orderBy: { position: 'asc' }, take: 1, select: { url: true } },
         },
     });
@@ -79,10 +92,34 @@ export default async function AdminDashboard() {
                                         : '—'}
                                     {' · '}
                                     {t('viewCount', { count: recipe.views })}
+                                    {' · '}
+                                    {/* Said in the row rather than shown as a
+                                        colour, because "public" is the one
+                                        property of a recipe somebody needs to
+                                        be able to read at a glance and be
+                                        sure about. */}
+                                    <span className={recipe.isPublic ? 'text-accent-text' : undefined}>
+                                        {recipe.isPublic
+                                            ? tVisibility('statePublic')
+                                            : tVisibility('statePrivate')}
+                                    </span>
                                 </p>
                             </div>
 
-                            <div className="flex shrink-0 items-center gap-3 text-sm">
+                            {/* Wraps under the title on a phone rather than
+                                squeezing five actions into a row that is
+                                already carrying a thumbnail. */}
+                            <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                                <RecipeRowActions
+                                    recipeId={recipe.id}
+                                    isPublic={recipe.isPublic}
+                                    url={`${getSiteUrl()}/${locale}/recipe/${recipe.slug}`}
+                                    shareUrl={
+                                        recipe.shareToken
+                                            ? shareUrl(getSiteUrl(), locale, recipe.shareToken)
+                                            : null
+                                    }
+                                />
                                 <Link
                                     href={`/admin/edit/${recipe.id}`}
                                     className="underline underline-offset-4 hover:text-muted"

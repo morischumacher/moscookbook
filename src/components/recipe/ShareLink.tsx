@@ -23,12 +23,24 @@ export default function ShareLink({
     kind,
     initialUrl,
     locale,
+    bare = false,
 }: {
     id: number;
     /** Which kind of thing has a public link. Decides the wording and the endpoint. */
     kind: 'recipe' | 'post' | 'collection';
     initialUrl: string | null;
     locale: string;
+    /**
+     * Drop the box and the heading, because somebody else is already drawing
+     * them.
+     *
+     * A recipe's visibility is one question with two halves — published on its
+     * own address, or reachable through a secret link — and for a while it was
+     * two panels stacked on top of each other, each with its own heading, each
+     * describing the same recipe in different words. One box asks the
+     * question; this renders the controls inside it.
+     */
+    bare?: boolean;
 }) {
     const t = useTranslations('Share');
     const router = useRouter();
@@ -126,15 +138,15 @@ export default function ShareLink({
         }
     };
 
-    return (
-        <section className="rounded-lg border border-line p-4">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
-                {t('visibilityTitle')}
-            </h2>
-
-            <p className="mt-2 text-sm leading-relaxed">
-                {url ? t(words.public) : t(words.private)}
-            </p>
+    const inner = (
+        <>
+            {/* The state in words. Suppressed when somebody else is already
+                saying it — see `bare`. */}
+            {!bare && (
+                <p className="mt-2 text-sm leading-relaxed">
+                    {url ? t(words.public) : t(words.private)}
+                </p>
+            )}
 
             {error && <p className="mt-3 text-sm text-danger">{error}</p>}
 
@@ -186,6 +198,17 @@ export default function ShareLink({
             </span>
 
             {dialog}
+        </>
+    );
+
+    if (bare) return inner;
+
+    return (
+        <section className="rounded-lg border border-line p-4">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
+                {t('visibilityTitle')}
+            </h2>
+            {inner}
         </section>
     );
 }

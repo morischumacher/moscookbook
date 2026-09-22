@@ -143,16 +143,19 @@ async function decode(file: File): Promise<{
  * could not manage it. Never throws: an upload that could not be made smaller
  * is still an upload worth attempting.
  */
-export async function compressImage(file: File): Promise<File> {
+export async function compressImage(file: File, maxDimension = MAX_DIMENSION): Promise<File> {
     if (!looksLikeImage(file)) return file;
-    if (!worthCompressing(file)) return file;
+    // A smaller ceiling than the default means the caller wants it smaller
+    // whatever its size — a profile picture shown at 40 pixels has no business
+    // being two thousand wide, even when it arrives under the upload limit.
+    if (maxDimension >= MAX_DIMENSION && !worthCompressing(file)) return file;
 
     let decoded: Awaited<ReturnType<typeof decode>> | null = null;
 
     try {
         decoded = await decode(file);
 
-        const { width, height } = fittedSize(decoded.width, decoded.height, MAX_DIMENSION);
+        const { width, height } = fittedSize(decoded.width, decoded.height, maxDimension);
 
         const canvas = document.createElement('canvas');
         canvas.width = width;

@@ -9,6 +9,7 @@ import Lightbox from '@/components/recipe/Lightbox';
 import { compressImage, UPLOAD_LIMIT_BYTES } from '@/lib/imageCompression';
 import { formatDate } from '@/lib/formatDate';
 import { sinceCooked } from '@/lib/sinceCooked';
+import Avatar from '@/components/Avatar';
 import { photoControl } from '@/lib/ui';
 
 export interface CookedEntry {
@@ -16,7 +17,7 @@ export interface CookedEntry {
     cookedAt: Date;
     note: string | null;
     userId: number | null;
-    user: { name: string } | null;
+    user: { name: string; avatarUrl: string | null } | null;
     photos: { id: number; url: string }[];
 }
 
@@ -277,9 +278,22 @@ export default function Cooked({
 
                         return (
                             <li key={entry.id} className="py-4 first:pt-0">
-                                <p className="text-xs uppercase tracking-widest text-faint">
-                                    {entry.user?.name ?? t('someone')} ·{' '}
-                                    {formatDate(entry.cookedAt, locale, 'short')}
+                                {/* The face before the name. In a list of
+                                    evenings it is read first and without
+                                    reading: two circles alternating says "you,
+                                    her, you" at a glance, which is the
+                                    question this section is usually being
+                                    asked. */}
+                                <p className="flex items-center gap-2.5">
+                                    <Avatar
+                                        name={entry.user?.name ?? null}
+                                        url={entry.user?.avatarUrl ?? null}
+                                        size={32}
+                                    />
+                                    <span className="text-xs uppercase tracking-widest text-faint">
+                                        {entry.user?.name ?? t('someone')} ·{' '}
+                                        {formatDate(entry.cookedAt, locale, 'short')}
+                                    </span>
                                 </p>
 
                                 {mine ? (

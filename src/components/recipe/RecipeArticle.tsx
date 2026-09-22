@@ -5,7 +5,6 @@ import ViewTracker from '@/components/ViewTracker';
 import Logo from '@/components/brand/Logo';
 import RecipeBody from '@/components/recipe/RecipeBody';
 import Gallery from '@/components/recipe/Gallery';
-import ShareLink from '@/components/recipe/ShareLink';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import Cooked, { type CookedEntry } from '@/components/recipe/Cooked';
 import Visibility from '@/components/recipe/Visibility';
@@ -252,20 +251,18 @@ export default async function RecipeArticle({
                     )}
                 </div>
 
+                {/* One panel, not two. Publishing and the secret link are
+                    two answers to one question — who can see this — and they
+                    were briefly two stacked boxes saying it twice. */}
                 {mode === 'private' && isAdmin && (
                     <div className="print:hidden mt-6">
-                        <Visibility recipeId={recipe.id} isPublic={recipe.isPublic} />
-                    </div>
-                )}
-
-                {/* A secret link is what you make when the real address ends
-                    at a sign-in form. On a public recipe it does not, so the
-                    panel would be offering a worse version of something the
-                    page already has — a long token URL that looks like a
-                    password, in place of an address you can read out loud. */}
-                {mode === 'private' && isAdmin && !recipe.isPublic && (
-                    <div className="print:hidden mt-6">
-                        <ShareLink id={recipe.id} kind="recipe" initialUrl={publicUrl} locale={locale} />
+                        <Visibility
+                            recipeId={recipe.id}
+                            isPublic={recipe.isPublic}
+                            url={url}
+                            shareUrl={publicUrl}
+                            locale={locale}
+                        />
                     </div>
                 )}
 

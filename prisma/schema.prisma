@@ -25,9 +25,23 @@ model User {
   /// becomes a credential when a password can be reset through it.
   emailVerifiedAt DateTime?
 
+  /// A round picture beside this person's contributions.
+  ///
+  /// Not in any backup, because accounts are not: an archive restored into a
+  /// fresh installation makes new accounts, and a URL pointing at a file that
+  /// belonged to the old one would be a broken picture with somebody else's
+  /// face missing from it.
+  ///
+  /// It *is* in scripts/sweep-blobs.mjs, and that is the part that matters.
+  /// The sweep deletes every file in the store that no row points at, so a
+  /// picture column it does not know about is a picture column whose files are
+  /// deleted on the next run — silently, and a week later.
+  avatarUrl      String?
+
   tokens         AuthToken[]
   posts          Post[]
   cookEntries    CookEntry[]
+  tickets        Ticket[]
   ratings        Rating[]
   favorites      Favorite[]
   invitesCreated Invite[]   @relation("InviteCreatedBy")
@@ -450,6 +464,53 @@ model RateLimit {
   expiresAt DateTime
 
   @@index([expiresAt])
+}
+
+/// One thing to fix, change or add.
+///
+/// Called a ticket rather than "feedback" on purpose: feedback is something
+/// you receive, a ticket is something you work through, and a list named for
+/// the first is read while a list named for the second is emptied.
+///
+/// Its own table rather than an e-mail, because an e-mail about a cookbook
+/// arrives in the same inbox as everything else and is answered never. A list
+/// that lives in the admin area is a list somebody opens.
+///
+/// **Not in the archive**, and that is a decision rather than an oversight:
+/// this is writing about *this deployment of the tool*, not about the
+/// cookbook. "The search is slow" restored into a fresh installation is a
+/// sentence with no referent. The same reasoning exempts the capture inbox and
+/// the error log; scripts/check-backup.mjs holds all three with their reasons.
+model Ticket {
+  id         Int       @id @default(autoincrement())
+
+  /// idea | problem | other. A short vocabulary rather than free text, so the
+  /// list can be read at a glance, and only three of them because a chooser
+  /// with eight options is a form.
+  kind       String
+
+  body       String
+
+  /// Where they were when they wrote it, as a path. Sent by the page rather
+  /// than guessed from a header, and worth more than any amount of "on the
+  /// recipe screen, I think" — it is the difference between reproducing a
+  /// problem and asking about it.
+  path       String?
+
+  /// Who wrote it. Nulled rather than cascaded when an account goes: the
+  /// sentence stays useful without the name, and deleting somebody's account
+  /// should not delete the reason the tool got better.
+  userId     Int?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt  DateTime  @default(now())
+
+  /// Set when it has been dealt with; the list hides these by default, the
+  /// same way the error log does.
+  resolvedAt DateTime?
+
+  @@index([resolvedAt, createdAt])
+  @@index([userId])
 }
 
 /// A handful of recipes with a name on it: "Weihnachten", "Schnell nach der

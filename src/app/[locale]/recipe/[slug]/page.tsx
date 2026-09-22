@@ -164,7 +164,7 @@ export default async function RecipePage({
             cookedAt: true,
             note: true,
             userId: true,
-            user: { select: { name: true } },
+            user: { select: { name: true, avatarUrl: true } },
             photos: { orderBy: { position: 'asc' }, select: { id: true, url: true } },
         },
     }) : [];
