@@ -233,10 +233,10 @@
     "tabPaste": "Text einfügen",
     "tabLink": "Link importieren",
     "tabPhoto": "Foto",
-    "pastePlaceholder": "Käsespätzle\n\nZutaten\n400 g Spätzle\n200 g Bergkäse\n2 Zwiebeln\nSalz\n\nZubereitung\nZwiebeln in Butter goldbraun braten.\nSpätzle kochen und abgießen.\nAlles schichten und servieren.",
+    "pastePlaceholder": "Rezept hier einfügen …",
     "apply": "Übernehmen",
     "reading": "Wird gelesen…",
-    "useAi": "KI verwenden (genauer, kostet ein paar Cent)",
+    "useAi": "KI verwenden — genauer bei Fließtext",
     "urlPlaceholder": "https://www.chefkoch.de/rezepte/…",
     "import": "Importieren",
     "loading": "Wird geladen…",
@@ -251,7 +251,11 @@
     "photoFailed": "Das Foto konnte nicht gelesen werden.",
     "partial": "Die Seite hatte nur Teilangaben — bitte den Rest ergänzen.",
     "imported": "Rezept übernommen. Bitte vor dem Speichern prüfen.",
-    "importedWithAi": "Importiert, mit Hilfe der KI."
+    "importedWithAi": "Importiert, mit Hilfe der KI.",
+    "intro": "Nur zum Hereinholen von woanders — ein kopierter Text, ein Link, ein Foto. Für ein eigenes Rezept überspringst du das hier und tippst direkt ins Formular darunter.",
+    "formatSummary": "Welches Format versteht er?",
+    "formatIntro": "Am besten so, aber es muss nicht genau stimmen — Überschriften sind optional, und eine Zeile pro Zutat reicht.",
+    "formatExample": "Käsespätzle\n\nZutaten\n400 g Spätzle\n200 g Bergkäse\n2 Zwiebeln\nSalz\n\nZubereitung\nZwiebeln in Butter goldbraun braten.\nSpätzle kochen und abgießen.\nAlles schichten und servieren."
   },
   "Invites": {
     "title": "Einladungen",

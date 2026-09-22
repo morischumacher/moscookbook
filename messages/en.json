@@ -233,10 +233,10 @@
     "tabPaste": "Paste text",
     "tabLink": "Import a link",
     "tabPhoto": "Photo",
-    "pastePlaceholder": "Cheese spaetzle\n\nIngredients\n400 g spaetzle\n200 g cheese\n2 onions\nSalt\n\nMethod\nFry the onions in butter until golden.\nCook the spaetzle and drain.\nLayer everything and serve.",
+    "pastePlaceholder": "Paste the recipe here …",
     "apply": "Apply",
     "reading": "Reading…",
-    "useAi": "Use AI (more accurate, costs a few cents)",
+    "useAi": "Use AI — better with flowing prose",
     "urlPlaceholder": "https://www.example.com/recipes/…",
     "import": "Import",
     "loading": "Loading…",
@@ -251,7 +251,11 @@
     "photoFailed": "The photo could not be read.",
     "partial": "The page only had partial data — please fill in the rest.",
     "imported": "Recipe imported. Please check it before saving.",
-    "importedWithAi": "Imported, with help from the AI."
+    "importedWithAi": "Imported, with help from the AI.",
+    "intro": "Only for bringing something in from elsewhere — copied text, a link, a photo. To write your own recipe, skip this and type straight into the form below.",
+    "formatSummary": "What format does it understand?",
+    "formatIntro": "Roughly like this, and it need not be exact — the headings are optional and one line per ingredient is enough.",
+    "formatExample": "Cheese spaetzle\n\nIngredients\n400 g spaetzle\n200 g cheese\n2 onions\nSalt\n\nMethod\nFry the onions in butter until golden.\nCook the spaetzle and drain.\nLayer everything and serve."
   },
   "Invites": {
     "title": "Invitations",

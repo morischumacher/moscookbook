@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { parseRecipeText } from '@/lib/recipeParser';
 import type { Ingredient } from '@/lib/recipe';
+import Disclosure from '@/components/ui/Disclosure';
 import { buttonPrimarySmall } from '@/lib/ui';
 
 export interface ImportedDraft {
@@ -246,9 +247,18 @@ export default function QuickImport({
 
     return (
         <section className="mb-10 rounded-xl border border-line bg-surface p-4 sm:p-6">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-muted mb-4">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted">
                 {t('heading')}
             </h2>
+
+            {/*
+                What this box is for, in one line, because it was not obvious
+                and somebody said so. It is a shortcut for bringing a recipe in
+                from somewhere else — a person writing their own skips it and
+                types into the form below, and nothing on the screen used to
+                say that.
+            */}
+            <p className="mb-4 mt-1 text-sm text-muted">{t('intro')}</p>
 
             {/*
                 These were marked up as ARIA tabs — role="tablist", role="tab",
@@ -289,6 +299,24 @@ export default function QuickImport({
                         placeholder={t('pastePlaceholder')}
                         className="w-full rounded-lg border border-control bg-transparent p-3 font-mono text-sm outline-none focus:border-ink"
                     />
+                    {/*
+                        The example moved out of the placeholder and into here.
+                        
+                        It used to be the `placeholder` itself: a complete
+                        recipe, in grey, inside the box. Which is what a filled
+                        field looks like — somebody read it as a template they
+                        were meant to edit and asked what this feature was for.
+                        A placeholder should say what to do, not show what the
+                        result looks like. Folded away, because the format is a
+                        question you have once.
+                    */}
+                    <Disclosure title={t('formatSummary')}>
+                        <p className="mb-2 text-sm text-muted">{t('formatIntro')}</p>
+                        <pre className="overflow-x-auto rounded border border-line p-3 font-mono text-xs leading-relaxed">
+                            {t('formatExample')}
+                        </pre>
+                    </Disclosure>
+
                     <div className="flex flex-wrap items-center gap-3">
                         <button
                             type="button"
