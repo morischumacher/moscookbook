@@ -42,6 +42,8 @@ import similarRecipes from './similarRecipes.test';
 import privateAddress from './privateAddress.test';
 import sinceCooked from './sinceCooked.test';
 import fixtures from './fixtures.test';
+import transcripts from './transcript.test';
+import pageTitle from './pageTitle.test';
 import secretBox from './secretBox.test';
 import readableText from './readableText.test';
 import aiProviders from './aiProviders.test';
@@ -93,6 +95,8 @@ async function main() {
     await aiPolish();
     draftQuality();
     await fixtures();
+    pageTitle();
+    await transcripts();
 
     process.exit(summary() === 0 ? 0 : 1);
 }

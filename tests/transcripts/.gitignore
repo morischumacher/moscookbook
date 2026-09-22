@@ -1,0 +1,12 @@
+# Recordings of real imports: somebody else's page and your own traffic.
+#
+# Ignored by default for the same reason the fixtures are — but unlike a
+# fixture, a transcript is worth committing in a private cookbook: a recorded
+# import that went wrong is a regression test that stays red until it is
+# fixed, and a test only one machine has is a test CI never runs. Add an
+# exception for the ones you want kept, or delete this file to keep them all.
+*
+!.gitignore
+!README.md
+!_harness-selftest.json
+!_harness-selftest.page.html
