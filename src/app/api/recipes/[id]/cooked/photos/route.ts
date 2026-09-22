@@ -8,6 +8,7 @@ import { checkImageUpload, convertHeicToJpeg, normaliseUpload } from '@/lib/uplo
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { ownerScope } from '@/lib/ownership';
 import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * The pictures on a cooking entry.
@@ -194,7 +195,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             return NextResponse.json({ message: 'That recipe no longer exists.' }, { status: 404 });
         }
 
-        console.error('Cooked-photo upload failed:', error);
+        failed('Cooked-photo upload failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }
@@ -231,7 +232,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
         return NextResponse.json({ success: true, removed: removed.count });
     } catch (error) {
-        console.error('Cooked-photo deletion failed:', error);
+        failed('Cooked-photo deletion failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }

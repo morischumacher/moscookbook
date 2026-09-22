@@ -3,6 +3,7 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { requireUser } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 export async function POST(
     req: NextRequest,
@@ -36,7 +37,7 @@ export async function POST(
 
         return NextResponse.json({ success: true, favorited: true });
     } catch (error) {
-        console.error('Favorite POST error:', error);
+        failed('Favorite POST error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }
@@ -62,7 +63,7 @@ export async function DELETE(
 
         return NextResponse.json({ success: true, favorited: false });
     } catch (error) {
-        console.error('Favorite DELETE error:', error);
+        failed('Favorite DELETE error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

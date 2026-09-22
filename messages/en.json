@@ -147,6 +147,8 @@
   },
   "Admin": {
     "dashboard": "Recipes",
+    "lastBackup": "Last scheduled backup: {date} — {result}",
+    "noBackupYet": "No scheduled backup has run yet. It runs Mondays at 4 a.m. once CRON_SECRET is set in Vercel.",
     "createNew": "New recipe",
     "columnTitle": "Title",
     "columnCategory": "Category",

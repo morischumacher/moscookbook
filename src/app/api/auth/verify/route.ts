@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { forgetVerified } from '@/lib/verifiedFlag';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { hashToken, tokenState } from '@/lib/authTokens';
+import { failed } from '@/lib/reportServerError';
 
 const schema = z.object({
     token: z.string().trim().min(1).max(200),
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Address confirmation failed:', error);
+        failed('Address confirmation failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

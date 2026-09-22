@@ -5,6 +5,7 @@ import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { assistsText, canUseAi, extractRecipeWithAi } from '@/lib/aiImport';
 import { aiCapability, rememberModel } from '@/lib/aiConfig';
 import { parseRecipeText } from '@/lib/recipeParser';
+import { failed } from '@/lib/reportServerError';
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_IMAGE_BASE64 = 7 * 1024 * 1024; // roughly 5 MB of binary
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
         );
         return NextResponse.json({ recipe, source: 'ai' });
     } catch (error) {
-        console.error('AI import error:', error);
+        failed('AI import error:', error);
 
         // Never leave the user stranded: for text input the rule-based parser
         // is a perfectly good answer, so fall back to it instead of failing.

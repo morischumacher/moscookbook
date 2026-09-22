@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { generateShareToken, shareUrl } from '@/lib/shareToken';
 import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * Turning the public link for one recipe on and off.
@@ -101,7 +102,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             url: shareUrl(getSiteUrl(), localeOf(req), token),
         });
     } catch (error) {
-        console.error('Share link creation failed:', error);
+        failed('Share link creation failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }
@@ -119,7 +120,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         await prisma.recipe.updateMany({ where: { id }, data: { shareToken: null } });
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Share link removal failed:', error);
+        failed('Share link removal failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

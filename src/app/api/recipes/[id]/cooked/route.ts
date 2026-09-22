@@ -5,6 +5,7 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { ownerScope } from '@/lib/ownership';
 import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * "I cooked this" — the entry itself. Its photographs are in ./photos.
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             return NextResponse.json({ message: 'That recipe no longer exists.' }, { status: 404 });
         }
 
-        console.error('Cook entry failed:', error);
+        failed('Cook entry failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }
@@ -104,7 +105,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
         return NextResponse.json({ success: true, note });
     } catch (error) {
-        console.error('Cook note failed:', error);
+        failed('Cook note failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }
@@ -153,7 +154,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         // reasoning the photographs have always used.
         return NextResponse.json({ success: true, removed: removed.count });
     } catch (error) {
-        console.error('Cook entry deletion failed:', error);
+        failed('Cook entry deletion failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }

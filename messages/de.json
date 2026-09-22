@@ -147,6 +147,8 @@
   },
   "Admin": {
     "dashboard": "Rezepte",
+    "lastBackup": "Letzte automatische Sicherung: {date} — {result}",
+    "noBackupYet": "Noch keine automatische Sicherung gelaufen. Sie läuft montags um 4 Uhr, sobald CRON_SECRET in Vercel gesetzt ist.",
     "createNew": "Neues Rezept",
     "columnTitle": "Titel",
     "columnCategory": "Kategorie",

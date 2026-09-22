@@ -7,6 +7,7 @@ import { postInputSchema, formatPostError } from '@/lib/postSchema';
 import { postSearchFields } from '@/lib/searchText';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 async function postId(params: Promise<{ id: string }>): Promise<number | null> {
     const { id } = await params;
@@ -67,7 +68,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             return NextResponse.json({ message: 'That recipe no longer exists.' }, { status: 400 });
         }
 
-        console.error('Post update failed:', error);
+        failed('Post update failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }
@@ -94,7 +95,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
         // Already gone is the end state that was asked for.
         if (isPrismaError(error, 'P2025')) return NextResponse.json({ success: true });
 
-        console.error('Post deletion failed:', error);
+        failed('Post deletion failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

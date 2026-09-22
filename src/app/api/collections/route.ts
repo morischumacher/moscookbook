@@ -7,6 +7,7 @@ import {
     collectionSlug,
     formatCollectionError,
 } from '@/lib/collectionSchema';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * Collections: a handful of recipes with a name on it.
@@ -38,7 +39,7 @@ export async function GET() {
 
         return NextResponse.json({ collections });
     } catch (error) {
-        console.error('Collections could not be listed:', error);
+        failed('Collections could not be listed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        console.error('Collection could not be created:', error);
+        failed('Collection could not be created:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

@@ -8,6 +8,7 @@ import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { readableText } from '@/lib/readableText';
 import { assistsText, canUseAi, extractRecipeWithAi } from '@/lib/aiImport';
 import { aiCapability, rememberModel } from '@/lib/aiConfig';
+import { failed } from '@/lib/reportServerError';
 
 const importSchema = z.object({
     url: z.string().trim().min(1).max(2048),
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest) {
                 // The rules' answer is still on the table. An import that
                 // returns less than it might is a far better outcome than one
                 // that returns an error because an optional extra was down.
-                console.error('The AI could not help with this import:', error);
+                failed('The AI could not help with this import:', error);
             }
         }
 
@@ -148,7 +149,7 @@ export async function POST(req: NextRequest) {
             usedAi,
         });
     } catch (error) {
-        console.error('URL import error:', error);
+        failed('URL import error:', error);
         return NextResponse.json({ message: 'The page could not be read.' }, { status: 502 });
     }
 }

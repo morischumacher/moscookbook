@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { requireAdmin } from '@/lib/auth';
 import { checkImageUpload, convertHeicToJpeg, normaliseUpload } from '@/lib/uploadImage';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * The admin form's upload: a recipe's own photography.
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, url: blob.url });
     } catch (error) {
-        console.error('Upload error:', error);
+        failed('Upload error:', error);
         return NextResponse.json({ message: 'Upload failed' }, { status: 500 });
     }
 }

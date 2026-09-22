@@ -9,6 +9,7 @@ import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import prisma from '@/lib/prisma';
 import { fullName } from '@/lib/personName';
 import { issueToken } from '@/lib/issueToken';
+import { failed } from '@/lib/reportServerError';
 
 const registerSchema = z.object({
     email: z.string().trim().email().max(320),
@@ -134,7 +135,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'User already exists' }, { status: 409 });
         }
 
-        console.error('Registration error:', error);
+        failed('Registration error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

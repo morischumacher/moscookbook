@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { sessionOptions, SessionData } from '@/lib/session';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import prisma from '@/lib/prisma';
+import { failed } from '@/lib/reportServerError';
 
 const loginSchema = z.object({
     email: z.string().trim().email().max(320),
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
 
         return res;
     } catch (error) {
-        console.error('Login error:', error);
+        failed('Login error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

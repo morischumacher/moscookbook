@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser, requireAdmin } from '@/lib/auth';
 import { rateLimitShared } from '@/lib/rateLimitShared';
 import { safeTicketPath } from '@/lib/ticketPath';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * What somebody thinks is wrong with the tool, or wants it to do.
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(entry, { status: 201 });
     } catch (error) {
-        console.error('Ticket failed:', error);
+        failed('Ticket failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }
@@ -95,7 +96,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({ entries });
     } catch (error) {
-        console.error('Could not read tickets:', error);
+        failed('Could not read tickets:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }
@@ -130,7 +131,7 @@ export async function PATCH(req: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Could not update ticket:', error);
+        failed('Could not update ticket:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }

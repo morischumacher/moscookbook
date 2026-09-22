@@ -1,5 +1,7 @@
 # mo'scookbook
 
+[![CI](https://github.com/morischumacher/moscookbook/actions/workflows/ci.yml/badge.svg)](https://github.com/morischumacher/moscookbook/actions/workflows/ci.yml)
+
 A personal recipe site: public recipe pages with ratings, favourites and view
 counts, plus an admin area for writing and editing recipes. Built with Next.js
 (App Router), Prisma on Vercel Postgres, Vercel Blob for images, iron-session

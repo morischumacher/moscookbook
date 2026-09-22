@@ -7,6 +7,8 @@ import RecipeRowActions from '@/components/admin/RecipeRowActions';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { shareUrl } from '@/lib/shareToken';
 import BackupPanel from '@/components/admin/BackupPanel';
+import { backupStatus } from '@/lib/backupStatus';
+import { formatDate } from '@/lib/formatDate';
 import { buttonPrimarySmall, pageContainer, pageHeading, pageTop } from '@/lib/ui';
 
 interface AdminRecipeRow {
@@ -29,6 +31,7 @@ export default async function AdminDashboard({
     const t = await getTranslations('Admin');
     const tCategory = await getTranslations('Categories');
     const tVisibility = await getTranslations('Visibility');
+    const backup = await backupStatus();
 
     const recipes: AdminRecipeRow[] = await prisma.recipe.findMany({
         orderBy: { createdAt: 'desc' },
@@ -133,6 +136,16 @@ export default async function AdminDashboard({
                 </ul>
             )}
 
+            {/* When the scheduled backup last ran. Nothing said so before;
+                a backup failing for a month looked the same as one that ran. */}
+            <p className="mt-10 mb-2 text-sm text-muted">
+                {backup.lastRunAt
+                    ? t('lastBackup', {
+                        date: formatDate(backup.lastRunAt, locale),
+                        result: backup.lastResult ?? '',
+                    })
+                    : t('noBackupYet')}
+            </p>
             <BackupPanel />
         </main>
     );

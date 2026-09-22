@@ -22,7 +22,7 @@ import { adminSectionFor } from '@/lib/navigation';
  * three lines push the page's own heading below the fold, and a strip that
  * moves is easier to read than a block that has to be read.
  */
-export default function AdminNav() {
+export default function AdminNav({ unresolvedErrors = 0 }: { unresolvedErrors?: number }) {
     const t = useTranslations('Admin');
     const tInbox = useTranslations('Inbox');
     const tDrafts = useTranslations('Drafts');
@@ -37,7 +37,7 @@ export default function AdminNav() {
 
     // Spelled out rather than built in a loop, so every key is visible to the
     // translation checker.
-    const links = [
+    const links: { href: string; label: string; count?: number }[] = [
         { href: '/admin', label: t('dashboard') },
         { href: '/admin/inbox', label: tInbox('nav') },
         // Next to the inbox, because it is the step straight after it.
@@ -46,7 +46,7 @@ export default function AdminNav() {
         { href: '/admin/collections/new', label: tCollections('createNew') },
         { href: '/admin/users', label: t('people') },
         { href: '/admin/tickets', label: tTickets('nav') },
-        { href: '/admin/errors', label: tErrors('nav') },
+        { href: '/admin/errors', label: tErrors('nav'), count: unresolvedErrors },
         { href: '/admin/devices', label: tDevices('nav') },
         { href: '/admin/ai', label: tAi('nav') },
     ];
@@ -75,6 +75,18 @@ export default function AdminNav() {
                                     }`}
                                 >
                                     {link.label}
+                                    {/* A count, only when there is one. Read
+                                        out as part of the link text, so a
+                                        screen reader hears "Errors, 3" rather
+                                        than a link and then a stray number. */}
+                                    {(link.count ?? 0) > 0 && (
+                                        <span
+                                            className="ml-1.5 inline-block min-w-[1.25rem] rounded-full bg-danger-surface px-1.5 text-center text-xs font-semibold text-danger"
+                                            aria-label={`, ${link.count ?? 0}`}
+                                        >
+                                            {(link.count ?? 0) > 99 ? '99+' : link.count}
+                                        </span>
+                                    )}
                                 </Link>
                             </li>
                         );

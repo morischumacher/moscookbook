@@ -12,6 +12,7 @@ import { aiCapability, rememberModel } from '@/lib/aiConfig';
 import type { ImportedRecipe } from '@/lib/recipeFromHtml';
 import { toJsonObject } from '@/lib/json';
 import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * `askAi` is the button on a draft the scoring called good.
@@ -217,7 +218,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
             })
             .catch(() => undefined);
 
-        console.error('Publishing a capture failed:', error);
+        failed('Publishing a capture failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }

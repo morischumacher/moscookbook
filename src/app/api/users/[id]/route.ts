@@ -3,6 +3,7 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 export async function DELETE(
     req: NextRequest,
@@ -34,7 +35,7 @@ export async function DELETE(
             return NextResponse.json({ message: 'User not found' }, { status: 404 });
         }
 
-        console.error('Delete user error:', error);
+        failed('Delete user error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

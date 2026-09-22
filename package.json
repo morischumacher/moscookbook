@@ -21,6 +21,8 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "check:backup": "node scripts/check-backup.mjs",
     "check:prisma": "node scripts/check-prisma-types.mjs",
+    "check:tests": "node scripts/check-tests.mjs",
+    "verify": "npm run check:messages && npm run check:search && npm run check:contrast && npm run check:design && npm run check:tokens && npm run check:icons && npm run check:blobs && npm run check:secrets && npm run check:backup && npm run check:prisma && npm run check:tests && npm run lint && npm test && npm run typecheck",
     "fixtures": "node scripts/collect-import-fixtures.mjs",
     "diagnose": "ts-node --transpile-only --project tests/tsconfig.json scripts/diagnose-import.ts",
     "mark:preview": "ts-node --transpile-only --project tests/tsconfig.json scripts/preview-mark.ts",

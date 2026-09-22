@@ -4,6 +4,7 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { requireUser } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 const rateSchema = z.object({
     value: z.number().int().min(1).max(5),
@@ -60,7 +61,7 @@ export async function POST(
             return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
         }
 
-        console.error('Rating error:', error);
+        failed('Rating error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

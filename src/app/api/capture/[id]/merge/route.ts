@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 const bodySchema = z.object({ recipeId: z.number().int().positive() });
 
@@ -114,7 +115,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
         return NextResponse.json({ success: true, imagesAdded: fresh.length });
     } catch (error) {
-        console.error('Capture merge failed:', error);
+        failed('Capture merge failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }

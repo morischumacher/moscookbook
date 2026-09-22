@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { rateLimitShared } from '@/lib/rateLimitShared';
 import { checkImageUpload, convertHeicToJpeg, normaliseUpload } from '@/lib/uploadImage';
 import { deleteBlobs } from '@/lib/blobCleanup';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * Your own picture, and nobody else's.
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ avatarUrl: blob.url }, { status: 201 });
     } catch (error) {
-        console.error('Avatar upload failed:', error);
+        failed('Avatar upload failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }
@@ -130,7 +131,7 @@ export async function DELETE() {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Avatar removal failed:', error);
+        failed('Avatar removal failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 /**
  * Publishing one recipe, or taking it back.
@@ -77,7 +78,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
         return NextResponse.json({ success: true, isPublic: parsed.data.isPublic });
     } catch (error) {
-        console.error('Recipe visibility failed:', error);
+        failed('Recipe visibility failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }

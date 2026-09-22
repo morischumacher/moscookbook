@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { rateLimit, clientKey } from '@/lib/rateLimit';
 import { positiveIntId } from '@/lib/routeParams';
+import { failed } from '@/lib/reportServerError';
 
 export async function POST(
     req: NextRequest,
@@ -65,7 +66,7 @@ export async function POST(
             return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
         }
 
-        console.error('View tracking error:', error);
+        failed('View tracking error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }

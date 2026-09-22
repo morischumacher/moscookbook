@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/auth';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
 import { searchFields } from '@/lib/searchText';
+import { failed } from '@/lib/reportServerError';
 
 export async function POST(req: NextRequest) {
     const auth = await requireAdmin();
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        console.error('Create recipe error:', error);
+        failed('Create recipe error:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
 }
