@@ -4,7 +4,56 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin();
 
+/**
+ * The headers every response carries.
+ *
+ * There were none. Not one — no frame protection, no nosniff, no referrer
+ * policy — which meant the admin screens could be framed by any page, and a
+ * password-reset link with its token in the query string sent that token
+ * along as a referrer to anything the reset page happened to load.
+ *
+ * What is here and why:
+ *
+ * `Referrer-Policy: no-referrer`. Two flows put a secret in the URL — the
+ * reset link and the invitation link — and nothing on this site reads a
+ * referrer. The strictest value costs nothing.
+ *
+ * `X-Frame-Options: DENY` and `frame-ancestors 'none'`: nobody has a reason
+ * to embed this site, and an admin page inside somebody else's iframe is the
+ * standard clickjacking setup.
+ *
+ * `X-Content-Type-Options: nosniff`: uploads are stored under the type the
+ * uploader declared, on a separate origin, but a browser that refuses to
+ * guess is one fewer thing to reason about.
+ *
+ * The Content-Security-Policy is deliberately partial. `frame-ancestors`,
+ * `base-uri`, `form-action` and `object-src` are the directives that do not
+ * touch script or style loading and cannot break a page; they are set. A
+ * `script-src` without `'unsafe-inline'` needs a nonce threaded through the
+ * proxy into every inline script the framework emits, and that is a change
+ * to verify in a browser rather than ship blind. It is the next step, not
+ * this one.
+ *
+ * HSTS is set by the platform in front of this and repeated here so the
+ * configuration is true on its own.
+ */
+const SECURITY_HEADERS = [
+  { key: 'Referrer-Policy', value: 'no-referrer' },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+  {
+    key: 'Content-Security-Policy',
+    value: "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+  },
+];
+
 const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: '/(.*)', headers: SECURITY_HEADERS }];
+  },
+
   images: {
     remotePatterns: [
       {

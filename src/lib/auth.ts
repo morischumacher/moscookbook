@@ -1,6 +1,8 @@
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { getIronSession } from 'iron-session';
 import { NextResponse } from 'next/server';
+import prisma from './prisma';
 import { sessionOptions, SessionData, SessionUser } from './session';
 
 /**
@@ -27,7 +29,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 export async function requireAdmin(): Promise<
     { user: SessionUser } | { response: NextResponse }
 > {
-    const user = await getCurrentUser();
+    const user = await currentUserVerified();
 
     if (!user?.admin) {
         return {
@@ -42,7 +44,7 @@ export async function requireAdmin(): Promise<
 export async function requireUser(): Promise<
     { user: SessionUser } | { response: NextResponse }
 > {
-    const user = await getCurrentUser();
+    const user = await currentUserVerified();
 
     if (!user) {
         return {
@@ -52,3 +54,40 @@ export async function requireUser(): Promise<
 
     return { user };
 }
+
+/**
+ * The session's user, checked against the database.
+ *
+ * `session.user.admin` is a snapshot taken at sign-in and sealed into the
+ * cookie. Nothing could change it afterwards: demoting somebody on the
+ * people page, or deleting their account, changed a row and left their
+ * cookie exactly as it was — good for fourteen days, with whatever it said
+ * on the day it was issued. A demoted admin kept the admin API for two
+ * weeks. So did a deleted one.
+ *
+ * So the guards ask the database. One indexed lookup by primary key per
+ * guarded request, which is the price of a revocation that actually revokes.
+ * `cache()` makes it once per request however many guards run.
+ *
+ * Fails closed. A database that will not answer means no one is anyone,
+ * which on a route that is about to write to that database is not much of a
+ * loss.
+ *
+ * The rendering helpers above are left alone on purpose: `getCurrentUser` is
+ * called from fifty places to decide what to *show*, and a stale cookie
+ * showing a button that the API then refuses is a cosmetic problem. The
+ * admin layout does its own verified check for the same reason this does.
+ */
+export const currentUserVerified = cache(async (): Promise<SessionUser | null> => {
+    const user = await getCurrentUser();
+    if (!user) return null;
+
+    // Annotated: without a generated client the result is loosely typed.
+    const row: { admin: boolean } | null = await prisma.user
+        .findUnique({ where: { id: user.id }, select: { admin: true } })
+        .catch(() => null);
+
+    if (!row) return null;
+
+    return { ...user, admin: row.admin };
+});

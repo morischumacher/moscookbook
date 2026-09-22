@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { sessionOptions, SessionData } from '@/lib/session';
 import { routing } from '@/i18n/routing';
-import { pathAccess } from '@/lib/accessRules';
+import { pathAccess, apiAccess, isCrossSiteWrite } from '@/lib/accessRules';
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -16,8 +16,19 @@ const intlMiddleware = createMiddleware(routing);
  * decided by pathAccess, in src/lib/accessRules.ts, where it can be tested.
  */
 export default async function proxy(req: NextRequest) {
-    const res = intlMiddleware(req);
     const { pathname } = req.nextUrl;
+
+    /*
+     * The API, before anything to do with locales.
+     *
+     * Ordered like this because next-intl's middleware would otherwise try to
+     * put a locale prefix on `/api/…`, and an API that redirects to
+     * `/de/api/…` is an API that does not work. The API branch never touches
+     * `intlMiddleware` and returns plain `next()` or a JSON refusal.
+     */
+    if (pathname.startsWith('/api/')) return apiGate(req);
+
+    const res = intlMiddleware(req);
 
     const access = pathAccess(pathname);
     if (access === 'unmatched' || access === 'open') return res;
@@ -45,6 +56,32 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.redirect(login);
 }
 
+/**
+ * The net under the API routes.
+ *
+ * Two questions, both answered in lib/accessRules where they can be tested:
+ * did this request come from our own pages, and does this path need a
+ * session? A route's own guard still runs afterwards. This exists so that the
+ * route somebody adds next month without one is refused here rather than
+ * open until somebody notices — which is the same rule the pages have had
+ * since the cookbook stopped being public.
+ */
+async function apiGate(req: NextRequest): Promise<NextResponse> {
+    if (isCrossSiteWrite(req.method, req.headers)) {
+        return NextResponse.json({ message: 'Cross-site request refused.' }, { status: 403 });
+    }
+
+    if (apiAccess(req.nextUrl.pathname) === 'open') return NextResponse.next();
+
+    const res = NextResponse.next();
+    const session = await getIronSession<SessionData>(req, res, sessionOptions);
+    if (!session.user) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    return res;
+}
+
 export const config = {
-    matcher: ['/', '/(de|en)/:path*'],
+    matcher: ['/', '/(de|en)/:path*', '/api/:path*'],
 };

@@ -41,6 +41,19 @@ export const sessionOptions: SessionOptions = {
         return resolveSessionPassword();
     },
     cookieName: 'mos_cookbook_session',
+    /*
+     * Fourteen days, which was already the case — it is iron-session's
+     * default — but it was the case by omission, and a number that matters
+     * this much should be one somebody wrote down. The cookie is sealed and
+     * carries its own expiry, so this is an absolute lifetime from sign-in,
+     * not an idle timeout; there is no server-side store to extend it.
+     *
+     * Revocation does not depend on it any more: the API guards check the
+     * user row on every guarded request (see lib/auth.ts), so a deleted or
+     * demoted account is refused at once, and the fourteen days only decide
+     * how often somebody who is still welcome has to type a password.
+     */
+    ttl: 60 * 60 * 24 * 14,
     cookieOptions: {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',

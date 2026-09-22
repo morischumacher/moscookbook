@@ -1,5 +1,5 @@
 import { suite, equal, check } from './harness';
-import { pathAccess } from '../src/lib/accessRules';
+import { pathAccess, apiAccess, isCrossSiteWrite } from '../src/lib/accessRules';
 import { destinationFrom } from '../src/lib/loginDestination';
 import { generateShareToken, shareUrl } from '../src/lib/shareToken';
 import { sharePayload } from '../src/lib/sharePayload';
@@ -127,4 +127,99 @@ export default function accessTests() {
         !('text' in payload),
         payload
     );
+
+    /* ------------------------------------------------------------- the API */
+
+    /*
+     * The proxy never ran on /api at all until now, so every guard was
+     * per-route and a route added without one was open. Now a path needs a
+     * session unless it is named. The named ones are the ones that cannot
+     * have a session: no account yet, a device token, a scheduler, or the
+     * error reporter that runs when the session may be what broke.
+     */
+    suite('apiAccess');
+
+    for (const open of [
+        '/api/auth/login',
+        '/api/auth/register',
+        '/api/auth/forgot',
+        '/api/auth/reset',
+        '/api/auth/verify',
+        '/api/auth/logout',
+        '/api/auth/resend-verification',
+        '/api/capture',
+        '/api/errors',
+        '/api/recipes/42/view',
+        '/api/cron/backup',
+    ]) {
+        equal(`${open} works without a session`, apiAccess(open), 'open');
+    }
+
+    for (const guarded of [
+        '/api/recipes',
+        '/api/recipes/42',
+        '/api/recipes/42/favorite',
+        '/api/recipes/42/draft',
+        '/api/capture/7',
+        '/api/capture/7/merge',
+        '/api/capture-tokens',
+        '/api/users/3/role',
+        '/api/site-profiles',
+        '/api/export',
+        '/api/import/archive',
+        '/api/ai-keys',
+        // A path that merely starts like an open one.
+        '/api/errors/5',
+        '/api/captured',
+        '/api/auth/login/extra',
+        '/api/recipes/42/views',
+        '/api/cron',
+    ]) {
+        equal(`${guarded} needs a session`, apiAccess(guarded), 'session');
+    }
+
+    /* --------------------------------------------------------- cross-site */
+
+    suite('isCrossSiteWrite');
+
+    const headers = (map: Record<string, string>) => ({
+        get: (name: string) => map[name.toLowerCase()] ?? null,
+    });
+
+    check(
+        'a same-origin POST is allowed',
+        !isCrossSiteWrite('POST', headers({ origin: 'https://cookbook.example', host: 'cookbook.example' }))
+    );
+    check(
+        'a cross-origin POST is refused',
+        isCrossSiteWrite('POST', headers({ origin: 'https://evil.example', host: 'cookbook.example' }))
+    );
+    check(
+        'the browser saying cross-site is enough on its own',
+        isCrossSiteWrite('POST', headers({ 'sec-fetch-site': 'cross-site', host: 'cookbook.example' }))
+    );
+    check(
+        'the public host behind the platform proxy is the one compared',
+        !isCrossSiteWrite('POST', headers({
+            origin: 'https://www.cookbook.example',
+            'x-forwarded-host': 'www.cookbook.example',
+            host: 'internal-1234.platform.invalid',
+        }))
+    );
+    check(
+        'case of the host does not matter',
+        !isCrossSiteWrite('DELETE', headers({ origin: 'https://Cookbook.Example', host: 'cookbook.example' }))
+    );
+
+    // Non-browser clients — the iPhone shortcut, curl, the scheduler — send
+    // no Origin and have no cookie jar to be tricked out of.
+    check('no Origin at all is allowed', !isCrossSiteWrite('POST', headers({ host: 'cookbook.example' })));
+    check('sec-fetch-site: none is allowed', !isCrossSiteWrite('POST', headers({ 'sec-fetch-site': 'none', host: 'cookbook.example' })));
+
+    // Reads are not the concern.
+    check('a cross-origin GET is not refused here', !isCrossSiteWrite('GET', headers({ origin: 'https://evil.example', host: 'cookbook.example' })));
+    check('nor a HEAD', !isCrossSiteWrite('HEAD', headers({ origin: 'https://evil.example', host: 'cookbook.example' })));
+
+    check('an Origin that is not a URL is refused', isCrossSiteWrite('POST', headers({ origin: 'null', host: 'cookbook.example' })));
+    check('a request with no Host header is refused', isCrossSiteWrite('POST', headers({ origin: 'https://cookbook.example' })));
 }

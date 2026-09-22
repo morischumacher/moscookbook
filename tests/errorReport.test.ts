@@ -91,4 +91,20 @@ export default function errorReportTests() {
     check('truncates a runaway stack', (prepared.stack ?? '').length === 4000, prepared.stack?.length);
     equal('and the path is already clean', prepared.path, '/de/');
     equal('source is carried through', prepared.source, 'client');
+
+    /*
+     * The path is cleaned, but a failed fetch names its URL in the message,
+     * and a stack frame can too. The reset link and the invitation are the
+     * two places a secret rides in a query string.
+     */
+    const leaky = prepareErrorReport({
+        source: 'client',
+        message: 'Failed to fetch https://cookbook.example/de/reset?token=abc123DEF&x=1',
+        stack: 'Error\n    at go (https://cookbook.example/de/register?invite=SECRET99:3:4)',
+        path: '/de/reset?token=abc123DEF',
+    });
+    check('a reset token in the message is blanked', !leaky.message.includes('abc123DEF'), leaky.message);
+    check('but the rest of the message survives', leaky.message.includes('Failed to fetch') && leaky.message.includes('x=1'), leaky.message);
+    check('an invitation code in the stack is blanked', !(leaky.stack ?? '').includes('SECRET99'), leaky.stack);
+    equal('and the path never carried it', leaky.path, '/de/reset');
 }

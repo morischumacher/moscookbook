@@ -1,10 +1,12 @@
 import { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { currentUserVerified } from '@/lib/auth';
 import AdminNav from '@/components/admin/AdminNav';
 
-// The middleware also guards /admin, but this server-side check is the one
-// that actually protects the data: it runs no matter how the route was reached.
+// The proxy also guards /admin, from the cookie. This is the check that asks
+// the database — so a person demoted or deleted five minutes ago does not keep
+// reading admin pages for the fortnight their cookie has left. One lookup per
+// admin page, cached for the request.
 export default async function AdminLayout({
     children,
     params,
@@ -13,7 +15,7 @@ export default async function AdminLayout({
     params: Promise<{ locale: string }>;
 }) {
     const { locale } = await params;
-    const user = await getCurrentUser();
+    const user = await currentUserVerified();
 
     if (!user?.admin) {
         redirect(`/${locale}/login`);
