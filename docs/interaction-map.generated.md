@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-34 screens · 72 endpoints · 48 link edges · 78 call edges
+34 screens · 72 endpoints · 47 link edges · 78 call edges
 
 ## Screens
 
@@ -33,7 +33,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/drafts` | account | requires session | `POST /api/recipes/[id]/draft` | `/[locale]/recipe/[id]` |
 | `/[locale]/forgot` | open | steps aside | `POST /api/auth/forgot` | `/[locale]/login` |
 | `/[locale]/imprint` | open | steps aside | — | — |
-| `/[locale]/login` | open | steps aside | `POST /api/auth/login` | `/[locale]/forgot`<br>`/[locale]/register` |
+| `/[locale]/login` | open | steps aside | `POST /api/auth/login` | `/[locale]/forgot` |
 | `/[locale]/p/[token]` | open | steps aside | `* /api/collections/[id]/share`<br>`* /api/posts/[id]/share`<br>`* /api/recipes/[id]/share` | `/[locale]/login`<br>`/[locale]/recipe/[id]` |
 | `/[locale]` | account | requires session | `* /api/recipes/[id]/favorite`<br>`POST /api/recipes/[id]/rate` | `/[locale]/blog`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/privacy` | open | steps aside | — | — |
@@ -214,7 +214,6 @@ flowchart LR
   n__locale__drafts --> n__locale__recipe__slug_
   n__locale__forgot --> n__locale__login
   n__locale__login --> n__locale__forgot
-  n__locale__login --> n__locale__register
   n__locale__p__token_ --> n__locale__login
   n__locale__p__token_ --> n__locale__recipe__slug_
   n__locale_ --> n__locale__blog

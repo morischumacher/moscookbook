@@ -110,6 +110,23 @@ export default function AdminInboxPage() {
                 setError(data.message || tAdmin('genericError'));
                 return;
             }
+
+            /*
+             * Taking a capture makes a recipe, and then left you in the inbox
+             * looking at a list it had just vanished from — with no way to
+             * reach the thing you made except going to the overview and
+             * finding it. The slug is in the answer; this is the shortest path
+             * in the whole application and it was missing a step.
+             *
+             * Only for `publish`. Staging is "not now": the point of it is to
+             * carry on down the list, so it stays put.
+             */
+            const slug: unknown = data?.recipe?.slug;
+            if (action === 'publish' && typeof slug === 'string' && slug !== '') {
+                router.push(`/recipe/${slug}`);
+                return;
+            }
+
             await load();
             if (action === 'publish' || action === 'stage') router.refresh();
         } catch {

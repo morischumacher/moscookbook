@@ -100,11 +100,18 @@ function LoginForm() {
                     </Link>
                 </p>
 
+                {/*
+                    A sentence rather than a link, because the link was a
+                    guaranteed dead end: /register without an ?invite= refuses
+                    to draw the form, so the only thing on the far side of
+                    "Register" was a message and a link back to here.
+
+                    `inviteRequired` is the wording that page already uses.
+                    Saying it here means the answer arrives before the detour
+                    instead of after it.
+                */}
                 <p className="text-center text-sm text-muted">
-                    {t('needAccount')}{' '}
-                    <Link href="/register" className="underline underline-offset-4">
-                        {t('registerLink')}
-                    </Link>
+                    {t('inviteRequired')}
                 </p>
             </form>
         </>

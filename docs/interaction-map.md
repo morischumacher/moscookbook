@@ -70,10 +70,10 @@ rule and the proxy can no longer disagree silently.
 
 | Screen | Why | Recommendation |
 |---|---|---|
-| `/[locale]/account` | The only link is the greeting row inside the **mobile** menu (`md:hidden`). On a desktop viewport there is no way to reach it. | Put the greeting/account link in the desktop header row too. |
+| ~~`/[locale]/account`~~ | The only link was the greeting row inside the **mobile** menu (`md:hidden`). | **Done.** The desktop row carries the same greeting, leading to the same place. |
 | `/[locale]/drafts` as a non-admin | Access is `account`, but the only link lives in `AdminNav`, which renders under `/admin/**` only. A non-admin who types the address sees the list and no Finish button (`mayFinish` is admin-only). | Either make the page `admin` (it is an admin workflow) or link it from the header for everybody. The first is honest. |
 | `/[locale]/admin/invites` | A redirect stub kept for old bookmarks; nothing links to it. | Fine as is. Remove once the bookmark is gone. |
-| `/[locale]/register` without `?invite=` | Linked from `/login`, but the page refuses to draw the form; its only exit is back to `/login`. | The login page should say "by invitation" rather than offer a link that dead-ends. |
+| ~~`/[locale]/register` without `?invite=`~~ | Linked from `/login`, but the page refuses to draw the form; its only exit was back to `/login`. | **Done.** The login page says so instead of linking, and the two labels nothing used any more are gone. |
 | `/[locale]/c/[token]` | A leaf: tiles are not links (`linkTo={null}`), by design — the visitor has no account. | Fine, but the page could carry the shared-collection's recipes as `/r/` links if recipes in a shared collection are meant to be readable. Decide, then document. |
 
 `/reset`, `/verify`, `/r/[token]`, `/p/[token]` are reachable only by mailed
@@ -158,10 +158,10 @@ one click that could be a redirect.
    visibility panel). Keeping both is deliberate — the explicit one is also
    where a link is *withdrawn* — but the panel should say that the Share
    button above makes the same link.
-4. After Accept in the inbox, go to the recipe.
-5. Put the account link in the desktop header.
+4. ~~After Accept in the inbox, go to the recipe.~~ Done — the slug was in the answer all along.
+5. ~~Put the account link in the desktop header.~~ Done — the greeting leads there, as it already did on a phone.
 6. Move `/drafts` under `/admin`, or make its access `admin`.
-7. Login page: "by invitation" text instead of a dead register link.
+7. ~~Login page: "by invitation" text instead of a dead register link.~~ Done — it says `inviteRequired`, the wording the register page itself uses.
 8. `DELETE /api/errors/[id]`: a button or a deletion.
 
 Every one of these is a small change; none needs a migration. When one is

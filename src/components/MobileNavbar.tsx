@@ -128,6 +128,18 @@ export default function MobileNavbar({ user, otherLocale }: MobileNavbarProps) {
                                 </Link>
                             ))}
 
+                            {/* The account page had exactly one link to it in
+                                the whole application, inside the mobile menu
+                                — so on a desktop there was no way to reach it
+                                at all. The greeting leads there here as it
+                                does there. */}
+                            <Link
+                                href="/account"
+                                className="text-sm text-muted transition-colors hover:text-ink"
+                            >
+                                {t('greeting', { name: user.name })}
+                            </Link>
+
                             <LogoutButton className="text-sm text-muted transition-colors hover:text-ink" />
                         </>
                     )}
