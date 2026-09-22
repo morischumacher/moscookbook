@@ -301,20 +301,38 @@ class ProviderError extends Error {
  *
  * 503 is the one that prompted this: Gemini answers it when the model is busy,
  * and its own message says "spikes in demand are usually temporary, please try
- * again later" — which the cookbook was reading as a failure and reporting as
- * one. 429 is a rate limit, 502 and 504 are gateways. None of them is anything
- * to do with the key, and all of them are usually over within a second.
+ * again later". 502 and 504 are gateways, 500 is a bad minute. None of them is
+ * anything to do with the key.
  *
  * 401, 403 and 404 are deliberately not here. A wrong key and a model that
- * does not exist do not get better by asking twice; they get better by
- * somebody being told.
+ * does not exist do not get better by asking twice.
  */
-const TRANSIENT = new Set([429, 500, 502, 503, 504]);
+const TRANSIENT = new Set([500, 502, 503, 504]);
+
+/**
+ * 429 is two different errors wearing one number, and telling them apart
+ * turned out to matter.
+ *
+ * A *rate* limit — too many requests this minute — is the textbook transient
+ * failure and a second of patience fixes it. A *quota* — "you exceeded your
+ * current quota, please check your plan and billing details" — is a wall, and
+ * asking again is a request that was never going to succeed, sent twice more,
+ * while somebody waits.
+ *
+ * Seen in the wild on a free Gemini tier: 503, 503, then a quota 429. Retrying
+ * that third answer would have added nothing but seconds. Google says which it
+ * is in the message, so the message is read.
+ */
+function isQuota(body: string): boolean {
+    return /quota|billing|plan and billing|exceeded your current quota/i.test(body);
+}
 
 function providerError(provider: AiProvider, status: number, body: string, apiKey: string): Error {
+    const transient = status === 429 ? !isQuota(body) : TRANSIENT.has(status);
+
     return new ProviderError(
         `${PROVIDER_LABEL[provider]} returned ${status}: ${scrub(body, apiKey).slice(0, 300)}`,
-        TRANSIENT.has(status)
+        transient
     );
 }
 
@@ -507,14 +525,18 @@ const CALLS: Record<AiProvider, (key: AiKey, source: AiSource) => Promise<string
 /**
  * How many times a busy provider is asked again, and how long between.
  *
- * Two extra attempts, 700ms then 2s. Small numbers on purpose: this sits
- * inside a request somebody is waiting on — an iOS Shortcut in a supermarket,
- * a button on an admin page — and a retry policy generous enough to outlast a
- * real outage is one that turns a five-second failure into a thirty-second
- * one. Three seconds of patience covers the spike; anything longer is better
- * spent falling back to the rules and saying so.
+ * **One** extra attempt, after 800ms. It was two, and a real run showed why
+ * that was too many: Gemini's own 503 took five seconds to arrive, then four,
+ * then three — so three attempts plus the waiting cost twelve and a half
+ * seconds and still failed. That is a long time to stand in a supermarket
+ * holding a phone, for an answer that was never coming.
+ *
+ * One retry covers the case this is for — a spike that is over in a moment —
+ * and gives up while the person is still holding the thing. A provider that is
+ * down for longer is a provider the rules should be covering for, which they
+ * do, immediately, which is the whole architecture.
  */
-const RETRIES = [700, 2000];
+const RETRIES = [800];
 
 export async function completeWithKey(key: AiKey, source: AiSource): Promise<string> {
     for (let attempt = 0; ; attempt += 1) {

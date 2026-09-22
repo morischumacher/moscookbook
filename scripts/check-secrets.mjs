@@ -55,16 +55,27 @@ const files = walk(SOURCE_DIR).map((file) => ({
 
 /* ------------------------------------------------------- A. one reader */
 
+/*
+ * Two spellings, because the table is reached through a small indirection now.
+ *
+ * `prisma.aiCredential` is the obvious one. `table('aiCredential')` is the
+ * accessor added after a stale Prisma client turned every query in that module
+ * into a synchronous TypeError — it checks the model exists before using it.
+ * Both are "reading the table", and a rule that knew only the first would have
+ * been satisfied by a route that used the second.
+ */
+const READS_CREDENTIALS = /prisma\.aiCredential\b|table\(\s*['"]aiCredential['"]\s*\)/;
+
 for (const file of files) {
     if (file.path === CONFIG) continue;
-    if (/prisma\.aiCredential\b/.test(file.text)) {
+    if (READS_CREDENTIALS.test(file.text)) {
         problems.push(
             `${file.path} reads the AiCredential table directly. Go through ${CONFIG}, which is the only place the sealed column is opened.`
         );
     }
 }
 
-if (!/prisma\.aiCredential\b/.test(readFileSync(CONFIG, 'utf8'))) {
+if (!READS_CREDENTIALS.test(readFileSync(CONFIG, 'utf8'))) {
     problems.push(
         `${CONFIG} no longer reads AiCredential at all — either this check is pointed at the wrong file, or the table moved and these rules moved with it.`
     );

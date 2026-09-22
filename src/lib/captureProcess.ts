@@ -7,7 +7,7 @@ import { fetchPage } from './fetchPage';
 import { youtubeVideoId, extractYoutubePage, cleanYoutubeDescription } from './youtube';
 import { fetchImageAsBase64 } from './fetchImage';
 import { readableText } from './readableText';
-import { assessDraft, worthAsking } from './draftQuality';
+import { assessDraft, titleProblem, worthAsking } from './draftQuality';
 import {
     assistsText,
     canUseAi,
@@ -232,15 +232,36 @@ async function fillGapsWithAi(
 ): Promise<{ draft: ImportedRecipe; trace: AiTrace }> {
     const provider = ai.keys[0]?.provider ?? null;
 
-    // Two lines of boilerplate is not a recipe and is not worth asking about.
-    // Not asking is not the same as asking and failing, so it says so.
+    /*
+     * Two lines of boilerplate is not a recipe and is not worth asking about.
+     * Not asking is not the same as asking and failing, so it says so.
+     *
+     * The caller is responsible for handing over everything it has — see
+     * `aiInput` — because this floor was silently refusing the cases the AI
+     * exists for. An Instagram reel strips to *zero* characters of readable
+     * text, and the entire recipe, ingredients and steps, is sitting in the
+     * page's `og:title`. The floor saw an empty string and declined to ask.
+     */
     if (text.trim().length < 80) return { draft, trace: NOT_ASKED };
 
     try {
         const parsed = await extractRecipeWithAi({ kind: 'text', text }, ai.keys);
 
+        /*
+         * The one place a model is allowed to overrule the rules.
+         *
+         * Everywhere else what the rules found wins, because it is the site's
+         * own statement about itself. That reasoning fails when what they
+         * found is not a title at all — a two-thousand-character Instagram
+         * caption, a page's "Ben Slater auf Instagram: …", a bare "Rezept".
+         * Keeping those over a model's reading is keeping the worse answer out
+         * of deference to a rule that was about something else.
+         */
+        const keepOurTitle = titleProblem(draft.title) === null;
+
         return { trace: { provider, asked: true, failed: false }, draft: {
             ...mergeDrafts(draft, parsed),
+            title: keepOurTitle ? draft.title : parsed.title || draft.title,
             // These four are not part of `mergeDrafts` because they are not
             // strings and an empty one is null rather than ''. Same rule
             // though: what the rules found wins.
@@ -257,6 +278,42 @@ async function fillGapsWithAi(
         console.error('The AI could not help with this capture:', error);
         return { draft, trace: { provider, asked: true, failed: true } };
     }
+}
+
+/**
+ * Everything worth showing a model, gathered from wherever it ended up.
+ *
+ * Written after watching two Instagram reels go past the AI untouched. Both
+ * were scored `poor` — no ingredients, no method — and both had the whole
+ * recipe in front of them: one had "Ingrédients: Poitrine de porc, Persil,
+ * Romarin…" and six numbered steps, in the page's `og:title`, two thousand
+ * characters of it. The pipeline handed the model `readableText(html)`, which
+ * for a page that renders itself in JavaScript is the empty string, and the
+ * eighty-character floor did the rest.
+ *
+ * So the input is assembled rather than picked. The page's prose first, since
+ * on an ordinary site it is the recipe; then whatever the rules scraped into
+ * the draft, which on a social page is where the content actually is; then
+ * anything shared alongside the link.
+ *
+ * Duplication is not a problem worth solving here — a model reading the same
+ * sentence twice produces the same recipe, and the cost of a few hundred extra
+ * characters is a fraction of a fraction of a cent. Missing the recipe
+ * entirely is the expensive outcome.
+ */
+function aiInput(draft: ImportedRecipe, pageText: string, shared: string): string {
+    const parts: string[] = [];
+
+    if (pageText.trim()) parts.push(pageText.trim());
+
+    // The draft's own fields, when the page gave nothing. On Instagram and
+    // TikTok the title *is* the post, caption and all.
+    const fromDraft = [draft.title, draft.description].filter(Boolean).join('\n\n').trim();
+    if (fromDraft && fromDraft.length > pageText.trim().length) parts.push(fromDraft);
+
+    if (shared.trim()) parts.push(shared.trim());
+
+    return parts.join('\n\n');
 }
 
 /* -------------------------------------------------------------------------- */
@@ -389,7 +446,11 @@ async function processWebPage(
     let trace: AiTrace = NOT_ASKED;
 
     if (shouldAsk(draft, options) && mayAskAboutText(ai, options)) {
-        const helped = await fillGapsWithAi(draft, readableText(page.html), ai);
+        const helped = await fillGapsWithAi(
+            draft,
+            aiInput(draft, readableText(page.html), shared),
+            ai
+        );
         draft = helped.draft;
         trace = helped.trace;
     }

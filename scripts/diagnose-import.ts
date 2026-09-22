@@ -6,6 +6,7 @@
  *   npm run diagnose -- --record https://www.chefkoch.de/rezepte/…
  *   npm run diagnose -- --inbox            (every open capture)
  *   npm run diagnose -- --inbox 42         (one of them, by id)
+ *   npm run diagnose -- --models           (which models answer on this key)
  *
  * This exists because of a gap that cannot be closed from a test file. The
  * import is a chain — fetch, rules, score, decide, ask, merge — and when the
@@ -330,22 +331,143 @@ async function fromInbox(id: number | null): Promise<string[]> {
             select: { id: true, sourceUrl: true, status: true },
         });
 
+    /*
+     * Rows whose "address" is a recipe.
+     *
+     * Before 049f62e a note shared from Apple Notes went into `sourceUrl`
+     * whole, so the inbox holds `failed` captures with several hundred
+     * characters of prose where a link should be. Fetching those produced
+     * "Could not be read: unsafe-url" five times in a row, which is true and
+     * unhelpful. Migration 0023 repairs them; until it has run, they are named
+     * and skipped rather than dragged through the pipeline.
+     */
+    const usable = rows.filter((row) => /^https?:\/\/\S+$/.test((row.sourceUrl ?? '').trim()));
+    const broken = rows.length - usable.length;
+
     if (rows.length === 0) {
         console.error('No captures with a link found.');
         return [];
     }
 
-    console.log(dim(`${rows.length} capture(s) from the inbox:`));
-    for (const row of rows) {
+    console.log(dim(`${usable.length} capture(s) from the inbox:`));
+    for (const row of usable) {
         console.log(dim(`   #${row.id}  ${row.status.padEnd(10)} ${row.sourceUrl}`));
     }
 
-    return rows.map((row) => row.sourceUrl as string);
+    if (broken > 0) {
+        console.log(
+            yellow(
+                `\n   ${broken} capture(s) hold text where a link should be — the Apple Notes\n` +
+                '   bug fixed in 049f62e. Migration 0023 moves them back; run\n' +
+                '   `npx prisma migrate deploy` and then press retry on them in the inbox.'
+            )
+        );
+    }
+
+    return usable.map((row) => row.sourceUrl as string);
+}
+
+/**
+ * Which models this key can actually reach.
+ *
+ * Added after watching `gemini-flash-latest` answer 503 three times and then
+ * 429 "you exceeded your current quota". An alias that always points at the
+ * current model is the right idea and is worth nothing if the current model is
+ * the busiest one on the platform, or if the free tier has no quota for it.
+ *
+ * The only way to know is to ask, so this asks: the smallest possible prompt,
+ * to each candidate in turn, reporting what came back. What it produces is the
+ * one thing that cannot be looked up — what works *on this account, today*.
+ */
+const CANDIDATES = [
+    'gemini-flash-latest',
+    'gemini-flash-lite-latest',
+    'gemini-3-flash-preview',
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+];
+
+async function probeModels(): Promise<void> {
+    const ai = await aiCapability();
+    const key = ai.keys.find((entry) => entry.provider === 'google');
+
+    if (!key) {
+        console.error(red('No Google key is configured, so there is nothing to probe.'));
+        console.error(dim('Set one under Admin → AI, press Test once, and try again.'));
+        return;
+    }
+
+    console.log(bold('\nAsking each model one short question.\n'));
+    console.log(dim('Costs a few tokens per line. A model that answers here is one\n' +
+        'you can put in the model field on the AI screen.\n'));
+
+    for (const model of CANDIDATES) {
+        process.stdout.write(`   ${model.padEnd(28)} `);
+
+        const started = performance.now();
+
+        try {
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+                {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json', 'x-goog-api-key': key.apiKey },
+                    body: JSON.stringify({
+                        contents: [{ role: 'user', parts: [{ text: 'Reply with the word: ok' }] }],
+                    }),
+                }
+            );
+
+            const ms = Math.round(performance.now() - started);
+
+            if (response.ok) {
+                console.log(green(`ok    ${ms} ms`));
+                continue;
+            }
+
+            const body = await response.text().catch(() => '');
+            const message = /"message":\s*"([^"]{0,110})/.exec(body)?.[1] ?? '';
+            console.log(red(`${response.status}`) + dim(`   ${ms} ms  ${message}`));
+        } catch (error) {
+            console.log(red('failed') + dim(`   ${error instanceof Error ? error.message : ''}`));
+        }
+    }
+
+    console.log(
+        dim('\n   Put a working one in the model field under Admin → AI.\n' +
+            '   Leave it empty to keep the default, which is gemini-flash-latest.\n')
+    );
+}
+
+/**
+ * The one failure worth naming before anything else runs.
+ *
+ * Prisma's client is generated from the schema by `postinstall`, and is not in
+ * the repository. Pull a branch that adds a table, run this before `npm
+ * install`, and every query in `aiConfig` throws `Cannot read properties of
+ * undefined (reading 'findMany')` — which says nothing about the missing build
+ * step that caused it. It cost a round trip.
+ */
+function clientKnowsTheSchema(): boolean {
+    const client = prisma as unknown as Record<string, unknown>;
+    return Boolean(client.appSetting && client.aiCredential);
 }
 
 async function main(): Promise<void> {
     const args = process.argv.slice(2);
     const keep = args.includes('--record');
+
+    if (args.includes('--models')) {
+        if (!clientKnowsTheSchema()) {
+            console.error(red('Run `npx prisma generate` first.'));
+            process.exitCode = 1;
+            return;
+        }
+        await probeModels();
+        return;
+    }
 
     let urls = args.filter((argument) => argument.startsWith('http'));
 
@@ -358,6 +480,19 @@ async function main(): Promise<void> {
     if (urls.length === 0) {
         console.error('Usage: npm run diagnose -- [--record] <url> [<url> …]');
         console.error('       npm run diagnose -- [--record] --inbox [id]');
+        console.error('       npm run diagnose -- --models');
+        process.exitCode = 1;
+        return;
+    }
+
+    if (!clientKnowsTheSchema()) {
+        console.error(
+            red('\nThe Prisma client is older than the schema.\n') +
+            'Run:  npx prisma generate\n\n' +
+            dim('It is generated by postinstall and is not in the repository, so a\n' +
+                'freshly merged branch has tables the client has never heard of.\n' +
+                'Everything below would run with the AI switched off.\n')
+        );
         process.exitCode = 1;
         return;
     }
@@ -378,7 +513,14 @@ async function main(): Promise<void> {
     }
 
     console.log('');
-    await prisma.$disconnect().catch(() => undefined);
 }
 
-main();
+// One place to close the connection, whatever happened above — an unhandled
+// rejection used to leave the process hanging on an open pool after the first
+// URL failed, which looked like the script itself being broken.
+main()
+    .catch((error) => {
+        console.error(red(`\n${error instanceof Error ? error.message : String(error)}`));
+        process.exitCode = 1;
+    })
+    .finally(() => prisma.$disconnect().catch(() => undefined));
