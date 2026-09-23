@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { formatAmount, type StructuredIngredient } from '@/lib/ingredientParts';
 import ShareButton from '@/components/share/ShareButton';
 import AddToShopping from '@/components/shopping/AddToShopping';
-import { buttonFloating } from '@/lib/ui';
+import { buttonFloating, buttonPrimarySmall } from '@/lib/ui';
 import CookMode from './CookMode';
 import { useCookTimers } from './useCookTimers';
 import { clock } from '@/lib/cookSteps';
@@ -265,7 +265,9 @@ export default function RecipeBody({
     return (
         <div>
             {/* Controls */}
-            <div className="print:hidden mb-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-line py-4">
+            {/* Sans, whatever the article around it is set in: these are controls,
+                and in the serif they read as footnotes. */}
+            <div className="print:hidden mb-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-line py-4 [font-family:var(--font-sans)]">
                 {baseServings ? (
                     // Wraps: the label, the stepper and four shortcuts are
                     // wider than a phone, and a row that cannot wrap made the
@@ -319,17 +321,20 @@ export default function RecipeBody({
                     </div>
                 ) : null}
 
-                <button
-                    type="button"
-                    onClick={() => setCookMode(true)}
-                    aria-pressed={cookMode}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${cookMode
-                        ? 'bg-ink text-page'
-                        : 'border border-line hover:border-ink  '
-                        }`}
-                >
-                    {t('cookMode')}
-                </button>
+                {/* The two things done with a recipe in the kitchen, as the
+                    largest targets on the page: full width on a phone, where
+                    they are pressed with one hand. */}
+                <div className="flex w-full flex-wrap gap-3 sm:w-auto">
+                    <button
+                        type="button"
+                        onClick={() => setCookMode(true)}
+                        aria-pressed={cookMode}
+                        className={`${buttonPrimarySmall} flex-1 gap-2 sm:flex-none`}
+                    >
+                        <span aria-hidden="true">👩‍🍳</span> {t('cookModeStart')}
+                    </button>
+                    {canShop && <AddToShopping recipeId={recipeId} servings={baseServings ? servings : null} />}
+                </div>
 
                 {convertible && (
                     <div role="group" aria-label={t('units')} className="flex rounded-full border border-line p-0.5 text-sm">
@@ -346,8 +351,6 @@ export default function RecipeBody({
                         ))}
                     </div>
                 )}
-
-                {canShop && <AddToShopping recipeId={recipeId} servings={baseServings ? servings : null} />}
 
                 <ShareButton
                     id={recipeId}

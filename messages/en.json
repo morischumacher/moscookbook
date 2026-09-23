@@ -110,7 +110,8 @@
     "nextStep": "Next",
     "doneNext": "Done, next",
     "doneLast": "Done",
-    "finishCooking": "Finish"
+    "finishCooking": "Finish",
+    "cookModeStart": "Start cooking"
   },
   "Rating": {
     "rate": "Rate",
@@ -576,7 +577,8 @@
     "recipesHint": "Each one gets a card at the end of the post, and the post appears on its page.",
     "fieldCollections": "Collections in this post",
     "collectionsHint": "The same, for whole collections.",
-    "slugHint": "The last part of the post's link. It is made from the title; change it only if you want a different link, and not once the post has been shared."
+    "slugHint": "The last part of the post's link. It is made from the title; change it only if you want a different link, and not once the post has been shared.",
+    "readMore": "Read on"
   },
   "Cooked": {
     "add": "Add a photo",
@@ -961,10 +963,10 @@
     "failed": "That did not work. Please try again.",
     "offlineNote": "No signal — the tick is kept on this phone and sent once there is.",
     "sharedBy": "{name}'s list",
-    "addRecipe": "Add to shopping list",
+    "addRecipe": "Shopping list",
     "addRecipeServings": "Add to shopping list ({count, plural, one {# serving} other {# servings}})",
     "addCollection": "Add all to shopping list",
-    "addedRecipe": "On the list.",
+    "addedRecipe": "On the list, at the servings shown.",
     "openList": "Open the list",
     "aisle": {
       "produce": "Fruit & vegetables",

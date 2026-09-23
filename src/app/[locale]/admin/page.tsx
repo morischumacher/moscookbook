@@ -30,10 +30,11 @@ export default async function AdminDashboard({
     params: Promise<{ locale: string }>;
 }) {
     const { locale } = await params;
-    const t = await getTranslations('Admin');
-    const tCategory = await getTranslations('Categories');
-    const tVisibility = await getTranslations('Visibility');
-    const backup = await backupStatus();
+    const [t, tCategory, backup] = await Promise.all([
+        getTranslations('Admin'),
+        getTranslations('Categories'),
+        backupStatus(),
+    ]);
 
     const recipes: AdminRecipeRow[] = await prisma.recipe.findMany({
         orderBy: { createdAt: 'desc' },
@@ -65,7 +66,11 @@ export default async function AdminDashboard({
             ) : (
                 <ul className="divide-y divide-line">
                     {recipes.map((recipe) => (
-                        <li key={recipe.id} className="flex items-center gap-4 py-4">
+                        // Thumbnail and title on one line, the actions on the
+                        // next on a phone — side by side only once there is
+                        // room. Squeezed into one row, the actions took all
+                        // of it and the title was truncated to nothing.
+                        <li key={recipe.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-4">
                             <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border border-line bg-surface">
                                 {recipe.images[0] && (
                                     <Image
@@ -78,7 +83,7 @@ export default async function AdminDashboard({
                                 )}
                             </div>
 
-                            <div className="min-w-0 flex-1">
+                            <div className="min-w-0 flex-1 basis-[calc(100%-4rem)] sm:basis-0">
                                 <Link
                                     href={`/recipe/${recipe.slug}`}
                                     className="block truncate font-medium underline-offset-4 hover:underline"
@@ -93,24 +98,13 @@ export default async function AdminDashboard({
                                         : '—'}
                                     {' · '}
                                     {t('viewCount', { count: recipe.views })}
-                                    {' · '}
-                                    {/* Said in the row rather than shown as a
-                                        colour, because "public" is the one
-                                        property of a recipe somebody needs to
-                                        be able to read at a glance and be
-                                        sure about. */}
-                                    <span className={recipe.isPublic ? 'text-accent-text' : undefined}>
-                                        {recipe.isPublic
-                                            ? tVisibility('statePublic')
-                                            : tVisibility('statePrivate')}
-                                    </span>
                                 </p>
                             </div>
 
                             {/* Wraps under the title on a phone rather than
                                 squeezing five actions into a row that is
                                 already carrying a thumbnail. */}
-                            <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                            <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 pl-16 text-sm sm:w-auto sm:pl-0">
                                 <RecipeRowActions
                                     recipeId={recipe.id}
                                     title={recipe.title}

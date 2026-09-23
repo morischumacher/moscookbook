@@ -86,9 +86,11 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
                 "am I in the admin?" being "look closely".
             */}
             <div className="container mx-auto max-w-3xl px-4 md:px-8">
-                <div className="flex flex-wrap items-center gap-x-1 gap-y-0">
+                {/* One row that scrolls sideways on a phone, like an app's tab bar,
+                    rather than two rows of links that push the page down. */}
+                <div className="-mx-4 flex items-center gap-x-1 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
                     {groups.map((group, index) => (
-                        <div key={group[0].href} className="flex items-center">
+                        <div key={group[0].href} className="flex shrink-0 items-center">
                             {index > 0 && (
                                 <span
                                     aria-hidden="true"

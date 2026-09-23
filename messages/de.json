@@ -110,7 +110,8 @@
     "nextStep": "Weiter",
     "doneNext": "Erledigt, weiter",
     "doneLast": "Erledigt",
-    "finishCooking": "Fertig"
+    "finishCooking": "Fertig",
+    "cookModeStart": "Kochmodus starten"
   },
   "Rating": {
     "rate": "Bewerten",
@@ -576,7 +577,8 @@
     "recipesHint": "Jedes bekommt am Ende des Beitrags eine Karte, und der Beitrag erscheint auf seiner Seite.",
     "fieldCollections": "Sammlungen in diesem Beitrag",
     "collectionsHint": "Dasselbe, für ganze Sammlungen.",
-    "slugHint": "Der letzte Teil des Links zum Beitrag. Er entsteht aus dem Titel; ändere ihn nur, wenn du einen anderen Link willst, und nicht mehr, wenn der Beitrag schon geteilt wurde."
+    "slugHint": "Der letzte Teil des Links zum Beitrag. Er entsteht aus dem Titel; ändere ihn nur, wenn du einen anderen Link willst, und nicht mehr, wenn der Beitrag schon geteilt wurde.",
+    "readMore": "Weiterlesen"
   },
   "Cooked": {
     "add": "Foto hinzufügen",
@@ -961,10 +963,10 @@
     "failed": "Das hat nicht geklappt. Bitte noch einmal.",
     "offlineNote": "Kein Netz — der Haken bleibt auf dem Handy und wird gesendet, sobald wieder Netz da ist.",
     "sharedBy": "Liste von {name}",
-    "addRecipe": "Auf die Einkaufsliste",
+    "addRecipe": "Einkaufsliste",
     "addRecipeServings": "Auf die Einkaufsliste ({count, plural, one {# Portion} other {# Portionen}})",
     "addCollection": "Alles auf die Einkaufsliste",
-    "addedRecipe": "Steht auf der Liste.",
+    "addedRecipe": "Steht auf der Liste, für die gewählten Portionen.",
     "openList": "Liste öffnen",
     "aisle": {
       "produce": "Obst & Gemüse",

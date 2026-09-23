@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-40 screens · 75 endpoints · 70 link edges · 78 call edges
+40 screens · 75 endpoints · 70 link edges · 76 call edges
 
 ## Screens
 
@@ -15,7 +15,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/collections/new` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/admin/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections` | admin | requires admin | `POST /api/examples` | `/[locale]/admin/collections/[id]`<br>`/[locale]/admin/collections/new`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/create` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url` | `/[locale]/admin` |
-| `/[locale]/admin/devices` | admin | requires admin | `* /api/capture`<br>`DELETE /api/capture-tokens/[id]`<br>`GET /api/capture-tokens`<br>`POST /api/capture-tokens` | — |
+| `/[locale]/admin/devices` | admin | requires admin | `DELETE /api/capture-tokens/[id]`<br>`GET /api/capture-tokens`<br>`POST /api/capture-tokens` | — |
 | `/[locale]/admin/drafts` | admin | requires admin | `POST /api/recipes/[id]/draft` | `/[locale]/recipe/[id]` |
 | `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/recipes/[id]/revisions/[id]` | `/[locale]/admin` |
 | `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
@@ -79,8 +79,8 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/capture/[id]/merge` | admin | zod | — | `src/app/[locale]/admin/inbox/page.tsx` |
 | POST | `/api/capture/[id]` | admin | zod | — | `src/app/[locale]/admin/inbox/page.tsx` |
 | DELETE | `/api/capture/[id]` | admin | zod | — | `src/app/[locale]/admin/inbox/page.tsx` |
-| POST | `/api/capture` | device token | zod | yes | `src/app/[locale]/admin/devices/page.tsx` |
-| GET | `/api/capture` | admin | zod | yes | `src/app/[locale]/admin/devices/page.tsx`<br>`src/app/[locale]/admin/inbox/page.tsx` |
+| POST | `/api/capture` | device token | zod | yes | *(nothing in the UI)* |
+| GET | `/api/capture` | admin | zod | yes | `src/app/[locale]/admin/inbox/page.tsx` |
 | PUT | `/api/collections/[id]` | admin | zod | — | `collection/CollectionForm` |
 | DELETE | `/api/collections/[id]` | admin | zod | — | `collection/CollectionForm` |
 | POST | `/api/collections/[id]/share` | admin | — | — | `share/ShareDialog` |
@@ -351,10 +351,7 @@ flowchart LR
   csrc_app__locale__admin_inbox_page_tsx --> ePOST_api_capture__id_
   eDELETE_api_capture__id_(["DELETE /api/capture/[id]"])
   csrc_app__locale__admin_inbox_page_tsx --> eDELETE_api_capture__id_
-  ePOST_api_capture(["POST /api/capture"])
-  csrc_app__locale__admin_devices_page_tsx --> ePOST_api_capture
   eGET_api_capture(["GET /api/capture"])
-  csrc_app__locale__admin_devices_page_tsx --> eGET_api_capture
   csrc_app__locale__admin_inbox_page_tsx --> eGET_api_capture
   ePUT_api_collections__id_(["PUT /api/collections/[id]"])
   ccollection_CollectionForm["collection/CollectionForm"]

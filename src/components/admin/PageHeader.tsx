@@ -42,7 +42,9 @@ export default function PageHeader({
                 {children && <div className="flex flex-wrap items-center gap-4">{children}</div>}
             </div>
 
-            {intro && <p className="mt-3 font-serif text-muted">{intro}</p>}
+            {/* Its own size and weight: inside the header it inherited the
+                heading's, and a sentence of help became four lines of display type. */}
+            {intro && <p className="mt-3 font-serif text-base font-normal leading-relaxed tracking-normal text-muted sm:text-lg">{intro}</p>}
         </header>
     );
 }

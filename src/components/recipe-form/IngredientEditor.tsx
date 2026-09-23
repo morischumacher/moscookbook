@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
 import { sectionHeading } from '@/lib/ingredientParts';
-import { fieldClass, labelClass } from './formStyles';
+import { fieldBase, fieldClass, labelClass } from './formStyles';
 
 export const EMPTY_ROW: Ingredient = { amount: '', item: '' };
 
@@ -118,7 +118,7 @@ export default function IngredientEditor({
                                 onChange={(event) => update(index, 'item', `## ${event.target.value}`)}
                                 placeholder={t('sectionPlaceholder')}
                                 aria-label={t('sectionLabel')}
-                                className={fieldClass + ' flex-1 font-bold'}
+                                className={fieldBase + ' w-0 flex-1 font-bold'}
                             />
                             <button
                                 type="button"
@@ -137,7 +137,7 @@ export default function IngredientEditor({
                             onChange={(event) => update(index, 'amount', event.target.value)}
                             placeholder={t('amountPlaceholder')}
                             aria-label={t('amountLabel', { number: index + 1 })}
-                            className={fieldClass + ' w-24 shrink-0 sm:w-32'}
+                            className={fieldBase + ' w-[5.5rem] shrink-0 sm:w-32'}
                         />
                         <input
                             ref={(element) => {
@@ -154,14 +154,14 @@ export default function IngredientEditor({
                             }}
                             placeholder={t('itemPlaceholder')}
                             aria-label={t('itemLabel', { number: index + 1 })}
-                            className={fieldClass + ' flex-1'}
+                            className={fieldBase + ' w-0 flex-1'}
                         />
                         <div className="flex shrink-0 items-center gap-0.5">
                             <button
                                 type="button"
                                 onClick={() => move(index, -1)}
                                 aria-label={t('moveUp')}
-                                className="flex h-10 w-8 items-center justify-center text-faint hover:text-ink"
+                                className="flex h-10 w-7 items-center justify-center text-faint hover:text-ink sm:w-8"
                             >
                                 ↑
                             </button>
@@ -169,7 +169,7 @@ export default function IngredientEditor({
                                 type="button"
                                 onClick={() => move(index, 1)}
                                 aria-label={t('moveDown')}
-                                className="flex h-10 w-8 items-center justify-center text-faint hover:text-ink"
+                                className="flex h-10 w-7 items-center justify-center text-faint hover:text-ink sm:w-8"
                             >
                                 ↓
                             </button>
@@ -177,7 +177,7 @@ export default function IngredientEditor({
                                 type="button"
                                 onClick={() => removeRow(index)}
                                 aria-label={t('removeIngredient')}
-                                className="flex h-10 w-8 items-center justify-center text-faint hover:text-danger"
+                                className="flex h-10 w-7 items-center justify-center text-faint hover:text-danger sm:w-8"
                             >
                                 ×
                             </button>

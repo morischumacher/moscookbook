@@ -417,3 +417,25 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .nav-progress-run { animation: none; width: 60%; }
 }
+
+/*
+ * iPhone.
+ *
+ * Safari zooms the whole page into any field whose text is smaller than 16px
+ * the moment it is tapped, and leaves it zoomed — every search box, ingredient
+ * row and note field set in text-sm did that. On a phone, fields are 16px.
+ * The grey flash iOS paints over anything tapped is turned off too: every
+ * control here draws its own pressed state.
+ */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}

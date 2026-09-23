@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { BusyLabel } from '@/components/ui/Busy';
+import { buttonSecondary } from '@/lib/ui';
 
 /**
  * "Put this on the shopping list" — a recipe at the servings it is being read
@@ -33,20 +34,15 @@ export default function AddToShopping(
         }
     };
 
-    const label =
-        'recipeId' in props
-            ? props.servings
-                ? t('addRecipeServings', { count: props.servings })
-                : t('addRecipe')
-            : t('addCollection');
+    const label = 'recipeId' in props ? t('addRecipe') : t('addCollection');
 
     return (
-        <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        <span className="inline-flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:flex-none">
             <button
                 type="button"
                 onClick={() => void add()}
                 disabled={state === 'busy'}
-                className="inline-flex min-h-11 items-center rounded-full border border-line px-4 font-medium transition-colors hover:border-ink disabled:opacity-50"
+                className={`${buttonSecondary} w-full sm:w-auto`}
             >
                 <BusyLabel busy={state === 'busy'}>
                     <span aria-hidden="true">🛒 </span>
