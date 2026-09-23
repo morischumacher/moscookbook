@@ -105,8 +105,9 @@ export default function CookMode({
     const tab = (which: typeof view, label: string) => (
         <button
             type="button"
-            role="tab"
-            aria-selected={view === which}
+            // A switch between two views of the same recipe, said as such:
+            // it was marked as tabs without the tab keyboard or panels.
+            aria-pressed={view === which}
             onClick={() => {
                 if (which === 'step') {
                     const open = steps.findIndex((_, index) => !checkedSteps.has(index));
@@ -144,7 +145,7 @@ export default function CookMode({
                         <p className="truncate font-bold">{title}</p>
                         <p className="text-xs text-muted">{wakeLockActive ? t('screenStaysOn') : t('screenMayDim')}</p>
                     </div>
-                    <div role="tablist" className="flex shrink-0 gap-1">
+                    <div role="group" className="flex shrink-0 gap-1">
                         {tab('list', t('cookViewList'))}
                         {steps.length > 0 && tab('step', t('cookViewSteps'))}
                     </div>
