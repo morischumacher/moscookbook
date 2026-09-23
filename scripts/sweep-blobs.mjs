@@ -61,7 +61,7 @@ async function referencedUrls() {
         // The inbox counts: a capture holds a screenshot that has not become a
         // recipe yet, and sweeping those away would empty the inbox of its
         // pictures.
-        prisma.capture.findMany({ select: { imageUrl: true } }),
+        prisma.capture.findMany({ select: { imageUrl: true, moreImageUrls: true } }),
         // Profile pictures. A column this script does not know about is a
         // column whose files are deleted on the next run — silently, and a
         // week later, which is the worst possible shape for that bug.
@@ -78,7 +78,10 @@ async function referencedUrls() {
     for (const row of images) if (row.url) urls.add(row.url);
     for (const row of posts) if (row.imageUrl) urls.add(row.imageUrl);
     for (const row of cookedPhotos) if (row.url) urls.add(row.url);
-    for (const row of captures) if (row.imageUrl) urls.add(row.imageUrl);
+    for (const row of captures) {
+        if (row.imageUrl) urls.add(row.imageUrl);
+        for (const url of row.moreImageUrls ?? []) urls.add(url);
+    }
     for (const row of avatars) if (row.avatarUrl) urls.add(row.avatarUrl);
     for (const row of collections) if (row.imageUrl) urls.add(row.imageUrl);
     for (const row of reportPhotos) if (row.url) urls.add(row.url);

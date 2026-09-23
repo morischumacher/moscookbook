@@ -113,3 +113,40 @@ export function captureInputFrom(raw: CaptureBody): ClassifiedCapture | null {
         hasImage,
     });
 }
+
+/** At most this many screenshots per share: the post, its comments, the bio. */
+export const MAX_CAPTURE_IMAGES = 4;
+
+/** A picture's type from its first bytes, for a Shortcut that cannot say. */
+export function sniffImageType(base64: string): string {
+    if (base64.startsWith('/9j/')) return 'image/jpeg';
+    if (base64.startsWith('iVBOR')) return 'image/png';
+    if (base64.startsWith('UklGR')) return 'image/webp';
+    if (base64.startsWith('R0lGOD')) return 'image/gif';
+    return 'image/heic';
+}
+
+/**
+ * Every screenshot a device sent, in order.
+ *
+ * `image` is the one-picture form the Shortcut has always sent. `images` is
+ * several: either a list of `{base64, mediaType}`, or — because a Shortcut
+ * cannot build a list of objects but can join texts — the base64 strings
+ * joined with commas (line breaks inside one are ignored).
+ */
+export function imagesFrom(body: {
+    image?: { base64: string; mediaType: string };
+    images?: { base64: string; mediaType: string }[] | string;
+}): { base64: string; mediaType: string }[] {
+    const list: { base64: string; mediaType: string }[] = body.image ? [body.image] : [];
+    if (typeof body.images === 'string') {
+        for (const part of body.images.split(',')) {
+            const base64 = part.replace(/\s+/g, '');
+            // "data:image/jpeg;base64" is the head of a data URL, split off by the comma.
+            if (base64 && !base64.startsWith('data:')) list.push({ base64, mediaType: sniffImageType(base64) });
+        }
+    } else if (Array.isArray(body.images)) {
+        list.push(...body.images);
+    }
+    return list.slice(0, MAX_CAPTURE_IMAGES);
+}

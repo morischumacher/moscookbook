@@ -119,6 +119,8 @@ export interface ProcessableCapture {
     rawText: string | null;
     /** Only set once a photograph has been uploaded. */
     imageUrl?: string | null;
+    /** Further screenshots of the same share, read together with the first. */
+    moreImageUrls?: string[];
 }
 
 export interface AiTrace {

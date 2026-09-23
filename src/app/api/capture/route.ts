@@ -5,7 +5,7 @@ import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { tokenFromHeader, hashCaptureToken } from '@/lib/capture';
-import { captureInputFrom } from '@/lib/captureInput';
+import { captureInputFrom, imagesFrom, MAX_CAPTURE_IMAGES } from '@/lib/captureInput';
 import { storeCaptureImage, MAX_CAPTURE_IMAGE_BASE64 } from '@/lib/storeCaptureImage';
 import { findDuplicate, type ExistingRecipe } from '@/lib/duplicates';
 import { readInBackground } from '@/lib/captureBackground';
@@ -62,6 +62,17 @@ const captureSchema = z.object({
             mediaType: z.string().max(100),
         })
         .optional(),
+    /**
+     * Several screenshots of one share — the post, its comments, the bio —
+     * read together. A list, or the base64 strings joined with commas, which
+     * is what a Shortcut can build. See `imagesFrom`.
+     */
+    images: z
+        .union([
+            z.array(z.object({ base64: z.string().min(1).max(MAX_CAPTURE_IMAGE_BASE64), mediaType: z.string().max(100) })).max(MAX_CAPTURE_IMAGES),
+            z.string().max(MAX_CAPTURE_IMAGE_BASE64 * MAX_CAPTURE_IMAGES),
+        ])
+        .optional(),
 });
 
 // Base64 is a third bigger than the bytes it carries, and a phone screenshot
@@ -116,28 +127,30 @@ export async function POST(req: NextRequest) {
      * decides first and the file is only paid for once there is somewhere for
      * it to belong.
      */
-    const classified = captureInputFrom(parsed.data);
+    const pictures = imagesFrom(parsed.data);
+    const classified = captureInputFrom({ ...parsed.data, image: pictures[0] });
     if (!classified) {
         return NextResponse.json({ message: 'Nothing usable was sent.' }, { status: 400 });
     }
 
-    let imageUrl: string | undefined;
-
-    if (parsed.data.image) {
-        const stored = await storeCaptureImage(
-            parsed.data.image.base64,
-            parsed.data.image.mediaType
-        );
+    // Every picture stored, or none: a share whose third screenshot is
+    // refused leaves no orphans of the first two behind.
+    const storedUrls: string[] = [];
+    for (const picture of pictures) {
+        const stored = await storeCaptureImage(picture.base64, picture.mediaType);
 
         if (!stored.ok) {
+            if (storedUrls.length > 0) await deleteBlobs(storedUrls);
             return NextResponse.json(
                 { message: `The picture could not be stored (${stored.reason}).` },
                 { status: 400 }
             );
         }
 
-        imageUrl = stored.url;
+        storedUrls.push(stored.url);
     }
+    const imageUrl: string | undefined = storedUrls[0];
+    const moreImageUrls = storedUrls.slice(1);
 
     // Step one: make it durable. Everything after this point may fail without
     // losing what was shared.
@@ -152,6 +165,7 @@ export async function POST(req: NextRequest) {
                 rawText: classified.rawText,
                 note: classified.note,
                 imageUrl: imageUrl ?? classified.imageUrl,
+                moreImageUrls,
                 status: 'new',
             },
             select: { id: true },
@@ -164,7 +178,7 @@ export async function POST(req: NextRequest) {
          * reason in it. The file goes with the failure rather than being left
          * behind, and the answer says what happened.
          */
-        if (imageUrl) await deleteBlobs([imageUrl]);
+        if (storedUrls.length > 0) await deleteBlobs(storedUrls);
 
         failed('Capture could not be stored:', error);
         return NextResponse.json(
@@ -193,7 +207,7 @@ export async function POST(req: NextRequest) {
      * moved, since a site that will not load must never turn a capture that
      * *was* saved into a 500 saying it was not.
      */
-    readInBackground(capture.id, classified, imageUrl);
+    readInBackground(capture.id, classified, imageUrl, moreImageUrls);
 
     return NextResponse.json(
         {

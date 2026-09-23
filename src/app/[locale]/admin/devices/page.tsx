@@ -229,6 +229,24 @@ export default function AdminDevicesPage() {
                             <li>{t('sc1Step5')}</li>
                         </ol>
                         <p className="mt-4 text-sm text-muted">{t('queuedNote')}</p>
+
+                        <h3 className="mt-6 text-sm font-bold">{t('sc1ShotsTitle')}</h3>
+                        <p className="mt-2 text-sm leading-relaxed text-muted">{t('sc1ShotsIntro')}</p>
+                        <ol className="mt-3 flex list-decimal flex-col gap-3 pl-5 text-sm leading-relaxed marker:text-faint">
+                            <li>{t('sc1Shots1')}</li>
+                            <li>{t('sc1Shots2')}</li>
+                            <li>{t('sc1Shots3')}</li>
+                            <li>{t('sc1Shots4')}</li>
+                            <li>{t('sc1Shots5')}</li>
+                            <li>
+                                {t('sc1Shots6')}
+                                <pre className="mt-2 overflow-x-auto rounded border border-line p-3 font-mono text-xs">
+{`{ "url": <Shortcut Input>, "images": <Combined Text> }`}
+                                </pre>
+                            </li>
+                            <li>{t('sc1Shots7')}</li>
+                        </ol>
+                        <p className="mt-4 text-sm text-muted">{t('sc1ShotsNote')}</p>
                     </Disclosure>
 
                     <Disclosure title={t('sc2Title')} subtitle={t('sc2Intro')}>
