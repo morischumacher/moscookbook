@@ -235,7 +235,28 @@
     "unverified": "address not confirmed",
     "protected_self": "That is you",
     "protected_owner": "Owner – protected",
-    "protected_lastAdmin": "Only admin – protected"
+    "protected_lastAdmin": "Only admin – protected",
+    "listSearch": "Search recipes",
+    "listShow": {
+      "all": "All",
+      "web": "Public",
+      "link": "With link",
+      "household": "Household only"
+    },
+    "listSort": {
+      "new": "Newest",
+      "title": "A–Z",
+      "views": "Most viewed"
+    },
+    "listCount": "{count, plural, one {# recipe} other {# recipes}}",
+    "listCountFiltered": "{count} of {all} recipes",
+    "toBackup": "Backup & import ↓",
+    "listNothingFound": "Nothing found.",
+    "listReset": "Show all",
+    "listPages": "Pages",
+    "listPrevious": "← Previous",
+    "listNext": "Next →",
+    "listPage": "Page {page} of {pages}"
   },
   "RecipeForm": {
     "newRecipe": "New recipe",
