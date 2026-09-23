@@ -242,7 +242,9 @@ export default function AdminInboxPage() {
 
             {/* Asked for: the row of actions had to be learned rather than
                 read. One sentence each, folded away once it is known. */}
-            <div className="mt-2 border-t border-line">
+            {/* No rule of its own on top: the page header already draws one,
+                and two stacked 30px apart looked like a mistake. */}
+            <div className="-mt-4 border-b border-line">
                 <Disclosure title={t('legendTitle')}>
                     <ul className="flex flex-col gap-2 text-sm leading-relaxed text-muted">
                         <li>{t('legendAccept')}</li>
@@ -333,7 +335,7 @@ export default function AdminInboxPage() {
 
             {done.length > 0 && (
                 <section className="mt-12 border-t border-line pt-6">
-                    <h2 className="mb-4 text-xs uppercase tracking-widest text-faint">
+                    <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted">
                         {t('published', { count: done.length })}
                     </h2>
                     <ul className="flex flex-col divide-y divide-line text-sm">

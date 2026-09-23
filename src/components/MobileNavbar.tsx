@@ -169,9 +169,11 @@ export default function MobileNavbar({ user, profile, otherLocale }: MobileNavba
                     aria-expanded={isOpen}
                     aria-controls="mobile-menu"
                 >
-                    <span className={`block h-0.5 w-6 bg-ink transition-opacity ${isOpen ? 'opacity-40' : ''}`} />
-                    <span className={`block h-0.5 w-6 bg-ink transition-opacity ${isOpen ? 'opacity-40' : ''}`} />
-                    <span className={`block h-0.5 w-6 bg-ink transition-opacity ${isOpen ? 'opacity-40' : ''}`} />
+                    {/* Three bars that become a cross when the menu is open:
+                        greying them out did not say "press to close". */}
+                    <span className={`block h-0.5 w-6 bg-ink transition-transform ${isOpen ? 'translate-y-2 rotate-45' : ''}`} />
+                    <span className={`block h-0.5 w-6 bg-ink transition-opacity ${isOpen ? 'opacity-0' : ''}`} />
+                    <span className={`block h-0.5 w-6 bg-ink transition-transform ${isOpen ? '-translate-y-2 -rotate-45' : ''}`} />
                 </button>
             </div>
 

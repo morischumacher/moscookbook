@@ -43,7 +43,7 @@ export default function ForgotPage() {
     };
 
     return (
-        <main className="container mx-auto max-w-sm px-4 pb-32 pt-16 sm:pt-24">
+        <main className="container mx-auto px-4 sm:max-w-sm pb-32 pt-16 sm:pt-24">
             <h1 className="mb-4 text-3xl font-extrabold tracking-tight">{t('forgotTitle')}</h1>
 
             {sent ? (

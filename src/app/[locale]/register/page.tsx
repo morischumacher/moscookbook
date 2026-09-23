@@ -35,7 +35,7 @@ export default async function RegisterPage({
     const [state, promised] = await Promise.all([inviteLinkState(invite), inviteName(invite)]);
 
     return (
-        <main className="container mx-auto max-w-sm px-4 pb-32 pt-16 sm:pt-24">
+        <main className="container mx-auto px-4 sm:max-w-sm pb-32 pt-16 sm:pt-24">
             <h1 className="mb-3 text-3xl font-extrabold tracking-tight">{t('registerTitle')}</h1>
             <p className="mb-8 font-serif text-muted">{t('registerIntro')}</p>
 
