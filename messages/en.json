@@ -247,7 +247,7 @@
       "web": "Public",
       "link": "With link",
       "household": "Household only",
-      "onlyMe": "Only me"
+      "onlyMe": "Admins only"
     },
     "listSort": {
       "new": "Newest",
@@ -262,8 +262,7 @@
     "listPages": "Pages",
     "listPrevious": "← Previous",
     "listNext": "Next →",
-    "listPage": "Page {page} of {pages}",
-    "onlyMeLabel": "Only for me"
+    "listPage": "Page {page} of {pages}"
   },
   "RecipeForm": {
     "newRecipe": "New recipe",
@@ -376,9 +375,7 @@
     "translateUnusable": "The AI left out or merged ingredients, so the translation was discarded. Try again.",
     "tooManyPictures": "At most {max} pictures per recipe – the rest were not uploaded.",
     "slugTaken": "There is already a recipe at this address. Change the address (slug) or the title.",
-    "saveInvalid": "The recipe cannot be saved like this – please check the fields.",
-    "onlyMe": "Only for me",
-    "onlyMeHint": "Nobody but the admins sees it – not even signed-in members of the household. No share link, not public, not in collections, posts or menu links."
+    "saveInvalid": "The recipe cannot be saved like this – please check the fields."
   },
   "QuickImport": {
     "heading": "Fill in quickly",
@@ -676,7 +673,9 @@
     "stageWebBody": "Its own address answers to anybody, and a search engine may keep a copy. Rating and photographs still need an account.",
     "stageWebBodyOther": "Its own address answers to anybody, and a search engine may keep a copy. Only the recipes that are public in their own right are shown.",
     "done": "Done",
-    "failed": "That did not work."
+    "failed": "That did not work.",
+    "stageAdmins": "Admins only",
+    "stageAdminsBody": "Only admins read it. The household does not see it – not in the list, not in search, not in collections – there is no link and it is not public."
   },
   "Errors": {
     "title": "Errors",

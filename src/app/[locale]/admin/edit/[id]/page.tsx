@@ -101,7 +101,6 @@ export default async function EditRecipePage({
                 cuisines: recipe.cuisines,
                 spiciness: recipe.spiciness,
                 language: asLanguage(recipe.language),
-                onlyMe: recipe.onlyMe,
                 translation: translationOf(recipe.translations[0]),
             }}
         />

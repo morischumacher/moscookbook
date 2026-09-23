@@ -11,6 +11,8 @@
  * Named here, once, so that the control, the endpoints and the pages all mean
  * the same thing by them:
  *
+ *   admins     only the admins read it — not the household either. Recipes
+ *              only ("Nur Admins"); see lib/recipeVisibility.
  *   household  only somebody with an account. The default, and what
  *              "private" always meant.
  *   link       anybody holding the secret address, no account needed. The
@@ -26,7 +28,7 @@
  * *furthest* the thing currently reaches, because that is what somebody is
  * actually asking when they ask who can see it.
  */
-export type ShareStage = 'household' | 'link' | 'web';
+export type ShareStage = 'admins' | 'household' | 'link' | 'web';
 
 /** What kinds of thing can be shared. Each has its own endpoints and routes. */
 export type ShareKind = 'recipe' | 'post' | 'collection';
@@ -36,6 +38,8 @@ export interface ShareState {
     isPublic: boolean;
     /** The secret address, when one has been minted. */
     linkUrl: string | null;
+    /** Only the admins read it (recipes). Excludes the other two. */
+    onlyMe?: boolean;
 }
 
 /**
@@ -45,7 +49,8 @@ export interface ShareState {
  * and the one somebody needs to know about: "a search engine may have it"
  * outranks "one person has a link".
  */
-export function stageOf({ isPublic, linkUrl }: ShareState): ShareStage {
+export function stageOf({ isPublic, linkUrl, onlyMe }: ShareState): ShareStage {
+    if (onlyMe) return 'admins';
     if (isPublic) return 'web';
     if (linkUrl) return 'link';
     return 'household';
@@ -79,25 +84,39 @@ export interface SharePlan {
     mintLink: boolean;
     /** Withdraw the secret link if one exists. */
     revokeLink: boolean;
+    /**
+     * Make it the admins' alone (true) or give it back to the household
+     * (false), or leave it alone when null. Making it the admins' also
+     * unpublishes it and withdraws its link, on the server, in one write.
+     */
+    setOnlyMe: boolean | null;
 }
 
 export function planFor(state: ShareState, wanted: ShareStage): SharePlan {
     const now = stageOf(state);
+    const nothing = { setPublic: null, mintLink: false, revokeLink: false, setOnlyMe: null };
 
-    if (now === wanted) return { setPublic: null, mintLink: false, revokeLink: false };
+    if (now === wanted) return nothing;
+
+    if (wanted === 'admins') return { ...nothing, setOnlyMe: true };
+
+    // Out of "admins" first: from there it has neither a link nor the web,
+    // and the rest of the plan starts from the household.
+    const leaving = state.onlyMe ? { setOnlyMe: false } : { setOnlyMe: null };
+    const from: ShareState = state.onlyMe ? { isPublic: false, linkUrl: null } : state;
 
     if (wanted === 'household') {
-        return { setPublic: state.isPublic ? false : null, mintLink: false, revokeLink: Boolean(state.linkUrl) };
+        return { ...leaving, setPublic: from.isPublic ? false : null, mintLink: false, revokeLink: Boolean(from.linkUrl) };
     }
 
     if (wanted === 'link') {
-        return { setPublic: state.isPublic ? false : null, mintLink: !state.linkUrl, revokeLink: false };
+        return { ...leaving, setPublic: from.isPublic ? false : null, mintLink: !from.linkUrl, revokeLink: false };
     }
 
-    return { setPublic: true, mintLink: false, revokeLink: false };
+    return { ...leaving, setPublic: true, mintLink: false, revokeLink: false };
 }
 
 /** Whether a plan does anything at all. */
 export function isNoop(plan: SharePlan): boolean {
-    return plan.setPublic === null && !plan.mintLink && !plan.revokeLink;
+    return plan.setPublic === null && !plan.mintLink && !plan.revokeLink && plan.setOnlyMe === null;
 }

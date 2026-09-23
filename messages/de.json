@@ -247,7 +247,7 @@
       "web": "Öffentlich",
       "link": "Mit Link",
       "household": "Nur Haushalt",
-      "onlyMe": "Nur ich"
+      "onlyMe": "Nur Admins"
     },
     "listSort": {
       "new": "Neueste",
@@ -262,8 +262,7 @@
     "listPages": "Seiten",
     "listPrevious": "← Zurück",
     "listNext": "Weiter →",
-    "listPage": "Seite {page} von {pages}",
-    "onlyMeLabel": "Nur für mich"
+    "listPage": "Seite {page} von {pages}"
   },
   "RecipeForm": {
     "newRecipe": "Neues Rezept",
@@ -376,9 +375,7 @@
     "translateUnusable": "Die KI hat Zutaten ausgelassen oder zusammengelegt, deshalb wurde die Übersetzung verworfen. Versuch es noch einmal.",
     "tooManyPictures": "Höchstens {max} Bilder pro Rezept – die übrigen wurden nicht hochgeladen.",
     "slugTaken": "Es gibt schon ein Rezept mit dieser Adresse. Ändere die Adresse (Slug) oder den Titel.",
-    "saveInvalid": "So kann das Rezept nicht gespeichert werden – bitte die Felder prüfen.",
-    "onlyMe": "Nur für mich",
-    "onlyMeHint": "Außer Admins sieht es niemand – auch nicht, wer im Haushalt angemeldet ist. Kein Teilen-Link, nicht öffentlich, nicht in Sammlungen, Beiträgen oder Menü-Links."
+    "saveInvalid": "So kann das Rezept nicht gespeichert werden – bitte die Felder prüfen."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
@@ -676,7 +673,9 @@
     "stageWebBody": "Die eigene Adresse antwortet jedem, und eine Suchmaschine darf eine Kopie behalten. Bewerten und Fotos brauchen weiterhin ein Konto.",
     "stageWebBodyOther": "Die eigene Adresse antwortet jedem, und eine Suchmaschine darf eine Kopie behalten. Gezeigt werden nur die Rezepte, die selbst öffentlich sind.",
     "done": "Fertig",
-    "failed": "Das hat nicht geklappt."
+    "failed": "Das hat nicht geklappt.",
+    "stageAdmins": "Nur Admins",
+    "stageAdminsBody": "Nur wer Admin ist, liest es. Der Haushalt sieht es nicht – nicht in der Liste, nicht in der Suche, nicht in Sammlungen –, es gibt keinen Link und es ist nicht öffentlich."
   },
   "Errors": {
     "title": "Fehler",

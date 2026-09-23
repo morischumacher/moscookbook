@@ -37,6 +37,7 @@ export default function ShareButton({
     locale,
     isPublic,
     linkUrl,
+    onlyMe = false,
     ownUrl,
     mayChange,
     className,
@@ -47,6 +48,8 @@ export default function ShareButton({
     locale: string;
     isPublic: boolean;
     linkUrl: string | null;
+    /** Recipes only: the fourth stage, "Nur Admins". */
+    onlyMe?: boolean;
     ownUrl: string;
     /** Whether this person may change who can see it. An admin, in practice. */
     mayChange: boolean;
@@ -87,6 +90,7 @@ export default function ShareButton({
                     locale={locale}
                     isPublic={isPublic}
                     linkUrl={linkUrl}
+                    onlyMe={onlyMe}
                     ownUrl={ownUrl}
                     onClose={() => setOpen(false)}
                 />

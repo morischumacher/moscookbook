@@ -26,6 +26,7 @@ export default function RecipeRowActions({
     isPublic,
     url,
     shareUrl,
+    onlyMe = false,
     showStage = true,
 }: {
     recipeId: number;
@@ -36,14 +37,20 @@ export default function RecipeRowActions({
     url: string;
     /** The secret link, when one already exists. */
     shareUrl: string | null;
+    /** Only the admins read it. */
+    onlyMe?: boolean;
     /** False where the row already says it (the admin list, next to the title). */
     showStage?: boolean;
 }) {
     const t = useTranslations('Share');
 
-    const stage = stageOf({ isPublic, linkUrl: shareUrl });
-    const label =
-        stage === 'web' ? t('stageWeb') : stage === 'link' ? t('stageLink') : t('stageHousehold');
+    const stage = stageOf({ isPublic, linkUrl: shareUrl, onlyMe });
+    const label = {
+        admins: t('stageAdmins'),
+        household: t('stageHousehold'),
+        link: t('stageLink'),
+        web: t('stageWeb'),
+    }[stage];
 
     return (
         <span className="flex flex-wrap items-center gap-3">
@@ -56,6 +63,7 @@ export default function RecipeRowActions({
                 locale={locale}
                 isPublic={isPublic}
                 linkUrl={shareUrl}
+                onlyMe={onlyMe}
                 ownUrl={url}
                 mayChange
                 className="underline underline-offset-4 hover:text-muted"

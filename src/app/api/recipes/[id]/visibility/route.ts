@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
+import { forgetCollectionFacets } from '@/lib/collectionFacets';
 
 /**
  * Publishing one recipe, or taking it back.
@@ -21,7 +22,12 @@ import { failed } from '@/lib/reportServerError';
  * un-publishing removes the page, not the copy a search engine took.
  */
 
-const schema = z.object({ isPublic: z.boolean() });
+/*
+ * `onlyMe`: the fourth stage, "Nur Admins" (lib/shareStage). Setting it also
+ * unpublishes the recipe and withdraws its link, in the same write, so there
+ * is no moment in which it is the admins' and still on the web.
+ */
+const schema = z.union([z.object({ isPublic: z.boolean() }), z.object({ onlyMe: z.boolean() })]);
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const auth = await requireAdmin();
@@ -38,6 +44,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if (!parsed.success) {
         return NextResponse.json({ message: 'Public or not?' }, { status: 400 });
+    }
+
+    if ('onlyMe' in parsed.data) {
+        const onlyMe = parsed.data.onlyMe;
+        try {
+            const updated = await prisma.recipe.updateMany({
+                where: { id: recipeId },
+                data: onlyMe ? { onlyMe: true, isPublic: false, shareToken: null } : { onlyMe: false },
+            });
+            if (updated.count !== 1) return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
+            forgetCollectionFacets();
+            return NextResponse.json({ success: true, onlyMe, isPublic: false });
+        } catch (error) {
+            failed('Recipe audience update error:', error);
+            return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+        }
     }
 
     try {

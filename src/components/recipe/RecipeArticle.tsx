@@ -422,9 +422,7 @@ export default async function RecipeArticle({
                         linkUrl: publicUrl,
                         ownUrl: url,
                         mayChange: mode === 'private' && isAdmin,
-                        // Nobody else can open an "only me" recipe; there is
-                        // nothing to share.
-                        hidden: Boolean(written.onlyMe),
+                        onlyMe: Boolean(written.onlyMe),
                     }}
                 />
 

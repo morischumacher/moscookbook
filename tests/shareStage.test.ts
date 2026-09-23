@@ -68,4 +68,29 @@ export default function shareStageTests() {
     check('but both-at-once asked for a link comes down', !isNoop(planFor(both, 'link')), planFor(both, 'link'));
     equal('by unpublishing', planFor(both, 'link').setPublic, false);
     check('and keeping the link it already has', !planFor(both, 'link').mintLink, planFor(both, 'link'));
+
+    suite('the fourth stage: only the admins');
+
+    const mine: ShareState = { isPublic: false, linkUrl: null, onlyMe: true };
+    equal('onlyMe reads as admins', stageOf(mine), 'admins');
+    equal('whatever else is set', stageOf({ ...both, onlyMe: true }), 'admins');
+
+    const hide = planFor(both, 'admins');
+    equal('going there sets the flag', hide.setOnlyMe, true);
+    check('and nothing else is asked for: the server withdraws the rest', hide.setPublic === null && !hide.mintLink && !hide.revokeLink, hide);
+    check('admins to admins does nothing', isNoop(planFor(mine, 'admins')), planFor(mine, 'admins'));
+
+    const back = planFor(mine, 'household');
+    equal('back to the household clears it', back.setOnlyMe, false);
+    check('and that is all', back.setPublic === null && !back.mintLink && !back.revokeLink, back);
+
+    const out = planFor(mine, 'web');
+    equal('straight to the web clears it', out.setOnlyMe, false);
+    equal('and publishes', out.setPublic, true);
+
+    const outLink = planFor(mine, 'link');
+    equal('to a link clears it', outLink.setOnlyMe, false);
+    check('and mints one', outLink.mintLink, outLink);
+
+    equal('other moves leave it alone', planFor(household, 'web').setOnlyMe, null);
 }
