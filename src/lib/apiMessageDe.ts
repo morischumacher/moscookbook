@@ -73,7 +73,7 @@ const EXACT: Record<string, string> = {
     'That version cannot be read.': 'Diese Version lässt sich nicht lesen.',
 
     // Sign-in, account, passkeys
-    'Invalid credentials': 'E-Mail-Adresse oder Passwort stimmen nicht.',
+    'Invalid credentials': 'E-Mail-Adresse oder Passwort stimmt nicht.',
     'Too many login attempts. Please try again later.': 'Zu viele Anmeldeversuche. Versuch es bitte später noch einmal.',
     'Too many sign-up attempts. Please try again later.': 'Zu viele Registrierungsversuche. Versuch es bitte später noch einmal.',
     'User already exists': 'Für diese Adresse gibt es schon ein Konto.',
@@ -122,7 +122,7 @@ const EXACT: Record<string, string> = {
 
     // Recipes, posts, collections, menus, sharing
     'A recipe with this slug already exists. Please choose a different one.':
-        'Es gibt schon ein Rezept mit dieser Adresse. Ändere die Adresse (Slug) oder den Titel.',
+        'Es gibt schon ein Rezept mit dieser Adresse. Ändere die Link-Adresse oder den Titel.',
     'Another entry already has that address.': 'Ein anderer Beitrag hat schon diese Adresse.',
     'Rating must be a whole number between 1 and 5': 'Eine Bewertung ist eine ganze Zahl von 1 bis 5.',
     'Public or not?': 'Öffentlich oder nicht?',
@@ -170,8 +170,8 @@ const EXACT: Record<string, string> = {
     'Nothing usable was shared.': 'Es wurde nichts Brauchbares geteilt.',
     'Nothing was sent.': 'Es ist nichts angekommen.',
     'Send a url, some text, or both.': 'Schick einen Link, Text oder beides.',
-    'A capture token is required.': 'Es fehlt der Capture-Schlüssel.',
-    'That capture token is not valid.': 'Dieser Capture-Schlüssel ist ungültig.',
+    'A capture token is required.': 'Es fehlt der Geräteschlüssel.',
+    'That capture token is not valid.': 'Dieser Geräteschlüssel ist ungültig.',
     'A name for the device is required.': 'Gib dem Gerät bitte einen Namen.',
     'The capture could not be saved. Nothing was kept — please send it again.':
         'Der Eintrag konnte nicht gespeichert werden. Es wurde nichts behalten – schick ihn bitte noch einmal.',
@@ -236,7 +236,7 @@ const PATTERNS: Array<[RegExp, (...groups: string[]) => string]> = [
 /** The form fields a validation message names, as the form calls them. */
 const FIELDS: Record<string, string> = {
     title: 'Titel',
-    slug: 'Adresse',
+    slug: 'Link-Adresse',
     description: 'Beschreibung',
     instructions: 'Zubereitung',
     ingredients: 'Zutaten',
