@@ -28,6 +28,9 @@ function row(overrides: Partial<ExportableRecipe> = {}): ExportableRecipe {
         createdAt: new Date('2026-02-01T10:00:00Z'),
         images: [{ url: 'https://example.com/a.jpg' }],
         tags: ['vegetarian'],
+        categories: ['Dinner', 'Soup'],
+        cuisines: ['Thai'],
+        spiciness: 2,
         ingredients: [
             { position: 1, quantity: 200, quantityMax: null, unit: 'g', name: 'Bergkäse', raw: '200 g', section: null },
             { position: 0, quantity: 400, quantityMax: null, unit: 'g', name: 'Spätzle', raw: '400 g', section: null },

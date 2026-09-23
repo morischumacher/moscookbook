@@ -52,6 +52,9 @@ export async function POST(req: NextRequest) {
                 cookMinutes,
                 ingredients: toStructuredIngredients(ingredients),
                 tags: parsed.data.tags,
+                categories: parsed.data.categories,
+                cuisines: parsed.data.cuisines,
+                spiciness: parsed.data.spiciness,
                 imageUrls,
             }),
         });

@@ -13,6 +13,10 @@ import { fieldClass, labelClass } from './formStyles';
 import QuickImport, { type ImportedDraft } from './QuickImport';
 import { buttonPrimary } from '@/lib/ui';
 import { BusyLabel } from '@/components/ui/Busy';
+import LabelPicker from './LabelPicker';
+import DietPicker from './DietPicker';
+import { CATEGORY_PRESETS, CUISINE_PRESETS } from '@/lib/recipeLabels';
+import { KNOWN_TAGS } from '@/lib/tags';
 
 export interface RecipeFormValues {
     id?: number;
@@ -29,11 +33,15 @@ export interface RecipeFormValues {
     prepMinutes: number | null;
     cookMinutes: number | null;
     tags: string[];
+    /** Every category and cuisine; `category` / `nationality` are the first. */
+    categories?: string[];
+    cuisines?: string[];
+    spiciness?: number;
 }
 
-
-const CATEGORIES = ['Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Snack', 'Drink'];
-const NATIONALITIES = ['German', 'Italian', 'Asian', 'Mexican', 'French', 'Greek', 'Indian'];
+/** A list from the lists if there are any, else from the single field. */
+const listOf = (list: string[] | undefined, single: string | undefined) =>
+    list && list.length > 0 ? list : single ? [single] : [];
 
 
 export default function RecipeForm({
@@ -68,8 +76,9 @@ export default function RecipeForm({
     const [slug, setSlug] = useState(initial?.slug ?? '');
     const [slugTouched, setSlugTouched] = useState(mode === 'edit');
     const [description, setDescription] = useState(initial?.description ?? '');
-    const [category, setCategory] = useState(initial?.category ?? '');
-    const [nationality, setNationality] = useState(initial?.nationality ?? '');
+    const [categories, setCategories] = useState<string[]>(listOf(initial?.categories, initial?.category));
+    const [cuisines, setCuisines] = useState<string[]>(listOf(initial?.cuisines, initial?.nationality));
+    const [spiciness, setSpiciness] = useState<number>(initial?.spiciness ?? 0);
     const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
     const [imageUrls, setImageUrls] = useState<string[]>(initial?.imageUrls ?? []);
     const [instructions, setInstructions] = useState(initial?.instructions ?? '');
@@ -117,11 +126,11 @@ export default function RecipeForm({
 
     const values = useMemo(
         () => ({
-            title, slug, description, category, nationality, imageUrls, instructions,
+            title, slug, description, categories, cuisines, spiciness, imageUrls, instructions,
             ingredients, servings, prepMinutes, cookMinutes, tags,
         }),
         [
-            title, slug, description, category, nationality, imageUrls, instructions,
+            title, slug, description, categories, cuisines, spiciness, imageUrls, instructions,
             ingredients, servings, prepMinutes, cookMinutes, tags,
         ]
     );
@@ -160,8 +169,9 @@ export default function RecipeForm({
             setSlug(draft.slug ?? '');
             setSlugTouched(true);
             setDescription(draft.description ?? '');
-            setCategory(draft.category ?? '');
-            setNationality(draft.nationality ?? '');
+            setCategories(listOf(draft.categories, draft.category));
+            setCuisines(listOf(draft.cuisines, draft.nationality));
+            setSpiciness(draft.spiciness ?? 0);
             setTags(draft.tags ?? []);
             setImageUrls(draft.imageUrls ?? []);
             setInstructions(draft.instructions ?? '');
@@ -182,8 +192,8 @@ export default function RecipeForm({
         // never wipes something already typed.
         if (draft.title) setTitle(draft.title);
         if (draft.description) setDescription(draft.description);
-        if (draft.category) setCategory(draft.category);
-        if (draft.nationality) setNationality(draft.nationality);
+        if (draft.category) setCategories((current) => (current.includes(draft.category) ? current : [draft.category, ...current].slice(0, 5)));
+        if (draft.nationality) setCuisines((current) => (current.includes(draft.nationality) ? current : [draft.nationality, ...current].slice(0, 5)));
         if (draft.instructions) setInstructions(draft.instructions);
         // Appended rather than replacing: a second import — pasting text after
         // importing a link, say — must not throw away pictures already there.
@@ -251,8 +261,11 @@ export default function RecipeForm({
                     title,
                     slug: slug || slugify(title),
                     description,
-                    category,
-                    nationality,
+                    category: categories[0] ?? '',
+                    nationality: cuisines[0] ?? '',
+                    categories,
+                    cuisines,
+                    spiciness,
                     tags,
                     imageUrls,
                     instructions,
@@ -367,47 +380,31 @@ export default function RecipeForm({
                     />
                 </div>
 
-                <div className="grid gap-6 sm:grid-cols-2">
-                    <div>
-                        <label htmlFor="category" className={labelClass}>{t('category')}</label>
-                        <input
-                            id="category"
-                            type="text"
-                            value={category}
-                            onChange={(event) => setCategory(event.target.value)}
-                            list="categories"
-                            className={fieldClass}
-                        />
-                        {/* The categories already in use as well as the usual
-                            ones: a new category is simply typed in here, and
-                            appears among the filters once a recipe has it. */}
-                        <datalist id="categories">
-                            {[...new Set([...CATEGORIES, ...knownCategories])].map((entry) => (
-                                <option key={entry} value={entry} />
-                            ))}
-                        </datalist>
-                        <p className="mt-1 text-xs text-muted">{t('categoryHint')}</p>
-                    </div>
+                <LabelPicker
+                    id="categories"
+                    label={t('category')}
+                    presets={CATEGORY_PRESETS}
+                    namespace="Categories"
+                    value={categories}
+                    onChange={setCategories}
+                    known={knownCategories}
+                />
 
-                    <div>
-                        <label htmlFor="nationality" className={labelClass}>{t('nationality')}</label>
-                        <input
-                            id="nationality"
-                            type="text"
-                            value={nationality}
-                            onChange={(event) => setNationality(event.target.value)}
-                            list="nationalities"
-                            className={fieldClass}
-                        />
-                        <datalist id="nationalities">
-                            {NATIONALITIES.map((entry) => (
-                                <option key={entry} value={entry} />
-                            ))}
-                        </datalist>
-                    </div>
-                </div>
+                <LabelPicker id="cuisines" label={t('nationality')} presets={CUISINE_PRESETS} namespace="Cuisines" value={cuisines} onChange={setCuisines} />
 
-                <TagField value={tags} onChange={setTags} ingredientNames={ingredients.map((row) => row.item)} />
+                <DietPicker
+                    tags={tags}
+                    onTags={setTags}
+                    spiciness={spiciness}
+                    onSpiciness={setSpiciness}
+                    ingredientNames={ingredients.map((row) => row.item)}
+                />
+
+                {/* Free tags only: the named ones (diet, meat, fish) are picked above. */}
+                <TagField
+                    value={tags.filter((tag) => !KNOWN_TAGS.includes(tag))}
+                    onChange={(free) => setTags([...tags.filter((tag) => KNOWN_TAGS.includes(tag)), ...free])}
+                />
 
                 <div className="grid gap-6 sm:grid-cols-3">
                     <div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { DIET_TAGS, dietFrom, normaliseTags } from '@/lib/tags';
+import { DIET_TAGS, normaliseTags } from '@/lib/tags';
 import { labelClass } from './formStyles';
 
 /**
@@ -16,11 +16,9 @@ import { labelClass } from './formStyles';
 export default function TagField({
     value,
     onChange,
-    ingredientNames,
 }: {
     value: string[];
     onChange: (tags: string[]) => void;
-    ingredientNames: string[];
 }) {
     const t = useTranslations('RecipeForm');
     const tTags = useTranslations('Tags');
@@ -33,8 +31,6 @@ export default function TagField({
     };
 
     const label = (tag: string) => ((DIET_TAGS as readonly string[]).includes(tag) ? tTags(tag as 'vegan') : tag);
-    const suggested = dietFrom(ingredientNames.filter(Boolean)).filter((tag) => !value.includes(tag));
-    const wrongDiet = DIET_TAGS.filter((tag) => value.includes(tag) && !dietFrom(ingredientNames.filter(Boolean)).includes(tag));
 
     return (
         <div>
@@ -74,24 +70,6 @@ export default function TagField({
                 />
             </div>
 
-            {suggested.length > 0 && (
-                <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted">
-                    {t('tagsSuggested')}
-                    {suggested.map((tag) => (
-                        <button
-                            key={tag}
-                            type="button"
-                            onClick={() => onChange(normaliseTags([...value, tag]))}
-                            className="rounded-full border border-line px-3 py-1 text-ink hover:border-ink"
-                        >
-                            + {label(tag)}
-                        </button>
-                    ))}
-                </p>
-            )}
-            {wrongDiet.length > 0 && (
-                <p className="mt-2 text-sm text-danger">{t('tagsDoubt', { tags: wrongDiet.map(label).join(', ') })}</p>
-            )}
             <p className="mt-2 text-sm text-muted">{t('tagsHint')}</p>
         </div>
     );

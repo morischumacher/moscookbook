@@ -86,6 +86,9 @@ export async function GET(req: NextRequest) {
                 isPublic: true,
                 isDraft: true,
                 tags: true,
+                categories: true,
+                cuisines: true,
+                spiciness: true,
                 createdAt: true,
                 images: { orderBy: { position: 'asc' }, select: { url: true } },
                 ingredients: {

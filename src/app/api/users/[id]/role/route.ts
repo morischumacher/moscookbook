@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
+import { ownerId, protectionOf } from '@/lib/userProtection';
 
 const roleSchema = z.object({
     admin: z.boolean(),
@@ -33,12 +34,24 @@ export async function PATCH(
 
         const { admin } = parsed.data;
 
-        // Losing your own admin rights would lock you out of the admin area.
-        if (auth.user.id === userId && !admin) {
-            return NextResponse.json(
-                { message: 'Cannot revoke your own admin privileges.' },
-                { status: 403 }
-            );
+        // Taking rights away: never from yourself, never from the owner,
+        // never from the last admin. See lib/userProtection.
+        if (!admin) {
+            const [owner, admins] = await Promise.all([ownerId(), prisma.user.count({ where: { admin: true } })]);
+            const protectedAs = protectionOf(userId, auth.user.id, owner, admins);
+            if (protectedAs) {
+                return NextResponse.json(
+                    {
+                        message:
+                            protectedAs === 'self'
+                                ? 'Cannot revoke your own admin privileges.'
+                                : protectedAs === 'owner'
+                                  ? 'The owner of the cookbook keeps their admin rights.'
+                                  : 'The cookbook needs at least one admin.',
+                    },
+                    { status: 403 }
+                );
+            }
         }
 
         const updatedUser = await prisma.user.update({

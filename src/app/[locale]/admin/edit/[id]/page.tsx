@@ -16,6 +16,9 @@ interface EditableRecipe {
     description: string | null;
     category: string | null;
     nationality: string | null;
+    categories: string[];
+    cuisines: string[];
+    spiciness: number;
     instructions: string;
     servings: number | null;
     prepMinutes: number | null;
@@ -89,6 +92,9 @@ export default async function EditRecipePage({
                 prepMinutes: recipe.prepMinutes,
                 cookMinutes: recipe.cookMinutes,
                 tags: recipe.tags,
+                categories: recipe.categories,
+                cuisines: recipe.cuisines,
+                spiciness: recipe.spiciness,
             }}
         />
         <div className="container mx-auto max-w-3xl px-4 pb-24 md:px-8">

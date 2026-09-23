@@ -54,6 +54,10 @@ function recipeData(recipe: ArchiveRecipe) {
         imageUrls: recipe.images,
         ingredients: recipe.ingredients,
         tags: normaliseTags(recipe.tags),
+        // An older archive has only the single fields; the lists follow them.
+        categories: recipe.categories.length > 0 ? recipe.categories.slice(0, 5) : recipe.category ? [recipe.category] : [],
+        cuisines: recipe.cuisines.length > 0 ? recipe.cuisines.slice(0, 5) : recipe.nationality ? [recipe.nationality] : [],
+        spiciness: recipe.spiciness,
     });
 }
 

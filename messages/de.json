@@ -1,7 +1,7 @@
 {
   "Site": {
     "title": "mo'scookbook",
-    "description": "Eine Sammlung meiner Lieblingsrezepte",
+    "description": "Meine Lieblingsrezepte – gekocht, gesammelt, weitergegeben.",
     "rightsReserved": "Alle Rechte vorbehalten."
   },
   "Navigation": {
@@ -51,7 +51,15 @@
     "Dinner": "Abendessen",
     "Dessert": "Nachtisch",
     "Snack": "Snack",
-    "Drink": "Getränk"
+    "Drink": "Getränk",
+    "Starter": "Vorspeise",
+    "Main": "Hauptgericht",
+    "Side": "Beilage",
+    "Soup": "Suppe",
+    "Salad": "Salat",
+    "Baking": "Backen",
+    "Bread": "Brot",
+    "Sauce": "Soße & Dip"
   },
   "Cuisines": {
     "German": "Deutsch",
@@ -60,7 +68,17 @@
     "Mexican": "Mexikanisch",
     "French": "Französisch",
     "Greek": "Griechisch",
-    "Indian": "Indisch"
+    "Indian": "Indisch",
+    "Austrian": "Österreichisch",
+    "Spanish": "Spanisch",
+    "Turkish": "Türkisch",
+    "Middle Eastern": "Orientalisch",
+    "Thai": "Thailändisch",
+    "Vietnamese": "Vietnamesisch",
+    "Chinese": "Chinesisch",
+    "Japanese": "Japanisch",
+    "Korean": "Koreanisch",
+    "American": "Amerikanisch"
   },
   "Recipe": {
     "loadingRecipe": "Rezept wird geholt…",
@@ -212,7 +230,10 @@
     "adminNavLabel": "Admin-Bereiche",
     "invitedBy": "Eingeladen von {name}",
     "invitedByOn": "Eingeladen von {name} · dabei seit {date}",
-    "unverified": "Adresse nicht bestätigt"
+    "unverified": "Adresse nicht bestätigt",
+    "protected_self": "Das bist du",
+    "protected_owner": "Inhaber – geschützt",
+    "protected_lastAdmin": "Einziger Admin – geschützt"
   },
   "RecipeForm": {
     "newRecipe": "Neues Rezept",
@@ -294,7 +315,14 @@
     "field_instructions": "Zubereitung",
     "field_tags": "Tags",
     "needIngredient": "Ein Rezept braucht mindestens eine Zutat.",
-    "categoryHint": "Aus der Liste wählen – oder eine neue Kategorie eintippen, sie erscheint dann als Filter."
+    "categoryHint": "Aus der Liste wählen – oder eine neue Kategorie eintippen, sie erscheint dann als Filter.",
+    "labelsAdd": "Eigene hinzufügen (Enter)",
+    "labelsFull": "Höchstens {max}",
+    "dietLabel": "Ernährung · Fleisch & Fisch",
+    "dietSuggested": "Nach den Zutaten wohl: {diet}",
+    "spicinessLabel": "Schärfe",
+    "spicinessLevel": "{level, plural, =0 {Nicht scharf} one {Leicht scharf} =2 {Scharf} other {Sehr scharf}}",
+    "notSpicy": "Nicht scharf"
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
@@ -698,7 +726,7 @@
   "Collections": {
     "title": "Sammlungen",
     "nav": "Sammlungen",
-    "intro": "Ein paar Rezepte mit einem Namen darauf — ein Menü, eine Woche, ein Abend.",
+    "intro": "Rezepte, die zusammengehören – eine Reise, eine Jahreszeit, ein Thema. Für einen Abend mit Gängen gibt es die Menüs.",
     "none": "Noch keine Sammlungen.",
     "empty": "In dieser Sammlung ist noch nichts.",
     "createNew": "Neue Sammlung",
@@ -1098,7 +1126,16 @@
   "Tags": {
     "vegetarian": "Vegetarisch",
     "vegan": "Vegan",
-    "quick": "Schnell (≤ 30 Min.)"
+    "quick": "Schnell (≤ 30 Min.)",
+    "beef": "Rind",
+    "pork": "Schwein",
+    "poultry": "Geflügel",
+    "lamb": "Lamm",
+    "game": "Wild",
+    "fish": "Fisch",
+    "seafood": "Meeresfrüchte",
+    "spicy": "Scharf",
+    "spicinessLevel": "{level, plural, =0 {Nicht scharf} one {Leicht scharf} =2 {Scharf} other {Sehr scharf}}"
   },
   "ShareTarget": {
     "title": "In den Eingang",

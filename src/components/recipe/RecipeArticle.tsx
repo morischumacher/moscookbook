@@ -9,7 +9,8 @@ import ReactMarkdown from 'react-markdown';
 import RecipeBody from '@/components/recipe/RecipeBody';
 import { splitSteps } from '@/lib/steps';
 import { withCelsius } from '@/lib/units';
-import { DIET_TAGS } from '@/lib/tags';
+import { KNOWN_TAGS, TAG_ICONS, chillies } from '@/lib/tags';
+import { headLabels } from '@/lib/recipeLabels';
 import Gallery from '@/components/recipe/Gallery';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import Cooked, { type CookedEntry } from '@/components/recipe/Cooked';
@@ -27,6 +28,11 @@ export interface RecipeRow {
     description: string | null;
     category: string | null;
     nationality: string | null;
+    /** Every category and cuisine; the first ones are the two fields above. */
+    categories: string[];
+    cuisines: string[];
+    /** 0–3 chillies. */
+    spiciness: number;
     instructions: string;
     views: number;
     servings: number | null;
@@ -141,7 +147,7 @@ export default async function RecipeArticle({
 }: RecipeArticleProps) {
     const t = await getTranslations('Recipe');
     const tTags = await getTranslations('Tags');
-    const tagLabel = (tag: string) => ((DIET_TAGS as readonly string[]).includes(tag) ? tTags(tag as 'vegan') : `#${tag}`);
+    const tagLabel = (tag: string) => (KNOWN_TAGS.includes(tag) ? tTags(tag as 'vegan') : `#${tag}`);
 
     // The method one step each, with any Fahrenheit given in Celsius beside
     // it: the oven here has a Celsius dial.
@@ -155,17 +161,14 @@ export default async function RecipeArticle({
               recipe.ratings.length
             : 0;
 
-    // Category and cuisine are free text, so only translate the known values.
-    const categoryLabel = recipe.category
-        ? tCategory.has(recipe.category)
-            ? tCategory(recipe.category)
-            : recipe.category
-        : '';
-    const cuisineLabel = recipe.nationality
-        ? tCuisine.has(recipe.nationality)
-            ? tCuisine(recipe.nationality)
-            : recipe.nationality
-        : '';
+    // Free text as well as the usual ones, so only the known values are
+    // translated. At most three in the head, however many there are: a
+    // recipe filed under nine must not push its own title down the page.
+    const labels = [
+        ...recipe.categories.map((value) => (tCategory.has(value) ? tCategory(value) : value)),
+        ...recipe.cuisines.map((value) => (tCuisine.has(value) ? tCuisine(value) : value)),
+    ];
+    const head = headLabels(labels);
 
     const totalMinutes = (recipe.prepMinutes ?? 0) + (recipe.cookMinutes ?? 0);
     const times = [
@@ -231,8 +234,8 @@ export default async function RecipeArticle({
                 </div>
 
                 <p className="text-xs font-semibold uppercase tracking-widest text-faint">
-                    {[categoryLabel, cuisineLabel].filter(Boolean).join(' · ') ||
-                        formatDate(recipe.createdAt, locale, 'short')}
+                    {head.shown.join(' · ') || formatDate(recipe.createdAt, locale, 'short')}
+                    {head.more > 0 && <span title={labels.slice(3).join(', ')}> · +{head.more}</span>}
                 </p>
 
                 <h1 className="mt-2 text-3xl font-extrabold leading-[1.12] tracking-tight text-ink sm:text-4xl">
@@ -265,11 +268,31 @@ export default async function RecipeArticle({
                     </div>
                 )}
 
+                {/* What is in it and how hot, with their icons: the first thing
+                    somebody vegetarian or chilli-shy looks for. */}
+                {(recipe.tags.some((tag) => KNOWN_TAGS.includes(tag)) || recipe.spiciness > 0) && (
+                    <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium">
+                        {recipe.tags
+                            .filter((tag) => KNOWN_TAGS.includes(tag))
+                            .map((tag) => (
+                                <span key={tag}>
+                                    <span aria-hidden="true">{TAG_ICONS[tag]}</span> {tagLabel(tag)}
+                                </span>
+                            ))}
+                        {recipe.spiciness > 0 && (
+                            <span title={tTags('spicinessLevel', { level: recipe.spiciness })}>
+                                <span aria-hidden="true">{chillies(recipe.spiciness)}</span>{' '}
+                                {tTags('spicinessLevel', { level: recipe.spiciness })}
+                            </span>
+                        )}
+                    </p>
+                )}
+
                 {/* Tags lead back to the list, filtered — "what else is vegan".
                     Only for people with an account: the list is theirs. */}
-                {recipe.tags.length > 0 && (
+                {recipe.tags.some((tag) => !KNOWN_TAGS.includes(tag)) && (
                     <div className="print:hidden mt-3 flex flex-wrap gap-2 text-sm">
-                        {recipe.tags.map((tag) =>
+                        {recipe.tags.filter((tag) => !KNOWN_TAGS.includes(tag)).map((tag) =>
                             mode === 'private' ? (
                                 <Link
                                     key={tag}

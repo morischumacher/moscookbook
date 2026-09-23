@@ -34,6 +34,11 @@ export interface RecipeFields {
     ingredients: StructuredIngredient[];
     /** Left as they are when not given. See lib/tags.ts. */
     tags?: string[];
+    /** Every category and cuisine; the first is `category` / `nationality`. Left as they are when not given. */
+    categories?: string[];
+    cuisines?: string[];
+    /** 0–3 chillies. Left as it is when not given. */
+    spiciness?: number;
 }
 
 /** Every column a recipe's own text decides — the search columns included. */
@@ -42,8 +47,15 @@ export function recipeColumns(fields: RecipeFields) {
         title: fields.title,
         slug: fields.slug,
         description: fields.description,
-        category: fields.category,
-        nationality: fields.nationality,
+        // The lists win when given; the single columns are their first entry
+        // (and a trigger keeps the two in step for every other writer).
+        ...(fields.categories !== undefined
+            ? { categories: fields.categories, category: fields.categories[0] ?? null }
+            : { category: fields.category }),
+        ...(fields.cuisines !== undefined
+            ? { cuisines: fields.cuisines, nationality: fields.cuisines[0] ?? null }
+            : { nationality: fields.nationality }),
+        ...(fields.spiciness !== undefined ? { spiciness: fields.spiciness } : {}),
         instructions: fields.instructions,
         servings: fields.servings ?? null,
         prepMinutes: fields.prepMinutes ?? null,

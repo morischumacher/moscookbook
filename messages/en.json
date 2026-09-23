@@ -1,7 +1,7 @@
 {
   "Site": {
     "title": "mo'scookbook",
-    "description": "A collection of my favorite recipes",
+    "description": "My favourite recipes – cooked, kept, passed on.",
     "rightsReserved": "All rights reserved."
   },
   "Navigation": {
@@ -51,7 +51,15 @@
     "Dinner": "Dinner",
     "Dessert": "Dessert",
     "Snack": "Snack",
-    "Drink": "Drink"
+    "Drink": "Drink",
+    "Starter": "Starter",
+    "Main": "Main course",
+    "Side": "Side",
+    "Soup": "Soup",
+    "Salad": "Salad",
+    "Baking": "Baking",
+    "Bread": "Bread",
+    "Sauce": "Sauce & dip"
   },
   "Cuisines": {
     "German": "German",
@@ -60,7 +68,17 @@
     "Mexican": "Mexican",
     "French": "French",
     "Greek": "Greek",
-    "Indian": "Indian"
+    "Indian": "Indian",
+    "Austrian": "Austrian",
+    "Spanish": "Spanish",
+    "Turkish": "Turkish",
+    "Middle Eastern": "Middle Eastern",
+    "Thai": "Thai",
+    "Vietnamese": "Vietnamese",
+    "Chinese": "Chinese",
+    "Japanese": "Japanese",
+    "Korean": "Korean",
+    "American": "American"
   },
   "Recipe": {
     "loadingRecipe": "Fetching the recipe…",
@@ -212,7 +230,10 @@
     "adminNavLabel": "Admin sections",
     "invitedBy": "Invited by {name}",
     "invitedByOn": "Invited by {name} · joined {date}",
-    "unverified": "address not confirmed"
+    "unverified": "address not confirmed",
+    "protected_self": "That is you",
+    "protected_owner": "Owner – protected",
+    "protected_lastAdmin": "Only admin – protected"
   },
   "RecipeForm": {
     "newRecipe": "New recipe",
@@ -294,7 +315,14 @@
     "field_instructions": "method",
     "field_tags": "tags",
     "needIngredient": "A recipe needs at least one ingredient.",
-    "categoryHint": "Choose from the list – or type a new category; it then appears as a filter."
+    "categoryHint": "Choose from the list – or type a new category; it then appears as a filter.",
+    "labelsAdd": "Add your own (Enter)",
+    "labelsFull": "At most {max}",
+    "dietLabel": "Diet · meat & fish",
+    "dietSuggested": "Going by the ingredients: {diet}",
+    "spicinessLabel": "Heat",
+    "spicinessLevel": "{level, plural, =0 {Not hot} one {Mild} =2 {Hot} other {Very hot}}",
+    "notSpicy": "Not hot"
   },
   "QuickImport": {
     "heading": "Fill in quickly",
@@ -698,7 +726,7 @@
   "Collections": {
     "title": "Collections",
     "nav": "Collections",
-    "intro": "A handful of recipes with a name on it — a menu, a week, an evening.",
+    "intro": "Recipes that belong together – a trip, a season, a theme. For an evening in courses there are the menus.",
     "none": "No collections yet.",
     "empty": "Nothing in this collection yet.",
     "createNew": "New collection",
@@ -1098,7 +1126,16 @@
   "Tags": {
     "vegetarian": "Vegetarian",
     "vegan": "Vegan",
-    "quick": "Quick (≤ 30 min)"
+    "quick": "Quick (≤ 30 min)",
+    "beef": "Beef",
+    "pork": "Pork",
+    "poultry": "Poultry",
+    "lamb": "Lamb",
+    "game": "Game",
+    "fish": "Fish",
+    "seafood": "Seafood",
+    "spicy": "Hot",
+    "spicinessLevel": "{level, plural, =0 {Not hot} one {Mild} =2 {Hot} other {Very hot}}"
   },
   "ShareTarget": {
     "title": "Into the inbox",

@@ -10,7 +10,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { buildTsQuery } from '@/lib/searchText';
 import { parseIngredientQuery, variantsOf } from '@/lib/ingredientSearch';
 import { pageContainer } from '@/lib/ui';
-import { QUICK_MINUTES } from '@/lib/tags';
+import { KNOWN_TAGS, QUICK_MINUTES, TAG_ICONS, chillies } from '@/lib/tags';
 
 interface RecipeListRow {
     id: number;
@@ -19,6 +19,8 @@ interface RecipeListRow {
     description: string | null;
     category: string | null;
     nationality: string | null;
+    tags: string[];
+    spiciness: number;
     views: number;
     createdAt: Date;
     images: { url: string }[];
@@ -44,8 +46,9 @@ interface RecipeWhere {
      * the draft state exists to prevent. They live at /drafts instead.
      */
     isDraft: false;
-    category?: string;
-    nationality?: string;
+    categories?: { has: string };
+    cuisines?: { has: string };
+    spiciness?: { gte: number };
     tags?: { has: string };
     id?: { in: number[] };
     /** One entry per ingredient somebody said they have: all of them must match. */
@@ -144,6 +147,7 @@ export default async function HomePage({
         have: haveParam,
         tag: tagParam,
         quick: quickParam,
+        spicy: spicyParam,
         page: pageParam,
     } = await searchParams;
 
@@ -154,6 +158,7 @@ export default async function HomePage({
     const have = typeof haveParam === 'string' ? haveParam : '';
     const tag = typeof tagParam === 'string' ? tagParam.trim().toLowerCase() : '';
     const quick = quickParam === 'true';
+    const spicy = spicyParam === 'true';
     const showFavorites = favorites === 'true';
 
     /*
@@ -183,8 +188,9 @@ export default async function HomePage({
     const earlyFavorites = showFavorites && isLoggedIn ? await favoritesQuery : null;
 
     const where: RecipeWhere = { isDraft: false };
-    if (category) where.category = category;
-    if (nationality) where.nationality = nationality;
+    if (category) where.categories = { has: category };
+    if (nationality) where.cuisines = { has: nationality };
+    if (spicy) where.spiciness = { gte: 1 };
     if (tag) where.tags = { has: tag };
 
     if (earlyFavorites) {
@@ -276,6 +282,8 @@ export default async function HomePage({
         description: true,
         category: true,
         nationality: true,
+        tags: true,
+        spiciness: true,
         views: true,
         createdAt: true,
         images: { orderBy: { position: 'asc' as const }, take: 1, select: { url: true } },
@@ -431,6 +439,7 @@ export default async function HomePage({
         if (showFavorites) params.set('favorites', 'true');
         if (tag) params.set('tag', tag);
         if (quick) params.set('quick', 'true');
+        if (spicy) params.set('spicy', 'true');
         if (target > 1) params.set('page', String(target));
         const query = params.toString();
         return query ? `/?${query}` : '/';
@@ -446,6 +455,9 @@ export default async function HomePage({
         description: recipe.description ?? '',
         category: recipe.category ?? '',
         nationality: recipe.nationality ?? '',
+        // Diet, meat or fish and chillies, as their icons: read at a glance
+        // on a tile too small for words.
+        marks: [...recipe.tags.filter((tag: string) => KNOWN_TAGS.includes(tag)).map((tag: string) => TAG_ICONS[tag]), chillies(recipe.spiciness)].join(' ').trim(),
         imageUrl: recipe.images[0]?.url ?? '',
         rating: averageRating(recipe.ratings),
         isFavorited: favoriteRecipeIds.has(recipe.id),
@@ -475,6 +487,7 @@ export default async function HomePage({
                         cuisines={facets.cuisines}
                         tags={facets.tags}
                         quickCount={facets.quick}
+                        spicyCount={facets.spicy}
                         isLoggedIn={isLoggedIn}
                         total={facets.total}
                     />

@@ -28,6 +28,10 @@ const imageUrlSchema = z.union([
     z.literal(''),
 ]);
 
+function uniqueList(list: string[] | undefined): string[] | undefined {
+    return list === undefined ? undefined : [...new Set(list)];
+}
+
 export const recipeInputSchema = z.object({
     title: z.string().trim().min(1, 'Title is required').max(200),
     slug: z
@@ -38,6 +42,13 @@ export const recipeInputSchema = z.object({
     description: z.string().trim().max(4000).default(''),
     category: z.string().trim().max(100).default(''),
     nationality: z.string().trim().max(100).default(''),
+    /**
+     * Every category and cuisine, at most five each. Given, they win over
+     * the single fields above (see recipeColumns).
+     */
+    categories: z.array(z.string().trim().min(1).max(60)).max(5).optional().transform(uniqueList),
+    cuisines: z.array(z.string().trim().min(1).max(60)).max(5).optional().transform(uniqueList),
+    spiciness: z.number().int().min(0).max(3).optional(),
     // A recipe without ingredients cannot be shopped for, scaled or cooked
     // from; the form will not save one.
     ingredients: z.array(ingredientSchema).min(1, 'Add at least one ingredient').max(200),

@@ -35,6 +35,7 @@ const webUrl = z
  */
 
 /**
+ * 8: several categories and cuisines per recipe, and how hot it is.
  * 7: menus. 6: pictures on collections and entries about several recipes.
  * 5: one cooking entry with its photographs, where 2-4 had a list of
  * photographs and a separate list of cookings; and whether a recipe is
@@ -44,7 +45,7 @@ const webUrl = z
  * every new field to the safe value — and an archive from a newer version is
  * refused with the numbers in the message rather than half-read.
  */
-export const ARCHIVE_VERSION = 7;
+export const ARCHIVE_VERSION = 8;
 
 const archiveIngredientSchema = z.object({
     position: z.number().int().min(0),
@@ -90,6 +91,10 @@ const archiveRecipeSchema = z.object({
     images: z.array(webUrl).default([]),
     /** Version 6. */
     tags: z.array(z.string()).default([]),
+    /** Version 8: every category and cuisine, and the chillies. */
+    categories: z.array(z.string()).default([]),
+    cuisines: z.array(z.string()).default([]),
+    spiciness: z.number().int().min(0).max(3).default(0),
     ingredients: z.array(archiveIngredientSchema).default([]),
 });
 
@@ -293,6 +298,9 @@ export interface ExportableRecipe {
     createdAt: Date;
     images: { url: string }[];
     tags: string[];
+    categories: string[];
+    cuisines: string[];
+    spiciness: number;
     ingredients: {
         position: number;
         quantity: number | null;
@@ -387,6 +395,9 @@ export function toArchiveRecipe(recipe: ExportableRecipe): ArchiveRecipe {
         createdAt: recipe.createdAt.toISOString(),
         images: recipe.images.map((image) => image.url),
         tags: recipe.tags,
+        categories: recipe.categories,
+        cuisines: recipe.cuisines,
+        spiciness: recipe.spiciness,
         ingredients: recipe.ingredients
             .slice()
             .sort((a, b) => a.position - b.position)

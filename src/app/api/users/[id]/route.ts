@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
+import { ownerId } from '@/lib/userProtection';
 
 export async function DELETE(
     req: NextRequest,
@@ -25,6 +26,9 @@ export async function DELETE(
                 { message: 'Cannot delete your own account.' },
                 { status: 403 }
             );
+        }
+        if (targetUserId === (await ownerId())) {
+            return NextResponse.json({ message: 'The owner of the cookbook cannot be deleted.' }, { status: 403 });
         }
 
         await prisma.user.delete({ where: { id: targetUserId } });
