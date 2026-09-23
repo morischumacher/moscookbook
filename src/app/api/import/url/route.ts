@@ -3,11 +3,12 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
-import { aiCapability, rememberModel } from '@/lib/aiConfig';
+import { aiCapability } from '@/lib/aiConfig';
 import { classifyCapture } from '@/lib/capture';
 import { processCapture } from '@/lib/captureProcess';
 import { siteLearning } from '@/lib/siteProfileDb';
 import { failed } from '@/lib/reportServerError';
+import { usageRecorder } from '@/lib/tokenUsageDb';
 
 const importSchema = z.object({
     url: z.string().trim().min(1).max(2048),
@@ -68,11 +69,15 @@ export async function POST(req: NextRequest) {
 
     try {
         const ai = await aiCapability();
+        const usage = usageRecorder('import', { source: classified.source });
+        const learning = usageRecorder('learn', { source: classified.source });
         const result = await processCapture(classified, ai, {
             force: parsed.data.force === true,
-            onModel: (provider, model) => void rememberModel(provider, model),
+            onModel: usage.report,
+            onLearn: learning.report,
             ...siteLearning(ai),
         });
+        await Promise.all([usage.flush(), learning.flush()]);
 
         const recipe = result.draft;
         if (!recipe || (!recipe.title && recipe.ingredients.length === 0)) {

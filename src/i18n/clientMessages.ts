@@ -31,6 +31,7 @@ export const ADMIN_ONLY_NAMESPACES = [
     'Errors',
     'Examples',
     'ForeignImport',
+    'Tokens',
 ] as const;
 
 /** Read only by server components through getTranslations, never sent. */

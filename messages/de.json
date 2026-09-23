@@ -197,7 +197,8 @@
     "inviteUsed": "Diese Einladung wurde schon benutzt. Wenn das Konto deins ist, melde dich an — sonst frag Mo nach einem neuen Link.",
     "inviteExpired": "Diese Einladung ist abgelaufen. Frag Mo nach einem neuen Link.",
     "emailMoved": "Deine neue E-Mail-Adresse ist bestätigt und gilt ab sofort. Die bisherige Adresse wurde informiert.",
-    "passkeyLogin": "Mit Passkey anmelden"
+    "passkeyLogin": "Mit Passkey anmelden",
+    "nameFromInvite": "Der Name kommt aus deiner Einladung."
   },
   "Admin": {
     "loadingPage": "Seite wird geholt…",
@@ -382,7 +383,6 @@
     "title": "Einladungen",
     "create": "Neue Einladung",
     "creating": "Wird erstellt…",
-    "notePlaceholder": "Für wen? (optional)",
     "none": "Noch keine Einladungen.",
     "loading": "Einladungen werden geladen…",
     "copy": "Link kopieren",
@@ -393,7 +393,13 @@
     "stateExpired": "Abgelaufen",
     "expiresOn": "Gültig bis {date}",
     "usedBy": "Eingelöst von {email}",
-    "nav": "Einladungen"
+    "nav": "Einladungen",
+    "firstNamePlaceholder": "Vorname",
+    "lastNamePlaceholder": "Nachname",
+    "firstTaken": "„{name}“ gibt es schon ({holders}). Nimm einen anderen Vornamen oder gib einen Nachnamen dazu.",
+    "fullTaken": "„{name}“ gibt es schon. Bitte einen anderen Namen.",
+    "nameFixed": "Der Name wird bei der Registrierung vorausgefüllt und kann dort nicht geändert werden.",
+    "firstTakenPlain": "„{name}“ gibt es schon. Nimm einen anderen Vornamen oder gib einen Nachnamen dazu."
   },
   "Backup": {
     "title": "Sicherung",
@@ -520,10 +526,13 @@
       "retry": "Neu einlesen",
       "edit": "Bearbeiten",
       "openSource": "Quelle öffnen",
-      "discard": "Löschen"
+      "discard": "Löschen",
+      "askAiAgain": "Nochmal mit KI lesen",
+      "aiOnly": "Nur mit KI lesen"
     },
     "aiOffHint": "Die KI könnte hier helfen, ist aber ausgeschaltet (Verwaltung → KI).",
-    "legendDecision": "Einträge mit farbigem Rand wurden nicht vollständig erkannt: Im Kasten steht, was passiert ist, und die passenden nächsten Schritte."
+    "legendDecision": "Einträge mit farbigem Rand wurden nicht vollständig erkannt: Im Kasten steht, was passiert ist, und die passenden nächsten Schritte.",
+    "aiFailedHint": "Der letzte KI-Versuch ist fehlgeschlagen (z. B. Guthaben leer oder Schlüssel ungültig). Nochmal lesen ist hier sinnvoll – vorher ggf. unter Verwaltung → KI prüfen."
   },
   "Devices": {
     "title": "Geräte",
@@ -1003,11 +1012,14 @@
     "modelAuto": "Automatisch gewählt am {date}, weil das vorherige nicht geantwortet hat. Du kannst es jederzeit überschreiben; dann bleibt deine Wahl stehen.",
     "testModel": "Geantwortet hat: {model}.",
     "askAiExplain": "Ein Modell fragen, obwohl die Regeln meinen, sie hätten es geschafft. Kostet einen Aufruf.",
-    "askAgainExplain": "Ein Modell hat das hier schon gelesen. Noch einmal fragen kostet noch einen Aufruf und sagt vermutlich dasselbe."
+    "askAgainExplain": "Schon mit KI gelesen (Regeln plus KI). Dasselbe nochmal bringt dieselbe Antwort – probier „Nur mit KI lesen“.",
+    "aiOnly": "Nur mit KI lesen (kostet)",
+    "aiOnlyExplain": "Die KI bekommt alles, was geteilt wurde – Seite, Caption, Videobeschreibung, Untertitel, Screenshot – und macht daraus das Rezept. Ohne Regeln und ohne Gelerntes; ersetzt den bisherigen Entwurf.",
+    "aiOnlyDone": "Wurde schon nur von der KI gelesen. Nochmal bringt dasselbe."
   },
   "SiteProfiles": {
     "title": "Gelernte Seiten",
-    "intro": "Beim ersten Import von einer unbekannten Seite merkt sich das Kochbuch, wo diese Seite ihr Rezept hinschreibt. Jeder weitere Import von dort kommt ohne KI aus. Diese Liste füllt sich von selbst — hierher kommst du nur, wenn du eine Seite vorab lernen oder eine veraltete korrigieren willst.",
+    "intro": "Beim ersten Import von einer unbekannten Seite merkt sich das Kochbuch, wo diese Seite ihr Rezept hinschreibt. Jeder weitere Import von dort kommt ohne KI aus. Diese Liste füllt sich von selbst — hierher kommst du nur, wenn du eine Seite vorab lernen oder eine veraltete korrigieren willst. Gelernt wird nur bei Rezept-Webseiten, und nur wenn die Seite kein Rezept-Markup hat und die KI geholfen hat. Instagram, TikTok und YouTube haben kein festes Seitenlayout und erscheinen hier nicht. Dort merkt sich das Kochbuch stattdessen, auf welcher Webseite ein Konto seine Rezepte hat („pattyplates.com (link in bio)“), und sucht das Gericht beim nächsten Post direkt dort – meist ohne KI.",
     "urlLabel": "Adresse einer Rezeptseite",
     "learn": "Seite lernen",
     "learning": "Liest …",
@@ -1276,5 +1288,101 @@
     "downloadMarkdown": "Als Markdown herunterladen",
     "copyFailed": "Kopieren hat nicht geklappt – der Browser hat den Zugriff auf die Zwischenablage verweigert.",
     "exportListHeading": "# Die offenen Einträge der Arbeitsliste"
+  },
+  "Tokens": {
+    "openDashboard": "Token-Verbrauch und Spartipps ansehen →",
+    "title": "Token-Verbrauch",
+    "intro": "Was die KI-Aufrufe in den letzten 30 Tagen verbraucht haben, wofür – und vor allem, wie es weniger wird. Gezählt in Tokens, so wie der Anbieter abrechnet; den Preis pro Token zeigt dir dein Anbieter.",
+    "tileTokens": "Tokens · {days} Tage",
+    "change": "{change} % zu den 30 Tagen davor",
+    "tileCalls": "KI-Aufrufe",
+    "perCall": "{tokens} Tokens pro Aufruf",
+    "tileSplit": "Gelesen / geschrieben",
+    "split": "{input} rein · {output} raus",
+    "splitHint": "Geschriebene Tokens sind meist 4–5× teurer als gelesene.",
+    "adviceTitle": "So bleibt der Verbrauch klein",
+    "empty": "Noch keine KI-Aufrufe gezählt. Gezählt wird ab diesem Update.",
+    "about": "betrifft {tokens} Tokens ({share} % des Verbrauchs)",
+    "advice": {
+      "noRecipe": {
+        "title": "{count, plural, one {# Eintrag} other {# Einträge}} ohne Rezept {count, plural, one {wurde} other {wurden}} mit KI gelesen",
+        "do": "Das Rezept stand in der Bio, in den Kommentaren oder kam per DM – da findet keine KI etwas. Solche Einträge direkt löschen oder „Quelle öffnen“ und den Link zur Rezeptseite teilen."
+      },
+      "repeats": {
+        "title": "{count, plural, one {# Eintrag wurde} other {# Einträge wurden}} 3× oder öfter mit KI gelesen",
+        "do": "Nach „Regeln plus KI“ bringt „Mit KI lesen“ dieselbe Antwort. Erst kostenlos „Neu einlesen“, dann höchstens einmal „Nur mit KI lesen“ – und sonst von Hand fertigmachen."
+      },
+      "learnSite": {
+        "title": "Seiten, die mehrfach mit KI gelesen wurden: {detail}",
+        "do": "Unter Verwaltung → KI → Gelernte Seiten vorab lernen. Danach kommen Importe von dort ohne KI aus."
+      },
+      "videos": {
+        "title": "YouTube kostet {detail}× so viel wie andere Quellen",
+        "do": "Die Untertitel sind lang. Steht in der Videobeschreibung ein Link zum Rezept, lieber diesen Link teilen – Webseiten werden meist kostenlos gelesen."
+      },
+      "aiOnly": {
+        "title": "„Nur mit KI lesen“ kostet {detail}× so viel wie „Mit KI lesen“",
+        "do": "Es schickt alles mit, was geteilt wurde. Nur nutzen, wenn „Regeln plus KI“ klar danebenlag."
+      },
+      "smallerModel": {
+        "title": "Ein großes Modell macht den Großteil: {detail}",
+        "do": "Für Rezepte aus Text reicht meist ein kleines Modell – pro Token ein Bruchteil des Preises. Unter Verwaltung → KI das Modell eintragen und ein paar Importe vergleichen; bei schlechteren Ergebnissen zurückstellen."
+      },
+      "modeImages": {
+        "title": "Die KI wird automatisch bei jedem Teilen gefragt",
+        "do": "Mit der Einstellung „Nur Bilder“ (Verwaltung → KI) liest die KI Texte und Seiten nur noch, wenn du auf „Mit KI lesen“ drückst. Das spart am meisten."
+      },
+      "fine": {
+        "title": "Nichts Auffälliges",
+        "do": "Kein Muster, bei dem sich Sparen lohnt. Die Grundregeln unten gelten trotzdem."
+      }
+    },
+    "rulesTitle": "Grundregeln",
+    "rules": {
+      "free": "Regeln zuerst: Webseiten mit Rezept-Markup, sauber geschriebene Captions und Notizen kosten nichts. Die KI kommt nur, wenn das nicht reicht.",
+      "link": "Den Link zur Rezeptseite teilen statt Post oder Video – Seiten sind am billigsten, Videos mit Untertiteln am teuersten.",
+      "once": "„Neu einlesen“ ist kostenlos. Ein Eintrag, den die KI schon gelesen hat, wird durch nochmal fragen nicht besser.",
+      "mode": "„Nur Bilder“ ist die sparsamste Einstellung: Texte liest die KI dann nur auf Knopfdruck.",
+      "model": "Ein kleines Modell kostet pro Token einen Bruchteil eines großen und reicht für Rezepte meist.",
+      "learn": "Webseiten, von denen du öfter importierst, einmal lernen lassen – danach ohne KI."
+    },
+    "perDay": "Pro Tag",
+    "perDayLabel": "Tokens pro Tag, letzte {days} Tage",
+    "peak": "höchster Tag: {tokens}",
+    "byPurpose": "Wofür",
+    "purposeTooltip": "{calls} Aufrufe, Median {median} Tokens pro Aufruf",
+    "calls": "{count, plural, one {# Aufruf} other {# Aufrufe}}",
+    "bySource": "Nach Quelle",
+    "colSource": "Quelle",
+    "colItems": "Einträge",
+    "colMedian": "Median je Eintrag",
+    "colTotal": "Gesamt",
+    "byModel": "Nach Modell",
+    "topItems": "Die teuersten Einträge",
+    "untitled": "Ohne Titel",
+    "toInbox": "Zum Eingang",
+    "chip": "{tokens} Tokens",
+    "loading": "Wird geladen …",
+    "loadFailed": "Der Verbrauch konnte nicht geladen werden.",
+    "own": "Dieser Eintrag: {tokens} Tokens in {calls, plural, one {# Aufruf} other {# Aufrufen}}",
+    "median": "Median von {count} vergleichbaren ({source}): {tokens}",
+    "ratio": "{ratio}×",
+    "nothingToCompare": "Noch keine anderen {source}-Einträge mit KI zum Vergleichen.",
+    "plotLabel": "Dieser Eintrag {tokens} Tokens, Median der vergleichbaren {median}",
+    "dot": "{tokens} Tokens",
+    "dotOwn": "Dieser Eintrag: {tokens} Tokens",
+    "medianShort": "Median",
+    "thisOne": "dieser",
+    "inOut": "{input} rein, {output} raus",
+    "purpose": {
+      "capture": "Automatisch beim Teilen",
+      "retry": "Neu einlesen",
+      "askAi": "Mit KI lesen",
+      "aiOnly": "Nur mit KI lesen",
+      "learn": "Seite lernen",
+      "import": "Import im Formular",
+      "polish": "Text überarbeiten",
+      "translate": "Übersetzen"
+    }
   }
 }

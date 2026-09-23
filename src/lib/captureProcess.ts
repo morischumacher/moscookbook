@@ -7,7 +7,7 @@ import { youtubeVideoId, extractYoutubePage, cleanYoutubeDescription } from './y
 import { fetchImageAsBase64 } from './fetchImage';
 import { readableText } from './readableText';
 import { assessDraft, worthAsking } from './draftQuality';
-import { assistsText, canUseAi, capabilityFromEnv, extractRecipeWithAi, type AiCapability } from './aiImport';
+import { assistsText, canUseAi, capabilityFromEnv, completeWithKey, extractRecipeWithAi, type AiCapability } from './aiImport';
 import { applyProfile, hostOf, NO_PROFILES } from './siteProfile';
 import { learnSiteProfile } from './siteLearn';
 import type { AiTrace, ProcessableCapture, ProcessedCapture, ProcessOptions } from './captureTypes';
@@ -19,6 +19,7 @@ import { recipeLinksIn } from './recipeLinks';
 import { recipeElsewhere } from './socialHints';
 import { instagramEmbedUrl, instagramShortcode, readInstagramEmbed } from './instagram';
 import { bestCaptionTrack, captionText, captionTracksFrom } from './youtubeCaptions';
+import { dishName, handleFromUrl, NO_ACCOUNT_SITES, pickResult, resultsFromSearchHtml, resultsFromWpJson, searchUrls, sitesInText } from './authorSite';
 
 // The public shapes, re-exported: routes and tests import them from here.
 export type { ProcessableCapture, ProcessedCapture, ProcessOptions } from './captureTypes';
@@ -105,6 +106,47 @@ async function fromLinkedRecipe(
     return null;
 }
 
+/**
+ * "Recipe on pattyplates.com (link in bio)", looked up on that site.
+ *
+ * The site is the one the text names, or the one this account's posts named
+ * before. The dish is searched for there and the matching page read like any
+ * shared page — rules first, so a blog with recipe markup costs nothing. A
+ * site the text names is remembered for the account whatever the search
+ * finds. See authorSite.ts.
+ */
+async function fromAuthorSite(
+    text: string,
+    account: { platform: string; handle: string } | null,
+    sharedUrl: string,
+    ai: AiCapability,
+    options: ProcessOptions
+): Promise<ProcessedCapture | null> {
+    const accounts = options.accounts ?? NO_ACCOUNT_SITES;
+    const named = sitesInText(text);
+    if (account && named[0]) await accounts.remember(account.platform, account.handle, named[0]).catch(() => undefined);
+
+    const remembered = named.length === 0 && account ? await accounts.get(account.platform, account.handle).catch(() => null) : null;
+    const hosts = remembered ? [remembered] : named;
+    const dish = dishName(text);
+    if (hosts.length === 0 || !dish) return null;
+
+    for (const host of hosts) {
+        for (const [index, address] of searchUrls(host, dish).entries()) {
+            const page = await fetchPage(address, { json: index === 0 });
+            if (!page.ok) continue;
+            const link = pickResult(index === 0 ? resultsFromWpJson(page.html) : resultsFromSearchHtml(page.html, host), dish);
+            if (!link) continue;
+            const result = await processWebPage(link, null, ai, options);
+            if (result.status === 'ready' && result.draft) {
+                return { ...result, draft: { ...result.draft, sourceUrl: sharedUrl } };
+            }
+            break;
+        }
+    }
+    return null;
+}
+
 async function processYoutube(
     url: string,
     rawText: string | null,
@@ -156,6 +198,11 @@ async function processYoutube(
         const linked = await fromLinkedRecipe([video.description, rawText ?? ''].join('\n'), url, ai, options);
         if (linked?.draft) {
             return { ...linked, draft: mergeDrafts(linked.draft, { imageUrl: video.imageUrl }) };
+        }
+        // "Full recipe on myblog.com", with no link: searched for there.
+        const onSite = await fromAuthorSite([video.title, video.description].join('\n'), null, url, ai, options);
+        if (onSite?.draft) {
+            return { ...onSite, draft: mergeDrafts(onSite.draft, { imageUrl: video.imageUrl }) };
         }
     }
 
@@ -255,6 +302,21 @@ async function processSocial(
 
     const linked = await fromLinkedRecipe(text ?? '', url, ai, options);
     if (linked?.draft) return finish(linked);
+
+    // "pattyplates.com (link in bio)": the dish, searched for on that site —
+    // or on the site this account named before.
+    const handle = post?.author ? post.author.toLowerCase() : handleFromUrl(url);
+    const account = handle ? { platform: code ? 'instagram' : 'tiktok', handle } : null;
+    const onSite = await fromAuthorSite(text ?? '', account, url, ai, options);
+    if (onSite?.draft) return finish(onSite);
+
+    /*
+     * The recipe is elsewhere — in the bio, the comments, a DM — and the
+     * caption is not it: asking a model would be paying to be told so. Only
+     * when somebody presses the button (`force`) is it asked anyway.
+     */
+    const promo = recipeElsewhere(text ?? '') !== null && (byRules.draft?.ingredients.length ?? 0) < 3;
+    if (promo && !options.force) return finish(byRules);
 
     if (!canUseAi(ai)) return finish(byRules);
     return finish(await processWebPage(url, text, ai, options));
@@ -603,7 +665,9 @@ async function rememberThisSite(
     const store = options.profiles;
     if (!key || !store) return;
 
-    const learned = await learnSiteProfile(html, draft, key);
+    const learned = await learnSiteProfile(html, draft, key, (learnKey, system, text) =>
+        completeWithKey(learnKey, { kind: 'raw', system, text }, options.onLearn)
+    );
     if (!learned.profile) return;
 
     await store.save({
@@ -612,4 +676,108 @@ async function rememberThisSite(
         learnedFrom: sourceUrl,
         learnedBy: `${key.provider}${key.model ? `/${key.model}` : ''}`,
     });
+}
+
+/* -------------------------------------------------------------------------- */
+/* The model alone                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Everything the share carries, as text: the page's words, the caption, the
+ * video's title, description and subtitles, whatever was shared alongside.
+ * Nothing is parsed and nothing learned is applied — this is the material,
+ * not a reading of it. Also the picture that belongs with it.
+ */
+async function materialOf(capture: ProcessableCapture): Promise<{ text: string; imageUrl: string }> {
+    const shared = withoutBareUrls(capture.rawText ?? '').trim();
+    const url = capture.sourceUrl;
+    if (capture.kind !== 'url' || !url) return { text: shared, imageUrl: '' };
+
+    const source = capture.source as CaptureSource;
+
+    if (source === 'youtube') {
+        const videoId = youtubeVideoId(url);
+        const page = videoId ? await fetchPage(url) : null;
+        if (!videoId || !page?.ok) return { text: shared, imageUrl: '' };
+        const video = extractYoutubePage(page.html, videoId);
+        const spoken = await spokenText(captionTracksFrom(page.html));
+        return {
+            text: [video.title, video.description, shared, spoken ? `Gesprochen im Video / spoken in the video:\n${spoken}` : '']
+                .filter((part) => part && part.trim())
+                .join('\n\n'),
+            imageUrl: video.imageUrl,
+        };
+    }
+
+    if (source === 'instagram' || source === 'tiktok') {
+        const code = instagramShortcode(url);
+        const embed = code ? await fetchPage(instagramEmbedUrl(code)) : null;
+        const post = embed?.ok ? readInstagramEmbed(embed.html) : null;
+        if (post?.caption) {
+            return { text: [post.caption, shared].filter(Boolean).join('\n\n'), imageUrl: post.imageUrl ?? '' };
+        }
+    }
+
+    const page = await fetchPage(url);
+    if (!page.ok) return { text: shared, imageUrl: '' };
+    const meta = extractRecipeFromHtml(page.html, page.finalUrl);
+    // The meta tags too: on a social page the whole post is in og:title.
+    return {
+        text: [readableText(page.html), meta.title, meta.description, shared].filter((part) => part && part.trim()).join('\n\n'),
+        imageUrl: meta.imageUrl,
+    };
+}
+
+/**
+ * "Just read it": the model gets everything the share carries and makes the
+ * recipe from it, start to finish.
+ *
+ * The normal path is rules first and a model filling their gaps, which is
+ * right almost always and cheap — and wrong in the one case this is for: the
+ * rules found something plausible-looking and the model is only allowed to
+ * add to it. Here the rules, the learned site layouts and the merge are all
+ * left out; the answer replaces the draft. One call, pressed by a person.
+ */
+export async function readWithAiOnly(
+    capture: ProcessableCapture,
+    ai: AiCapability,
+    options: ProcessOptions = {}
+): Promise<ProcessedCapture> {
+    if (!canUseAi(ai)) return outcome('needsWork', null, reason('pictureNeedsAi'));
+    if (capture.kind === 'image') return processImage(capture.imageUrl ?? null, ai, options);
+
+    try {
+        const material = await materialOf(capture);
+        const provider = ai.keys[0]?.provider ?? null;
+        const text = material.text.slice(0, 60_000);
+
+        if (text.trim().length >= 40) {
+            try {
+                const parsed = await extractRecipeWithAi({ kind: 'text', text }, ai.keys, options.onModel);
+                const draft: ImportedRecipe = {
+                    ...emptyDraft(capture.sourceUrl ?? ''),
+                    ...parsed,
+                    imageUrl: material.imageUrl || capture.imageUrl || '',
+                    sourceUrl: capture.sourceUrl ?? '',
+                };
+                const status = completeness(draft);
+                if (status === 'ready' || !capture.imageUrl) {
+                    const trace = { provider, asked: true, failed: false };
+                    return outcome(status, draft, reasonFor(status, draft, trace, 'page'), trace, 'ai');
+                }
+            } catch (error) {
+                console.error('Reading with the model alone failed:', error);
+                if (!capture.imageUrl) {
+                    return outcome('needsWork', null, reason('somethingWrong'), { provider, asked: true, failed: true }, 'rules+ai-failed');
+                }
+            }
+        }
+
+        // Nothing to read, or not enough in it: the screenshot, if one came.
+        if (capture.imageUrl) return processImage(capture.imageUrl, ai, options);
+        return outcome('failed', null, reason('nothingSent'));
+    } catch (error) {
+        console.error('Capture processing error:', error);
+        return outcome('failed', null, reason('somethingWrong'));
+    }
 }

@@ -74,6 +74,10 @@ model Invite {
   code        String    @unique
   /// Free text for the admin: who it was meant for.
   note        String?
+  /// Who it is for. Filled into the registration form and fixed there; see
+  /// lib/inviteName.ts. The last name only when the first is already taken.
+  firstName   String?
+  lastName    String?
   createdAt   DateTime  @default(now())
   expiresAt   DateTime
   createdById Int
@@ -1006,4 +1010,40 @@ model RecipeTranslation {
   updatedAt    DateTime @updatedAt
 
   @@unique([recipeId, locale])
+}
+
+/// One call to an AI provider: what for, which model, and what it cost in the
+/// provider's own count. Kept for the token dashboard and for comparing one
+/// inbox item with the others; see lib/tokenUsage.ts.
+model AiUsage {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  /// capture | import | polish | translate | learn | test
+  purpose   String
+  provider  String
+  model     String
+  /// The inbox item it was for, when it was for one; kept when that goes.
+  captureId Int?
+  /// The item's source (instagram, youtube, web …) at the time, to compare like with like.
+  source    String?
+  input     Int      @default(0)
+  output    Int      @default(0)
+
+  @@index([createdAt])
+  @@index([captureId])
+}
+
+/// Which website a social account keeps its recipes on ("pattyplates.com
+/// (link in bio)"), so a later post that only says "link in bio" can be
+/// looked up there. See lib/authorSite.ts.
+model AccountSite {
+  id        Int      @id @default(autoincrement())
+  /// instagram | tiktok
+  platform  String
+  handle    String
+  host      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([platform, handle])
 }

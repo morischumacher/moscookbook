@@ -18,4 +18,12 @@ export default function inboxDecisionTests() {
     equal('unreadable: read again first', decisionFor(row('failed', reason('pageUnreadable', 'timeout')), true)?.steps[0], 'retry');
     equal('no link: nothing to open or reread', decisionFor(row('failed', reason('pictureFailed'), null), false)?.steps, ['discard']);
     equal('an old row with a sentence still gets steps', decisionFor(row('needsWork', 'The page held only part of a recipe.'), true)?.steps, ['edit', 'askAi', 'discard']);
+
+    suite('inbox: never the same AI call twice');
+    const read = (readBy: string) => ({ ...row('needsWork', reason('pagePartial')), readBy });
+    equal('read by the rules: offer the AI', decisionFor(read('rules'), true)?.steps, ['edit', 'askAi', 'discard']);
+    equal('rules plus AI already: offer the model alone instead', decisionFor(read('rules+ai'), true)?.steps, ['edit', 'aiOnly', 'discard']);
+    equal('the model alone already: nothing more from it', decisionFor(read('ai'), true)?.steps, ['edit', 'discard']);
+    equal('a failed call: asking again is the fix', decisionFor(read('rules+ai-failed'), true)?.steps, ['edit', 'askAi', 'discard']);
+    equal('and it says so', decisionFor(read('rules+ai-failed'), true)?.aiFailed, true);
 }

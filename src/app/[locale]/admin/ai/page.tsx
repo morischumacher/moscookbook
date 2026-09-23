@@ -3,6 +3,7 @@ import AiKeys from '@/components/admin/AiKeys';
 import SiteProfiles from '@/components/admin/SiteProfiles';
 import PageHeader from '@/components/admin/PageHeader';
 import { pageContainer } from '@/lib/ui';
+import { Link } from '@/i18n/routing';
 
 /**
  * The AI screen.
@@ -14,6 +15,7 @@ import { pageContainer } from '@/lib/ui';
  */
 export default async function AdminAiPage() {
     const t = await getTranslations('Ai');
+    const tTokens = await getTranslations('Tokens');
 
     return (
         <main className={`${pageContainer} pb-32`}>
@@ -22,6 +24,10 @@ export default async function AdminAiPage() {
                 which is exactly the "some have one and some do not" the
                 unification was for. */}
             <PageHeader title={t('title')} intro={t('intro')} />
+
+            <Link href="/admin/ai/usage" className="mb-8 inline-block text-sm underline underline-offset-4">
+                {tTokens('openDashboard')}
+            </Link>
 
             <AiKeys />
             <SiteProfiles />

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { canUseAi, completeWithKey, extractJson } from '@/lib/aiImport';
-import { aiCapability, rememberModel } from '@/lib/aiConfig';
+import { aiCapability } from '@/lib/aiConfig';
 import { translateRecipe, translateRequestSchema } from '@/lib/recipeTranslation';
+import { usageRecorder } from '@/lib/tokenUsageDb';
 
 /**
  * "Translate this recipe", from the recipe form.
@@ -39,14 +40,15 @@ export async function POST(req: NextRequest) {
 
     const { from, ...recipe } = parsed.data;
 
+    const usage = usageRecorder('translate');
     const outcome = await translateRecipe(
         recipe,
         from,
         ai.keys,
-        (key, system, text) =>
-            completeWithKey(key, { kind: 'raw', system, text }, (provider, model) => void rememberModel(provider, model)),
+        (key, system, text) => completeWithKey(key, { kind: 'raw', system, text }, usage.report),
         extractJson
     );
+    await usage.flush();
 
     if (!outcome.ok) {
         // An answer that did not match the recipe is an answer, not a fault:

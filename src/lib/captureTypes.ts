@@ -12,6 +12,7 @@ import type { CaptureStatus } from './capture';
 import type { ImportedRecipe } from './recipeFromHtml';
 import type { AiKey, ModelReport } from './aiImport';
 import type { SiteProfileStore } from './siteProfile';
+import type { AccountSiteStore } from './authorSite';
 
 export interface ProcessedCapture {
     status: Extract<CaptureStatus, 'ready' | 'needsWork' | 'failed'>;
@@ -88,6 +89,8 @@ export interface ProcessOptions {
      * existing caller and every test behaves exactly as it did.
      */
     profiles?: SiteProfileStore;
+    /** Which website an account keeps its recipes on. See authorSite.ts. */
+    accounts?: AccountSiteStore;
     /**
      * The key the *learning* step may use, which need not be the key the
      * import uses.
@@ -105,6 +108,8 @@ export interface ProcessOptions {
      * rather than rediscovering on every share.
      */
     onModel?: ModelReport;
+    /** Told about the calls the *learning* step makes, which are not the import's. */
+    onLearn?: ModelReport;
 }
 
 export interface ProcessableCapture {

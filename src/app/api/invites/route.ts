@@ -4,9 +4,14 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { generateInviteCode, inviteExpiryFromNow, inviteState, INVITE_VALID_DAYS } from '@/lib/invite';
 import { failed } from '@/lib/reportServerError';
+import { checkName } from '@/lib/inviteName';
+import { takenNames } from '@/lib/inviteNameDb';
 
 const createSchema = z.object({
     note: z.string().trim().max(200).default(''),
+    /** Who it is for; fixed in the registration form. See lib/inviteName. */
+    firstName: z.string().trim().min(1, 'First name is required').max(80),
+    lastName: z.string().trim().max(80).default(''),
     days: z.number().int().min(1).max(365).default(INVITE_VALID_DAYS),
 });
 
@@ -81,10 +86,18 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'Invalid input' }, { status: 400 });
         }
 
+        const { firstName, lastName } = parsed.data;
+        const clash = checkName({ firstName, lastName }, await takenNames());
+        if (clash.state !== 'free') {
+            return NextResponse.json({ message: 'That name is already taken.', ...clash }, { status: 409 });
+        }
+
         const invite = await prisma.invite.create({
             data: {
                 code: generateInviteCode(),
-                note: parsed.data.note || null,
+                note: parsed.data.note || [firstName, lastName].filter(Boolean).join(' '),
+                firstName,
+                lastName: lastName || null,
                 expiresAt: inviteExpiryFromNow(parsed.data.days),
                 createdById: auth.user.id,
             },

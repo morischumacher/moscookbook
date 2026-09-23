@@ -197,7 +197,8 @@
     "inviteUsed": "This invitation has already been used. If the account is yours, sign in — or ask Mo for a new link.",
     "inviteExpired": "This invitation has expired. Ask Mo for a new link.",
     "emailMoved": "Your new e-mail address is confirmed and in use from now on. The previous address has been told.",
-    "passkeyLogin": "Sign in with a passkey"
+    "passkeyLogin": "Sign in with a passkey",
+    "nameFromInvite": "The name comes from your invitation."
   },
   "Admin": {
     "loadingPage": "Fetching the page…",
@@ -382,7 +383,6 @@
     "title": "Invitations",
     "create": "New invitation",
     "creating": "Creating…",
-    "notePlaceholder": "Who is it for? (optional)",
     "none": "No invitations yet.",
     "loading": "Loading invitations…",
     "copy": "Copy link",
@@ -393,7 +393,13 @@
     "stateExpired": "Expired",
     "expiresOn": "Expires {date}",
     "usedBy": "Used by {email}",
-    "nav": "Invitations"
+    "nav": "Invitations",
+    "firstNamePlaceholder": "First name",
+    "lastNamePlaceholder": "Last name",
+    "firstTaken": "“{name}” already exists ({holders}). Pick another first name or add a last name.",
+    "fullTaken": "“{name}” already exists. Please pick another name.",
+    "nameFixed": "The name is filled into the registration form and cannot be changed there.",
+    "firstTakenPlain": "“{name}” already exists. Pick another first name or add a last name."
   },
   "Backup": {
     "title": "Backup",
@@ -520,10 +526,13 @@
       "retry": "Read again",
       "edit": "Edit",
       "openSource": "Open the source",
-      "discard": "Delete"
+      "discard": "Delete",
+      "askAiAgain": "Read with AI again",
+      "aiOnly": "Read with AI only"
     },
     "aiOffHint": "The AI could help here, but it is switched off (Admin → AI).",
-    "legendDecision": "Rows with a coloured edge were not fully recognised: the box says what happened, and the steps that fit."
+    "legendDecision": "Rows with a coloured edge were not fully recognised: the box says what happened, and the steps that fit.",
+    "aiFailedHint": "The last AI attempt failed (e.g. no credit left or an invalid key). Reading again makes sense here – check Admin → AI first if needed."
   },
   "Devices": {
     "title": "Devices",
@@ -1003,11 +1012,14 @@
     "modelAuto": "Chosen automatically on {date}, because the previous one did not answer. Overwrite it whenever you like; your choice then stands.",
     "testModel": "Answered by: {model}.",
     "askAiExplain": "Ask a model even though the rules think they managed. Costs one call.",
-    "askAgainExplain": "A model has already read this one. Asking again costs another call and will probably say the same thing."
+    "askAgainExplain": "Already read with AI (rules plus AI). The same again gives the same answer – try “Read with AI only”.",
+    "aiOnly": "Read with AI only (costs)",
+    "aiOnlyExplain": "The AI gets everything that was shared – page, caption, video description, subtitles, screenshot – and makes the recipe from it. No rules, nothing learned; replaces the current draft.",
+    "aiOnlyDone": "Already read by the AI alone. Again gives the same."
   },
   "SiteProfiles": {
     "title": "Learned sites",
-    "intro": "The first import from an unknown site teaches the cookbook where that site puts its recipe. Every later import from it needs no AI. This list fills itself — you are only here to teach a site in advance, or to correct one that has gone out of date.",
+    "intro": "The first import from an unknown site teaches the cookbook where that site puts its recipe. Every later import from it needs no AI. This list fills itself — you are only here to teach a site in advance, or to correct one that has gone out of date. Only recipe websites are learned, and only when the page has no recipe markup and the AI helped. Instagram, TikTok and YouTube have no fixed page layout and do not appear here. Instead the cookbook remembers which website an account keeps its recipes on (“pattyplates.com (link in bio)”) and looks the dish up there on the next post – usually without AI.",
     "urlLabel": "Address of a recipe page",
     "learn": "Learn this site",
     "learning": "Reading …",
@@ -1276,5 +1288,101 @@
     "downloadMarkdown": "Download as Markdown",
     "copyFailed": "Copying did not work – the browser refused access to the clipboard.",
     "exportListHeading": "# The open items on the work list"
+  },
+  "Tokens": {
+    "openDashboard": "See token usage and how to save →",
+    "title": "Token usage",
+    "intro": "What the AI calls used in the last 30 days, what for – and above all, how to use less. Counted in tokens, the way the provider bills; your provider shows the price per token.",
+    "tileTokens": "Tokens · {days} days",
+    "change": "{change} % vs the 30 days before",
+    "tileCalls": "AI calls",
+    "perCall": "{tokens} tokens per call",
+    "tileSplit": "Read / written",
+    "split": "{input} in · {output} out",
+    "splitHint": "Written tokens usually cost 4–5× what read ones do.",
+    "adviceTitle": "How to keep usage low",
+    "empty": "No AI calls counted yet. Counting starts with this update.",
+    "about": "about {tokens} tokens ({share} % of usage)",
+    "advice": {
+      "noRecipe": {
+        "title": "{count, plural, one {# item} other {# items}} without a recipe {count, plural, one {was} other {were}} read with AI",
+        "do": "The recipe was in the bio, the comments or sent by DM – no AI finds anything there. Delete such items right away, or open the source and share the link to the recipe page."
+      },
+      "repeats": {
+        "title": "{count, plural, one {# item was} other {# items were}} read with AI 3 times or more",
+        "do": "After “rules plus AI”, “Read with AI” gives the same answer. Read again for free first, then at most once “Read with AI only” – otherwise finish it by hand."
+      },
+      "learnSite": {
+        "title": "Sites read with AI more than once: {detail}",
+        "do": "Teach them in advance under Admin → AI → Learned sites. Imports from there then need no AI."
+      },
+      "videos": {
+        "title": "YouTube costs {detail}× what other sources do",
+        "do": "Subtitles are long. If the video description links to the recipe, share that link instead – web pages are usually read for free."
+      },
+      "aiOnly": {
+        "title": "“Read with AI only” costs {detail}× “Read with AI”",
+        "do": "It sends everything that was shared. Only use it when “rules plus AI” was clearly wrong."
+      },
+      "smallerModel": {
+        "title": "A large model does most of the work: {detail}",
+        "do": "For recipes from text a small model is usually enough – a fraction of the price per token. Set the model under Admin → AI and compare a few imports; switch back if results get worse."
+      },
+      "modeImages": {
+        "title": "The AI is asked automatically on every share",
+        "do": "With the “images only” setting (Admin → AI) the AI reads text and pages only when you press “Read with AI”. That saves the most."
+      },
+      "fine": {
+        "title": "Nothing stands out",
+        "do": "No pattern worth saving on. The basic rules below still apply."
+      }
+    },
+    "rulesTitle": "Basic rules",
+    "rules": {
+      "free": "Rules first: pages with recipe markup, cleanly written captions and notes cost nothing. The AI only comes in when that is not enough.",
+      "link": "Share the link to the recipe page rather than the post or video – pages are cheapest, videos with subtitles the most expensive.",
+      "once": "“Read again” is free. An item the AI has already read does not get better by asking again.",
+      "mode": "“Images only” is the most frugal setting: the AI then reads text only when you press the button.",
+      "model": "A small model costs a fraction of a large one per token and is usually enough for recipes.",
+      "learn": "Let sites you import from often be learned once – after that, no AI."
+    },
+    "perDay": "Per day",
+    "perDayLabel": "Tokens per day, last {days} days",
+    "peak": "busiest day: {tokens}",
+    "byPurpose": "What for",
+    "purposeTooltip": "{calls} calls, median {median} tokens per call",
+    "calls": "{count, plural, one {# call} other {# calls}}",
+    "bySource": "By source",
+    "colSource": "Source",
+    "colItems": "Items",
+    "colMedian": "Median per item",
+    "colTotal": "Total",
+    "byModel": "By model",
+    "topItems": "The most expensive items",
+    "untitled": "Untitled",
+    "toInbox": "To the inbox",
+    "chip": "{tokens} tokens",
+    "loading": "Loading …",
+    "loadFailed": "The usage could not be loaded.",
+    "own": "This item: {tokens} tokens in {calls, plural, one {# call} other {# calls}}",
+    "median": "median of {count} comparable ({source}): {tokens}",
+    "ratio": "{ratio}×",
+    "nothingToCompare": "No other {source} items with AI to compare yet.",
+    "plotLabel": "This item {tokens} tokens, median of comparable items {median}",
+    "dot": "{tokens} tokens",
+    "dotOwn": "This item: {tokens} tokens",
+    "medianShort": "median",
+    "thisOne": "this",
+    "inOut": "{input} in, {output} out",
+    "purpose": {
+      "capture": "Automatically on share",
+      "retry": "Read again",
+      "askAi": "Read with AI",
+      "aiOnly": "Read with AI only",
+      "learn": "Learning a site",
+      "import": "Import in the form",
+      "polish": "Revising text",
+      "translate": "Translating"
+    }
   }
 }

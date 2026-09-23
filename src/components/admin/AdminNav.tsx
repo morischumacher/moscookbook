@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
@@ -31,17 +32,19 @@ import { adminSectionFor } from '@/lib/navigation';
  * what the spacing already says, and cost three lines of a bar whose whole
  * job is to be small.
  *
- * ## Wrapping, not scrolling
+ * ## A tab strip on a phone
  *
- * It used to scroll sideways, on the reasoning that six labels wrapped to
- * three lines push the page's heading below the fold. With ten entries that
- * reasoning had a cost nobody had noticed: on a phone the last two — Devices
- * and AI — were off the edge of a strip with no scrollbar, so unless you
- * happened to drag the row they did not exist. "Where is AI?" is a fair
- * question to ask of a navigation.
+ * One row that scrolls sideways, like an app's tab bar, rather than two or
+ * three rows of links pushing the page down; on a laptop it wraps. Three
+ * things make the strip behave like a native one, and each was a complaint:
  *
- * It wraps now, and the groups are what it wraps on: each group stays
- * together on a line, so the break happens where the meaning already breaks.
+ *   - it only scrolls sideways. `overflow-x: auto` quietly makes the other
+ *     axis scrollable too, and the tabs' 1px underline overhang was enough
+ *     for the whole strip to wobble up and down under a thumb;
+ *   - the current tab is scrolled into view, so opening "People" does not
+ *     leave it cut off at the edge as "Peop";
+ *   - the edge fades while there is more to the right, which is what says
+ *     "this scrolls" without a scrollbar.
  */
 export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?: number }) {
     const t = useTranslations('Admin');
@@ -54,6 +57,24 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
     const tAi = useTranslations('Ai');
 
     const current = adminSectionFor(usePathname());
+
+    const strip = useRef<HTMLDivElement>(null);
+    const [moreRight, setMoreRight] = useState(false);
+    const measure = () => {
+        const el = strip.current;
+        if (el) setMoreRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    };
+    useEffect(() => {
+        const el = strip.current;
+        const here = el?.querySelector<HTMLElement>('[aria-current="page"]');
+        // scrollLeft rather than scrollIntoView, which would also move the page.
+        if (el && here && el.scrollWidth > el.clientWidth) {
+            el.scrollLeft = Math.max(0, here.offsetLeft - (el.clientWidth - here.offsetWidth) / 2);
+        }
+        measure();
+        window.addEventListener('resize', measure);
+        return () => window.removeEventListener('resize', measure);
+    }, [current]);
 
     // Spelled out rather than built in a loop, so every key is visible to the
     // translation checker.
@@ -86,9 +107,14 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
                 "am I in the admin?" being "look closely".
             */}
             <div className="container mx-auto max-w-3xl px-4 md:px-8">
-                {/* One row that scrolls sideways on a phone, like an app's tab bar,
-                    rather than two rows of links that push the page down. */}
-                <div className="-mx-4 flex items-center gap-x-1 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
+                {/* See "A tab strip on a phone" above. */}
+                <div
+                    ref={strip}
+                    onScroll={measure}
+                    className={`-mx-4 flex touch-pan-x items-center gap-x-1 overflow-x-auto overflow-y-hidden overscroll-x-contain px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:[mask-image:none] [&::-webkit-scrollbar]:hidden ${
+                        moreRight ? '[mask-image:linear-gradient(to_right,black_85%,transparent)]' : ''
+                    }`}
+                >
                     {groups.map((group, index) => (
                         <div key={group[0].href} className="flex shrink-0 items-center">
                             {index > 0 && (
@@ -109,7 +135,7 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
                                                 // Read out as the current page,
                                                 // not only drawn as one.
                                                 aria-current={here ? 'page' : undefined}
-                                                className={`-mb-px inline-block whitespace-nowrap border-b-2 px-2 py-3 text-sm transition-colors ${
+                                                className={`inline-block whitespace-nowrap md:-mb-px border-b-2 px-2 py-3 text-sm transition-colors ${
                                                     here
                                                         ? 'border-ink font-semibold text-ink'
                                                         : 'border-transparent text-muted hover:text-ink'

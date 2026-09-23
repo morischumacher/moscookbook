@@ -21,6 +21,7 @@ import {
     type SiteProfileStore,
     type StoredProfile,
 } from './siteProfile';
+import { accountSites } from './accountSiteDb';
 
 interface Row {
     host: string;
@@ -195,9 +196,11 @@ export async function forgetSite(host: string): Promise<void> {
  * happens only after a model has already read a page and helped, so it costs
  * one more call per new site, once.
  */
-export function siteLearning(ai: AiCapability): Pick<ProcessOptions, 'profiles' | 'learnWith'> {
+export function siteLearning(ai: AiCapability): Pick<ProcessOptions, 'profiles' | 'learnWith' | 'accounts'> {
     return {
         profiles: siteProfiles,
+        // Free, so on whatever the AI setting: see authorSite.ts.
+        accounts: accountSites,
         learnWith: canUseAi(ai) ? ai.keys[0] : undefined,
     };
 }
