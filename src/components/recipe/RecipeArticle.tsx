@@ -212,7 +212,11 @@ export default async function RecipeArticle({
                 page, not a photograph filling it.
             */}
             <div className="print:hidden">
+                {/* "hero": full width on a phone, the reading column's width on
+                    a laptop. Without it the photograph spanned the whole
+                    screen and was taller than the window. */}
                 <Gallery
+                    variant="hero"
                     images={recipe.images.map((image) => image.url)}
                     title={recipe.title}
                 />

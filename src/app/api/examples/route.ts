@@ -3,7 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { route } from '@/lib/route';
 import { postSearchFields } from '@/lib/searchText';
-import { linkCreates } from '@/lib/postLinks';
+import { linkCreates, linkReplacements } from '@/lib/postLinks';
 import { exampleCollection, examplePost, type ExampleRecipe } from '@/lib/examples';
 
 /**
@@ -43,7 +43,20 @@ async function ensureCollection(locale: 'en' | 'de', recipes: ExampleRecipe[]) {
         where: { slug: example.slug },
         select: { id: true, slug: true, title: true },
     });
-    if (existing) return { collection: existing, created: false };
+    // Already there: brought up to date rather than left as it was, so the
+    // example keeps showing what the cookbook can do now. It is the example;
+    // anything worth keeping belongs in a collection of its own.
+    if (existing) {
+        await prisma.collection.update({
+            where: { id: existing.id },
+            data: {
+                description: example.description,
+                imageUrl: example.imageUrl,
+                recipes: { deleteMany: {}, create: example.recipeIds.map((recipeId, position) => ({ recipeId, position })) },
+            },
+        });
+        return { collection: existing, created: false };
+    }
 
     const collection = await prisma.collection.create({
         data: {
@@ -68,7 +81,19 @@ export const POST = route({ access: 'admin', body, label: 'Example' }, async ({ 
 
     const example = examplePost(locale, recipes, collection);
     const existing = await prisma.post.findUnique({ where: { slug: example.slug }, select: { id: true, slug: true } });
-    if (existing) return NextResponse.json({ ...existing, created: false });
+    if (existing) {
+        await prisma.post.update({
+            where: { id: existing.id },
+            data: {
+                title: example.title,
+                body: example.body,
+                ...postSearchFields({ title: example.title, body: example.body }),
+                imageUrl: example.imageUrl,
+                ...linkReplacements(example.recipeIds, example.collectionIds),
+            },
+        });
+        return NextResponse.json({ ...existing, created: false });
+    }
 
     const post = await prisma.post.create({
         data: {
