@@ -144,8 +144,13 @@ export default function RecipeBody({
 
     // Keeping the screen awake is an external system, so it lives in an effect;
     // the state flag only exists to tell the cook whether it actually worked.
+    // Also while a timer runs outside cook mode: a phone that goes to sleep
+    // does not ring.
+    const timing = timers.some((timer) => !timer.done);
+    const keepAwake = cookMode || timing;
+
     useEffect(() => {
-        if (!cookMode) return;
+        if (!keepAwake) return;
 
         let cancelled = false;
 
@@ -160,8 +165,12 @@ export default function RecipeBody({
                 }
                 wakeLock.current = sentinel;
                 setWakeLockActive(true);
+                // Lost (the system took it back): say so rather than go on
+                // claiming the screen stays on.
+                sentinel.addEventListener('release', () => setWakeLockActive(false));
             } catch {
                 // Denied or unsupported — cook mode still works, the screen just dims.
+                setWakeLockActive(false);
             }
         };
 
@@ -180,7 +189,7 @@ export default function RecipeBody({
             wakeLock.current = null;
             setWakeLockActive(false);
         };
-    }, [cookMode]);
+    }, [keepAwake]);
 
     /*
      * What a cook has ticked off survives the tab being thrown away.
@@ -299,6 +308,8 @@ export default function RecipeBody({
                             </button>
                             <span className="w-8 text-center text-lg font-bold tabular-nums" aria-live="polite">
                                 {servings}
+                                {/* "4" alone, announced, says nothing. */}
+                                <span className="sr-only"> {t('servings')}</span>
                             </span>
                             <button
                                 type="button"
@@ -315,11 +326,18 @@ export default function RecipeBody({
                             servings to twelve on a phone was eight taps on a
                             small button; it is one here. */}
                         <div className="flex gap-1">
-                            {SERVING_STEPS.filter((value) => value !== servings).slice(0, 4).map((value) => (
+                            {/* The four nearest to where it stands: always the first
+                                four left 8, 10 and 12 out of reach. */}
+                            {SERVING_STEPS.filter((value) => value !== servings)
+                                .sort((a, b) => Math.abs(a - servings) - Math.abs(b - servings) || a - b)
+                                .slice(0, 4)
+                                .sort((a, b) => a - b)
+                                .map((value) => (
                                 <button
                                     key={value}
                                     type="button"
                                     onClick={() => setServings(value)}
+                                    aria-label={t('servingsTo', { count: value })}
                                     className="h-11 min-w-11 rounded-full px-2 text-sm text-muted hover:text-ink"
                                 >
                                     {value}
@@ -336,7 +354,6 @@ export default function RecipeBody({
                     <button
                         type="button"
                         onClick={() => setCookMode(true)}
-                        aria-pressed={cookMode}
                         className={`${buttonPrimarySmall} flex-1 gap-2 sm:flex-none`}
                     >
                         {cooking ? t('resumeCooking') : t('cookModeStart')}
@@ -478,8 +495,11 @@ export default function RecipeBody({
                     </ul>
                 )}
 
+                {/* On paper too: the printed header says the recipe's own
+                    servings, and amounts for six under "4 Portionen" would be
+                    read as amounts for four. */}
                 {baseServings && factor !== 1 && (
-                    <p className="print:hidden mt-4 text-sm text-muted">
+                    <p className="mt-4 text-sm text-muted">
                         {t('scaledFrom', { base: baseServings, current: servings })}
                     </p>
                 )}

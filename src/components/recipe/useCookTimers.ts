@@ -31,13 +31,23 @@ export function useCookTimers() {
     useEffect(() => {
         if (!running) return;
         const interval = window.setInterval(() => setNow(Date.now()), 500);
-        return () => window.clearInterval(interval);
+        // A background tab's interval is slowed or stopped: look again the
+        // moment the page is back.
+        const onVisible = () => document.visibilityState === 'visible' && setNow(Date.now());
+        document.addEventListener('visibilitychange', onVisible);
+        return () => {
+            window.clearInterval(interval);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
     }, [running]);
 
     const ring = useCallback(() => {
         try {
             const context = audio.current ?? new AudioContext();
             audio.current = context;
+            // A phone suspends the audio of a page that went to the
+            // background; without this the timer "rang" in silence.
+            if (context.state !== 'running') void context.resume().catch(() => undefined);
             for (let beep = 0; beep < 3; beep += 1) {
                 const oscillator = context.createOscillator();
                 const gain = context.createGain();
@@ -71,7 +81,12 @@ export function useCookTimers() {
         }
         const id = nextId.current++;
         setNow(Date.now());
-        setTimers((current) => [...current, { id, label, step, endsAt: Date.now() + seconds * 1000, done: false }]);
+        setTimers((current) =>
+            // The same timer twice (a double tap) is one timer.
+            current.some((timer) => !timer.done && timer.step === step && timer.label === label)
+                ? current
+                : [...current, { id, label, step, endsAt: Date.now() + seconds * 1000, done: false }]
+        );
     }, []);
 
     const dismiss = useCallback((id: number) => setTimers((current) => current.filter((timer) => timer.id !== id)), []);

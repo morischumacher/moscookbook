@@ -15,7 +15,8 @@
     "logoutFailed": "Das Abmelden hat nicht geklappt – du bist weiterhin angemeldet.",
     "accountMenu": "Dein Konto und Einstellungen",
     "account": "Dein Konto",
-    "switchLanguage": "In English lesen"
+    "switchLanguage": "In English lesen",
+    "closeMenu": "Menü schließen"
   },
   "Home": {
     "searchPlaceholder": "Rezepte und Zutaten durchsuchen…",
@@ -132,7 +133,8 @@
     "cookViewSteps": "Schritt für Schritt",
     "cookFinish": "Fertig gekocht",
     "translatedFrom": "Übersetzt aus dem {language, select, en {Englischen} other {Deutschen}}",
-    "translationStale": "Das Original wurde seitdem geändert."
+    "translationStale": "Das Original wurde seitdem geändert.",
+    "servingsTo": "{count, plural, one {# Portion} other {# Portionen}}"
   },
   "Rating": {
     "rate": "Bewerten",

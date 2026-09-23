@@ -15,7 +15,8 @@
     "logoutFailed": "Signing out did not work — you are still signed in.",
     "accountMenu": "Your account and settings",
     "account": "Your account",
-    "switchLanguage": "Auf Deutsch lesen"
+    "switchLanguage": "Auf Deutsch lesen",
+    "closeMenu": "Close menu"
   },
   "Home": {
     "searchPlaceholder": "Search recipes and ingredients…",
@@ -132,7 +133,8 @@
     "cookViewSteps": "Step by step",
     "cookFinish": "Done cooking",
     "translatedFrom": "Translated from {language, select, de {German} other {English}}",
-    "translationStale": "The original has changed since."
+    "translationStale": "The original has changed since.",
+    "servingsTo": "{count, plural, one {# serving} other {# servings}}"
   },
   "Rating": {
     "rate": "Rate",

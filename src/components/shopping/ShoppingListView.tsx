@@ -267,11 +267,11 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                 </button>
             </form>
 
-            {note && (
-                <p role="status" className="mt-3 text-sm text-muted">
-                    {note}
-                </p>
-            )}
+            {/* Always there, empty until something is said: a status region
+                that appears together with its text is often not read out. */}
+            <p role="status" className={note ? 'mt-3 text-sm text-muted' : 'sr-only'}>
+                {note}
+            </p>
 
             {items.length === 0 ? (
                 <div className="py-16 text-center text-muted">
