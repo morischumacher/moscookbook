@@ -127,6 +127,15 @@ const EXACT: Record<string, string> = {
     'An entry has to be published in the blog before it can go on the open web.':
         'Ein Beitrag muss im Blog veröffentlicht sein, bevor er ins offene Web kann.',
     'This list is not shared.': 'Diese Liste ist nicht geteilt.',
+    'This link can only tick things off.': 'Über diesen Link kann man nur abhaken.',
+    'That is your own list.': 'Das ist deine eigene Liste.',
+    'This is your own list.': 'Das ist deine eigene Liste.',
+    'There is nobody by that name here.': 'Diese Person gibt es hier nicht.',
+    'Only whoever made this list chooses who is on it.': 'Wer auf der Liste ist, bestimmt nur, wer sie angelegt hat.',
+    'Take off whom?': 'Wen herausnehmen?',
+    'This invitation is no longer there.': 'Diese Einladung gibt es nicht mehr.',
+    'You already shop on another list. Leave it first.': 'Du kaufst schon mit einer anderen Liste ein. Verlass sie zuerst.',
+    'Others shop on your list. Take them off it first.': 'Andere kaufen mit deiner Liste ein. Nimm sie zuerst heraus.',
     'The suggestion changed a number, so it was discarded. Nothing has been altered.':
         'Der Vorschlag hat eine Zahl verändert und wurde deshalb verworfen. Es wurde nichts geändert.',
     'Too many translations. Please wait a moment.': 'Zu viele Übersetzungen. Warte bitte einen Moment.',

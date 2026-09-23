@@ -52,6 +52,7 @@ model User {
 
   tokens         AuthToken[]
   shoppingList   ShoppingList?
+  shoppingShares ShoppingListMember[]
   posts          Post[]
   cookEntries    CookEntry[]
   tickets        Ticket[]
@@ -839,9 +840,29 @@ model ShoppingList {
   /// A link that lets somebody without an account see the list and tick
   /// things off — the person who is actually in the shop. Null when not shared.
   shareToken String?        @unique
+  /// Whether the link may add lines as well as tick them.
+  shareCanAdd Boolean       @default(true)
 
   items      ShoppingItem[]
+  members    ShoppingListMember[]
   updatedAt  DateTime       @updatedAt
+}
+
+/// Somebody of the cookbook invited to share a list — one list for the
+/// household. Until they accept (`acceptedAt`) it is an invitation; after, it
+/// is the list they use instead of their own, with everything the owner can
+/// do except choosing who else is on it and the link. At most one accepted
+/// row per person (a partial unique index in migration 0050).
+model ShoppingListMember {
+  listId     Int
+  list       ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  userId     Int
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime     @default(now())
+  acceptedAt DateTime?
+
+  @@id([listId, userId])
+  @@index([userId])
 }
 
 model ShoppingItem {

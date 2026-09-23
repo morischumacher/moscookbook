@@ -8,14 +8,15 @@ import { addLines, itemsOf } from '@/lib/shoppingDb';
 
 /**
  * A shared shopping list, for somebody with the link and no account: read it,
- * tick a line, add a line ("we are out of milk"). Nothing can be deleted from
+ * tick a line, and — when the owner allows it — add a line ("we are out of
+ * milk"). Nothing can be deleted from
  * here, and nothing else of the owner's is reachable — the token opens this
  * one list.
  */
 
 async function sharedList(token: string | undefined) {
     if (!token || !/^[A-Za-z0-9_-]{16,64}$/.test(token)) refuse(404, 'This list is not shared.');
-    const list = await prisma.shoppingList.findUnique({ where: { shareToken: token }, select: { id: true } });
+    const list = await prisma.shoppingList.findUnique({ where: { shareToken: token }, select: { id: true, shareCanAdd: true } });
     if (!list) refuse(404, 'This list is not shared.');
     return list;
 }
@@ -24,7 +25,7 @@ type Params = { token: string };
 
 export const GET = route<'public', undefined, Params>({ access: 'public', label: 'Shared shopping list' }, async ({ params }) => {
     const list = await sharedList(params.token);
-    return NextResponse.json({ items: await itemsOf(list.id) });
+    return NextResponse.json({ items: await itemsOf(list.id), canAdd: list.shareCanAdd });
 });
 
 const patchBody = z.object({ itemId: z.number().int().positive().max(2_147_483_647), checked: z.boolean() });
@@ -53,6 +54,7 @@ export const POST = route<'public', typeof addBody, Params>(
         if (!limit.ok) refuse(429, 'Too many at once. Please wait a moment.');
 
         const list = await sharedList(params.token);
+        if (!list.shareCanAdd) refuse(403, 'This link can only tick things off.');
         const line = lineFromText(body.text);
         if (line) await addLines(list.id, [line]);
         return NextResponse.json({ items: await itemsOf(list.id) });

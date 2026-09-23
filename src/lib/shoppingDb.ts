@@ -38,6 +38,108 @@ export async function listOf(userId: number) {
     });
 }
 
+export interface ListAccess {
+    id: number;
+    /** Whose list it is: the owner also chooses who else is on it, and the link. */
+    owner: boolean;
+}
+
+/**
+ * The list this person shops on: the one they joined, or else their own.
+ *
+ * One list per household rather than several side by side — "which list am
+ * I adding to?" is then never a question.
+ */
+export async function activeList(userId: number): Promise<ListAccess> {
+    const joined = await prisma.shoppingListMember.findFirst({
+        where: { userId, acceptedAt: { not: null } },
+        select: { listId: true },
+    });
+    if (joined) return { id: joined.listId, owner: false };
+    const own = await listOf(userId);
+    return { id: own.id, owner: true };
+}
+
+const personName = (person: { firstName: string; name: string }) => person.firstName || person.name;
+
+/** Who shops on a list, and who is invited to. */
+export async function householdOf(listId: number) {
+    const list = await prisma.shoppingList.findUnique({
+        where: { id: listId },
+        select: {
+            user: { select: { id: true, firstName: true, name: true } },
+            members: { orderBy: { createdAt: 'asc' }, select: { acceptedAt: true, user: { select: { id: true, firstName: true, name: true } } } },
+        },
+    });
+    if (!list) return null;
+    return {
+        owner: { id: list.user.id, name: personName(list.user) },
+        members: list.members.filter((m) => m.acceptedAt).map((m) => ({ id: m.user.id, name: personName(m.user) })),
+        invited: list.members.filter((m) => !m.acceptedAt).map((m) => ({ id: m.user.id, name: personName(m.user) })),
+    };
+}
+
+/** Lists this person was invited to and has not answered. */
+export async function invitationsFor(userId: number) {
+    const rows = await prisma.shoppingListMember.findMany({
+        where: { userId, acceptedAt: null },
+        orderBy: { createdAt: 'asc' },
+        select: { listId: true, list: { select: { user: { select: { firstName: true, name: true } } } } },
+    });
+    return rows.map((row) => ({ listId: row.listId, owner: personName(row.list.user) }));
+}
+
+export type JoinOutcome = 'joined' | 'notInvited' | 'alreadyJoined' | 'hosting';
+
+/**
+ * Accepting an invitation: from now on this person shops on that list. What
+ * was on their own list moves across with them, so nothing they meant to buy
+ * disappears; their own list is empty until they leave again.
+ */
+export async function joinList(userId: number, listId: number): Promise<JoinOutcome> {
+    return prisma.$transaction(async (tx) => {
+        const invitation = await tx.shoppingListMember.findUnique({
+            where: { listId_userId: { listId, userId } },
+            select: { acceptedAt: true },
+        });
+        if (!invitation) return 'notInvited';
+        if (await tx.shoppingListMember.findFirst({ where: { userId, acceptedAt: { not: null } }, select: { listId: true } })) {
+            return 'alreadyJoined';
+        }
+
+        const own = await tx.shoppingList.findUnique({ where: { userId }, select: { id: true } });
+        if (own) {
+            // Somebody who already shares their own list would leave the
+            // others on a list nobody else uses.
+            if (await tx.shoppingListMember.count({ where: { listId: own.id, acceptedAt: { not: null } } })) return 'hosting';
+            await tx.shoppingListMember.deleteMany({ where: { listId: own.id } });
+            await tx.$queryRaw`SELECT id FROM "ShoppingList" WHERE id = ${listId} FOR UPDATE`;
+            await tx.shoppingItem.updateMany({ where: { listId: own.id }, data: { listId } });
+        }
+        await tx.shoppingListMember.update({ where: { listId_userId: { listId, userId } }, data: { acceptedAt: new Date() } });
+        return 'joined';
+    });
+}
+
+/**
+ * A recipe taken off the list as a whole: its lines go, and a line it shares
+ * with another recipe stays for that one. The shared line keeps its amount —
+ * how much of it was this recipe's is not kept once merged, and a little too
+ * much in the trolley is better than too little.
+ */
+export async function removeSource(listId: number, source: string): Promise<number> {
+    return prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "ShoppingList" WHERE id = ${listId} FOR UPDATE`;
+        const lines = await tx.shoppingItem.findMany({ where: { listId, sources: { has: source } }, select: { id: true, sources: true } });
+        for (const line of lines) {
+            const rest = line.sources.filter((s) => s !== source);
+            if (rest.length === 0) await tx.shoppingItem.delete({ where: { id: line.id } });
+            else await tx.shoppingItem.update({ where: { id: line.id }, data: { sources: rest } });
+        }
+        return lines.length;
+    });
+}
+
 export async function itemsOf(listId: number): Promise<ShoppingItemRow[]> {
     return prisma.shoppingItem.findMany({
         where: { listId },
