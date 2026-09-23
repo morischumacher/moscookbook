@@ -5,10 +5,20 @@ import { refuse, route } from '@/lib/route';
 import { WORK_KINDS, workTitle, type WorkKind } from '@/lib/workItems';
 import { publishWorkItem, syncAll } from '@/lib/workItemsDb';
 
+/**
+ * Catching up walks every open error and capture, a few queries each: worth
+ * doing now and then, not on every visit and every click on this page.
+ */
+const CATCH_UP_EVERY_MS = 10 * 60 * 1000;
+let caughtUpAt = 0;
+
 /** The admin's view of the work list: everything, with a title per row. */
 export const GET = route({ access: 'admin', label: 'Work list' }, async () => {
     // Catch up what was already there before items were added automatically.
-    await syncAll();
+    if (Date.now() - caughtUpAt > CATCH_UP_EVERY_MS) {
+        caughtUpAt = Date.now();
+        await syncAll();
+    }
     const items = await prisma.workItem.findMany({ orderBy: [{ dismissedAt: { sort: 'asc', nulls: 'first' } }, { closedAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'desc' }], take: 200 });
     return NextResponse.json({
         items: items.map((item) => ({

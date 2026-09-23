@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { forgetVerified } from '@/lib/verifiedFlag';
@@ -126,9 +126,11 @@ async function moveToNewAddress(userId: number, now: Date, locale: string) {
     await prisma.authToken.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: now } });
     forgetVerified(user.id);
 
-    void sendMail(emailChangedMail(user.email, user.name, user.pendingEmail, locale)).catch((error) =>
-        failed('verify: notice to the old address', error)
-    );
+    // after(), not a promise left running: once the answer is sent a
+    // serverless function may be frozen, and this notice is the one that says
+    // an account's address changed.
+    const notice = emailChangedMail(user.email, user.name, user.pendingEmail, locale);
+    after(() => sendMail(notice).catch((error) => failed('verify: notice to the old address', error)));
 
     return NextResponse.json({ success: true, emailChanged: true });
 }

@@ -198,7 +198,12 @@
     "inviteExpired": "Diese Einladung ist abgelaufen. Frag Mo nach einem neuen Link.",
     "emailMoved": "Deine neue E-Mail-Adresse ist bestätigt und gilt ab sofort. Die bisherige Adresse wurde informiert.",
     "passkeyLogin": "Mit Passkey anmelden",
-    "nameFromInvite": "Der Name kommt aus deiner Einladung."
+    "nameFromInvite": "Der Name kommt aus deiner Einladung.",
+    "wrongCredentials": "E-Mail-Adresse oder Passwort stimmt nicht.",
+    "tooMany": "Zu viele Versuche. Bitte warte ein paar Minuten.",
+    "nameTaken": "Diesen Namen gibt es hier schon. Bitte ergänze oder ändere deinen Nachnamen.",
+    "accountExists": "Für diese E-Mail-Adresse gibt es schon ein Konto. Melde dich damit an.",
+    "registerCheck": "Bitte prüfe deine Angaben – das Passwort braucht mindestens 8 Zeichen."
   },
   "Admin": {
     "loadingPage": "Seite wird geholt…",
@@ -367,7 +372,9 @@
     "translationRemove": "Übersetzung entfernen",
     "translateFailed": "Die Übersetzung hat nicht geklappt. Versuch es gleich noch einmal.",
     "translateUnusable": "Die KI hat Zutaten ausgelassen oder zusammengelegt, deshalb wurde die Übersetzung verworfen. Versuch es noch einmal.",
-    "tooManyPictures": "Höchstens {max} Bilder pro Rezept – die übrigen wurden nicht hochgeladen."
+    "tooManyPictures": "Höchstens {max} Bilder pro Rezept – die übrigen wurden nicht hochgeladen.",
+    "slugTaken": "Es gibt schon ein Rezept mit dieser Adresse. Ändere die Adresse (Slug) oder den Titel.",
+    "saveInvalid": "So kann das Rezept nicht gespeichert werden – bitte die Felder prüfen."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",

@@ -305,7 +305,14 @@ export default function RecipeForm({
 
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                failWith(data.message || t('saveFailed'));
+                // The server says it in English; the reason is said here.
+                failWith(
+                    res.status === 409
+                        ? t('slugTaken')
+                        : res.status === 400 && data.message
+                          ? `${t('saveInvalid')} (${data.message})`
+                          : t('saveFailed')
+                );
                 return;
             }
 

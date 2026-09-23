@@ -122,7 +122,9 @@ export default function AiKeys() {
         // no key yet is only being looked at, and becomes the used one when a
         // key is saved.
         const target = credentials.find((entry) => entry.provider === provider);
-        if (!target || target.origin === 'none' || target.priority === 0) return;
+        // A key from the environment has no row to reorder; saving one
+        // created an empty key that replaced it.
+        if (!target || target.origin !== 'row' || target.priority === 0) return;
 
         await save(provider, { primary: true }, '');
     };

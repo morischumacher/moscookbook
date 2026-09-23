@@ -44,7 +44,8 @@ function LoginForm() {
                 return;
             }
 
-            setError(data.message || t('failed'));
+            // Said in the page's language: the server's words are English.
+            setError(res.status === 401 ? t('wrongCredentials') : res.status === 429 ? t('tooMany') : t('failed'));
         } catch {
             setError(t('error'));
         } finally {
