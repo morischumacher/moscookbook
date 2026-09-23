@@ -108,7 +108,7 @@ draft it abandoned.
 | Action | Labels in use | Recommendation |
 |---|---|---|
 | ~~Publish / unpublish a recipe~~ | `makePublic` and `makePublicShort` held the *same string* in both languages; `makePrivate`/`makePrivateShort` held two. | **Done.** One key per action, shortened so it fits a list row as well as a panel. |
-| Get a link to a recipe | `Share.share`, `Visibility.share`, `Share.copyLink`, `Visibility.copyAddress` — four labels, and they can copy *different* URLs (`/recipe/<slug>` vs `/r/<token>`) | **Still open.** The two `share` keys already hold the same word; the other two copy genuinely different things and their fields say which. What remains is the double entry point, struck below. |
+| ~~Get a link to a recipe~~ | Four labels for one question, and two entry points that minted the same token — one of them silently, as a side effect of pressing Share. | **Done, and further than planned.** One control: Share opens a dialog naming the three stages the cookbook has always had. `ShareLink`, `Visibility` and the old `ShareButton` are gone. Entries and collections have the third stage too, which needed migration 0027 and a second and third page that guard themselves. |
 | Create the share token | Explicit `createLink` button in `ShareLink`; invisible inside `share` in `ShareButton` — both on the recipe page at once | Keep one of the two components on the recipe page. |
 | ~~Write a note on a recipe~~ | Read again: `addNote` is "Write a blog entry about this recipe" and `newPost` is "New entry". Same destination, different offers — the first carries the recipe with it. | **Not a duplicate.** This row was wrong; the labels stay. |
 | ~~Open the devices page~~ | Three entry points, and `Inbox.devices` held the same string as `Devices.nav` rather than a different one. | **Done.** The inbox reads the navigation's key; two keys holding one string is two strings waiting to disagree. |
@@ -169,13 +169,11 @@ about what the screens *feel* like, which a static map cannot see:
 
 1. ~~Make the proxy honour `'recipe'` access.~~ Done — `proxyStepsAside()`, commit f6b1ea1.
 2. ~~One shared client error path, then wire the silent actions to it.~~ Done — `messageFrom()` and `useAction()`; the eight sites in the table above all say so now.
-3. ~~Collapse the duplicated labels.~~ Done for publish/unpublish and the
-   devices link; the `addNote`/`newPost` row turned out not to be a duplicate
-   and is struck above. **Still open:** the recipe page offers both an
-   implicit mint (`ShareButton`) and an explicit one (`ShareLink`, inside the
-   visibility panel). Keeping both is deliberate — the explicit one is also
-   where a link is *withdrawn* — but the panel should say that the Share
-   button above makes the same link.
+3. ~~Collapse the duplicated labels, and the duplicated entry points.~~ Done.
+   The labels first; then the whole arrangement, when it turned out the two
+   entry points were not merely duplicated but *disagreed* — one of them
+   minted a permanent public link without saying so. See `lib/shareStage` and
+   `components/share/ShareDialog`.
 4. ~~After Accept in the inbox, go to the recipe.~~ Done — the slug was in the answer all along.
 5. ~~Put the account link in the desktop header.~~ Done — the greeting leads there, as it already did on a phone.
 6. ~~Move `/drafts` under `/admin`.~~ Done, with a redirect from the old address.
