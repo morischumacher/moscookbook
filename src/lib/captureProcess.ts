@@ -19,6 +19,7 @@ import { recipeLinksIn } from './recipeLinks';
 import { recipeElsewhere } from './socialHints';
 import { instagramEmbedUrl, instagramShortcode, readInstagramEmbed } from './instagram';
 import { bestCaptionTrack, captionText, captionTracksFrom } from './youtubeCaptions';
+import { dishName, handleFromUrl, NO_ACCOUNT_SITES, pickResult, resultsFromSearchHtml, resultsFromWpJson, searchUrls, sitesInText } from './authorSite';
 
 // The public shapes, re-exported: routes and tests import them from here.
 export type { ProcessableCapture, ProcessedCapture, ProcessOptions } from './captureTypes';
@@ -105,6 +106,47 @@ async function fromLinkedRecipe(
     return null;
 }
 
+/**
+ * "Recipe on pattyplates.com (link in bio)", looked up on that site.
+ *
+ * The site is the one the text names, or the one this account's posts named
+ * before. The dish is searched for there and the matching page read like any
+ * shared page — rules first, so a blog with recipe markup costs nothing. A
+ * site the text names is remembered for the account whatever the search
+ * finds. See authorSite.ts.
+ */
+async function fromAuthorSite(
+    text: string,
+    account: { platform: string; handle: string } | null,
+    sharedUrl: string,
+    ai: AiCapability,
+    options: ProcessOptions
+): Promise<ProcessedCapture | null> {
+    const accounts = options.accounts ?? NO_ACCOUNT_SITES;
+    const named = sitesInText(text);
+    if (account && named[0]) await accounts.remember(account.platform, account.handle, named[0]).catch(() => undefined);
+
+    const remembered = named.length === 0 && account ? await accounts.get(account.platform, account.handle).catch(() => null) : null;
+    const hosts = remembered ? [remembered] : named;
+    const dish = dishName(text);
+    if (hosts.length === 0 || !dish) return null;
+
+    for (const host of hosts) {
+        for (const [index, address] of searchUrls(host, dish).entries()) {
+            const page = await fetchPage(address, { json: index === 0 });
+            if (!page.ok) continue;
+            const link = pickResult(index === 0 ? resultsFromWpJson(page.html) : resultsFromSearchHtml(page.html, host), dish);
+            if (!link) continue;
+            const result = await processWebPage(link, null, ai, options);
+            if (result.status === 'ready' && result.draft) {
+                return { ...result, draft: { ...result.draft, sourceUrl: sharedUrl } };
+            }
+            break;
+        }
+    }
+    return null;
+}
+
 async function processYoutube(
     url: string,
     rawText: string | null,
@@ -156,6 +198,11 @@ async function processYoutube(
         const linked = await fromLinkedRecipe([video.description, rawText ?? ''].join('\n'), url, ai, options);
         if (linked?.draft) {
             return { ...linked, draft: mergeDrafts(linked.draft, { imageUrl: video.imageUrl }) };
+        }
+        // "Full recipe on myblog.com", with no link: searched for there.
+        const onSite = await fromAuthorSite([video.title, video.description].join('\n'), null, url, ai, options);
+        if (onSite?.draft) {
+            return { ...onSite, draft: mergeDrafts(onSite.draft, { imageUrl: video.imageUrl }) };
         }
     }
 
@@ -255,6 +302,21 @@ async function processSocial(
 
     const linked = await fromLinkedRecipe(text ?? '', url, ai, options);
     if (linked?.draft) return finish(linked);
+
+    // "pattyplates.com (link in bio)": the dish, searched for on that site —
+    // or on the site this account named before.
+    const handle = post?.author ? post.author.toLowerCase() : handleFromUrl(url);
+    const account = handle ? { platform: code ? 'instagram' : 'tiktok', handle } : null;
+    const onSite = await fromAuthorSite(text ?? '', account, url, ai, options);
+    if (onSite?.draft) return finish(onSite);
+
+    /*
+     * The recipe is elsewhere — in the bio, the comments, a DM — and the
+     * caption is not it: asking a model would be paying to be told so. Only
+     * when somebody presses the button (`force`) is it asked anyway.
+     */
+    const promo = recipeElsewhere(text ?? '') !== null && (byRules.draft?.ingredients.length ?? 0) < 3;
+    if (promo && !options.force) return finish(byRules);
 
     if (!canUseAi(ai)) return finish(byRules);
     return finish(await processWebPage(url, text, ai, options));

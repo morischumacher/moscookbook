@@ -30,7 +30,11 @@ function normaliseUrl(input: string): string {
     return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
-export async function fetchPage(rawUrl: string): Promise<FetchPageResult> {
+/**
+ * `json`: for a site's search API (see authorSite.ts) — the same guards, a
+ * JSON answer accepted instead of a page.
+ */
+export async function fetchPage(rawUrl: string, options: { json?: boolean } = {}): Promise<FetchPageResult> {
     const url = normaliseUrl(rawUrl);
 
     if (!isSafePublicUrl(url)) {
@@ -48,7 +52,7 @@ export async function fetchPage(rawUrl: string): Promise<FetchPageResult> {
             headers: {
                 // Some sites serve a stripped page to unknown agents.
                 'User-Agent': 'Mozilla/5.0 (compatible; moscookbook-import/1.0)',
-                Accept: 'text/html,application/xhtml+xml',
+                Accept: options.json ? 'application/json' : 'text/html,application/xhtml+xml',
                 // Recipes shared here are German more often than not, and a
                 // site that localises will otherwise hand back English.
                 'Accept-Language': 'de-DE,de;q=0.9,en;q=0.5',
@@ -60,7 +64,8 @@ export async function fetchPage(rawUrl: string): Promise<FetchPageResult> {
         }
 
         const contentType = response.headers.get('content-type') ?? '';
-        if (!contentType.includes('html') && !contentType.includes('xml')) {
+        const expected = options.json ? contentType.includes('json') : contentType.includes('html') || contentType.includes('xml');
+        if (!expected) {
             return { ok: false, failure: 'not-a-page' };
         }
 

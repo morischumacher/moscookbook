@@ -1019,7 +1019,7 @@
   },
   "SiteProfiles": {
     "title": "Gelernte Seiten",
-    "intro": "Beim ersten Import von einer unbekannten Seite merkt sich das Kochbuch, wo diese Seite ihr Rezept hinschreibt. Jeder weitere Import von dort kommt ohne KI aus. Diese Liste füllt sich von selbst — hierher kommst du nur, wenn du eine Seite vorab lernen oder eine veraltete korrigieren willst. Gelernt wird nur bei Rezept-Webseiten, und nur wenn die Seite kein Rezept-Markup hat und die KI geholfen hat. Instagram, TikTok und YouTube haben kein festes Seitenlayout – dort steht das Rezept jedes Mal frei im Text – deshalb werden sie jedes Mal neu gelesen und erscheinen hier nie.",
+    "intro": "Beim ersten Import von einer unbekannten Seite merkt sich das Kochbuch, wo diese Seite ihr Rezept hinschreibt. Jeder weitere Import von dort kommt ohne KI aus. Diese Liste füllt sich von selbst — hierher kommst du nur, wenn du eine Seite vorab lernen oder eine veraltete korrigieren willst. Gelernt wird nur bei Rezept-Webseiten, und nur wenn die Seite kein Rezept-Markup hat und die KI geholfen hat. Instagram, TikTok und YouTube haben kein festes Seitenlayout und erscheinen hier nicht. Dort merkt sich das Kochbuch stattdessen, auf welcher Webseite ein Konto seine Rezepte hat („pattyplates.com (link in bio)“), und sucht das Gericht beim nächsten Post direkt dort – meist ohne KI.",
     "urlLabel": "Adresse einer Rezeptseite",
     "learn": "Seite lernen",
     "learning": "Liest …",

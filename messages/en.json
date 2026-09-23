@@ -1019,7 +1019,7 @@
   },
   "SiteProfiles": {
     "title": "Learned sites",
-    "intro": "The first import from an unknown site teaches the cookbook where that site puts its recipe. Every later import from it needs no AI. This list fills itself — you are only here to teach a site in advance, or to correct one that has gone out of date. Only recipe websites are learned, and only when the page has no recipe markup and the AI helped. Instagram, TikTok and YouTube have no fixed page layout – the recipe is free text in every post – so they are read fresh each time and never appear here.",
+    "intro": "The first import from an unknown site teaches the cookbook where that site puts its recipe. Every later import from it needs no AI. This list fills itself — you are only here to teach a site in advance, or to correct one that has gone out of date. Only recipe websites are learned, and only when the page has no recipe markup and the AI helped. Instagram, TikTok and YouTube have no fixed page layout and do not appear here. Instead the cookbook remembers which website an account keeps its recipes on (“pattyplates.com (link in bio)”) and looks the dish up there on the next post – usually without AI.",
     "urlLabel": "Address of a recipe page",
     "learn": "Learn this site",
     "learning": "Reading …",
