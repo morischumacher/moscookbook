@@ -1167,7 +1167,9 @@
     "addMenuGuests": "Shopping list for {count, plural, one {# guest} other {# guests}}",
     "undoAdd": "Take it off again",
     "nothingToAdd": "This recipe has no ingredients – nothing went onto the list.",
-    "removedAgain": "Taken off the list again."
+    "removedAgain": "Taken off the list again.",
+    "copyLink": "Copy the link",
+    "tapToCopy": "Tap to copy"
   },
   "Tags": {
     "vegetarian": "Vegetarian",

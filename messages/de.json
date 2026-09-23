@@ -1167,7 +1167,9 @@
     "addMenuGuests": "Einkaufsliste für {count, plural, one {# Gast} other {# Gäste}}",
     "undoAdd": "Wieder entfernen",
     "nothingToAdd": "Dieses Rezept hat keine Zutaten – es kam nichts auf die Liste.",
-    "removedAgain": "Wieder von der Liste genommen."
+    "removedAgain": "Wieder von der Liste genommen.",
+    "copyLink": "Link kopieren",
+    "tapToCopy": "Antippen zum Kopieren"
   },
   "Tags": {
     "vegetarian": "Vegetarisch",

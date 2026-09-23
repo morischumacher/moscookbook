@@ -330,7 +330,17 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                         <p className="font-medium">{t('shareTitle')}</p>
                         <p className="mt-1 text-muted">{t('shareExplain')}</p>
                         {shareLink && (
-                            <p className="mt-3 break-all rounded-lg bg-surface px-3 py-2 font-mono text-xs">{shareLink}</p>
+                            // A tap copies it: selecting a long address on a
+                            // phone is the fiddly part.
+                            <button
+                                type="button"
+                                onClick={() => void navigator.clipboard.writeText(shareLink).then(() => setNote(t('copied')), () => undefined)}
+                                aria-label={t('copyLink')}
+                                className="mt-3 block w-full break-all rounded-lg bg-surface px-3 py-2 text-left font-mono text-xs hover:bg-line"
+                            >
+                                {shareLink}
+                                <span className="mt-1 block font-sans text-faint">{t('tapToCopy')}</span>
+                            </button>
                         )}
                         <div className="mt-3 flex flex-wrap gap-4">
                             {shareLink && (
