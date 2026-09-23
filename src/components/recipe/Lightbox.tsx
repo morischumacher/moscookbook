@@ -66,6 +66,8 @@ export default function Lightbox({
     useEffect(() => {
         if (!isOpen) return;
 
+        // Back to whatever opened it, when it closes (the thumbnail).
+        const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         closeButton.current?.focus();
 
         // The page behind must not scroll: on a phone a full-screen picture
@@ -75,6 +77,22 @@ export default function Lightbox({
 
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') onClose();
+            // Tab stays inside: the page behind is covered.
+            if (event.key === 'Tab') {
+                const box = closeButton.current?.closest('[role="dialog"]');
+                const items = box ? [...box.querySelectorAll<HTMLElement>('button, a[href]')] : [];
+                if (items.length > 0) {
+                    const first = items[0];
+                    const last = items[items.length - 1];
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        last.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        first.focus();
+                    }
+                }
+            }
             if (event.key === 'ArrowRight') show(index + 1);
             if (event.key === 'ArrowLeft') show(index - 1);
         };
@@ -84,6 +102,7 @@ export default function Lightbox({
         return () => {
             document.removeEventListener('keydown', onKeyDown);
             document.body.style.overflow = previousOverflow;
+            if (opener?.isConnected && !opener.closest('[role="dialog"]')) opener.focus();
         };
     }, [isOpen, index, onClose, show]);
 
