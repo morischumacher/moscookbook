@@ -62,8 +62,19 @@ export default function RegisterForm({
                 return;
             }
 
-            const data = await res.json();
-            setError(data.message || t('registerFailed'));
+            const data = await res.json().catch(() => ({}));
+            // In the page's language; the server's words are English.
+            setError(
+                res.status === 403
+                    ? t('inviteUsed')
+                    : res.status === 409
+                      ? data.reason === 'name-taken' ? t('nameTaken') : t('accountExists')
+                      : res.status === 429
+                        ? t('tooMany')
+                        : res.status === 400
+                          ? t('registerCheck')
+                          : t('registerFailed')
+            );
         } catch {
             setError(t('error'));
         } finally {

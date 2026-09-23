@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Rating, { type RatingResult } from './Rating';
 
 interface Props {
@@ -36,6 +36,8 @@ export default function RatingDisplay({
     infoClassName,
 }: Props) {
     const t = useTranslations('Rating');
+    // "4,5" on a German page, not "4.5".
+    const oneDecimal = new Intl.NumberFormat(useLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     const tRecipe = useTranslations('Recipe');
 
     const [average, setAverage] = useState(initialAverage);
@@ -68,7 +70,7 @@ export default function RatingDisplay({
                     written out next to a picture of the scale is the kind of
                     small redundancy that makes an interface feel wordy. */}
                 <span className="text-muted">
-                    {t('summary', { count, average: average.toFixed(1) })}
+                    {t('summary', { count, average: oneDecimal.format(average) })}
                 </span>
             </span>
 

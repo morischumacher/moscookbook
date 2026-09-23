@@ -135,7 +135,7 @@ export default function accountTests() {
     );
     check(
         'the old address is told once it has stopped being the address',
-        verify.indexOf('sendMail(emailChangedMail') > verify.indexOf('pendingEmail: null'),
+        verify.indexOf('emailChangedMail(user.email') > verify.indexOf('pendingEmail: null'),
         'the notice goes after the move'
     );
     check('a taken address is a 409, not a 500', email.includes('status: 409') && verify.includes('status: 409'), 'both routes');

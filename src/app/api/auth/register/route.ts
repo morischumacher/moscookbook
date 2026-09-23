@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         if (!promised?.firstName && checkName({ firstName, lastName }, await takenNames()).state !== 'free') {
             await releaseInvite();
             return NextResponse.json(
-                { message: 'Somebody here already has that name. Please add or change your last name.' },
+                { message: 'Somebody here already has that name. Please add or change your last name.', reason: 'name-taken' },
                 { status: 409 }
             );
         }

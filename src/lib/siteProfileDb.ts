@@ -73,7 +73,8 @@ export const siteProfiles: SiteProfileStore = {
         const model = table();
         if (!model) return null;
 
-        const row = (await model.findUnique({ where: { host } })) as Row | null;
+        // A read that fails is "nothing learned", not a failed import.
+        const row = (await model.findUnique({ where: { host } }).catch(() => null)) as Row | null;
         if (!row || row.stale) return null;
 
         return toStored(row);

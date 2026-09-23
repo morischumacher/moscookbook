@@ -171,9 +171,6 @@ export async function GET(req: NextRequest) {
         // Nothing depends on it — a closed rate-limit window is reused in
         // place — but without it the table grows a row per address that ever
         // signed in.
-        // And the work list, caught up with whatever happened this week.
-        await syncAll().catch((error) => console.error('Work list catch-up failed:', error));
-
         const sweptLimits = await sweepRateLimits();
         if (sweptLimits > 0) console.log(`Swept ${sweptLimits} closed rate-limit windows.`);
 
@@ -191,6 +188,11 @@ export async function GET(req: NextRequest) {
                 addRandomSuffix: true,
             }
         );
+
+        // And the work list, caught up with whatever happened this week —
+        // after the backup is written, so a slow catch-up cannot keep it
+        // from being written at all.
+        await syncAll().catch((error) => console.error('Work list catch-up failed:', error));
 
         // Pruned after the new one is written, never before: a prune that ran
         // first and then failed to write would leave one fewer backup than

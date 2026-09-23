@@ -86,8 +86,8 @@ function TicketForm() {
             });
 
             if (!res.ok) {
-                const data = await res.json().catch(() => null);
-                setError(data?.message || t('failed'));
+                // Said in the page's language; the server's words are English.
+                setError(t('failed'));
                 return;
             }
 

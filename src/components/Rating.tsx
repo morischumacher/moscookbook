@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Oyster from './brand/Oyster';
 import styles from './Rating.module.css';
 
@@ -47,6 +47,8 @@ export default function Rating({
     onDark = false,
 }: RatingProps) {
     const t = useTranslations('Rating');
+    // "4,5" on a German page, not "4.5".
+    const oneDecimal = new Intl.NumberFormat(useLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     const [hoverValue, setHoverValue] = useState<number | null>(null);
     const [pending, setPending] = useState<number | null>(null);
     const [error, setError] = useState('');
@@ -156,7 +158,7 @@ export default function Rating({
                 // decorative images and says nothing about the rating.
                 {...(isInteractive
                     ? { role: 'group', 'aria-label': t('submitYours') }
-                    : { role: 'img', 'aria-label': t('screenReader', { average: value.toFixed(1), max }) })}
+                    : { role: 'img', 'aria-label': t('screenReader', { average: oneDecimal.format(value), max }) })}
             >
                 {oysters}
             </span>

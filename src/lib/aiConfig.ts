@@ -356,6 +356,17 @@ export async function saveAiCredential(input: SaveCredential): Promise<boolean> 
 
     const sealed = input.apiKey !== undefined ? seal(input.apiKey) : undefined;
 
+    /*
+     * No key and no row yet — a provider whose key comes from the
+     * environment, clicked to make it the first choice. Creating a row here
+     * wrote an empty, unverified key that then took the environment's place,
+     * and the working key stopped being used.
+     */
+    if (sealed === undefined) {
+        const existing = await credentials.findUnique({ where: { provider: input.provider }, select: { provider: true } });
+        if (!existing) return false;
+    }
+
     await credentials.upsert({
         where: { provider: input.provider },
         update: {
@@ -477,6 +488,9 @@ export async function recordCheck(provider: AiProvider, error: string | null): P
 export async function rememberModel(provider: AiProvider, model: string): Promise<void> {
     const credentials = table('aiCredential');
     if (!credentials || !isValidModel(model)) return;
+    // The default answering is not news: writing it down would pin today's
+    // default for good, past the day the default moves on.
+    if (model === DEFAULT_MODEL[provider]) return;
 
     await credentials
         .updateMany({
