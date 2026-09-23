@@ -154,7 +154,7 @@ export default function AdminDevicesPage() {
                 </div>
             )}
 
-            <h2 className="mb-4 text-xs uppercase tracking-widest text-faint">{t('devicesHeading')}</h2>
+            <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted">{t('devicesHeading')}</h2>
 
             {loading ? (
                 <p className="text-muted">{t('loading')}</p>

@@ -85,7 +85,7 @@ export default function VerifyPage() {
     const t = useTranslations('Auth');
 
     return (
-        <main className="container mx-auto max-w-sm px-4 pb-32 pt-16 sm:pt-24">
+        <main className="container mx-auto px-4 sm:max-w-sm pb-32 pt-16 sm:pt-24">
             <h1 className="mb-8 text-3xl font-extrabold tracking-tight">{t('verifyTitle')}</h1>
             <Suspense fallback={null}>
                 <Verifier />

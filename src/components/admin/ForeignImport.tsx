@@ -94,7 +94,7 @@ export default function ForeignImport() {
 
     return (
         <section className="mt-12 border-t border-line pt-6">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-muted">{t('title')}</h2>
+            <h2 className="text-xs font-bold uppercase tracking-widest text-muted">{t('title')}</h2>
             <p className="mt-2 text-sm text-muted">{t('explain')}</p>
 
             <input

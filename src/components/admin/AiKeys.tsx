@@ -273,7 +273,7 @@ export default function AiKeys() {
                 costing me money", and somebody arriving worried about that
                 should not have to read a provider card to find it. */}
             <section className="mb-10">
-                <h2 className="mb-1 text-xs uppercase tracking-widest text-faint">
+                <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-muted">
                     {t('modeHeading')}
                 </h2>
                 <p className="mb-4 text-sm text-muted">{t('modeIntro')}</p>
@@ -299,7 +299,7 @@ export default function AiKeys() {
                 )}
             </section>
 
-            <h2 className="mb-1 text-xs uppercase tracking-widest text-faint">
+            <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-muted">
                 {t('providersHeading')}
             </h2>
             <p className="mb-4 text-sm text-muted">{t('providersIntro')}</p>

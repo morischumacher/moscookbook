@@ -96,7 +96,7 @@ export default function BackupPanel() {
 
     return (
         <section className="mt-12 rounded-xl border border-line p-4 sm:p-6">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-muted">{t('title')}</h2>
+            <h2 className="text-xs font-bold uppercase tracking-widest text-muted">{t('title')}</h2>
             <p className="mt-2 text-sm text-muted">{t('explanation')}</p>
 
             <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
