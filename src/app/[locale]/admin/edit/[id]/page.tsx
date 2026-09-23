@@ -6,6 +6,7 @@ import RecipeHistory, { type HistoryEntry } from '@/components/recipe-form/Recip
 import RecipeForm from '@/components/recipe-form/RecipeForm';
 import { canUseAi } from '@/lib/aiProviders';
 import { aiCapability } from '@/lib/aiConfig';
+import { collectionFacets } from '@/lib/collectionFacets';
 
 interface EditableRecipe {
     tags: string[];
@@ -67,6 +68,7 @@ export default async function EditRecipePage({
     return (
         <>
         <RecipeForm
+            knownCategories={(await collectionFacets()).categories.map((facet) => facet.value)}
             mode="edit"
             aiEnabled={canUseAi(await aiCapability())}
             initial={{

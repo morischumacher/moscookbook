@@ -41,8 +41,11 @@ export default function RecipeForm({
     initial,
     aiEnabled,
     captureId,
+    knownCategories = [],
 }: {
     mode: 'create' | 'edit';
+    /** Categories already used by recipes, offered alongside the usual ones. */
+    knownCategories?: string[];
     initial?: Partial<RecipeFormValues>;
     aiEnabled: boolean;
     /**
@@ -375,11 +378,15 @@ export default function RecipeForm({
                             list="categories"
                             className={fieldClass}
                         />
+                        {/* The categories already in use as well as the usual
+                            ones: a new category is simply typed in here, and
+                            appears among the filters once a recipe has it. */}
                         <datalist id="categories">
-                            {CATEGORIES.map((entry) => (
+                            {[...new Set([...CATEGORIES, ...knownCategories])].map((entry) => (
                                 <option key={entry} value={entry} />
                             ))}
                         </datalist>
+                        <p className="mt-1 text-xs text-muted">{t('categoryHint')}</p>
                     </div>
 
                     <div>

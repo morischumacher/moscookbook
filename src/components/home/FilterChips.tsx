@@ -215,8 +215,21 @@ export default function FilterChips({
             </label>
 
             {/* Horizontal scroll rather than wrapping, so a long list stays one line on a phone. */}
-            {categories.length > 0 && (
+            {(categories.length > 0 || isLoggedIn) && (
                 <div className={railClass} role="group" aria-label={t('category')}>
+                    {/* First in the row, where the eye starts: your own
+                        favourites were a small link at the bottom of the
+                        filters, easy to miss. */}
+                    {isLoggedIn && (
+                        <button
+                            type="button"
+                            onClick={() => setParam('favorites', favoritesOnly ? '' : 'true')}
+                            aria-pressed={favoritesOnly}
+                            className={chipClass(favoritesOnly)}
+                        >
+                            <span aria-hidden="true">♥</span> {t('favoritesChip')}
+                        </button>
+                    )}
                     <button type="button" onClick={() => setParam('category', '')} className={chipClass(!activeCategory)}>
                         {t('allCategories')}
                         <span className="tabular-nums text-xs opacity-60">{total}</span>
@@ -302,21 +315,7 @@ export default function FilterChips({
                 screen left it hanging off the end of a wrapped row.
             */}
             <div className="flex flex-col gap-3 border-t border-line pt-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                {isLoggedIn ? (
-                    <button
-                        type="button"
-                        onClick={() => setParam('favorites', favoritesOnly ? '' : 'true')}
-                        aria-pressed={favoritesOnly}
-                        className={`self-start underline-offset-4 transition-colors ${favoritesOnly
-                            ? 'font-medium text-ink underline'
-                            : 'text-muted hover:text-ink'
-                            }`}
-                    >
-                        {t('favoritesOnly')}
-                    </button>
-                ) : (
-                    <span />
-                )}
+                <span />
 
                 <label className="flex items-center gap-2">
                     <span className="text-muted">{t('sortBy')}</span>

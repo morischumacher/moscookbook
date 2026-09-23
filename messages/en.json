@@ -42,7 +42,8 @@
     "tagsLabel": "Diet, time and tags",
     "offlineKeep": "Keep my favourites on this device for offline",
     "offlineKeeping": "Saving {done} of {total}…",
-    "offlineKept": "{count, plural, one {# recipe} other {# recipes}} can now be opened without signal."
+    "offlineKept": "{count, plural, one {# recipe} other {# recipes}} can now be opened without signal.",
+    "favoritesChip": "Favourites"
   },
   "Categories": {
     "Breakfast": "Breakfast",
@@ -292,7 +293,8 @@
     "field_ingredients": "ingredients",
     "field_instructions": "method",
     "field_tags": "tags",
-    "needIngredient": "A recipe needs at least one ingredient."
+    "needIngredient": "A recipe needs at least one ingredient.",
+    "categoryHint": "Choose from the list – or type a new category; it then appears as a filter."
   },
   "QuickImport": {
     "heading": "Fill in quickly",

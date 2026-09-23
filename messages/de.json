@@ -42,7 +42,8 @@
     "tagsLabel": "Ernährung, Zeit und Tags",
     "offlineKeep": "Meine Favoriten offline auf diesem Gerät behalten",
     "offlineKeeping": "{done} von {total} werden gespeichert…",
-    "offlineKept": "{count, plural, one {# Rezept lässt} other {# Rezepte lassen}} sich jetzt ohne Netz öffnen."
+    "offlineKept": "{count, plural, one {# Rezept lässt} other {# Rezepte lassen}} sich jetzt ohne Netz öffnen.",
+    "favoritesChip": "Favoriten"
   },
   "Categories": {
     "Breakfast": "Frühstück",
@@ -292,7 +293,8 @@
     "field_ingredients": "Zutaten",
     "field_instructions": "Zubereitung",
     "field_tags": "Tags",
-    "needIngredient": "Ein Rezept braucht mindestens eine Zutat."
+    "needIngredient": "Ein Rezept braucht mindestens eine Zutat.",
+    "categoryHint": "Aus der Liste wählen – oder eine neue Kategorie eintippen, sie erscheint dann als Filter."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
