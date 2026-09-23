@@ -32,7 +32,8 @@ export default async function NewMenuPage({
                   select: {
                       title: true,
                       description: true,
-                      recipes: { orderBy: { position: 'asc' }, select: { recipe: { select: { id: true, title: true, category: true } } } },
+                      // Drafts are not offered anywhere else in the menu form either.
+                      recipes: { where: { recipe: { isDraft: false } }, orderBy: { position: 'asc' }, select: { recipe: { select: { id: true, title: true, category: true } } } },
                   },
               })
             : null,

@@ -231,7 +231,8 @@ export default async function RecipePage({
             userRatingValue={userRatingValue}
             views={views}
             url={`${getSiteUrl()}/${locale}/recipe/${recipe.slug}`}
-            publicUrl={recipe.shareToken ? shareUrl(getSiteUrl(), locale, recipe.shareToken) : null}
+            // Only an admin is given the secret link: it ends up in the page's data.
+            publicUrl={user?.admin && recipe.shareToken ? shareUrl(getSiteUrl(), locale, recipe.shareToken) : null}
         />
         </>
     );

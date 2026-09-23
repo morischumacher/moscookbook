@@ -6,7 +6,7 @@ import { rateLimitShared } from '@/lib/rateLimitShared';
 import { safeTicketPath } from '@/lib/ticketPath';
 import { failed } from '@/lib/reportServerError';
 import { syncWorkItem, workStates } from '@/lib/workItemsDb';
-import { isOurs } from '@/lib/blobCleanup';
+import { isReportPhoto } from '@/lib/blobCleanup';
 
 /**
  * What somebody thinks is wrong with the tool, or wants it to do.
@@ -45,7 +45,7 @@ const schema = z.object({
         .array(z.string().max(1000))
         .max(4)
         .optional()
-        .transform((urls) => (urls ?? []).filter(isOurs)),
+        .transform((urls) => (urls ?? []).filter(isReportPhoto)),
 });
 
 export async function POST(req: NextRequest) {

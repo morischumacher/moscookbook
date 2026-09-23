@@ -31,6 +31,21 @@ export function isOurs(url: string): boolean {
     }
 }
 
+/**
+ * A screenshot uploaded for a report: in our store and under `reports/`,
+ * where /api/report-photos puts them. A ticket may only point at those — any
+ * other address from our store (a recipe's photograph, an avatar) would be
+ * deleted the day an admin removed "the screenshot".
+ */
+export function isReportPhoto(url: string): boolean {
+    if (!isOurs(url)) return false;
+    try {
+        return new URL(url).pathname.startsWith('/reports/');
+    } catch {
+        return false;
+    }
+}
+
 export function ownBlobUrls(urls: (string | null | undefined)[]): string[] {
     return [...new Set(urls.filter((url): url is string => Boolean(url) && isOurs(url!)))];
 }

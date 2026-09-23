@@ -94,6 +94,11 @@ export async function POST(req: NextRequest) {
             data: { usedAt: now },
         });
 
+        // And the passkeys. Signing in with one makes a fresh session, so a
+        // passkey added by whoever knew the old password would have let them
+        // straight back in. The owner adds their own again in a minute.
+        await prisma.passkey.deleteMany({ where: { userId: user.id } });
+
         // Signed in straight away: they have just proved control of the mailbox
         // and chosen a password, and sending them to a login form to type it
         // again on a phone keyboard is friction with nothing behind it.

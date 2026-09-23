@@ -8,7 +8,7 @@ import { buttonPrimarySmall, pageContainer, pageHeading, pageTop } from '@/lib/u
 /** Every menu, the next evening first, then the ones that have been. */
 export default async function MenusPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params;
-    const [t, user, menus] = await Promise.all([
+    const [t, user, listed] = await Promise.all([
         getTranslations('Menus'),
         getCurrentUser(),
         prisma.menu.findMany({
@@ -26,6 +26,16 @@ export default async function MenusPage({ params }: { params: Promise<{ locale: 
         }),
     ]);
     const formatDate = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+
+    // The next evening first: undated ones (still being planned), then the
+    // coming evenings soonest first, then the ones that have been, latest
+    // first. Sorting by date alone put the furthest future on top.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const undated = listed.filter((menu) => !menu.date);
+    const upcoming = listed.filter((menu) => menu.date && menu.date >= today).sort((a, b) => a.date!.getTime() - b.date!.getTime());
+    const past = listed.filter((menu) => menu.date && menu.date < today);
+    const menus = [...undated, ...upcoming, ...past];
 
     return (
         <main className={`${pageContainer} pb-32`}>

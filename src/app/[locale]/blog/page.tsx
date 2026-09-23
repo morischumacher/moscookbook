@@ -85,7 +85,10 @@ export default async function BlogIndex({
         // Nulls first puts an admin's unfinished drafts at the top, where they
         // are a to-do list rather than something buried under last year.
         orderBy: [{ publishedAt: { sort: 'desc', nulls: 'first' } }, { createdAt: 'desc' }],
-        take: 100,
+        // A search keeps all its matches (at most 300) until they are put in
+        // order of relevance below; cutting at 100 by date first dropped the
+        // best older ones.
+        take: matchedIds === null ? 100 : undefined,
         select: {
             id: true,
             title: true,
