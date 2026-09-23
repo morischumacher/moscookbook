@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/auth';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { prepareErrorReport } from '@/lib/errorReport';
 import { failed } from '@/lib/reportServerError';
+import { syncWorkItem, workStates } from '@/lib/workItemsDb';
 
 /**
  * Where a broken page says so.
@@ -68,6 +69,9 @@ export async function POST(req: NextRequest) {
                 await prisma.errorLog.create({ data: report });
             }
         }
+
+        const row = await prisma.errorLog.findUnique({ where: { fingerprint: report.fingerprint }, select: { id: true } });
+        if (row) await syncWorkItem('error', row.id);
     } catch (error) {
         // Reporting must never be the thing that breaks a page. A race between
         // two first reports of the same error lands here, and one is enough.
@@ -90,5 +94,7 @@ export async function GET(req: NextRequest) {
         take: 100,
     });
 
-    return NextResponse.json({ errors });
+    // Beside each row: whether it is on the work list.
+    const work = await workStates('error', errors.map((row: { id: number }) => row.id));
+    return NextResponse.json({ errors: errors.map((row: { id: number }) => ({ ...row, work: work.get(row.id) ?? null })) });
 }

@@ -13,6 +13,7 @@ import { aiCapability } from '@/lib/aiConfig';
 import { DEFAULT_MODEL, canUseAi } from '@/lib/aiImport';
 import { failed } from '@/lib/reportServerError';
 import { draftFromJson } from '@/lib/captureDraft';
+import { workStates } from '@/lib/workItemsDb';
 
 /**
  * The capture endpoint.
@@ -292,8 +293,10 @@ export async function GET() {
     const ai = await aiCapability();
     const next = ai.keys[0] ?? null;
 
+    const work = await workStates('capture', withHints.map((capture) => capture.id));
+
     return NextResponse.json({
-        captures: withHints,
+        captures: withHints.map((capture) => ({ ...capture, work: work.get(capture.id) ?? null })),
         aiAvailable: canUseAi(ai),
         aiModel: next ? next.model?.trim() || DEFAULT_MODEL[next.provider] : null,
     });

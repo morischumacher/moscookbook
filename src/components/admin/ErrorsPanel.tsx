@@ -1,6 +1,6 @@
 'use client';
 
-import ShareToWorkList from '@/components/admin/ShareToWorkList';
+import ShareToWorkList, { type WorkState } from '@/components/admin/ShareToWorkList';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/lib/formatDate';
@@ -10,6 +10,8 @@ import { useCopy } from '@/components/ui/useCopy';
 import Loading from '@/components/ui/Loading';
 
 interface ErrorRow {
+    /** On the work list, and whether it was put there automatically. */
+    work: WorkState | null;
     id: number;
     source: string;
     message: string;
@@ -214,7 +216,7 @@ export default function ErrorsPanel() {
                                         {expanded === row.id ? t('hideStack') : t('showStack')}
                                     </button>
                                 )}
-                                <ShareToWorkList kind="error" id={row.id} />
+                                <ShareToWorkList kind="error" id={row.id} work={row.work} key={`w-${row.id}-${row.work?.id ?? 0}`} />
                                 {!showResolved ? (
                                     <button
                                         type="button"

@@ -5,6 +5,7 @@ import { getCurrentUser, requireAdmin } from '@/lib/auth';
 import { rateLimitShared } from '@/lib/rateLimitShared';
 import { safeTicketPath } from '@/lib/ticketPath';
 import { failed } from '@/lib/reportServerError';
+import { syncWorkItem, workStates } from '@/lib/workItemsDb';
 
 /**
  * What somebody thinks is wrong with the tool, or wants it to do.
@@ -94,7 +95,8 @@ export async function GET(req: NextRequest) {
             },
         });
 
-        return NextResponse.json({ entries });
+        const work = await workStates('ticket', entries.map((entry: { id: number }) => entry.id));
+        return NextResponse.json({ entries: entries.map((entry: { id: number }) => ({ ...entry, work: work.get(entry.id) ?? null })) });
     } catch (error) {
         failed('Could not read tickets:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
@@ -128,6 +130,7 @@ export async function PATCH(req: NextRequest) {
         if (updated.count !== 1) {
             return NextResponse.json({ message: 'That is not there any more.' }, { status: 404 });
         }
+        await syncWorkItem('ticket', id);
 
         return NextResponse.json({ success: true });
     } catch (error) {

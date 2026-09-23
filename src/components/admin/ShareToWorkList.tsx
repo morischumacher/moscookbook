@@ -5,33 +5,75 @@ import { useTranslations } from 'next-intl';
 import { BusyLabel } from '@/components/ui/Busy';
 import type { WorkKind } from '@/lib/workItems';
 
+export interface WorkState {
+    id: number;
+    auto: boolean;
+    closed: boolean;
+}
+
 /**
- * "Zur Arbeitsliste": hands one row to the public work list, anonymized, with
- * an optional line saying what is wrong with it — for whoever does the
- * fixing, a person or an assistant.
+ * The work list, from the row's side: put it on (with an optional note), or
+ * take it back off — including when the application put it there by itself.
+ * For whoever does the fixing, a person or an assistant.
  */
-export default function ShareToWorkList({ kind, id, className = '' }: { kind: WorkKind; id: number; className?: string }) {
+export default function ShareToWorkList({
+    kind,
+    id,
+    work = null,
+    className = '',
+}: {
+    kind: WorkKind;
+    id: number;
+    /** Whether the row is on the list already, as the list API reports it. */
+    work?: WorkState | null;
+    className?: string;
+}) {
     const t = useTranslations('Work');
+    const [state, setState] = useState<WorkState | null>(work);
     const [open, setOpen] = useState(false);
     const [note, setNote] = useState('');
-    const [state, setState] = useState<'idle' | 'busy' | 'done' | 'failed'>('idle');
+    const [busy, setBusy] = useState(false);
+    const [failed, setFailed] = useState(false);
 
     const share = async () => {
-        setState('busy');
+        setBusy(true);
+        setFailed(false);
         try {
             const res = await fetch('/api/work-items', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ kind, id, note }),
             });
-            setState(res.ok ? 'done' : 'failed');
-            if (res.ok) setOpen(false);
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            setState({ id: data.id, auto: false, closed: false });
+            setOpen(false);
         } catch {
-            setState('failed');
+            setFailed(true);
+        } finally {
+            setBusy(false);
         }
     };
 
-    if (state === 'done') return <span className={`text-sm text-muted ${className}`}>✓ {t('shared')}</span>;
+    const withdraw = async () => {
+        if (!state) return;
+        setBusy(true);
+        const res = await fetch(`/api/work-items/${state.id}`, { method: 'DELETE' }).catch(() => null);
+        setBusy(false);
+        if (res?.ok) setState(null);
+        else setFailed(true);
+    };
+
+    if (state && !state.closed) {
+        return (
+            <span className={`inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-sm ${className}`}>
+                <span className="text-muted">✓ {state.auto ? t('sharedAuto') : t('shared')}</span>
+                <button type="button" onClick={() => void withdraw()} disabled={busy} className="text-muted underline underline-offset-4 hover:text-danger">
+                    <BusyLabel busy={busy}>{t('withdraw')}</BusyLabel>
+                </button>
+            </span>
+        );
+    }
 
     if (!open) {
         return (
@@ -59,14 +101,14 @@ export default function ShareToWorkList({ kind, id, className = '' }: { kind: Wo
             />
             <p className="text-xs text-faint">{t('publicHint')}</p>
             <div className="flex gap-4 text-sm">
-                <button type="submit" disabled={state === 'busy'} className="font-medium underline underline-offset-4">
-                    <BusyLabel busy={state === 'busy'}>{t('shareNow')}</BusyLabel>
+                <button type="submit" disabled={busy} className="font-medium underline underline-offset-4">
+                    <BusyLabel busy={busy}>{t('shareNow')}</BusyLabel>
                 </button>
                 <button type="button" onClick={() => setOpen(false)} className="text-muted underline underline-offset-4">
                     {t('cancel')}
                 </button>
             </div>
-            {state === 'failed' && <p className="text-xs text-danger">{t('failed')}</p>}
+            {failed && <p className="text-xs text-danger">{t('failed')}</p>}
         </form>
     );
 }

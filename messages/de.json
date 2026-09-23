@@ -1148,7 +1148,7 @@
     "notePlaceholder": "Was ist falsch? (optional)",
     "publicHint": "Landet anonymisiert – ohne Namen, E-Mail-Adressen und Links mit Schlüssel – auf der öffentlichen Arbeitsliste.",
     "failed": "Das hat nicht geklappt.",
-    "explain": "Was du hier freigibst, steht anonymisiert unter dieser öffentlichen Adresse – zum Beheben durch wen auch immer du beauftragst, Mensch oder KI. Alles andere bleibt privat. Den fertigen Auftrag für eine Programmier-KI findest du im Repo unter docs/work-list-prompt.md.",
+    "explain": "Was hier steht, ist anonymisiert unter dieser öffentlichen Adresse – zum Beheben durch wen auch immer du beauftragst, Mensch oder KI. Eindeutige Fehler (Serverfehler, wiederholte Fehler, Seiten die nicht gelesen werden konnten) kommen automatisch dazu. Erledigt wird ein Eintrag von selbst, sobald seine Quelle behoben ist – oder hier mit „Erledigt“; kommt ein Fehler wieder, geht er wieder auf. „Zurücknehmen“ nimmt ihn von der öffentlichen Liste, auch dauerhaft für automatische. Den fertigen Auftrag für eine KI findest du im Repo unter docs/work-list-prompt.md.",
     "copy": "Kopieren",
     "copied": "Kopiert",
     "loading": "Wird geladen…",
@@ -1156,11 +1156,22 @@
     "closed": "erledigt",
     "close": "Erledigt",
     "reopen": "Wieder öffnen",
-    "remove": "Von der Liste nehmen",
     "kind": {
       "capture": "Eingang",
       "error": "Fehler",
       "ticket": "Ticket"
+    },
+    "sharedAuto": "Automatisch auf der Arbeitsliste",
+    "withdraw": "Zurücknehmen",
+    "withdrawn": "zurückgenommen",
+    "restore": "Wieder aufnehmen",
+    "auto": "automatisch",
+    "closedAs": {
+      "done": "erledigt",
+      "resolved": "erledigt (Quelle behoben)",
+      "published": "erledigt (ins Kochbuch übernommen)",
+      "ready": "erledigt (jetzt richtig gelesen)",
+      "removed": "erledigt (Quelle gelöscht)"
     }
   }
 }

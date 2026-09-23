@@ -7,7 +7,7 @@ import { publishWorkItem } from '@/lib/workItemsDb';
 
 /** The admin's view of the work list: everything, with a title per row. */
 export const GET = route({ access: 'admin', label: 'Work list' }, async () => {
-    const items = await prisma.workItem.findMany({ orderBy: [{ closedAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'desc' }], take: 200 });
+    const items = await prisma.workItem.findMany({ orderBy: [{ dismissedAt: { sort: 'asc', nulls: 'first' } }, { closedAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'desc' }], take: 200 });
     return NextResponse.json({
         items: items.map((item) => ({
             id: item.id,
@@ -16,6 +16,9 @@ export const GET = route({ access: 'admin', label: 'Work list' }, async () => {
             title: workTitle(item.kind as WorkKind, item.data as Record<string, unknown>),
             createdAt: item.createdAt.toISOString(),
             closedAt: item.closedAt?.toISOString() ?? null,
+            closedReason: item.closedReason,
+            auto: item.auto,
+            dismissed: item.dismissedAt !== null,
         })),
     });
 });

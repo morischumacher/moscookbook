@@ -1148,7 +1148,7 @@
     "notePlaceholder": "What is wrong? (optional)",
     "publicHint": "Goes onto the public work list anonymized – without names, e-mail addresses or links with keys in them.",
     "failed": "That did not work.",
-    "explain": "What you share here is listed, anonymized, at this public address – for whoever you ask to fix it, a person or an AI. Everything else stays private. A ready-made brief for a coding AI is in the repository at docs/work-list-prompt.md.",
+    "explain": "What is listed here is public, anonymized, at this address – for whoever you ask to fix it, a person or an AI. Obvious failures (server errors, repeated errors, pages that could not be read) are added automatically. An item closes by itself once its source is dealt with – or here with “Done”; an error that comes back reopens it. “Withdraw” takes it off the public list, for automatic ones for good. A ready-made brief for an AI is in the repository at docs/work-list-prompt.md.",
     "copy": "Copy",
     "copied": "Copied",
     "loading": "Loading…",
@@ -1156,11 +1156,22 @@
     "closed": "done",
     "close": "Done",
     "reopen": "Reopen",
-    "remove": "Take off the list",
     "kind": {
       "capture": "Inbox",
       "error": "Error",
       "ticket": "Ticket"
+    },
+    "sharedAuto": "Automatically on the work list",
+    "withdraw": "Withdraw",
+    "withdrawn": "withdrawn",
+    "restore": "Put back",
+    "auto": "automatic",
+    "closedAs": {
+      "done": "done",
+      "resolved": "done (source resolved)",
+      "published": "done (taken into the cookbook)",
+      "ready": "done (now read correctly)",
+      "removed": "done (source deleted)"
     }
   }
 }

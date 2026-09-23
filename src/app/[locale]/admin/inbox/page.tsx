@@ -15,7 +15,7 @@ import InboxPaste from '@/components/admin/InboxPaste';
 import InboxFilters from '@/components/admin/InboxFilters';
 import { countBy, filterInbox, NO_FILTER, type InboxQuery } from '@/lib/inboxFilter';
 import { readReason } from '@/lib/captureReasons';
-import ShareToWorkList from '@/components/admin/ShareToWorkList';
+import ShareToWorkList, { type WorkState } from '@/components/admin/ShareToWorkList';
 
 interface DraftSummary {
     title?: string;
@@ -62,6 +62,8 @@ interface Capture {
     createdAt: string;
     /** Worked out when the list is read, against what the cookbook holds now. */
     duplicateOf: DuplicateHint | null;
+    /** On the work list, and whether it was put there automatically. */
+    work: WorkState | null;
 }
 
 /**
@@ -651,7 +653,7 @@ function CaptureRow({
                             {t('report')}
                         </Link>
 
-                        <ShareToWorkList kind="capture" id={capture.id} className="rounded-lg px-3 py-2 no-underline hover:bg-surface" />
+                        <ShareToWorkList kind="capture" id={capture.id} work={capture.work} className="rounded-lg px-3 py-2 no-underline hover:bg-surface" />
 
                         <button
                             type="button"

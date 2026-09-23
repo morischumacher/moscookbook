@@ -13,6 +13,7 @@ import { toJsonObject } from '@/lib/json';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
 import { draftFromJson } from '@/lib/captureDraft';
+import { syncWorkItem } from '@/lib/workItemsDb';
 
 /**
  * `askAi` is the button on a draft the scoring called good.
@@ -98,6 +99,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
                 processedAt: new Date(),
             },
         });
+        // Read better this time → closed on the work list; worse → added.
+        await syncWorkItem('capture', captureId);
         return NextResponse.json({ capture: updated });
     }
 
@@ -172,6 +175,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
             where: { id: captureId },
             data: { recipeId: recipe.id, error: null },
         });
+        await syncWorkItem('capture', captureId);
 
         // Publishing a capture is a recipe appearing, with a category the
         // filter rail has never seen. See lib/collectionFacets.
@@ -229,6 +233,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
         });
 
     const removed = await prisma.capture.deleteMany({ where: { id: captureId } });
+    await syncWorkItem('capture', captureId);
 
     if (removed.count === 1 && doomed?.imageUrl && doomed.status !== 'published') {
         await deleteBlobs([doomed.imageUrl]);

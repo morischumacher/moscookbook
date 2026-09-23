@@ -7,6 +7,7 @@ import { aiCapability, rememberModel } from './aiConfig';
 import { mirrorImageToBlob } from './mirrorImage';
 import { toJsonObject } from './json';
 import { failed } from './reportServerError';
+import { syncWorkItem } from './workItemsDb';
 
 /**
  * Reads a capture that has just been stored, after the answer has gone.
@@ -59,6 +60,8 @@ export function readInBackground(captureId: number, classified: ClassifiedCaptur
                     processedAt: new Date(),
                 },
             });
+            // An obvious failure goes onto the work list by itself.
+            await syncWorkItem('capture', capture.id);
         } catch (error) {
             failed('Capture was saved but could not be read:', error);
 

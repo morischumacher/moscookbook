@@ -1,6 +1,7 @@
 import { after } from 'next/server';
 import prisma from './prisma';
 import { prepareErrorReport } from './errorReport';
+import { syncWorkItem } from './workItemsDb';
 
 /**
  * Records a server-side failure alongside the client ones.
@@ -24,11 +25,14 @@ export async function reportServerError(
             path: context.path ?? null,
         });
 
-        await prisma.errorLog.upsert({
+        const row = await prisma.errorLog.upsert({
             where: { fingerprint: report.fingerprint },
             update: { count: { increment: 1 }, lastSeenAt: new Date(), resolvedAt: null },
             create: report,
+            select: { id: true },
         });
+        // Onto the work list if it is a bug, or reopened there if it is back.
+        await syncWorkItem('error', row.id);
     } catch (reportingError) {
         console.error('Could not store a server error report:', reportingError);
     }
