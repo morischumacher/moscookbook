@@ -1,6 +1,7 @@
 import { put } from '@vercel/blob';
 import { isSafePublicUrl } from './privateAddress';
 import { readCapped, safeFetch } from './safeFetch';
+import { isOurs } from './blobCleanup';
 
 /**
  * Copies an imported image into our own Blob store.
@@ -34,6 +35,9 @@ const EXTENSIONS: Record<string, string> = {
 };
 
 export async function mirrorImageToBlob(sourceUrl: string): Promise<string> {
+    // Already ours — a screenshot read by the model is its own picture. Copying
+    // it wrote a second file and orphaned the first.
+    if (sourceUrl && isOurs(sourceUrl)) return sourceUrl;
     if (!sourceUrl || !isSafePublicUrl(sourceUrl)) return '';
 
     const controller = new AbortController();

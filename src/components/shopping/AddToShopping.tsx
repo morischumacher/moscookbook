@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { BusyLabel } from '@/components/ui/Busy';
 import { buttonSecondary } from '@/lib/ui';
@@ -16,6 +16,7 @@ export default function AddToShopping(
     props: { recipeId: number; servings: number | null } | { collectionId: number } | { menuId: number; guests: number | null }
 ) {
     const t = useTranslations('Shopping');
+    const locale = useLocale();
     const [state, setState] = useState<'idle' | 'busy' | 'done' | 'empty' | 'undoing' | 'removed' | 'failed'>('idle');
 
     const what =
@@ -31,7 +32,7 @@ export default function AddToShopping(
             const res = await fetch('/api/shopping', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(what),
+                body: JSON.stringify({ ...what, locale }),
             });
             if (!res.ok) {
                 setState('failed');
@@ -53,7 +54,7 @@ export default function AddToShopping(
             const res = await fetch('/api/shopping/remove', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(what),
+                body: JSON.stringify({ ...what, locale }),
             });
             setState(res.ok ? 'removed' : 'failed');
         } catch {

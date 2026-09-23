@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { idFrom, refuse, route } from '@/lib/route';
 import { readSnapshot, snapshotOf } from '@/lib/revisions';
 import { keepRevisionOf } from '@/lib/revisionsDb';
-import { recipeColumns } from '@/lib/recipeRepo';
+import { keptTranslation, recipeColumns } from '@/lib/recipeRepo';
 import { splitAmount } from '@/lib/ingredientParts';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
 
@@ -44,7 +44,8 @@ export const POST = route<'admin', undefined, { id: string; revisionId: string }
         await prisma.$transaction([
             prisma.recipe.update({
                 where: { id: recipeId },
-                data: recipeColumns({ ...snapshot, slug: current.slug, ingredients }),
+                // With the translation it keeps, or the search forgets it.
+                data: recipeColumns({ ...snapshot, slug: current.slug, ingredients, translation: await keptTranslation(recipeId) }),
             }),
             prisma.ingredient.deleteMany({ where: { recipeId } }),
             prisma.ingredient.createMany({

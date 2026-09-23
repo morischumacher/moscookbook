@@ -100,7 +100,7 @@ async function fromLinkedRecipe(
         if (result.status === 'ready' && result.draft) {
             // Filed under what was shared: the video or post is what the
             // inbox and the duplicate check know it by.
-            return { ...result, draft: { ...result.draft, sourceUrl: sharedUrl } };
+            return { ...result, draft: { ...result.draft, sourceUrl: sharedUrl || result.draft.sourceUrl } };
         }
     }
     return null;
@@ -139,7 +139,7 @@ async function fromAuthorSite(
             if (!link) continue;
             const result = await processWebPage(link, null, ai, options);
             if (result.status === 'ready' && result.draft) {
-                return { ...result, draft: { ...result.draft, sourceUrl: sharedUrl } };
+                return { ...result, draft: { ...result.draft, sourceUrl: sharedUrl || result.draft.sourceUrl } };
             }
             break;
         }

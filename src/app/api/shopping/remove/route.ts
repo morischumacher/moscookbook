@@ -5,8 +5,8 @@ import { collectionLines, itemsOf, listOf, recipeLines, removeLines } from '@/li
 import { menuLines } from '@/lib/menuDb';
 
 const body = z.union([
-    z.object({ recipeId: z.number().int().positive(), servings: z.number().int().min(1).max(100).nullable().optional() }),
-    z.object({ collectionId: z.number().int().positive() }),
+    z.object({ recipeId: z.number().int().positive(), servings: z.number().int().min(1).max(100).nullable().optional(), locale: z.enum(['de', 'en']).optional() }),
+    z.object({ collectionId: z.number().int().positive(), locale: z.enum(['de', 'en']).optional() }),
     z.object({ menuId: z.number().int().positive() }),
 ]);
 
@@ -17,9 +17,9 @@ const body = z.union([
 export const POST = route({ access: 'user', body, label: 'Taking lines off the shopping list' }, async ({ user, body }) => {
     const lines =
         'recipeId' in body
-            ? await recipeLines(body.recipeId, body.servings ?? null)
+            ? await recipeLines(body.recipeId, body.servings ?? null, body.locale)
             : 'collectionId' in body
-              ? await collectionLines(body.collectionId)
+              ? await collectionLines(body.collectionId, body.locale)
               : await menuLines(body.menuId);
     if (lines === null) refuse(404, 'That is no longer there.');
 

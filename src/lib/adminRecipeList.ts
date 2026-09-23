@@ -61,11 +61,13 @@ export function showWhere(show: AdminShow) {
 
 export function sortOrder(sort: AdminSort) {
     switch (sort) {
+        // The id last in each: two rows that tie otherwise must not swap
+        // places between one page and the next.
         case 'title':
-            return [{ title: 'asc' as const }];
+            return [{ title: 'asc' as const }, { id: 'desc' as const }];
         case 'views':
-            return [{ views: 'desc' as const }, { createdAt: 'desc' as const }];
+            return [{ views: 'desc' as const }, { createdAt: 'desc' as const }, { id: 'desc' as const }];
         default:
-            return [{ createdAt: 'desc' as const }];
+            return [{ createdAt: 'desc' as const }, { id: 'desc' as const }];
     }
 }

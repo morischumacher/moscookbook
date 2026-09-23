@@ -28,8 +28,10 @@ export interface CookProgress {
     at: number;
 }
 
-export function cookProgressKey(recipeId: number): string {
-    return `moscookbook:cooking:${recipeId}`;
+export function cookProgressKey(recipeId: number, locale?: string): string {
+    // Per language: a translated recipe's lines need not match the
+    // original's one for one, and the ticks are kept by position.
+    return locale ? `moscookbook:cooking:${recipeId}:${locale}` : `moscookbook:cooking:${recipeId}`;
 }
 
 /** Whether a stored record is recent enough to still mean anything. */

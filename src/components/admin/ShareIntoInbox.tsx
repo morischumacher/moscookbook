@@ -13,10 +13,13 @@ import Loading from '@/components/ui/Loading';
 export default function ShareIntoInbox({ title, text, url }: { title: string; text: string; url: string }) {
     const t = useTranslations('ShareTarget');
     const sent = useRef(false);
+    // Opened with nothing shared — from the history, or typed in — is not a
+    // failed share, and sending an empty one only earned a 400.
+    const empty = !(title.trim() || text.trim() || url.trim());
     const [state, setState] = useState<'sending' | 'done' | 'failed'>('sending');
 
     useEffect(() => {
-        if (sent.current) return;
+        if (sent.current || empty) return;
         sent.current = true;
         window.history.replaceState(null, '', window.location.pathname);
 
@@ -27,9 +30,11 @@ export default function ShareIntoInbox({ title, text, url }: { title: string; te
         })
             .then((res) => setState(res.ok ? 'done' : 'failed'))
             .catch(() => setState('failed'));
-    }, [title, text, url]);
+    }, [title, text, url, empty]);
 
     const shown = url || text || title;
+
+    if (empty) return <p className="text-muted">{t('nothing')}</p>;
 
     return (
         <div>

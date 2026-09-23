@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
-import { appVersion, snapshotOf } from '@/lib/workItemsDb';
+import { appVersion, peopleNames, snapshotOf } from '@/lib/workItemsDb';
+import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import type { WorkKind } from '@/lib/workItems';
 
 /**
@@ -24,14 +25,22 @@ const ABOUT =
     'an error that happens again reopens its item. Do not try to close items; refer to them as "work #<id>" in commits and pull requests. ' +
     'Full instructions: docs/work-list-prompt.md in the repository.';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+    // Public and uncached, and each open item is read fresh: a ceiling on how
+    // often, so it cannot be used to keep the database busy.
+    const limit = await rateLimitShared(clientKey(req, 'work'), 60, 10 * 60 * 1000);
+    if (!limit.ok) {
+        return NextResponse.json({ message: 'Too many requests.' }, { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } });
+    }
+
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const [open, closed] = await Promise.all([
         prisma.workItem.findMany({ where: { closedAt: null, dismissedAt: null }, orderBy: { createdAt: 'asc' } }),
         prisma.workItem.findMany({ where: { closedAt: { gte: since }, dismissedAt: null }, orderBy: { closedAt: 'desc' }, take: 50 }),
     ]);
 
-    const fresh = await Promise.all(open.map((item) => snapshotOf(item.kind as WorkKind, item.refId, item.withPhotos).catch(() => null)));
+    const people = await peopleNames();
+    const fresh = await Promise.all(open.map((item) => snapshotOf(item.kind as WorkKind, item.refId, item.withPhotos, { people }).catch(() => null)));
 
     const shape = (item: (typeof open)[number], data: unknown) => ({
         id: item.id,

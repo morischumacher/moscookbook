@@ -4,7 +4,7 @@ import { draftFromJson } from './captureDraft';
 import { readReason } from './captureReasons';
 import { aiCapability } from './aiConfig';
 import { hostOf } from './siteProfile';
-import { captureSnapshot, errorSnapshot, ticketSnapshot, type WorkKind } from './workItems';
+import { anonymize, captureSnapshot, errorSnapshot, ticketSnapshot, type WorkKind } from './workItems';
 import { captureIsObvious, errorIsObvious } from './workAuto';
 
 /**
@@ -21,10 +21,20 @@ export function appVersion(): string {
     return process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'local';
 }
 
-/** Every name somebody with an account goes by — what anonymize takes out. */
-async function peopleNames(): Promise<string[]> {
-    const users = await prisma.user.findMany({ select: { name: true, firstName: true, lastName: true } });
-    return users.flatMap((user) => [user.name, user.firstName, user.lastName]);
+/**
+ * Every name somebody here goes by — what anonymize takes out. Each word of
+ * the full name too (an account from before first and last names were
+ * separate has only that), and the names on open invitations.
+ */
+export async function peopleNames(): Promise<string[]> {
+    const [users, invites] = await Promise.all([
+        prisma.user.findMany({ select: { name: true, firstName: true, lastName: true } }),
+        prisma.invite.findMany({ where: { usedAt: null }, select: { firstName: true, lastName: true } }),
+    ]);
+    return [
+        ...users.flatMap((user) => [user.name, user.firstName, user.lastName, ...user.name.split(/\s+/)]),
+        ...invites.flatMap((invite) => [invite.firstName ?? '', invite.lastName ?? '']),
+    ].filter(Boolean);
 }
 
 /** A reason code as an English sentence, for a reader who does not have the messages. */
@@ -38,8 +48,14 @@ function reasonText(error: string | null): string | null {
 }
 
 /** The snapshot of one row, with everything a fixer needs, or null when the row is gone. */
-export async function snapshotOf(kind: WorkKind, refId: number, withPhotos = false): Promise<Record<string, unknown> | null> {
-    const people = await peopleNames();
+export async function snapshotOf(
+    kind: WorkKind,
+    refId: number,
+    withPhotos = false,
+    // Passed in by a caller making many snapshots, so the names are read once.
+    known?: { people: string[] }
+): Promise<Record<string, unknown> | null> {
+    const people = known?.people ?? (await peopleNames());
     const version = appVersion();
 
     if (kind === 'capture') {
@@ -54,7 +70,7 @@ export async function snapshotOf(kind: WorkKind, refId: number, withPhotos = fal
         const base = captureSnapshot({ ...row, draft }, people);
         return {
             ...base,
-            reasonText: reasonText(row.error),
+            reasonText: row.error ? anonymize(reasonText(row.error) ?? '', people) : null,
             draft: base.draft && draft
                 ? {
                       ...base.draft,

@@ -1,5 +1,6 @@
 import prisma from './prisma';
 import { linesFor, mergeInto, removeFrom, type PlannedLine } from './shopping';
+import { inLanguage } from './recipeTranslation';
 
 /**
  * The shopping list's storage. The thinking is in lib/shopping.ts; this only
@@ -96,40 +97,57 @@ export async function removeLines(listId: number, planned: PlannedLine[]): Promi
     return plan.updates.length + plan.deletes.length;
 }
 
-const ingredientSelect = {
-    orderBy: { position: 'asc' as const },
-    select: { name: true, quantity: true, quantityMax: true, unit: true },
-};
-
 /**
  * A recipe's lines at the servings it was being read at. `servings` is what
  * the stepper on the recipe page showed; the recipe's own number is what its
  * amounts are written for.
  */
-export async function recipeLines(recipeId: number, servings: number | null): Promise<PlannedLine[] | null> {
+export async function recipeLines(recipeId: number, servings: number | null, locale?: string): Promise<PlannedLine[] | null> {
     const recipe = await prisma.recipe.findUnique({
         where: { id: recipeId },
-        select: { title: true, servings: true, ingredients: ingredientSelect },
+        select: recipeForList,
     });
     if (!recipe) return null;
 
     const factor = servings && recipe.servings ? servings / recipe.servings : 1;
-    return linesFor(recipe.ingredients, factor, recipe.title);
+    const shown = asRead(recipe, locale);
+    return linesFor(shown.ingredients, factor, shown.title);
+}
+
+/*
+ * What the list needs of a recipe — and its translation, so what is added is
+ * what the reader saw: "250 g Mehl" on the German page, not "2 cups flour".
+ */
+const recipeForList = {
+    title: true,
+    servings: true,
+    description: true,
+    instructions: true,
+    language: true,
+    ingredients: { orderBy: { position: 'asc' as const }, select: { name: true, quantity: true, quantityMax: true, unit: true, raw: true, section: true } },
+    translations: { select: { locale: true, title: true, description: true, instructions: true, ingredients: true } },
+};
+
+function asRead<T extends Parameters<typeof inLanguage>[0]>(recipe: T, locale: string | undefined) {
+    return locale ? inLanguage(recipe, locale) : recipe;
 }
 
 /** Every finished recipe in a collection, each at its own servings. */
-export async function collectionLines(collectionId: number): Promise<PlannedLine[] | null> {
+export async function collectionLines(collectionId: number, locale?: string): Promise<PlannedLine[] | null> {
     const collection = await prisma.collection.findUnique({
         where: { id: collectionId },
         select: {
             recipes: {
                 where: { recipe: { isDraft: false } },
                 orderBy: { position: 'asc' },
-                select: { recipe: { select: { title: true, ingredients: ingredientSelect } } },
+                select: { recipe: { select: recipeForList } },
             },
         },
     });
     if (!collection) return null;
 
-    return collection.recipes.flatMap((row) => linesFor(row.recipe.ingredients, 1, row.recipe.title));
+    return collection.recipes.flatMap((row) => {
+        const shown = asRead(row.recipe, locale);
+        return linesFor(shown.ingredients, 1, shown.title);
+    });
 }

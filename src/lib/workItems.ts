@@ -81,7 +81,7 @@ export function captureSnapshot(capture: CaptureSource, people: string[]) {
         // the whole point, and it is somebody else's public page.
         sourceUrl: capture.sourceUrl ? anonymize(capture.sourceUrl, []) : null,
         status: capture.status,
-        reason: capture.error,
+        reason: capture.error ? anonymize(capture.error, people) : null,
         readBy: capture.readBy,
         aiProvider: capture.aiProvider,
         sharedAt: capture.createdAt.toISOString(),
@@ -91,7 +91,7 @@ export function captureSnapshot(capture: CaptureSource, people: string[]) {
         draft: capture.draft
             ? {
                   title: anonymize(capture.draft.title, people),
-                  ingredients: capture.draft.ingredients.slice(0, 60).map((line) => `${line.amount} ${line.item}`.trim()),
+                  ingredients: capture.draft.ingredients.slice(0, 60).map((line) => anonymize(`${line.amount} ${line.item}`.trim(), people)),
                   instructions: cut(anonymize(capture.draft.instructions, people), 2000),
                   hasPicture: Boolean(capture.draft.imageUrl),
               }

@@ -142,10 +142,12 @@ export default function RecipeForm({
         () => ({
             title, slug, description, categories, cuisines, spiciness, imageUrls, instructions,
             ingredients, servings, prepMinutes, cookMinutes, tags,
+            // The translation too: it was a paid call and possibly corrected by hand.
+            language: chosenLanguage, translation,
         }),
         [
             title, slug, description, categories, cuisines, spiciness, imageUrls, instructions,
-            ingredients, servings, prepMinutes, cookMinutes, tags,
+            ingredients, servings, prepMinutes, cookMinutes, tags, chosenLanguage, translation,
         ]
     );
 
@@ -195,6 +197,8 @@ export default function RecipeForm({
             setServings(draft.servings != null ? String(draft.servings) : '');
             setPrepMinutes(draft.prepMinutes != null ? String(draft.prepMinutes) : '');
             setCookMinutes(draft.cookMinutes != null ? String(draft.cookMinutes) : '');
+            setChosenLanguage(draft.language ?? null);
+            setTranslation(draft.translation ?? null);
         } catch {
             /* ignore */
         }

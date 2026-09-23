@@ -10,7 +10,15 @@ export async function takenNames(): Promise<PersonName[]> {
     const [users, invites] = await Promise.all([
         prisma.user.findMany({ select: { name: true, firstName: true, lastName: true } }),
         prisma.invite.findMany({
-            where: { usedAt: null, expiresAt: { gt: new Date() }, firstName: { not: null } },
+            // usedById, not usedAt: an invitation being redeemed right now is
+            // claimed before its account exists, and the name is still taken.
+            where: {
+                usedById: null,
+                expiresAt: { gt: new Date() },
+                firstName: { not: null },
+                // … but not one used by an account deleted since.
+                OR: [{ usedAt: null }, { usedAt: { gt: new Date(Date.now() - 10 * 60 * 1000) } }],
+            },
             select: { firstName: true, lastName: true },
         }),
     ]);

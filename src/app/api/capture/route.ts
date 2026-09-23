@@ -136,9 +136,12 @@ export async function POST(req: NextRequest) {
     // Every picture stored, or none: a share whose third screenshot is
     // refused leaves no orphans of the first two behind.
     const storedUrls: string[] = [];
-    for (const picture of pictures) {
+    for (const [index, picture] of pictures.entries()) {
         const stored = await storeCaptureImage(picture.base64, picture.mediaType);
 
+        // A further screenshot that cannot be stored is left out; only the
+        // first one is worth refusing the share over.
+        if (!stored.ok && index > 0) continue;
         if (!stored.ok) {
             if (storedUrls.length > 0) await deleteBlobs(storedUrls);
             return NextResponse.json(

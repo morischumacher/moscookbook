@@ -72,6 +72,9 @@ export default async function recipeTranslationTests() {
     suite('recipeTranslation: fingerprint');
 
     equal('the same recipe, the same key', sourceKey(curry), sourceKey({ ...curry, title: ' Green Curry ' }));
+    equal('a heading written two ways is the same recipe',
+        sourceKey({ ...curry, ingredients: [{ amount: '', item: 'Curry:' }, ...curry.ingredients.slice(1)] }),
+        sourceKey(curry));
     check('an edited amount changes it',
         sourceKey(curry) !== sourceKey({ ...curry, ingredients: [{ amount: '3 tbsp', item: 'vegetable oil' }] }));
 
