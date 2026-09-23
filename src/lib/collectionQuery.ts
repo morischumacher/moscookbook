@@ -67,7 +67,9 @@ const include = {
          * the member's own page, since a collection of things to cook should
          * not list one that is not ready.
          */
-        where: { recipe: { isDraft: false } },
+        // Nor an "only me" recipe: a collection is for others to cook from,
+        // and its link needs no account.
+        where: { recipe: { isDraft: false, onlyMe: false } },
         select: {
             position: true,
             recipe: {

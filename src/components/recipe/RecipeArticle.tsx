@@ -52,6 +52,8 @@ export interface RecipeRow {
      * separately is a field somebody will forget to fetch.
      */
     isDraft: boolean;
+    /** Only the admins see it. See lib/recipeVisibility. Optional: a shared page builds its own row. */
+    onlyMe?: boolean;
     shareToken: string | null;
     /**
      * The recipe's own searchable wording. Not shown anywhere — it is what
@@ -420,6 +422,7 @@ export default async function RecipeArticle({
                         linkUrl: publicUrl,
                         ownUrl: url,
                         mayChange: mode === 'private' && isAdmin,
+                        onlyMe: Boolean(written.onlyMe),
                     }}
                 />
 

@@ -32,6 +32,7 @@ interface AdminRecipeRow {
     views: number;
     isPublic: boolean;
     shareToken: string | null;
+    onlyMe: boolean;
     images: { url: string }[];
 }
 
@@ -91,6 +92,7 @@ export default async function AdminDashboard({
             views: true,
             isPublic: true,
             shareToken: true,
+            onlyMe: true,
             images: { orderBy: { position: 'asc' }, take: 1, select: { url: true } },
         },
     });
@@ -209,12 +211,13 @@ export default async function AdminDashboard({
                                         three lines long) — and only when it is
                                         not the household, which most are. */}
                                     {(() => {
-                                        const stage = stageOf({ isPublic: recipe.isPublic, linkUrl: recipe.shareToken });
+                                        const stage = stageOf({ isPublic: recipe.isPublic, linkUrl: recipe.shareToken, onlyMe: recipe.onlyMe });
                                         if (stage === 'household') return null;
+                                        const label = { admins: tShare('stageAdmins'), link: tShare('stageLink'), web: tShare('stageWeb') }[stage];
                                         return (
                                             <span className="text-accent-text">
                                                 {' · '}
-                                                {stage === 'web' ? tShare('stageWeb') : tShare('stageLink')}
+                                                {label}
                                             </span>
                                         );
                                     })()}
@@ -237,6 +240,7 @@ export default async function AdminDashboard({
                                             ? shareUrl(getSiteUrl(), locale, recipe.shareToken)
                                             : null
                                     }
+                                    onlyMe={recipe.onlyMe}
                                 />
                                 <Link
                                     href={`/admin/edit/${recipe.id}`}

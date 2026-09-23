@@ -70,7 +70,9 @@ export async function menuLines(menuId: number): Promise<PlannedLine[] | null> {
         select: {
             guests: true,
             items: {
-                where: { recipeId: { not: null } },
+                // Not an "only me" recipe: the list is somebody's, and a menu's
+                // guests are not the admin.
+                where: { recipeId: { not: null }, recipe: { onlyMe: false } },
                 orderBy: { position: 'asc' },
                 select: {
                     recipe: {

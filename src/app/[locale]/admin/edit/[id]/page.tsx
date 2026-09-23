@@ -20,6 +20,7 @@ interface EditableRecipe {
     categories: string[];
     cuisines: string[];
     spiciness: number;
+    onlyMe: boolean;
     language: string | null;
     translations: { locale: string; title: string; description: string; instructions: string; ingredients: unknown; source: string }[];
     instructions: string;

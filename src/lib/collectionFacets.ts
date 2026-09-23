@@ -52,31 +52,31 @@ async function readFacets(): Promise<CollectionFacets> {
         prisma.$queryRaw<{ value: string; count: bigint }[]>`
             SELECT value, count(*)::bigint AS count
             FROM "Recipe", unnest("categories") AS value
-            WHERE "isDraft" = false
+            WHERE "isDraft" = false AND "onlyMe" = false
             GROUP BY value
         `,
         prisma.$queryRaw<{ value: string; count: bigint }[]>`
             SELECT value, count(*)::bigint AS count
             FROM "Recipe", unnest("cuisines") AS value
-            WHERE "isDraft" = false
+            WHERE "isDraft" = false AND "onlyMe" = false
             GROUP BY value
         `,
-        prisma.recipe.count({ where: { isDraft: false } }),
+        prisma.recipe.count({ where: { isDraft: false, onlyMe: false } }),
         prisma.$queryRaw<{ value: string; count: bigint }[]>`
             SELECT tag AS value, count(*)::bigint AS count
             FROM "Recipe", unnest("tags") AS tag
-            WHERE "isDraft" = false
+            WHERE "isDraft" = false AND "onlyMe" = false
             GROUP BY tag
             ORDER BY count DESC, tag ASC
             LIMIT 40
         `,
         prisma.$queryRaw<{ count: bigint }[]>`
             SELECT count(*)::bigint AS count FROM "Recipe"
-            WHERE "isDraft" = false
+            WHERE "isDraft" = false AND "onlyMe" = false
               AND COALESCE("prepMinutes", 0) + COALESCE("cookMinutes", 0) BETWEEN 1 AND ${QUICK_MINUTES}
         `,
     ]);
-    const spicy = await prisma.recipe.count({ where: { isDraft: false, spiciness: { gte: 1 } } });
+    const spicy = await prisma.recipe.count({ where: { isDraft: false, onlyMe: false, spiciness: { gte: 1 } } });
 
     // Shaped here rather than at the call site, so what is kept in the cache is
     // what the chips render — busiest first, blanks dropped.

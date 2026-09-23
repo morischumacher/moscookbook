@@ -9,7 +9,7 @@ export const ADMIN_PAGE_SIZE = 30;
 export const ADMIN_SORTS = ['new', 'title', 'views'] as const;
 export type AdminSort = (typeof ADMIN_SORTS)[number];
 
-export const ADMIN_SHOWS = ['all', 'web', 'link', 'household'] as const;
+export const ADMIN_SHOWS = ['all', 'web', 'link', 'household', 'onlyMe'] as const;
 export type AdminShow = (typeof ADMIN_SHOWS)[number];
 
 export interface AdminListQuery {
@@ -53,7 +53,9 @@ export function showWhere(show: AdminShow) {
         case 'link':
             return { isPublic: false, shareToken: { not: null } };
         case 'household':
-            return { isPublic: false, shareToken: null };
+            return { isPublic: false, shareToken: null, onlyMe: false };
+        case 'onlyMe':
+            return { onlyMe: true };
         default:
             return {};
     }

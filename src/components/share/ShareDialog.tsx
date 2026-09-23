@@ -46,6 +46,7 @@ export default function ShareDialog({
     locale,
     isPublic,
     linkUrl,
+    onlyMe = false,
     ownUrl,
     onClose,
 }: {
@@ -56,6 +57,8 @@ export default function ShareDialog({
     isPublic: boolean;
     /** The secret address, when one has been minted. */
     linkUrl: string | null;
+    /** Only the admins read it — the fourth stage, recipes only. */
+    onlyMe?: boolean;
     /** The thing's own address, which works for anybody once it is public. */
     ownUrl: string;
     onClose: () => void;
@@ -64,7 +67,7 @@ export default function ShareDialog({
     const router = useRouter();
     const { copy, copied, failed: copyRefused } = useCopy();
 
-    const [state, setState] = useState({ isPublic, linkUrl });
+    const [state, setState] = useState({ isPublic, linkUrl, onlyMe });
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
 
@@ -108,6 +111,22 @@ export default function ShareDialog({
 
         try {
             let next = { ...state };
+
+            // First, and on its own: into "admins" the server also
+            // unpublishes and withdraws the link; out of it, what follows
+            // starts from the household.
+            if (plan.setOnlyMe !== null) {
+                const res = await fetch(endpoints.visibility, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ onlyMe: plan.setOnlyMe }),
+                });
+                if (!res.ok) {
+                    setError(await messageFrom(res, t('failed')));
+                    return;
+                }
+                next = plan.setOnlyMe ? { isPublic: false, linkUrl: null, onlyMe: true } : { ...next, onlyMe: false };
+            }
 
             if (plan.setPublic !== null) {
                 const res = await fetch(endpoints.visibility, {
@@ -173,6 +192,8 @@ export default function ShareDialog({
     };
 
     const rows: { stage: ShareStage; label: string; body: string }[] = [
+        // Recipes only: a post or a collection is written for others.
+        ...(kind === 'recipe' ? [{ stage: 'admins' as const, label: t('stageAdmins'), body: t('stageAdminsBody') }] : []),
         { stage: 'household', label: t('stageHousehold'), body: t('stageHouseholdBody') },
         { stage: 'link', label: t('stageLink'), body: t('stageLinkBody') },
         { stage: 'web', label: t('stageWeb'), body: t(kind === 'recipe' ? 'stageWebBody' : 'stageWebBodyOther') },

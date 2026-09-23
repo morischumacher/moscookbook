@@ -42,6 +42,8 @@ export interface RecipeFields {
     spiciness?: number;
     /** "de" or "en". Left as it is when not given. */
     language?: string | null;
+    /** Only the admins see it; turning it on also takes it off the web and withdraws its link. */
+    onlyMe?: boolean;
     /**
      * The recipe in its other language. Only read here for the search
      * columns — one search finds a recipe in either language; the row itself
@@ -71,6 +73,9 @@ export function recipeColumns(fields: RecipeFields) {
         cookMinutes: fields.cookMinutes ?? null,
         ...(fields.tags !== undefined ? { tags: fields.tags } : {}),
         ...(fields.language !== undefined ? { language: fields.language } : {}),
+        ...(fields.onlyMe !== undefined
+            ? { onlyMe: fields.onlyMe, ...(fields.onlyMe ? { isPublic: false, shareToken: null } : {}) }
+            : {}),
         ...searchFields(withTranslation(fields)),
     };
 }

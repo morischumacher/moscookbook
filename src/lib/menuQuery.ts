@@ -19,7 +19,7 @@ const select = {
             title: true,
             description: true,
             recipeId: true,
-            recipe: { select: { slug: true, isDraft: true } },
+            recipe: { select: { slug: true, isDraft: true, onlyMe: true } },
         },
     },
 };
@@ -44,7 +44,9 @@ function shaped(row: Row): MenuView {
         style: menuStyle(row.style),
         items: row.items.map(({ course, title, description, recipeId }) => ({ course, title, description, recipeId })),
         recipes: row.items.flatMap((item) =>
-            item.recipe && !item.recipe.isDraft ? [{ title: item.title, slug: item.recipe.slug }] : []
+            // The dish stays on the card; its link does not, for a recipe
+            // that is only the admins'.
+            item.recipe && !item.recipe.isDraft && !item.recipe.onlyMe ? [{ title: item.title, slug: item.recipe.slug }] : []
         ),
     };
 }

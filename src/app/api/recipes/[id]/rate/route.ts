@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { requireUser } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
+import { hiddenFrom } from '@/lib/recipeVisibilityDb';
 
 const rateSchema = z.object({
     value: z.number().int().min(1).max(5),
@@ -23,6 +24,11 @@ export async function POST(
 
         if (recipeId === null) {
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
+        }
+
+        // An "only me" recipe answers as a missing one would.
+        if (await hiddenFrom(recipeId, auth.user)) {
+            return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
         }
 
         const parsed = rateSchema.safeParse(await req.json().catch(() => null));

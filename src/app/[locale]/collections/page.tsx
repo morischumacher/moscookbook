@@ -38,7 +38,7 @@ export default async function CollectionsPage() {
             // The first recipe's picture stands in for a collection without
             // its own. Drafts are skipped, as everywhere a collection is shown.
             recipes: {
-                where: { recipe: { isDraft: false } },
+                where: { recipe: { isDraft: false, onlyMe: false } },
                 orderBy: { position: 'asc' },
                 take: 1,
                 select: { recipe: { select: { images: { orderBy: { position: 'asc' }, take: 1, select: { url: true } } } } },

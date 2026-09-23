@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
+import { forgetCollectionFacets } from '@/lib/collectionFacets';
 
 /**
  * Publishing one recipe, or taking it back.
@@ -21,7 +22,12 @@ import { failed } from '@/lib/reportServerError';
  * un-publishing removes the page, not the copy a search engine took.
  */
 
-const schema = z.object({ isPublic: z.boolean() });
+/*
+ * `onlyMe`: the fourth stage, "Nur Admins" (lib/shareStage). Setting it also
+ * unpublishes the recipe and withdraws its link, in the same write, so there
+ * is no moment in which it is the admins' and still on the web.
+ */
+const schema = z.union([z.object({ isPublic: z.boolean() }), z.object({ onlyMe: z.boolean() })]);
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const auth = await requireAdmin();
@@ -40,6 +46,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         return NextResponse.json({ message: 'Public or not?' }, { status: 400 });
     }
 
+    if ('onlyMe' in parsed.data) {
+        const onlyMe = parsed.data.onlyMe;
+        try {
+            const updated = await prisma.recipe.updateMany({
+                where: { id: recipeId },
+                data: onlyMe ? { onlyMe: true, isPublic: false, shareToken: null } : { onlyMe: false },
+            });
+            if (updated.count !== 1) return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
+            forgetCollectionFacets();
+            return NextResponse.json({ success: true, onlyMe, isPublic: false });
+        } catch (error) {
+            failed('Recipe audience update error:', error);
+            return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+        }
+    }
+
     try {
         /*
          * A draft cannot be made public, and the refusal lives here rather than
@@ -56,15 +78,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
          * should have stopped it going in.
          */
         const updated: { count: number } = await prisma.recipe.updateMany({
-            where: { id: recipeId, ...(parsed.data.isPublic ? { isDraft: false } : {}) },
+            // Nor an "only me" recipe: that is the opposite of public.
+            where: { id: recipeId, ...(parsed.data.isPublic ? { isDraft: false, onlyMe: false } : {}) },
             data: { isPublic: parsed.data.isPublic },
         });
 
         if (updated.count !== 1) {
-            const exists: { isDraft: boolean } | null = await prisma.recipe.findUnique({
+            const exists: { isDraft: boolean; onlyMe: boolean } | null = await prisma.recipe.findUnique({
                 where: { id: recipeId },
-                select: { isDraft: true },
+                select: { isDraft: true, onlyMe: true },
             });
+
+            if (exists?.onlyMe) {
+                return NextResponse.json({ message: 'onlyMe', onlyMe: true }, { status: 409 });
+            }
 
             if (exists?.isDraft) {
                 return NextResponse.json(

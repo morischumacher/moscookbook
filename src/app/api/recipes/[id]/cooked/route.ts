@@ -5,6 +5,7 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { ownerScope } from '@/lib/ownership';
 import { idFrom, refuse, route } from '@/lib/route';
+import { hiddenFrom } from '@/lib/recipeVisibilityDb';
 
 /**
  * "I cooked this" — the entry itself. Its photographs are in ./photos.
@@ -48,6 +49,8 @@ export const POST = route<'user', typeof noteBody, Params>(
     { access: 'user', body: noteBody, label: 'Cook entry' },
     async ({ user, params, body }) => {
         const recipeId = idFrom(params.id, 'recipe ID');
+        // An "only me" recipe answers as a missing one would.
+        if (await hiddenFrom(recipeId, user)) refuse(404, 'Recipe not found');
 
         try {
             const entry: { id: number; cookedAt: Date; note: string | null } =

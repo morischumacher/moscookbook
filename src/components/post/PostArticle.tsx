@@ -53,6 +53,9 @@ export interface AboutCollection {
  */
 export const postAboutSelect = {
     recipes: {
+        // Never an "only me" recipe, which a post cannot link (postLinks) —
+        // and should one have become that since, it is not shown either.
+        where: { recipe: { onlyMe: false } },
         orderBy: { position: 'asc' as const },
         select: {
             recipe: {
@@ -75,7 +78,7 @@ export const postAboutSelect = {
 
 /** Just the names, for a line in a list. */
 export const postAboutTitlesSelect = {
-    recipes: { orderBy: { position: 'asc' as const }, select: { recipe: { select: { title: true } } } },
+    recipes: { where: { recipe: { onlyMe: false } }, orderBy: { position: 'asc' as const }, select: { recipe: { select: { title: true } } } },
     collections: { orderBy: { position: 'asc' as const }, select: { collection: { select: { title: true } } } },
 };
 

@@ -30,7 +30,7 @@ export default function draftsTests() {
         [
             'the front page list filters drafts out',
             'src/app/[locale]/page.tsx',
-            /const where: RecipeWhere = \{ isDraft: false \}/,
+            /const where: RecipeWhere = \{ isDraft: false[,}]/,
         ],
         [
             'and so does its search query, which bypasses that object',
@@ -40,7 +40,7 @@ export default function draftsTests() {
         [
             'and the last query before the tiles are drawn',
             'src/app/[locale]/page.tsx',
-            /where: \{ id: \{ in: pageIds \}, isDraft: false \}/,
+            /where: \{ id: \{ in: pageIds \}, isDraft: false[,}\s]/,
         ],
         [
             '"recipes like this one" does not suggest a draft',
@@ -50,12 +50,12 @@ export default function draftsTests() {
         [
             'the filter chips do not count what the list will not show',
             'src/lib/collectionFacets.ts',
-            /count\(\{ where: \{ isDraft: false \} \}\)/,
+            /count\(\{ where: \{ isDraft: false[,}\s]/,
         ],
         [
             'a collection does not carry a draft to its public share page',
             'src/lib/collectionQuery.ts',
-            /where: \{ recipe: \{ isDraft: false \} \}/,
+            /where: \{ recipe: \{ isDraft: false[,}\s]/,
         ],
         [
             'a share link for a draft finds nothing',
@@ -90,7 +90,7 @@ export default function draftsTests() {
 
     check(
         'making a draft public is refused, conditionally so two requests cannot race',
-        /where: \{ id: recipeId, \.\.\.\(parsed\.data\.isPublic \? \{ isDraft: false \} : \{\}\) \}/.test(
+        /where: \{ id: recipeId, \.\.\.\(parsed\.data\.isPublic \? \{ isDraft: false[^}]*\} : \{\}\) \}/.test(
             source('src/app/api/recipes/[id]/visibility/route.ts')
         ),
         'visibility route'
@@ -98,7 +98,7 @@ export default function draftsTests() {
 
     check(
         'but making one private again is never refused',
-        /isPublic \? \{ isDraft: false \} : \{\}/.test(
+        /isPublic \? \{ isDraft: false[^}]*\} : \{\}/.test(
             source('src/app/api/recipes/[id]/visibility/route.ts')
         ),
         'the guard must be one-sided — a draft that somehow went public must be able to come back'

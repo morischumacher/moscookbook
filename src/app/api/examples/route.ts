@@ -21,7 +21,8 @@ const body = z.object({
 
 async function ourRecipes(): Promise<ExampleRecipe[]> {
     const rows = await prisma.recipe.findMany({
-        where: { isDraft: false },
+        // Examples are written for others; an admins-only recipe is not one to show.
+        where: { isDraft: false, onlyMe: false },
         orderBy: { createdAt: 'desc' },
         take: 6,
         select: {

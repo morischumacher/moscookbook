@@ -68,6 +68,8 @@ export const recipeInputSchema = z.object({
      * breaking change to an endpoint costs more than four lines of kindness.
      */
     imageUrl: imageUrlSchema.optional(),
+    /** Only the admins see it. Left as it is when not given. See lib/recipeVisibility. */
+    onlyMe: z.boolean().optional(),
     /** The language it is written in. Left as it is when not given. */
     language: z.enum(RECIPE_LANGUAGES).optional(),
     /**

@@ -246,7 +246,8 @@
       "all": "Alle",
       "web": "Öffentlich",
       "link": "Mit Link",
-      "household": "Nur Haushalt"
+      "household": "Nur Haushalt",
+      "onlyMe": "Nur Admins"
     },
     "listSort": {
       "new": "Neueste",
@@ -672,7 +673,9 @@
     "stageWebBody": "Die eigene Adresse antwortet jedem, und eine Suchmaschine darf eine Kopie behalten. Bewerten und Fotos brauchen weiterhin ein Konto.",
     "stageWebBodyOther": "Die eigene Adresse antwortet jedem, und eine Suchmaschine darf eine Kopie behalten. Gezeigt werden nur die Rezepte, die selbst öffentlich sind.",
     "done": "Fertig",
-    "failed": "Das hat nicht geklappt."
+    "failed": "Das hat nicht geklappt.",
+    "stageAdmins": "Nur Admins",
+    "stageAdminsBody": "Nur wer Admin ist, liest es. Der Haushalt sieht es nicht – nicht in der Liste, nicht in der Suche, nicht in Sammlungen –, es gibt keinen Link und es ist nicht öffentlich."
   },
   "Errors": {
     "title": "Fehler",

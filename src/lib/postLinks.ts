@@ -14,13 +14,17 @@ import prisma from './prisma';
 export async function refusedLinks(recipeIds: number[], collectionIds: number[]): Promise<string | null> {
     const [recipes, collections] = await Promise.all([
         recipeIds.length > 0
-            ? prisma.recipe.findMany({ where: { id: { in: recipeIds } }, select: { id: true, isDraft: true } })
+            ? prisma.recipe.findMany({ where: { id: { in: recipeIds } }, select: { id: true, isDraft: true, onlyMe: true } })
             : [],
         collectionIds.length > 0
             ? prisma.collection.count({ where: { id: { in: collectionIds } } })
             : 0,
     ]);
 
+    // A post is read by the household; an "only me" recipe is not theirs.
+    if (recipes.some((recipe) => recipe.onlyMe)) {
+        return 'A post cannot be written about a recipe only you can see.';
+    }
     if (recipes.some((recipe) => recipe.isDraft)) {
         return 'A post cannot be written about a draft. Finish the recipe first.';
     }

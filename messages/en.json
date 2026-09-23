@@ -246,7 +246,8 @@
       "all": "All",
       "web": "Public",
       "link": "With link",
-      "household": "Household only"
+      "household": "Household only",
+      "onlyMe": "Admins only"
     },
     "listSort": {
       "new": "Newest",
@@ -672,7 +673,9 @@
     "stageWebBody": "Its own address answers to anybody, and a search engine may keep a copy. Rating and photographs still need an account.",
     "stageWebBodyOther": "Its own address answers to anybody, and a search engine may keep a copy. Only the recipes that are public in their own right are shown.",
     "done": "Done",
-    "failed": "That did not work."
+    "failed": "That did not work.",
+    "stageAdmins": "Admins only",
+    "stageAdminsBody": "Only admins read it. The household does not see it – not in the list, not in search, not in collections – there is no link and it is not public."
   },
   "Errors": {
     "title": "Errors",
