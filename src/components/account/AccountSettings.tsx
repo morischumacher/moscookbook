@@ -93,7 +93,17 @@ export default function AccountSettings({
             });
 
             if (!res.ok) {
-                setSaid({ good: false, text: await messageFrom(res, fallback), panel });
+                // The common refusals in the page's language; the server's
+                // own sentence (English) only for the rare rest.
+                const text =
+                    res.status === 403
+                        ? t('wrongPassword')
+                        : res.status === 409
+                          ? t('addressTaken')
+                          : res.status === 429
+                            ? t('tooMany')
+                            : await messageFrom(res, fallback);
+                setSaid({ good: false, text, panel });
                 return false;
             }
 

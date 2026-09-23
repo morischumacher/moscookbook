@@ -982,7 +982,10 @@
     "passkeyCancelled": "Abgebrochen – es wurde kein Passkey erstellt.",
     "passkeySynced": "synchronisiert",
     "passkeyUsed": "Zuletzt benutzt am {date}",
-    "passkeyAddedOn": "Hinzugefügt am {date}"
+    "passkeyAddedOn": "Hinzugefügt am {date}",
+    "wrongPassword": "Das Passwort stimmt nicht.",
+    "addressTaken": "Diese E-Mail-Adresse gehört schon zu einem anderen Konto.",
+    "tooMany": "Zu viele Versuche. Bitte warte ein paar Minuten."
   },
   "Ai": {
     "nav": "KI",

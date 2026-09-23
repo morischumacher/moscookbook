@@ -59,9 +59,13 @@ export default function ResetForm({ token }: { token: string }) {
             // ask for a new link rather than to doubt what they typed.
             const reason = typeof data.reason === 'string' ? data.reason : '';
             setError(
-                reason === 'expired' || reason === 'used'
+                reason === 'expired' || reason === 'used' || reason === 'invalid' || reason === 'unknown'
                     ? t('linkExpired')
-                    : data.message || t('error')
+                    : res.status === 429
+                      ? t('tooMany')
+                      : res.status === 400
+                        ? t('passwordHint')
+                        : t('error')
             );
         } catch {
             setError(t('error'));
