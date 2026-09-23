@@ -2,23 +2,24 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { refuse, route } from '@/lib/route';
-import { activeList, householdOf } from '@/lib/shoppingDb';
+import { householdOf } from '@/lib/shoppingDb';
+import { requestedList } from '@/lib/shoppingRequest';
 
 /**
- * Who shops on the list. One list per household: the owner invites people of
- * the cookbook, who use it instead of their own once they accept
+ * Who is on a list (`?list=<id>`, the main list without it). Its owner invites
+ * people of the cookbook, who get it among their lists once they accept
  * (/api/shopping/invitations).
  *
- * GET: the household, and for the owner everybody who could be invited.
+ * GET: who is on it, and for the owner everybody who could be invited.
  * POST `{userId}`: the owner invites somebody.
- * DELETE `?userId=`: the owner takes somebody off (or withdraws an invitation).
- * DELETE `?leave=1`: a member goes back to their own list.
+ * DELETE `&userId=`: the owner takes somebody off (or withdraws an invitation).
+ * DELETE `&leave=1`: somebody who joined leaves it.
  */
 
-export const GET = route({ access: 'user', label: 'Shopping list household' }, async ({ user }) => {
-    const list = await activeList(user.id);
+export const GET = route({ access: 'user', label: 'Shopping list members' }, async ({ req, user }) => {
+    const list = await requestedList(req, user.id);
     const household = await householdOf(list.id);
-    if (!household) refuse(404, 'That is no longer there.');
+    if (!household) refuse(404, 'This list is not there.');
 
     let people: { id: number; name: string }[] = [];
     if (list.owner) {
@@ -31,9 +32,8 @@ export const GET = route({ access: 'user', label: 'Shopping list household' }, a
 
 const inviteBody = z.object({ userId: z.number().int().positive().max(2_147_483_647) });
 
-export const POST = route({ access: 'user', body: inviteBody, label: 'Inviting somebody to the shopping list' }, async ({ user, body }) => {
-    const list = await activeList(user.id);
-    if (!list.owner) refuse(403, 'Only whoever made this list chooses who is on it.');
+export const POST = route({ access: 'user', body: inviteBody, label: 'Inviting somebody to a shopping list' }, async ({ req, user, body }) => {
+    const list = await requestedList(req, user.id, 'owner');
     if (body.userId === user.id) refuse(400, 'That is your own list.');
     const other = await prisma.user.findUnique({ where: { id: body.userId }, select: { id: true } });
     if (!other) refuse(404, 'There is nobody by that name here.');
@@ -46,17 +46,17 @@ export const POST = route({ access: 'user', body: inviteBody, label: 'Inviting s
     return NextResponse.json({ invited: body.userId });
 });
 
-export const DELETE = route({ access: 'user', label: 'Taking somebody off the shopping list' }, async ({ req, user }) => {
+export const DELETE = route({ access: 'user', label: 'Taking somebody off a shopping list' }, async ({ req, user }) => {
     const query = new URL(req.url).searchParams;
-    const list = await activeList(user.id);
 
     if (query.get('leave')) {
+        const list = await requestedList(req, user.id);
         if (list.owner) refuse(400, 'This is your own list.');
         await prisma.shoppingListMember.deleteMany({ where: { listId: list.id, userId: user.id } });
         return NextResponse.json({ left: true });
     }
 
-    if (!list.owner) refuse(403, 'Only whoever made this list chooses who is on it.');
+    const list = await requestedList(req, user.id, 'owner');
     const userId = Number(query.get('userId'));
     if (!Number.isInteger(userId) || userId <= 0 || userId > 2_147_483_647) refuse(400, 'Take off whom?');
     await prisma.shoppingListMember.deleteMany({ where: { listId: list.id, userId } });

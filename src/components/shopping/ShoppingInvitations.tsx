@@ -8,11 +8,10 @@ import { buttonPrimarySmall } from '@/lib/ui';
 import { sayable } from '@/lib/apiMessage';
 
 /**
- * "Ann möchte ihre Einkaufsliste mit dir teilen": joining is the invited
- * person's choice, since from then on they shop on that list instead of
- * their own.
+ * "Ann möchte die Liste „Grillparty“ mit dir teilen": joining is the invited
+ * person's choice — the list then appears among theirs.
  */
-export default function ShoppingInvitations({ invitations }: { invitations: { listId: number; owner: string }[] }) {
+export default function ShoppingInvitations({ invitations }: { invitations: { listId: number; name: string | null; owner: string }[] }) {
     const t = useTranslations('Shopping');
     const router = useRouter();
     const [busy, setBusy] = useState<number | null>(null);
@@ -32,6 +31,7 @@ export default function ShoppingInvitations({ invitations }: { invitations: { li
                 setError(sayable(data.message, t('failed')));
                 return;
             }
+            if (accept) router.push(`/shopping?list=${listId}`);
             router.refresh();
         } catch {
             setError(t('failed'));
@@ -44,7 +44,7 @@ export default function ShoppingInvitations({ invitations }: { invitations: { li
         <div className="mb-8 flex flex-col gap-3">
             {invitations.map((invitation) => (
                 <div key={invitation.listId} className="rounded-xl border border-ink p-4">
-                    <p className="font-medium">{t('invitedBy', { name: invitation.owner })}</p>
+                    <p className="font-medium">{invitation.name ? t('invitedToList', { name: invitation.owner, list: invitation.name }) : t('invitedBy', { name: invitation.owner })}</p>
                     <p className="mt-1 text-sm text-muted">{t('invitedExplain')}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-4">
                         <button type="button" disabled={busy !== null} onClick={() => void answer(invitation.listId, true)} className={buttonPrimarySmall}>

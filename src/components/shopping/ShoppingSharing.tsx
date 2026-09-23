@@ -26,12 +26,14 @@ interface Household {
  * tick and — if the owner leaves it on — add, and nothing else.
  */
 export default function ShoppingSharing({
+    listId,
     owner,
     shareLink,
     onShareToken,
     canAdd: initialCanAdd,
     onNote,
 }: {
+    listId: number;
     owner: boolean;
     shareLink: string | null;
     onShareToken: (token: string | null) => void;
@@ -47,12 +49,12 @@ export default function ShoppingSharing({
     const [busy, setBusy] = useState<number | 'link' | 'canAdd' | 'leave' | null>(null);
 
     const load = useCallback(async () => {
-        const res = await fetch('/api/shopping/members').catch(() => null);
+        const res = await fetch(`/api/shopping/members?list=${listId}`).catch(() => null);
         if (!res?.ok) return;
         const data = (await res.json()) as { household: Household; people: Person[] };
         setHousehold(data.household);
         setPeople(data.people);
-    }, []);
+    }, [listId]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- loads once, from the server
@@ -61,7 +63,7 @@ export default function ShoppingSharing({
 
     const invite = async (person: Person) => {
         setBusy(person.id);
-        const res = await fetch('/api/shopping/members', {
+        const res = await fetch(`/api/shopping/members?list=${listId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: person.id }),
@@ -74,7 +76,7 @@ export default function ShoppingSharing({
     const takeOff = async (person: Person, joined: boolean) => {
         if (joined && !(await ask({ title: t('takeOffQuestion', { name: person.name }), confirmLabel: t('takeOff'), destructive: true }))) return;
         setBusy(person.id);
-        const res = await fetch(`/api/shopping/members?userId=${person.id}`, { method: 'DELETE' }).catch(() => null);
+        const res = await fetch(`/api/shopping/members?list=${listId}&userId=${person.id}`, { method: 'DELETE' }).catch(() => null);
         setBusy(null);
         if (res?.ok) await load();
         else onNote(t('failed'));
@@ -83,15 +85,18 @@ export default function ShoppingSharing({
     const leave = async () => {
         if (!(await ask({ title: t('leaveQuestion'), confirmLabel: t('leave') }))) return;
         setBusy('leave');
-        const res = await fetch('/api/shopping/members?leave=1', { method: 'DELETE' }).catch(() => null);
+        const res = await fetch(`/api/shopping/members?list=${listId}&leave=1`, { method: 'DELETE' }).catch(() => null);
         setBusy(null);
-        if (res?.ok) router.refresh();
+        if (res?.ok) {
+            router.replace('/shopping');
+            router.refresh();
+        }
         else onNote(t('failed'));
     };
 
     const toggleLink = async () => {
         setBusy('link');
-        const res = await fetch('/api/shopping/share', { method: shareLink ? 'DELETE' : 'POST' }).catch(() => null);
+        const res = await fetch(`/api/shopping/share?list=${listId}`, { method: shareLink ? 'DELETE' : 'POST' }).catch(() => null);
         setBusy(null);
         if (res?.ok) onShareToken(((await res.json()) as { shareToken: string | null }).shareToken);
         else onNote(t('failed'));
@@ -99,7 +104,7 @@ export default function ShoppingSharing({
 
     const toggleCanAdd = async () => {
         setBusy('canAdd');
-        const res = await fetch('/api/shopping/share', {
+        const res = await fetch(`/api/shopping/share?list=${listId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ canAdd: !canAdd }),

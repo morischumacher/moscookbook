@@ -28,41 +28,92 @@ export interface ShoppingItemRow {
     checked: boolean;
 }
 
-/** This person's list, made the first time it is asked for. */
-export async function listOf(userId: number) {
-    return prisma.shoppingList.upsert({
-        where: { userId },
-        create: { userId },
-        update: {},
-        select: { id: true, shareToken: true },
-    });
+/** This person's main list, made the first time it is asked for. */
+export async function mainListOf(userId: number): Promise<{ id: number }> {
+    const found = await prisma.shoppingList.findFirst({ where: { userId, name: null }, select: { id: true } });
+    if (found) return found;
+    try {
+        return await prisma.shoppingList.create({ data: { userId }, select: { id: true } });
+    } catch {
+        // Made by a request running alongside (the partial unique index in
+        // migration 0051 lets only one through): that one is it.
+        return prisma.shoppingList.findFirstOrThrow({ where: { userId, name: null }, select: { id: true } });
+    }
 }
 
 export interface ListAccess {
     id: number;
-    /** Whose list it is: the owner also chooses who else is on it, and the link. */
+    /** Whose list it is: the owner also chooses who else is on it, the link, the name. */
     owner: boolean;
+    /** Null for somebody's main list. */
+    name: string | null;
+}
+
+/** Lists this person may work on: their own, and the ones they joined. */
+export function reachableBy(userId: number) {
+    return { OR: [{ userId }, { members: { some: { userId, acceptedAt: { not: null } } } }] };
 }
 
 /**
- * The list this person shops on: the one they joined, or else their own.
- *
- * One list per household rather than several side by side — "which list am
- * I adding to?" is then never a question.
+ * The list a request is about: `requested` (a list id from `?list=`) when it
+ * is this person's or one they joined, their main list when nothing is asked
+ * for, and null for anything else — a guessed number reads as "not there".
  */
-export async function activeList(userId: number): Promise<ListAccess> {
-    const joined = await prisma.shoppingListMember.findFirst({
-        where: { userId, acceptedAt: { not: null } },
-        select: { listId: true },
+export async function listFor(userId: number, requested: string | null): Promise<ListAccess | null> {
+    if (!requested) {
+        const main = await mainListOf(userId);
+        return { id: main.id, owner: true, name: null };
+    }
+    if (!/^\d{1,9}$/.test(requested)) return null;
+    const list = await prisma.shoppingList.findFirst({
+        where: { id: Number(requested), ...reachableBy(userId) },
+        select: { id: true, userId: true, name: true },
     });
-    if (joined) return { id: joined.listId, owner: false };
-    const own = await listOf(userId);
-    return { id: own.id, owner: true };
+    return list ? { id: list.id, owner: list.userId === userId, name: list.name } : null;
 }
 
 const personName = (person: { firstName: string; name: string }) => person.firstName || person.name;
 
-/** Who shops on a list, and who is invited to. */
+export interface ListSummary {
+    id: number;
+    /** Null for a main list. */
+    name: string | null;
+    owner: boolean;
+    /** Whose it is, for a list somebody else shared. */
+    ownerName: string | null;
+    /** Somebody else is on it, or it has a link. */
+    shared: boolean;
+    count: number;
+}
+
+/** Every list this person can open: their main list, their other lists, then the ones they joined. */
+export async function listsOf(userId: number): Promise<ListSummary[]> {
+    await mainListOf(userId);
+    const rows = await prisma.shoppingList.findMany({
+        where: reachableBy(userId),
+        orderBy: { createdAt: 'asc' },
+        select: {
+            id: true,
+            name: true,
+            userId: true,
+            shareToken: true,
+            user: { select: { firstName: true, name: true } },
+            _count: { select: { items: { where: { checked: false } }, members: { where: { acceptedAt: { not: null } } } } },
+        },
+    });
+    const lists = rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        owner: row.userId === userId,
+        ownerName: row.userId === userId ? null : personName(row.user),
+        shared: row._count.members > 0 || row.shareToken !== null,
+        count: row._count.items,
+    }));
+    const rank = (list: ListSummary) => (list.owner ? (list.name === null ? 0 : 1) : 2);
+    return lists.sort((a, b) => rank(a) - rank(b));
+}
+
+/** Who is on a list, and who is invited to. */
 export async function householdOf(listId: number) {
     const list = await prisma.shoppingList.findUnique({
         where: { id: listId },
@@ -84,41 +135,9 @@ export async function invitationsFor(userId: number) {
     const rows = await prisma.shoppingListMember.findMany({
         where: { userId, acceptedAt: null },
         orderBy: { createdAt: 'asc' },
-        select: { listId: true, list: { select: { user: { select: { firstName: true, name: true } } } } },
+        select: { listId: true, list: { select: { name: true, user: { select: { firstName: true, name: true } } } } },
     });
-    return rows.map((row) => ({ listId: row.listId, owner: personName(row.list.user) }));
-}
-
-export type JoinOutcome = 'joined' | 'notInvited' | 'alreadyJoined' | 'hosting';
-
-/**
- * Accepting an invitation: from now on this person shops on that list. What
- * was on their own list moves across with them, so nothing they meant to buy
- * disappears; their own list is empty until they leave again.
- */
-export async function joinList(userId: number, listId: number): Promise<JoinOutcome> {
-    return prisma.$transaction(async (tx) => {
-        const invitation = await tx.shoppingListMember.findUnique({
-            where: { listId_userId: { listId, userId } },
-            select: { acceptedAt: true },
-        });
-        if (!invitation) return 'notInvited';
-        if (await tx.shoppingListMember.findFirst({ where: { userId, acceptedAt: { not: null } }, select: { listId: true } })) {
-            return 'alreadyJoined';
-        }
-
-        const own = await tx.shoppingList.findUnique({ where: { userId }, select: { id: true } });
-        if (own) {
-            // Somebody who already shares their own list would leave the
-            // others on a list nobody else uses.
-            if (await tx.shoppingListMember.count({ where: { listId: own.id, acceptedAt: { not: null } } })) return 'hosting';
-            await tx.shoppingListMember.deleteMany({ where: { listId: own.id } });
-            await tx.$queryRaw`SELECT id FROM "ShoppingList" WHERE id = ${listId} FOR UPDATE`;
-            await tx.shoppingItem.updateMany({ where: { listId: own.id }, data: { listId } });
-        }
-        await tx.shoppingListMember.update({ where: { listId_userId: { listId, userId } }, data: { acceptedAt: new Date() } });
-        return 'joined';
-    });
+    return rows.map((row) => ({ listId: row.listId, name: row.list.name, owner: personName(row.list.user) }));
 }
 
 /**

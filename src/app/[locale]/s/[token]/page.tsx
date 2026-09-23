@@ -19,7 +19,7 @@ export default async function SharedShoppingPage({ params }: { params: Promise<{
 
     const list = await prisma.shoppingList.findUnique({
         where: { shareToken: token },
-        select: { id: true, shareCanAdd: true, user: { select: { firstName: true, name: true } } },
+        select: { id: true, name: true, shareCanAdd: true, user: { select: { firstName: true, name: true } } },
     });
     if (!list) notFound();
 
@@ -27,7 +27,7 @@ export default async function SharedShoppingPage({ params }: { params: Promise<{
 
     return (
         <main className={`${pageContainer} pb-32`}>
-            <h1 className={`${pageTop} ${pageHeading} mb-2`}>{t('title')}</h1>
+            <h1 className={`${pageTop} ${pageHeading} mb-2`}>{list.name ?? t('title')}</h1>
             <p className="mb-6 text-sm text-muted">{t('sharedBy', { name: list.user.firstName || list.user.name })}</p>
             <ShoppingListView initial={items} mode={{ kind: 'shared', token, canAdd: list.shareCanAdd }} />
         </main>

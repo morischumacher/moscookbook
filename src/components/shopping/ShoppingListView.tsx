@@ -9,6 +9,7 @@ import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
 import { buttonPrimarySmall } from '@/lib/ui';
 import ShoppingSharing from './ShoppingSharing';
+import ListSettings from './ListSettings';
 
 /**
  * The list, in the shop.
@@ -25,7 +26,8 @@ import ShoppingSharing from './ShoppingSharing';
  * who can tick — and add, if the owner allows it.
  */
 
-type Mode = { kind: 'account'; owner: boolean; shareToken: string | null; canAdd: boolean } | { kind: 'shared'; token: string; canAdd: boolean };
+type Mode =
+    | { kind: 'account'; listId: number; name: string | null; owner: boolean; shareToken: string | null; canAdd: boolean } | { kind: 'shared'; token: string; canAdd: boolean };
 
 /*
  * One store per list: ticks queued on your own list are not sent to somebody
@@ -62,7 +64,9 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     const [linkCanAdd, setLinkCanAdd] = useState(mode.kind === 'shared' ? mode.canAdd : true);
     const canAdd = mode.kind !== 'shared' || linkCanAdd;
 
-    const base = mode.kind === 'shared' ? `/api/shopping/shared/${mode.token}` : '/api/shopping';
+    // Which list, on every call about it.
+    const listQuery = mode.kind === 'account' ? `list=${mode.listId}` : '';
+    const base = mode.kind === 'shared' ? `/api/shopping/shared/${mode.token}` : `/api/shopping?${listQuery}`;
     // The add field is folded away: most lines come from recipes.
     const [adderOpen, setAdderOpen] = useState(false);
 
@@ -189,7 +193,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             }))
         )
             return;
-        const res = await fetch(`/api/shopping?which=${which}`, { method: 'DELETE' }).catch(() => null);
+        const res = await fetch(`/api/shopping?which=${which}&${listQuery}`, { method: 'DELETE' }).catch(() => null);
         if (res?.ok) setItems(((await res.json()) as { items: ShoppingItemRow[] }).items);
     };
 
@@ -203,7 +207,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     /** Everything one recipe put on the list, taken off again. */
     const removeRecipe = async (source: string) => {
         if (!(await ask({ title: t('removeRecipeQuestion', { recipe: source }), confirmLabel: t('removeRecipe'), destructive: true }))) return;
-        const res = await fetch('/api/shopping/remove', {
+        const res = await fetch(`/api/shopping/remove?${listQuery}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ source }),
@@ -392,8 +396,10 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                 )}
 
                 {mode.kind === 'account' && (
-                    <ShoppingSharing owner={mode.owner} shareLink={shareLink} onShareToken={setShareToken} canAdd={mode.canAdd} onNote={setNote} />
+                    <ShoppingSharing listId={mode.listId} owner={mode.owner} shareLink={shareLink} onShareToken={setShareToken} canAdd={mode.canAdd} onNote={setNote} />
                 )}
+
+                {mode.kind === 'account' && mode.owner && mode.name !== null && <ListSettings listId={mode.listId} name={mode.name} />}
 
                 {mode.kind === 'account' && items.length > 0 && (
                     <button type="button" onClick={() => void clear('all')} className="self-start text-faint underline underline-offset-4 hover:text-danger">
