@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { withoutLinkTokens } from './linkTokens';
 
 /**
  * Knowing when the cookbook is broken.
@@ -98,9 +99,9 @@ export function safePath(input: string | null | undefined): string | null {
         const url = input.startsWith('http')
             ? new URL(input)
             : new URL(input, 'https://placeholder.invalid');
-        return url.pathname.slice(0, 300);
+        return withoutLinkTokens(url.pathname).slice(0, 300);
     } catch {
-        return input.split('?')[0].slice(0, 300);
+        return withoutLinkTokens(input.split('?')[0]).slice(0, 300);
     }
 }
 

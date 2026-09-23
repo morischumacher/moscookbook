@@ -1,3 +1,5 @@
+import { withoutLinkTokens } from './linkTokens';
+
 /**
  * The page a ticket came from, made safe to store.
  *
@@ -36,7 +38,7 @@ export function safeTicketPath(value: string | null | undefined): string | null 
     // Everything from the first `?` or `#`, gone. Not sanitised, not
     // inspected — removed, because nothing in it is worth the risk of getting
     // the inspection wrong.
-    const path = value.split(/[?#]/)[0];
+    const path = withoutLinkTokens(value.split(/[?#]/)[0]);
 
     return path === '' ? null : path;
 }

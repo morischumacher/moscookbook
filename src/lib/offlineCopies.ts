@@ -44,7 +44,11 @@ export async function keepOffline(paths: string[], onProgress?: (done: number) =
     for (const path of paths) {
         try {
             const response = await fetch(path, { credentials: 'same-origin' });
-            if (response.ok && !response.redirected) {
+            // The service worker's check (public/sw.js keep()): a deleted
+            // recipe's not-found page arrives as a 200 too, and must not
+            // become the copy the kitchen finds offline.
+            const text = response.ok && !response.redirected ? await response.clone().text() : '';
+            if (text && !/NEXT_HTTP_ERROR_FALLBACK|NEXT_REDIRECT|NEXT_NOT_FOUND|data-dgst=/.test(text)) {
                 await cache.put(path, response);
                 kept += 1;
             }

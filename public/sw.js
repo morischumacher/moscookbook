@@ -95,6 +95,14 @@ self.addEventListener('activate', (event) => {
                     .map((name) => caches.delete(name))
             );
 
+            // Pages kept before NEVER_KEPT grew (drafts, the shopping list,
+            // tickets, shared text) go now, without throwing away the rest:
+            // the favourites saved for offline live in this same cache.
+            const cache = await caches.open(CACHE);
+            for (const request of await cache.keys()) {
+                if (NEVER_KEPT.test(new URL(request.url).pathname)) await cache.delete(request);
+            }
+
             // The page request leaves while the worker is still starting, so
             // having a worker costs a navigation nothing.
             if (self.registration.navigationPreload) {
@@ -128,7 +136,10 @@ async function trim(cache) {
  * opened in a shop, where the signal is worst, and it holds nothing but a
  * list of groceries.
  */
-const NEVER_KEPT = /^\/(?:en|de)\/(?:admin|login|register|forgot|reset|verify|account|r|p|c|m)(?:\/|$)/;
+// Nor a person's own pages — drafts, the shopping list, tickets — nor the
+// share target, whose address carries what was shared: on a shared tablet
+// whose session ran out, the next person offline could read them.
+const NEVER_KEPT = /^\/(?:en|de)\/(?:admin|login|register|forgot|reset|verify|account|r|p|c|m|s|share|drafts|shopping|tickets)(?:\/|$)/;
 
 function isCacheable(request, url) {
     if (request.method !== 'GET') return false;
