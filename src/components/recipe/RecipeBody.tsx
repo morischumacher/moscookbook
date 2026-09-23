@@ -131,7 +131,10 @@ export default function RecipeBody({
         const converts = system === 'metric' && unit !== null && !unit.metric;
         if (factor === 1 && !converts) return row.raw || formatAmount(row, 1, uiLocale);
         const shown = converts ? toMetric(scaled, row.name, uiLocale) : unit ? tidy(scaled, uiLocale) : scaled;
-        return formatMeasured(shown, uiLocale, (parts) => formatAmount(parts, 1, uiLocale));
+        // "ca. 200 g" doubled is still about 400 g: the hedge was dropped
+        // with the rest of the written amount.
+        const hedge = /^(ca\.|circa|etwa|ungefähr|about|approx\.?|~)\s*/i.exec(row.raw ?? '')?.[0] ?? '';
+        return hedge + formatMeasured(shown, uiLocale, (parts) => formatAmount(parts, 1, uiLocale));
     };
 
     const displayed = ingredients.map((row) => ({ amount: amountOf(row), item: row.name, name: row.name, section: row.section ?? null }));

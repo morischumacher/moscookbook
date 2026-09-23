@@ -80,7 +80,12 @@ export default function accountTests() {
     );
     check(
         'and refuses when there are none',
-        remove.includes('otherAdmins === 0') && remove.includes('409'),
+        remove.includes(') === 0) return null') && remove.includes('409'),
+        'delete route'
+    );
+    check(
+        'counting and deleting in one serializable transaction, so two admins leaving at once cannot both go',
+        remove.includes("isolationLevel: 'Serializable'") && /\$transaction\(/.test(remove),
         'delete route'
     );
     check(

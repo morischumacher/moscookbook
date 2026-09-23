@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { keepOffline } from '@/lib/offlineCopies';
 import { BusyLabel } from '@/components/ui/Busy';
@@ -32,7 +32,14 @@ export default function OfflineFavorites() {
         }
     };
 
-    if (typeof window !== 'undefined' && !('caches' in window)) return null;
+    // Decided after mounting: the server always rendered the button, and a
+    // browser without a cache (plain http) then rendered nothing — a mismatch.
+    const [supported, setSupported] = useState(true);
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- a browser capability, known only after mounting
+        if (!('caches' in window)) setSupported(false);
+    }, []);
+    if (!supported) return null;
 
     return (
         <p className="text-sm text-muted">

@@ -587,6 +587,13 @@ export default async function HomePage({
             ) : (
                 <div className="border-t border-line py-20 text-center">
                     <p className="text-muted">{t('noResults')}</p>
+                    {/* Past the end of a list that has recipes — an old link, or
+                        a filter narrowed on page five: the way back, not a dead end. */}
+                    {page > 1 && total > 0 && (
+                        <Link href={pageHref(1)} className="mt-3 inline-block text-sm underline underline-offset-4">
+                            {t('toFirstPage')}
+                        </Link>
+                    )}
                 </div>
             )}
         </main>

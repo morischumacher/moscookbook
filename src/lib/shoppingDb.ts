@@ -155,6 +155,7 @@ export async function removeSource(listId: number, source: string): Promise<numb
             if (rest.length === 0) await tx.shoppingItem.delete({ where: { id: line.id } });
             else await tx.shoppingItem.update({ where: { id: line.id }, data: { sources: rest } });
         }
+        await tx.shoppingList.update({ where: { id: listId }, data: { updatedAt: new Date() } });
         return lines.length;
     });
 }
@@ -288,4 +289,29 @@ export async function collectionLines(collectionId: number, locale?: string): Pr
         const shown = asRead(row.recipe, locale);
         return linesFor(shown.ingredients, 1, shown.title);
     });
+}
+
+type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/**
+ * Before an account goes: every list somebody else shops on passes to the
+ * person who joined it first, rather than going with the account (the rows
+ * cascade) and taking the household's weekly list with it. A main list
+ * becomes a named one, since its new owner has a main list of their own.
+ */
+export async function handOverLists(tx: Tx, userId: number): Promise<void> {
+    const lists = await tx.shoppingList.findMany({
+        where: { userId, members: { some: { acceptedAt: { not: null } } } },
+        select: {
+            id: true,
+            name: true,
+            members: { where: { acceptedAt: { not: null } }, orderBy: { acceptedAt: 'asc' }, take: 1, select: { userId: true } },
+        },
+    });
+    for (const list of lists) {
+        const heir = list.members[0]?.userId;
+        if (!heir) continue;
+        await tx.shoppingListMember.delete({ where: { listId_userId: { listId: list.id, userId: heir } } });
+        await tx.shoppingList.update({ where: { id: list.id }, data: { userId: heir, name: list.name ?? 'Gemeinsame Liste' } });
+    }
 }

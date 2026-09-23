@@ -6,6 +6,7 @@ import { browserSupportsWebAuthn, startRegistration } from '@simplewebauthn/brow
 import { messageFrom } from '@/lib/apiMessage';
 import { formatDate } from '@/lib/formatDate';
 import { BusyLabel } from '@/components/ui/Busy';
+import InlineConfirm from '@/components/ui/InlineConfirm';
 import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 
 interface Passkey {
@@ -83,9 +84,10 @@ export default function Passkeys({ email }: { email: string }) {
 
     const remove = async (id: number) => {
         setBusy(true);
-        await fetch(`/api/account/passkeys/${id}`, { method: 'DELETE' }).catch(() => null);
+        const res = await fetch(`/api/account/passkeys/${id}`, { method: 'DELETE' }).catch(() => null);
         setBusy(false);
-        setSaid({ good: true, text: t('passkeyRemoved') });
+        // It said "removed" whatever happened.
+        setSaid(res?.ok ? { good: true, text: t('passkeyRemoved') } : { good: false, text: t('passkeyRemoveFailed') });
         await load();
     };
 
@@ -116,14 +118,14 @@ export default function Passkeys({ email }: { email: string }) {
                                         : t('passkeyAddedOn', { date: formatDate(new Date(key.createdAt), locale, 'short') })}
                                 </span>
                             </span>
-                            <button
-                                type="button"
-                                onClick={() => void remove(key.id)}
+                            <InlineConfirm
+                                label={t('passkeyRemove')}
+                                confirmLabel={t('passkeyRemove')}
+                                destructive
                                 disabled={busy}
+                                onConfirm={() => remove(key.id)}
                                 className="shrink-0 text-sm text-muted underline underline-offset-4 hover:text-danger"
-                            >
-                                {t('passkeyRemove')}
-                            </button>
+                            />
                         </li>
                     ))}
                 </ul>

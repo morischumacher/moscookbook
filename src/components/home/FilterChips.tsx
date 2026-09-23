@@ -65,7 +65,11 @@ export default function FilterChips({
 
     const activeCategory = searchParams.get('category') ?? '';
     const activeCuisine = searchParams.get('nationality') ?? '';
-    const activeSort = searchParams.get('sort') ?? 'recent';
+    // A search is sorted by how well each recipe matches until another order
+    // is picked — which "Zuletzt hinzugefügt" could not be, since it already
+    // looked picked.
+    const searching = Boolean(searchParams.get('search'));
+    const activeSort = searchParams.get('sort') ?? (searching ? '' : 'recent');
     const favoritesOnly = searchParams.get('favorites') === 'true';
     const activeTag = searchParams.get('tag') ?? '';
     const quickOnly = searchParams.get('quick') === 'true';
@@ -83,6 +87,7 @@ export default function FilterChips({
 
             if (searchTerm) params.set('search', searchTerm);
             else params.delete('search');
+            params.delete('page');
             startTransition(() => router.replace(`${pathname}?${params.toString()}`));
         }, 300);
 
@@ -99,6 +104,7 @@ export default function FilterChips({
 
             if (haveTerm) params.set('have', haveTerm);
             else params.delete('have');
+            params.delete('page');
             startTransition(() => router.replace(`${pathname}?${params.toString()}`));
         }, 300);
 
@@ -109,6 +115,9 @@ export default function FilterChips({
         const params = new URLSearchParams(searchParams.toString());
         if (value) params.set(key, value);
         else params.delete(key);
+        // Another filter is another list: page five of the old one was often
+        // past the end of the new one, which then said "nothing found".
+        params.delete('page');
         startTransition(() => router.replace(`${pathname}?${params.toString()}`));
     };
 
@@ -348,6 +357,7 @@ export default function FilterChips({
                         onChange={(event) => setParam('sort', event.target.value)}
                         className="cursor-pointer rounded border border-control bg-transparent px-2 py-1 text-ink outline-none focus-visible:border-ink"
                     >
+                        {searching && <option value="">{t('sortRelevance')}</option>}
                         <option value="recent">{t('sortRecent')}</option>
                         <option value="views">{t('sortViews')}</option>
                         <option value="rating">{t('sortRating')}</option>

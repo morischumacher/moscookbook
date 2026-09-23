@@ -43,10 +43,12 @@ export default async function BlogIndex({
     searchParams,
 }: {
     params: Promise<{ locale: string }>;
-    searchParams: Promise<{ search?: string }>;
+    searchParams: Promise<{ search?: string | string[] }>;
 }) {
     const { locale } = await params;
-    const search = (await searchParams).search?.replace(/\u0000/g, '').trim().slice(0, 200) ?? '';
+    // `?search=a&search=b` arrives as a list, and .replace on it was a 500.
+    const raw = (await searchParams).search;
+    const search = typeof raw === 'string' ? raw.replace(/\u0000/g, '').trim().slice(0, 200) : '';
     const t = await getTranslations('Blog');
     const user = await getCurrentUser();
     const isAdmin = Boolean(user?.admin);
