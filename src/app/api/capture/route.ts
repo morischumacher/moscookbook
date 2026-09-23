@@ -15,6 +15,7 @@ import { DEFAULT_MODEL, canUseAi } from '@/lib/aiImport';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { toJsonObject } from '@/lib/json';
 import { failed } from '@/lib/reportServerError';
+import { draftFromJson } from '@/lib/captureDraft';
 
 /**
  * The capture endpoint.
@@ -321,7 +322,7 @@ export async function GET() {
     const withHints = captures.map((capture) => {
         if (capture.status === 'published') return { ...capture, duplicateOf: null };
 
-        const draft = capture.draft as { title?: string } | null;
+        const draft = draftFromJson(capture.draft);
         const title = draft?.title ?? '';
 
         return {

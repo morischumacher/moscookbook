@@ -6,7 +6,7 @@ import { requireAdmin } from '@/lib/auth';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
-import { searchFields } from '@/lib/searchText';
+import { ingredientRows as positioned, recipeColumns } from '@/lib/recipeRepo';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
 
@@ -53,11 +53,8 @@ export async function PUT(
 
         // Ingredient rows are replaced wholesale rather than diffed: the list is
         // short, order matters, and a rewrite keeps positions contiguous.
-        const ingredientRows = toStructuredIngredients(ingredients).map((row, index) => ({
-            ...row,
-            recipeId,
-            position: index,
-        }));
+        const structured = toStructuredIngredients(ingredients);
+        const ingredientRows = positioned(structured).map((row) => ({ ...row, recipeId }));
 
         // Which files this edit is about to stop pointing at. Read before the
         // write, because after it there is nothing left to ask. Deleting a
@@ -81,23 +78,18 @@ export async function PUT(
         const [updatedRecipe] = await prisma.$transaction([
             prisma.recipe.update({
                 where: { id: recipeId },
-                data: {
+                data: recipeColumns({
                     title,
                     slug,
                     description,
                     category,
                     nationality,
                     instructions,
-                    servings: servings ?? null,
-                    prepMinutes: prepMinutes ?? null,
-                    cookMinutes: cookMinutes ?? null,
-                    ...searchFields({
-                        title,
-                        description,
-                        instructions,
-                        ingredients: ingredientRows.map((row) => row.name),
-                    }),
-                },
+                    servings,
+                    prepMinutes,
+                    cookMinutes,
+                    ingredients: structured,
+                }),
             }),
             prisma.ingredient.deleteMany({ where: { recipeId } }),
             prisma.ingredient.createMany({ data: ingredientRows }),

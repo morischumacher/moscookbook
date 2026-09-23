@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-36 screens · 78 endpoints · 50 link edges · 82 call edges
+36 screens · 75 endpoints · 50 link edges · 79 call edges
 
 ## Screens
 
@@ -104,9 +104,6 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/posts` | admin | zod | — | `post/PostForm` |
 | POST | `/api/recipes/[id]/cooked/photos` | user (manual) | — | yes | `recipe/Cooked` |
 | DELETE | `/api/recipes/[id]/cooked/photos` | user (manual) | — | yes | `recipe/Cooked` |
-| POST | `/api/recipes/[id]/cooked` | user (manual) | — | — | `recipe/Cooked` |
-| PATCH | `/api/recipes/[id]/cooked` | user (manual) | — | — | `recipe/Cooked` |
-| DELETE | `/api/recipes/[id]/cooked` | user (manual) | — | — | `recipe/Cooked` |
 | POST | `/api/recipes/[id]/draft` | admin | — | — | `recipe/FinishDraft` |
 | POST | `/api/recipes/[id]/favorite` | user | — | — | `FavoriteButton` |
 | DELETE | `/api/recipes/[id]/favorite` | user | — | — | `FavoriteButton` |
@@ -124,10 +121,16 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/tickets` | user (manual) | zod | yes | `src/app/[locale]/tickets/page.tsx` |
 | GET | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
 | PATCH | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
-| POST | `/api/upload` | admin | — | — | `recipe-form/RecipeForm` |
+| POST | `/api/upload` | admin | — | — | `recipe-form/GalleryField` |
 | PATCH | `/api/users/[id]/role` | admin | zod | — | `admin/UserList` |
 | DELETE | `/api/users/[id]` | admin | — | — | `admin/UserList` |
 | GET | `/api/users` | admin | — | — | `admin/UserList` |
+
+Calls the map could not match to an endpoint (a URL built elsewhere, or a path the regex misread):
+
+- `DELETE /api/recipes/[id]/cooked  (from recipe/Cooked)`
+- `PATCH /api/recipes/[id]/cooked  (from recipe/Cooked)`
+- `POST /api/recipes/[id]/cooked  (from recipe/Cooked)`
 
 ## Always present
 
@@ -378,12 +381,6 @@ flowchart LR
   crecipe_Cooked --> ePOST_api_recipes__id__cooked_photos
   eDELETE_api_recipes__id__cooked_photos(["DELETE /api/recipes/[id]/cooked/photos"])
   crecipe_Cooked --> eDELETE_api_recipes__id__cooked_photos
-  ePOST_api_recipes__id__cooked(["POST /api/recipes/[id]/cooked"])
-  crecipe_Cooked --> ePOST_api_recipes__id__cooked
-  ePATCH_api_recipes__id__cooked(["PATCH /api/recipes/[id]/cooked"])
-  crecipe_Cooked --> ePATCH_api_recipes__id__cooked
-  eDELETE_api_recipes__id__cooked(["DELETE /api/recipes/[id]/cooked"])
-  crecipe_Cooked --> eDELETE_api_recipes__id__cooked
   ePOST_api_recipes__id__draft(["POST /api/recipes/[id]/draft"])
   crecipe_FinishDraft["recipe/FinishDraft"]
   crecipe_FinishDraft --> ePOST_api_recipes__id__draft
@@ -429,7 +426,8 @@ flowchart LR
   ePATCH_api_tickets(["PATCH /api/tickets"])
   cadmin_TicketsPanel --> ePATCH_api_tickets
   ePOST_api_upload(["POST /api/upload"])
-  crecipe_form_RecipeForm --> ePOST_api_upload
+  crecipe_form_GalleryField["recipe-form/GalleryField"]
+  crecipe_form_GalleryField --> ePOST_api_upload
   ePATCH_api_users__id__role(["PATCH /api/users/[id]/role"])
   cadmin_UserList["admin/UserList"]
   cadmin_UserList --> ePATCH_api_users__id__role

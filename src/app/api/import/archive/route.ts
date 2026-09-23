@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { requireAdmin } from '@/lib/auth';
 import { parseArchive, cookEntriesFrom, type ArchiveRecipe } from '@/lib/archive';
-import { searchFields } from '@/lib/searchText';
+import { newRecipeData } from '@/lib/recipeRepo';
 import { describeWriteFailure } from '@/lib/prismaErrors';
 import { failed as reportFailure } from '@/lib/reportServerError';
 
@@ -32,7 +32,7 @@ function safeDate(value: string | null | undefined): Date | null {
 }
 
 function recipeData(recipe: ArchiveRecipe) {
-    return {
+    return newRecipeData({
         title: recipe.title,
         slug: recipe.slug,
         description: recipe.description,
@@ -49,24 +49,9 @@ function recipeData(recipe: ArchiveRecipe) {
         isPublic: recipe.isPublic,
         isDraft: recipe.isDraft,
         createdAt: safeDate(recipe.createdAt) ?? new Date(),
-        ...searchFields({
-            title: recipe.title,
-            description: recipe.description,
-            instructions: recipe.instructions,
-            ingredients: recipe.ingredients.map((ingredient) => ingredient.name),
-        }),
-        images: { create: recipe.images.map((url, index) => ({ url, position: index })) },
-        ingredients: {
-            create: recipe.ingredients.map((ingredient, index) => ({
-                position: index,
-                quantity: ingredient.quantity,
-                quantityMax: ingredient.quantityMax,
-                unit: ingredient.unit,
-                name: ingredient.name,
-                raw: ingredient.raw,
-            })),
-        },
-    };
+        imageUrls: recipe.images,
+        ingredients: recipe.ingredients,
+    });
 }
 
 /**

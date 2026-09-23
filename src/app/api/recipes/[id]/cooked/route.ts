@@ -1,11 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import prisma from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { ownerScope } from '@/lib/ownership';
-import { positiveIntId } from '@/lib/routeParams';
-import { failed } from '@/lib/reportServerError';
+import { idFrom, refuse, route } from '@/lib/route';
 
 /**
  * "I cooked this" — the entry itself. Its photographs are in ./photos.
@@ -28,111 +27,71 @@ import { failed } from '@/lib/reportServerError';
 /** Long enough for "half the chilli, and 10 minutes less", short enough not to be an essay. */
 const MAX_NOTE = 280;
 
-async function recipeIdFrom(params: Promise<{ id: string }>): Promise<number | null> {
-    const { id } = await params;
-    return positiveIntId(id);
-}
-
-function entryIdFrom(req: NextRequest): number | null {
-    return positiveIntId(new URL(req.url).searchParams.get('entry'));
-}
-
-function noteFrom(body: unknown): string | null {
-    const raw = typeof (body as { note?: unknown })?.note === 'string'
-        ? (body as { note: string }).note.trim()
-        : '';
-    return raw === '' ? null : raw.slice(0, MAX_NOTE);
-}
-
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    const user = await getCurrentUser();
-    if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-
-    const recipeId = await recipeIdFrom(params);
-    if (recipeId === null) {
-        return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
-    }
-
-    const note = noteFrom(await req.json().catch(() => null));
-
-    try {
-        const entry: { id: number; cookedAt: Date; note: string | null } =
-            await prisma.cookEntry.create({
-                data: { recipeId, userId: user.id, note },
-                select: { id: true, cookedAt: true, note: true },
-            });
-
-        return NextResponse.json({ ...entry, photos: [] }, { status: 201 });
-    } catch (error) {
-        // The recipe was deleted between the page rendering and the tap.
-        if (isPrismaError(error, 'P2003')) {
-            return NextResponse.json({ message: 'That recipe no longer exists.' }, { status: 404 });
-        }
-
-        failed('Cook entry failed:', error);
-        return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
-    }
-}
-
 /**
- * The note on an entry. Its author, admin or not — see the note on ownerScope.
+ * A note, as the form sends it: optional, trimmed, and cut to length rather
+ * than refused — a note typed at the stove that runs long should still save.
+ * An empty one is stored as no note.
  */
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    const user = await getCurrentUser();
-    if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+const noteBody = z.object({
+    note: z
+        .string()
+        .nullish()
+        .transform((value) => {
+            const trimmed = (value ?? '').trim();
+            return trimmed === '' ? null : trimmed.slice(0, MAX_NOTE);
+        }),
+});
 
-    const recipeId = await recipeIdFrom(params);
-    if (recipeId === null) {
-        return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
+type Params = { id: string };
+
+export const POST = route<'user', typeof noteBody, Params>(
+    { access: 'user', body: noteBody, label: 'Cook entry' },
+    async ({ user, params, body }) => {
+        const recipeId = idFrom(params.id, 'recipe ID');
+
+        try {
+            const entry: { id: number; cookedAt: Date; note: string | null } =
+                await prisma.cookEntry.create({
+                    data: { recipeId, userId: user.id, note: body.note },
+                    select: { id: true, cookedAt: true, note: true },
+                });
+
+            return NextResponse.json({ ...entry, photos: [] }, { status: 201 });
+        } catch (error) {
+            // The recipe was deleted between the page rendering and the tap.
+            if (isPrismaError(error, 'P2003')) refuse(404, 'That recipe no longer exists.');
+            throw error;
+        }
     }
+);
 
-    const entryId = entryIdFrom(req);
-    if (entryId === null) return NextResponse.json({ message: 'Which entry?' }, { status: 400 });
+export const PATCH = route<'user', typeof noteBody, Params>(
+    { access: 'user', body: noteBody, label: 'Cook note' },
+    async ({ req, user, params, body }) => {
+        const recipeId = idFrom(params.id, 'recipe ID');
+        const entryId = idFrom(new URL(req.url).searchParams.get('entry'), 'entry');
 
-    const note = noteFrom(await req.json().catch(() => null));
-
-    try {
         // The permission is inside the query, not in an `if` above it: there is
         // no window between asking whose entry it is and writing to it.
         const updated: { count: number } = await prisma.cookEntry.updateMany({
             where: { id: entryId, recipeId, ...ownerScope(user, 'edit') },
-            data: { note },
+            data: { note: body.note },
         });
 
-        if (updated.count !== 1) {
-            return NextResponse.json({ message: 'Not yours to write on.' }, { status: 403 });
-        }
+        if (updated.count !== 1) refuse(403, 'Not yours to write on.');
 
-        return NextResponse.json({ success: true, note });
-    } catch (error) {
-        failed('Cook note failed:', error);
-        return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
+        return NextResponse.json({ success: true, note: body.note });
     }
-}
+);
 
-/**
- * Takes an entry down, with whatever pictures hang on it.
- *
- * Its author, or an admin. This used to be the author alone, justified by the
- * entry being "one person's record of their own evening" — which described
- * something private, while every account could read every word of it. A page
- * everyone reads needs somebody able to take down what does not belong on it.
- */
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    const user = await getCurrentUser();
-    if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+export const DELETE = route<'user', undefined, Params>(
+    { access: 'user', label: 'Cook entry deletion' },
+    async ({ req, user, params }) => {
+        const recipeId = idFrom(params.id, 'recipe ID');
+        const entryId = idFrom(new URL(req.url).searchParams.get('entry'), 'entry');
 
-    const recipeId = await recipeIdFrom(params);
-    if (recipeId === null) {
-        return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
-    }
+        const where = { id: entryId, recipeId, ...ownerScope(user, 'delete') };
 
-    const entryId = entryIdFrom(req);
-    if (entryId === null) return NextResponse.json({ message: 'Which entry?' }, { status: 400 });
-
-    const where = { id: entryId, recipeId, ...ownerScope(user, 'delete') };
-
-    try {
         // Read under the same condition as the delete, so an entry this person
         // may not touch never has its picture URLs looked at either.
         const doomed: { photos: { url: string }[] } | null = await prisma.cookEntry.findFirst({
@@ -153,8 +112,5 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         // for — "that entry is not there any more" — holds either way. The same
         // reasoning the photographs have always used.
         return NextResponse.json({ success: true, removed: removed.count });
-    } catch (error) {
-        failed('Cook entry deletion failed:', error);
-        return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
-}
+);
