@@ -8,6 +8,7 @@ import { parseArchive, cookEntriesFrom, postRecipeSlugs, type ArchivePost, type 
 import { newRecipeData } from '@/lib/recipeRepo';
 import { normaliseTags } from '@/lib/tags';
 import { describeWriteFailure } from '@/lib/prismaErrors';
+import { postSearchFields } from '@/lib/searchText';
 import { failed as reportFailure } from '@/lib/reportServerError';
 
 const MAX_BODY_BYTES = 20 * 1024 * 1024;
@@ -88,6 +89,14 @@ function recipeData(recipe: ArchiveRecipe) {
  * of it had gone in. Each row is attempted on its own and the failures are
  * counted and named in the response.
  */
+/** The one account with this name, or null when none or several have it. */
+async function authorByName(name: string | null | undefined): Promise<number | null> {
+    const wanted = (name ?? '').trim();
+    if (!wanted) return null;
+    const matches: { id: number }[] = await prisma.user.findMany({ where: { name: wanted }, select: { id: true }, take: 2 });
+    return matches.length === 1 ? matches[0].id : null;
+}
+
 export async function POST(req: NextRequest) {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
@@ -177,11 +186,9 @@ export async function POST(req: NextRequest) {
             // unless that was asked for.
             if (taken && !replace) continue;
 
-            // The search columns are left empty here on purpose. A restore
-            // writes hundreds of rows, and recomputing the expansions row by
-            // row would double its cost for a result `npm run reindex` produces
-            // in one pass — which is the step the restore script already ends
-            // with.
+            // The search columns are written here too: the restore in the
+            // browser never runs `npm run reindex`, and entries restored
+            // without them could not be found by the blog's search.
             try {
                 // Same transaction rule as a recipe: the old entry only goes
                 // away if the new one arrives.
@@ -194,6 +201,9 @@ export async function POST(req: NextRequest) {
                             body: post.body,
                             imageUrl: post.imageUrl,
                             publishedAt: safeDate(post.publishedAt),
+                            ...postSearchFields({ title: post.title, body: post.body }),
+                            // Only a published entry can be on the open web.
+                            isPublic: post.isPublic && safeDate(post.publishedAt) !== null,
                             createdAt: safeDate(post.createdAt) ?? new Date(),
                             // The recipes it is about, those the archive has.
                             recipes: {
@@ -260,7 +270,10 @@ export async function POST(req: NextRequest) {
                 const target: { id: number } = already
                     ? already
                     : await prisma.cookEntry.create({
-                          data: { recipeId, userId: auth.user.id, cookedAt, note: entry.note },
+                          // Its author by name when exactly one account has
+                          // it; otherwise nobody ("Someone") rather than the
+                          // admin restoring, who wrote none of these.
+                          data: { recipeId, userId: await authorByName(entry.author), cookedAt, note: entry.note },
                           select: { id: true },
                       });
 
@@ -316,6 +329,7 @@ export async function POST(req: NextRequest) {
                             slug: collection.slug,
                             description: collection.description,
                             imageUrl: collection.imageUrl,
+                            isPublic: collection.isPublic,
                             createdAt: safeDate(collection.createdAt) ?? new Date(),
                             recipes: {
                                 create: recipeIds.map((recipeId, index) => ({

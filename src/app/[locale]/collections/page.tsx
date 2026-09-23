@@ -49,12 +49,16 @@ export default async function CollectionsPage() {
     return (
         <main className={`${pageContainer} pb-32`}>
             <header className={`flex flex-wrap items-baseline justify-between gap-4 ${pageTop} ${pageHeading}`}>
-                <h1>{t('title')}</h1>
+                {/* The same size as every other page title: a bare h1 took the
+                    global display style instead, and was twice as large. */}
+                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
 
                 {user?.admin && (
-                    <Link href="/admin/collections/new" className={buttonPrimarySmall}>
-                        {t('createNew')}
-                    </Link>
+                    <span className="text-base font-normal tracking-normal">
+                        <Link href="/admin/collections/new" className={buttonPrimarySmall}>
+                            {t('createNew')}
+                        </Link>
+                    </span>
                 )}
             </header>
 

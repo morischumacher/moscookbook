@@ -22,7 +22,7 @@ export default async function SimilarRecipes({ recipes }: { recipes: SimilarReci
 
     return (
         <section className="print:hidden mt-16 border-t border-line pt-8">
-            <h2 className="mb-5 text-xs font-bold uppercase tracking-widest text-muted">
+            <h2 className="mb-5 font-sans text-xs font-bold uppercase tracking-widest text-muted">
                 {t('similar')}
             </h2>
 

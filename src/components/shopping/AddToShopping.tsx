@@ -84,7 +84,7 @@ export default function AddToShopping(
                 type="button"
                 onClick={() => void add()}
                 disabled={state === 'busy'}
-                className={`${buttonSecondary} w-full sm:w-auto`}
+                className={`${buttonSecondary} w-full whitespace-nowrap sm:w-auto`}
             >
                 <BusyLabel busy={state === 'busy'}>{label}</BusyLabel>
             </button>

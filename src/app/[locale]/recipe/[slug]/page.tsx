@@ -51,6 +51,10 @@ export async function generateMetadata({
     const title = `${recipe.title} — mo'scookbook`;
 
     if (!recipe.isPublic) {
+        // Not its title for a visitor it will be refused to: the metadata
+        // streams before the page's redirect to the login.
+        const user = await getCurrentUser();
+        if (!user) return { title: t('notFound'), robots: { index: false, follow: false } };
         return { title, robots: { index: false, follow: false } };
     }
 

@@ -150,7 +150,9 @@ export function newRecipeData(
     return {
         ...recipeColumns(fields),
         ...(fields.isDraft !== undefined ? { isDraft: fields.isDraft } : {}),
-        ...(fields.isPublic !== undefined ? { isPublic: fields.isPublic } : {}),
+        // Never on the web while a draft or the admins' own — whatever an
+        // archive (hand-edited, or from elsewhere) says.
+        ...(fields.isPublic !== undefined ? { isPublic: fields.isPublic && !fields.isDraft && !fields.onlyMe } : {}),
         ...(fields.createdAt !== undefined ? { createdAt: fields.createdAt } : {}),
         images: { create: fields.imageUrls.map((url, index) => ({ url, position: index })) },
         ingredients: { create: ingredientRows(fields.ingredients) },

@@ -147,6 +147,7 @@ const EXACT: Record<string, string> = {
     'No recipe data found on that page. Try copying the recipe text and pasting it instead.':
         'Auf dieser Seite wurde kein Rezept gefunden. Kopier den Rezepttext und füg ihn stattdessen ein.',
     'The page could not be read.': 'Die Seite konnte nicht gelesen werden.',
+    'Reading timed out.': 'Das Lesen hat zu lange gedauert.',
     'That is too large to capture.': 'Das ist zu groß für den Eingang.',
     'Nothing usable was sent.': 'Es ist nichts Brauchbares angekommen.',
     'Nothing usable was shared.': 'Es wurde nichts Brauchbares geteilt.',

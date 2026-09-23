@@ -370,13 +370,13 @@ export default function RecipeBody({
                     onlyMe={share.onlyMe}
                     ownUrl={share.ownUrl}
                     mayChange={share.mayChange}
-                    className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+                    className="-my-2 py-3 text-sm text-muted underline underline-offset-4 hover:text-ink"
                 />
 
                 <button
                     type="button"
                     onClick={() => window.print()}
-                    className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+                    className="-my-2 py-3 text-sm text-muted underline underline-offset-4 hover:text-ink"
                 >
                     {t('print')}
                 </button>

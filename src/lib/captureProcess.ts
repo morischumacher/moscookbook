@@ -795,13 +795,24 @@ async function materialOf(capture: ProcessableCapture): Promise<{ text: string; 
  * add to it. Here the rules, the learned site layouts and the merge are all
  * left out; the answer replaces the draft. One call, pressed by a person.
  */
+/**
+ * A picture the model could not read comes back as an empty draft holding
+ * just the picture. For "read with AI only" that is nothing: the row keeps
+ * the draft it had rather than losing its ingredients to a 429.
+ */
+function onlyIfRead(result: ProcessedCapture): ProcessedCapture {
+    const draft = result.draft;
+    const read = draft && (draft.title?.trim() || (draft.ingredients?.length ?? 0) > 0 || draft.instructions?.trim());
+    return read ? result : { ...result, draft: null };
+}
+
 export async function readWithAiOnly(
     capture: ProcessableCapture,
     ai: AiCapability,
     options: ProcessOptions = {}
 ): Promise<ProcessedCapture> {
     if (!canUseAi(ai)) return outcome('needsWork', null, reason('pictureNeedsAi'));
-    if (capture.kind === 'image') return processImage(capture.imageUrl ?? null, ai, options, { more: capture.moreImageUrls ?? [] });
+    if (capture.kind === 'image') return onlyIfRead(await processImage(capture.imageUrl ?? null, ai, options, { more: capture.moreImageUrls ?? [] }));
 
     try {
         const material = await materialOf(capture);
@@ -832,7 +843,7 @@ export async function readWithAiOnly(
         }
 
         // Nothing to read, or not enough in it: the screenshot, if one came.
-        if (capture.imageUrl) return processImage(capture.imageUrl, ai, options, { more: capture.moreImageUrls ?? [], sourceUrl: capture.sourceUrl });
+        if (capture.imageUrl) return onlyIfRead(await processImage(capture.imageUrl, ai, options, { more: capture.moreImageUrls ?? [], sourceUrl: capture.sourceUrl }));
         return outcome('failed', null, reason('nothingSent'));
     } catch (error) {
         console.error('Capture processing error:', error);

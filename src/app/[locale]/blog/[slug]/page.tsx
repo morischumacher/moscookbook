@@ -45,8 +45,13 @@ export async function generateMetadata({
     const post = await loadPost(slug);
 
     if (!post || !post.isPublic || post.publishedAt === null) {
+        // The title only for somebody who may read it: the metadata streams
+        // before the page redirects, and a guessed address otherwise told a
+        // visitor the private entry's title — or a draft's to a member.
+        const user = post ? await getCurrentUser() : null;
+        const mayRead = Boolean(user && (post!.publishedAt !== null || user.admin));
         return {
-            title: post ? `${post.title} — mo'scookbook` : "mo'scookbook",
+            title: post && mayRead ? `${post.title} — mo'scookbook` : "mo'scookbook",
             robots: { index: false, follow: false },
         };
     }

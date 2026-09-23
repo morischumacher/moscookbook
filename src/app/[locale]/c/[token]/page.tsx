@@ -33,7 +33,7 @@ export async function generateMetadata({
     const { locale, token } = await params;
     const collection = await load(token);
 
-    if (!collection) return { title: 'Mo’sCookbook' };
+    if (!collection) return { title: "mo'scookbook", robots: { index: false, follow: false } };
 
     const t = await getTranslations({ locale, namespace: 'Collections' });
     const url = shareUrl(getSiteUrl(), locale, token, 'collection');
@@ -42,6 +42,8 @@ export async function generateMetadata({
         title: collection.title,
         description: collection.description ?? t('sharedBy'),
         alternates: { canonical: url },
+        // A secret link, like /r and /p: never to be indexed.
+        robots: { index: false, follow: false, nocache: true },
         openGraph: {
             type: 'article',
             title: collection.title,

@@ -116,7 +116,9 @@ export default function UserList() {
                             key={user.id}
                             className="flex flex-wrap items-center gap-x-4 gap-y-2 py-4"
                         >
-                            <div className="min-w-0 flex-1">
+                            {/* The whole first line on a phone, the badge and the
+                                actions under it: beside them the name was "Mi…". */}
+                            <div className="min-w-0 flex-1 basis-full sm:basis-0">
                                 <p className="truncate font-medium">{user.name || user.email}</p>
                                 {user.name && (
                                     <p className="truncate text-sm text-muted">{user.email}</p>

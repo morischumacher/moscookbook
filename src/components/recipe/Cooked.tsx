@@ -214,7 +214,7 @@ export default function Cooked({
     return (
         <section className="print:hidden mt-16 border-t border-line pt-8">
             <div className="mb-5 flex flex-wrap items-baseline justify-between gap-4">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
+                <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-muted">
                     {since ? t(`since.${since.key}`, { count: since.count }) : t('neverCooked')}
                 </h2>
 

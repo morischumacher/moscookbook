@@ -100,7 +100,7 @@ export default function ProfileMenu({
                         onClick={() => setOpen(false)}
                         className={row}
                     >
-                        {t('language')} · {otherLocale.toUpperCase()}
+                        {t('switchLanguage')}
                     </Link>
 
                     <div className="my-1 border-t border-line" />

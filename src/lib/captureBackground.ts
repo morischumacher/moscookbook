@@ -51,8 +51,12 @@ export function readInBackground(captureId: number, classified: ClassifiedCaptur
                     ? { ...result.draft, imageUrl: await mirrorImageToBlob(result.draft.imageUrl) }
                     : result.draft;
 
-            await prisma.capture.update({
-                where: { id: capture.id },
+            // Only while it is still waiting to be read: the reading takes
+            // seconds, and in them the capture may have been merged or taken
+            // into the cookbook. Writing over that brought it back into the
+            // open inbox, where "Accept" made the recipe a second time.
+            await prisma.capture.updateMany({
+                where: { id: capture.id, status: 'new' },
                 data: {
                     status: result.status,
                     error: result.error,
@@ -75,7 +79,7 @@ export function readInBackground(captureId: number, classified: ClassifiedCaptur
 
             await prisma.capture
                 .updateMany({
-                    where: { id: capture.id },
+                    where: { id: capture.id, status: 'new' },
                     data: {
                         status: 'failed',
                         error: error instanceof Error ? error.message.slice(0, 500) : 'unknown',

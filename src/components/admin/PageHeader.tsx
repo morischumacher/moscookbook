@@ -39,7 +39,9 @@ export default function PageHeader({
         <header className={`${pageTop} ${pageHeading} mb-8`}>
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
                 <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{title}</h1>
-                {children && <div className="flex flex-wrap items-center gap-4">{children}</div>}
+                {/* Reset to body type: inside the header the buttons inherited
+                    the heading's tight tracking and looked squashed. */}
+                {children && <div className="flex flex-wrap items-center gap-4 text-base font-normal tracking-normal">{children}</div>}
             </div>
 
             {/* Its own size and weight: inside the header it inherited the
