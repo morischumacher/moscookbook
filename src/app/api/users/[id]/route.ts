@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
+import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
@@ -31,7 +32,8 @@ export async function DELETE(
             return NextResponse.json({ message: 'The owner of the cookbook cannot be deleted.' }, { status: 403 });
         }
 
-        await prisma.user.delete({ where: { id: targetUserId } });
+        const gone = await prisma.user.delete({ where: { id: targetUserId }, select: { avatarUrl: true } });
+        await deleteBlobs([gone.avatarUrl]);
 
         return NextResponse.json({ success: true });
     } catch (error) {

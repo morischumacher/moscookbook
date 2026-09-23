@@ -44,7 +44,7 @@ export default function unitsTests() {
     equal('a cup of flour joins them', toBase(amount(1, 'cup'), 'flour'), { key: 'mass', amount: 125 });
     equal('spoons add up as spoons', fromBase({ key: 'spoon', amount: toBase(amount(3, 'TL'), 'Salz')!.amount + toBase(amount(1, 'EL'), 'Salz')!.amount }), amount(2, 'EL'));
     equal('butter by the spoon is bought by weight', toBase(amount(3, 'EL'), 'Butter'), { key: 'mass', amount: 42 });
-    equal('cloves add up as cloves', toBase(amount(2, 'Zehen'), 'Knoblauch'), { key: 'count:zehen', amount: 2 });
+    equal('cloves add up as cloves, keyed by the singular', toBase(amount(2, 'Zehen'), 'Knoblauch'), { key: 'count:zehe', amount: 2 });
     equal('a plain count too', toBase(amount(3, null), 'Eier'), { key: 'count:', amount: 3 });
     equal('a range buys the top of it', toBase(amount(2, null, 3), 'Eier'), { key: 'count:', amount: 3 });
 }

@@ -34,5 +34,7 @@ export default function routeParamsTests() {
     // A number Postgres cannot hold in an integer column is refused here
     // rather than at the database, where it would be a 500.
     equal('a sixteen-digit number is refused', positiveIntId('1234567890123456'), null);
-    equal('but fifteen digits still parse', positiveIntId('123456789012345'), 123456789012345);
+    // Every id column is an INT4: anything above it is no row, and was a 500.
+    equal('nor anything an INT4 cannot hold', positiveIntId('2147483648'), null);
+    equal('but the largest one it can still parses', positiveIntId('2147483647'), 2147483647);
 }

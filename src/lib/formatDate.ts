@@ -35,6 +35,10 @@ function formatter(locale: string, style: Style): Intl.DateTimeFormat {
         day: 'numeric',
         month: style === 'long' ? 'long' : 'short',
         year: 'numeric',
+        // The cookbook's own day, on the server (UTC) and in the browser
+        // alike: an entry at half past midnight was otherwise yesterday in
+        // the HTML and today once hydrated.
+        timeZone: 'Europe/Berlin',
     });
 
     cache.set(key, made);

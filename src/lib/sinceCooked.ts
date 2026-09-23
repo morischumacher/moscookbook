@@ -24,8 +24,8 @@ export function sinceCooked(cookedAt: Date | string, now: Date = new Date()): Si
 
     // Midnight to midnight, not hour to hour: something cooked at eleven last
     // night was cooked yesterday, whatever the clock says now.
-    const startOf = (date: Date) =>
-        new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    // In the cookbook's time zone, so the server and the browser agree.
+    const startOf = (date: Date) => Date.parse(date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' }));
 
     const days = Math.max(0, Math.round((startOf(now) - startOf(then)) / DAY));
 

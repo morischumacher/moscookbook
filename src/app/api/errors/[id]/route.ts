@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
 import { syncWorkItem } from '@/lib/workItemsDb';
@@ -43,7 +44,10 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
         return NextResponse.json({ message: 'Invalid id' }, { status: 400 });
     }
 
+    // Its screenshots go with the row (cascade); their files do not.
+    const photos = await prisma.reportPhoto.findMany({ where: { errorLogId: errorId }, select: { url: true } });
     await prisma.errorLog.deleteMany({ where: { id: errorId } });
+    await deleteBlobs(photos.map((photo) => photo.url));
     await syncWorkItem('error', errorId);
     return NextResponse.json({ ok: true });
 }

@@ -9,7 +9,7 @@ import { syncWorkItem } from '@/lib/workItemsDb';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { releaseCaptureScreenshots } from '@/lib/captureCleanup';
 
-const bodySchema = z.object({ recipeId: z.number().int().positive() });
+const bodySchema = z.object({ recipeId: z.number().int().positive().max(2_147_483_647) });
 
 /**
  * "This is the same dish I already have."

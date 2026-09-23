@@ -20,9 +20,9 @@ export const GET = route({ access: 'user', label: 'Shopping list' }, async ({ us
 });
 
 const addBody = z.union([
-    z.object({ recipeId: z.number().int().positive(), servings: z.number().int().min(1).max(100).nullable().optional(), locale: z.enum(['de', 'en']).optional() }),
-    z.object({ collectionId: z.number().int().positive(), locale: z.enum(['de', 'en']).optional() }),
-    z.object({ menuId: z.number().int().positive() }),
+    z.object({ recipeId: z.number().int().positive().max(2_147_483_647), servings: z.number().int().min(1).max(100).nullable().optional(), locale: z.enum(['de', 'en']).optional() }),
+    z.object({ collectionId: z.number().int().positive().max(2_147_483_647), locale: z.enum(['de', 'en']).optional() }),
+    z.object({ menuId: z.number().int().positive().max(2_147_483_647) }),
     z.object({ text: z.string().trim().min(1).max(200) }),
 ]);
 

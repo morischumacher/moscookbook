@@ -40,12 +40,12 @@ const AISLE_RULES: Array<[Aisle, RegExp]> = [
     ['basics', /^(salz|pfeffer|salt|pepper|black pepper|schwarzer pfeffer|öl|oil|olivenöl|olive oil|zucker|sugar)$/i],
     ['frozen', /tiefkühl|tiefgekühlt|frozen|tk-|erbsen tk/i],
     ['spices', /paprikapulver|pulver|gewürz|zimt|cinnamon|kreuzkümmel|cumin|kurkuma|turmeric|curry(paste|pulver)?\b|chili(flocken|pulver)|oregano|thymian getrocknet|muskat|nutmeg|lorbeer|bay lea|vanille|vanilla|paprika edelsüß|garam masala|brühe|bouillon|stock cube|hefe|yeast|backpulver|baking (powder|soda)|natron/i],
-    ['meat', /fleisch|hähnchen|huhn|chicken|rind|beef|schwein|pork|hack|mince|speck|bacon|schinken|ham|wurst|sausage|lamm|lamb|pute|turkey|fisch|fish|lachs|salmon|thunfisch|tuna|garnelen|shrimp|prawn/i],
-    ['dairy', /milch|milk|sahne|cream|butter|joghurt|yogurt|yoghurt|quark|käse|cheese|parmesan|mozzarella|feta|ricotta|mascarpone|schmand|crème|creme fraiche|ei\b|eier|egg/i],
-    ['bakery', /brot|bread|brötchen|roll|baguette|toast|tortilla|wrap|pita|blätterteig|puff pastry|pizzateig/i],
+    ['meat', /fleisch|hähnchen|huhn|chicken|rind|beef|schwein|pork|hack|mince|speck|bacon|schinken|\bham\b|wurst|sausage|lamm|lamb|pute|turkey|fisch|fish|lachs|salmon|thunfisch|tuna|garnelen|shrimp|prawn|scampi|rollmops|hering|forelle|kabeljau/i],
+    ['dairy', /milch|milk|sahne|cream|butter|joghurt|yogurt|yoghurt|quark|käse|cheese|parmesan|mozzarella|feta|ricotta|mascarpone|schmand|crème|creme fraiche|\bei\b|eier|\beggs?\b/i],
+    ['bakery', /brot|bread|brötchen|\brolls?\b|baguette|toast|tortilla|wrap|pita|blätterteig|puff pastry|pizzateig/i],
     ['drinks', /wein|wine|bier|beer|saft|juice|sprudel|mineralwasser|sparkling/i],
-    ['produce', /zwiebel|onion|knoblauch|garlic|tomate|tomato|kartoffel|potato|karotte|möhre|carrot|paprika|pepper|zucchini|courgette|aubergine|eggplant|gurke|cucumber|salat|lettuce|spinat|spinach|kohl|cabbage|brokkoli|broccoli|blumenkohl|cauliflower|lauch|leek|sellerie|celery|pilz|champignon|mushroom|ingwer|ginger|chili|zitrone|lemon|limette|lime|apfel|apple|banane|banana|beere|berr|orange|birne|pear|kürbis|pumpkin|squash|avocado|mais|corn|bohne|bean|erbse|pea|kräuter|herb|petersilie|parsley|basilikum|basil|koriander|cilantro|coriander|schnittlauch|chives|dill|minze|mint|rosmarin|rosemary|thymian|thyme|frühlingszwiebel|spring onion|scallion|rucola|rocket|obst|fruit|gemüse|vegetable/i],
-    ['pantry', /mehl|flour|zucker|sugar|reis|rice|nudel|pasta|spaghetti|penne|spätzle|spaetzle|gnocchi|tortellini|ravioli|lasagne|linsen|lentil|kichererbse|chickpea|dose|can|konserve|passata|tomatenmark|tomato paste|öl|oil|essig|vinegar|sojasauce|soy sauce|senf|mustard|honig|honey|nüsse|nuts|mandel|almond|haferflocken|oats|schokolade|chocolate|kakao|cocoa|kokosmilch|coconut milk|brühe|stock|sirup|syrup|couscous|bulgur|quinoa|polenta|grieß|semolina/i],
+    ['produce', /zwiebel|onion|knoblauch|garlic|tomate|tomato|kartoffel|potato|karotte|möhre|carrot|paprika|pepper|zucchini|courgette|aubergine|eggplant|gurke|cucumber|salat|lettuce|spinat|spinach|kohl|cabbage|brokkoli|broccoli|blumenkohl|cauliflower|lauch|leek|sellerie|celery|pilz|champignon|mushroom|ingwer|ginger|chili|zitrone|lemon|limette|\blimes?\b|apfel|apple|banane|banana|beere|berr|orange|birne|pfirsich|peach|aprikose|pflaume|kirsche|mango|ananas|\bpears?\b|kürbis|pumpkin|squash|avocado|\bmais|\bcorn\b|bohne|bean|erbse|\bpeas?\b|kräuter|herb|petersilie|parsley|basilikum|basil|koriander|cilantro|coriander|schnittlauch|chives|dill|minze|\bmint\b|rosmarin|rosemary|thymian|thyme|frühlingszwiebel|spring onion|scallion|rucola|rocket|obst|fruit|gemüse|vegetable/i],
+    ['pantry', /mehl|flour|zucker|sugar|reis|rice|nudel|pasta|spaghetti|penne|spätzle|spaetzle|gnocchi|tortellini|ravioli|lasagne|linsen|lentil|kichererbse|chickpea|\bdosen?\b|\bcans?\b|konserve|passata|tomatenmark|tomato paste|öl|oil|essig|vinegar|sojasauce|soy sauce|senf|mustard|honig|honey|nüsse|nuts|mandel|almond|haferflocken|oats|schokolade|chocolate|kakao|cocoa|kokosmilch|coconut milk|brühe|stock|sirup|syrup|couscous|bulgur|quinoa|polenta|grieß|semolina/i],
 ];
 
 export function aisleOf(name: string): Aisle {
@@ -72,7 +72,10 @@ export function shoppingKey(name: string): string {
         .filter(Boolean);
 
     if (words.length === 0) return '';
-    const last = words[words.length - 1];
+    // "-nen" is a plural of "-ne" (Zitronen, Bananen): drop the n first, or
+    // the plural loses three letters and the singular one, and "Zitrone" and
+    // "Zitronen" never meet.
+    const last = words[words.length - 1].replace(/(?<=\p{L}{3})nen$/u, 'ne');
     words[words.length - 1] = singular(last) ?? singular(expandUmlauts(last)) ?? last;
     return words.join(' ');
 }

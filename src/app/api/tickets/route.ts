@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
 }
 
 const resolveSchema = z.object({
-    id: z.number().int().positive(),
+    id: z.number().int().positive().max(2_147_483_647),
     resolved: z.boolean().default(false),
 });
 

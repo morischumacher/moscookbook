@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { BusyLabel } from '@/components/ui/Busy';
@@ -26,13 +26,18 @@ export default function AddToShopping(
               ? { menuId: props.menuId }
               : { collectionId: props.collectionId };
 
+    // What was actually sent. Undo takes back exactly that — not what the
+    // servings stepper says by the time somebody presses it.
+    const sentBody = useRef<string | null>(null);
+
     const add = async () => {
         setState('busy');
+        const body = JSON.stringify({ ...what, locale });
         try {
             const res = await fetch('/api/shopping', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...what, locale }),
+                body,
             });
             if (!res.ok) {
                 setState('failed');
@@ -41,6 +46,7 @@ export default function AddToShopping(
             // "It is on the list" was said about a recipe with no
             // ingredients, whose list then stayed empty.
             const data: { added?: number } = await res.json().catch(() => ({}));
+            sentBody.current = body;
             setState(data.added === 0 ? 'empty' : 'done');
         } catch {
             setState('failed');
@@ -49,12 +55,13 @@ export default function AddToShopping(
 
     /** Takes back exactly what was just added. */
     const undo = async () => {
+        if (!sentBody.current) return;
         setState('undoing');
         try {
             const res = await fetch('/api/shopping/remove', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...what, locale }),
+                body: sentBody.current,
             });
             setState(res.ok ? 'removed' : 'failed');
         } catch {
