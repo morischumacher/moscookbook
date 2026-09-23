@@ -83,6 +83,7 @@ export default function FilterChips({
 
             if (searchTerm) params.set('search', searchTerm);
             else params.delete('search');
+            params.delete('page');
             startTransition(() => router.replace(`${pathname}?${params.toString()}`));
         }, 300);
 
@@ -99,6 +100,7 @@ export default function FilterChips({
 
             if (haveTerm) params.set('have', haveTerm);
             else params.delete('have');
+            params.delete('page');
             startTransition(() => router.replace(`${pathname}?${params.toString()}`));
         }, 300);
 
@@ -109,6 +111,9 @@ export default function FilterChips({
         const params = new URLSearchParams(searchParams.toString());
         if (value) params.set(key, value);
         else params.delete(key);
+        // Another filter is another list: page five of the old one was often
+        // past the end of the new one, which then said "nothing found".
+        params.delete('page');
         startTransition(() => router.replace(`${pathname}?${params.toString()}`));
     };
 

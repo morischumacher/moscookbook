@@ -33,8 +33,8 @@
     "resultCount": "{count, plural, one {# recipe} other {# recipes}}",
     "clearFilters": "Clear filters",
     "pagination": "Pages",
-    "previousPage": "← Newer",
-    "nextPage": "Older →",
+    "previousPage": "← Previous",
+    "nextPage": "Next →",
     "pageOf": "Page {page} of {pages}",
     "havePlaceholder": "I have… e.g. courgette, feta",
     "haveLabel": "Ingredients you have, all of which a recipe must use",
@@ -43,7 +43,8 @@
     "offlineKeep": "Keep my favourites on this device for offline",
     "offlineKeeping": "Saving {done} of {total}…",
     "offlineKept": "{count, plural, one {# recipe} other {# recipes}} can now be opened without signal.",
-    "favoritesChip": "Favourites"
+    "favoritesChip": "Favourites",
+    "toFirstPage": "Back to the first page"
   },
   "Categories": {
     "Breakfast": "Breakfast",

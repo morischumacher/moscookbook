@@ -33,8 +33,8 @@
     "resultCount": "{count, plural, one {# Rezept} other {# Rezepte}}",
     "clearFilters": "Filter zurücksetzen",
     "pagination": "Seiten",
-    "previousPage": "← Neuer",
-    "nextPage": "Älter →",
+    "previousPage": "← Zurück",
+    "nextPage": "Weiter →",
     "pageOf": "Seite {page} von {pages}",
     "havePlaceholder": "Ich habe… z. B. Zucchini, Feta",
     "haveLabel": "Zutaten, die du hast – ein Rezept muss alle davon verwenden",
@@ -43,7 +43,8 @@
     "offlineKeep": "Meine Favoriten offline auf diesem Gerät behalten",
     "offlineKeeping": "{done} von {total} werden gespeichert…",
     "offlineKept": "{count, plural, one {# Rezept lässt} other {# Rezepte lassen}} sich jetzt ohne Netz öffnen.",
-    "favoritesChip": "Favoriten"
+    "favoritesChip": "Favoriten",
+    "toFirstPage": "Zur ersten Seite"
   },
   "Categories": {
     "Breakfast": "Frühstück",
