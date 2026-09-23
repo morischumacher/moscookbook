@@ -100,13 +100,13 @@ export function splitAmount(amount: string): AmountParts {
 }
 
 /** Rebuilds a display string from the parts, optionally scaled. */
-export function formatAmount(parts: AmountParts, factor = 1): string {
+export function formatAmount(parts: AmountParts, factor = 1, locale: 'en' | 'de' = 'de'): string {
     const { quantity, quantityMax, unit } = parts;
 
     if (quantity === null) return unit ?? '';
 
-    const scaled = formatQuantity(quantity * factor);
-    const range = quantityMax !== null ? `-${formatQuantity(quantityMax * factor)}` : '';
+    const scaled = formatQuantity(quantity * factor, locale);
+    const range = quantityMax !== null ? `-${formatQuantity(quantityMax * factor, locale)}` : '';
 
     return unit ? `${scaled}${range} ${unit}` : `${scaled}${range}`;
 }

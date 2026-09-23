@@ -1,6 +1,6 @@
 import { splitAmount, formatAmount, type AmountParts } from './ingredientParts';
 import { singular, expandUmlauts } from './searchText';
-import { fromBase, toBase, type Measured } from './units';
+import { fromBase, isCountUnit, toBase, unitOf, type Measured } from './units';
 
 /**
  * The shopping list's thinking, apart from its storage.
@@ -129,7 +129,14 @@ export function linesFor(ingredients: IngredientForList[], factor: number, sourc
 
 /** A line typed by hand: "2 Zitronen", "500 g Mehl", "Klopapier". */
 export function lineFromText(text: string): PlannedLine | null {
-    const trimmed = text.trim().slice(0, 200);
+    // "½ Zitrone", "1½ Tassen": the glyph as a number the patterns read.
+    const trimmed = text
+        .trim()
+        .slice(0, 200)
+        .replace(/(\d)?([½⅓⅔¼¾])/g, (_, digit: string | undefined, glyph: string) => {
+            const ascii = ({ '½': '1/2', '⅓': '1/3', '⅔': '2/3', '¼': '1/4', '¾': '3/4' } as Record<string, string>)[glyph];
+            return digit ? `${digit} ${ascii}` : ascii;
+        });
     if (!trimmed) return null;
 
     const match = /^(\S*\d\S*(?:\s*(?:-|–|bis)\s*\S*\d\S*)?)\s+(\S+)\s+(.+)$/.exec(trimmed);
@@ -139,13 +146,17 @@ export function lineFromText(text: string): PlannedLine | null {
 
     if (match) {
         const withUnit = splitAmount(`${match[1]} ${match[2]}`);
-        if (withUnit.quantity !== null && withUnit.unit && withUnit.unit.length <= 12 && /^[\p{L}.]+$/u.test(withUnit.unit)) {
+        // Only a real unit: in "3 große Zwiebeln" the second word is part
+        // of the name, and taking it as the unit made a line of its own.
+        const known = withUnit.unit !== null && (unitOf(withUnit.unit) !== null || isCountUnit(withUnit.unit));
+        if (withUnit.quantity !== null && withUnit.unit && known) {
             parts = withUnit;
             name = match[3];
         }
     }
     if (parts.quantity === null) {
-        const lead = /^(\d+(?:[.,]\d+)?)\s+(.+)$/.exec(trimmed);
+        // "2 Zitronen", "2-3 Äpfel", "1/2 Zitrone", "1 1/2 Gurken".
+        const lead = /^(\d+(?:[.,]\d+)?(?:\s+\d+\/\d+|\/\d+)?(?:\s*(?:-|–|bis)\s*\d+(?:[.,]\d+)?)?)\s+(.+)$/.exec(trimmed);
         if (lead) {
             parts = splitAmount(lead[1]);
             name = lead[2];
@@ -263,7 +274,7 @@ export function amountLabel(measure: string | null, amount: number | null, local
         const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(parts.quantity);
         return `${number} ${parts.unit ?? ''}`.trim();
     }
-    return formatAmount(parts);
+    return formatAmount(parts, 1, locale);
 }
 
 /** The whole list as text, for sending: grouped, ticked lines left out. */

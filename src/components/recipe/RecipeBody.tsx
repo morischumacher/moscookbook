@@ -126,9 +126,9 @@ export default function RecipeBody({
         };
         const unit = unitOf(row.unit);
         const converts = system === 'metric' && unit !== null && !unit.metric;
-        if (factor === 1 && !converts) return row.raw || formatAmount(row);
+        if (factor === 1 && !converts) return row.raw || formatAmount(row, 1, uiLocale);
         const shown = converts ? toMetric(scaled, row.name, uiLocale) : unit ? tidy(scaled, uiLocale) : scaled;
-        return formatMeasured(shown, uiLocale, formatAmount);
+        return formatMeasured(shown, uiLocale, (parts) => formatAmount(parts, 1, uiLocale));
     };
 
     const displayed = ingredients.map((row) => ({ amount: amountOf(row), item: row.name, name: row.name, section: row.section ?? null }));

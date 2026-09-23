@@ -7,6 +7,12 @@ export default function workItemTests() {
 
     suite('work list: people are taken out');
     equal('an address', anonymize('Schreib an moritz.j.schumacher@gmail.com bitte', people), 'Schreib an [E-Mail] bitte');
+    equal('a database address with its password', anonymize('at postgresql://owner:secret@ep-x.neon.tech/db', people), 'at [Verbindung]/db');
+    equal('the database host', anonymize("Can't reach database server at ep-cool-1.eu-central-1.aws.neon.tech:5432", people), "Can't reach database server at [Host]");
+    equal('an address on the private network', anonymize('connect ECONNREFUSED 10.0.3.4:6379', people), 'connect ECONNREFUSED [intern]');
+    equal('a phone number', anonymize('Ruf an: +49 170 1234567', people), 'Ruf an: [Telefon]');
+    equal('but not a date or an amount', anonymize('2025-09-23, 1234 g', people), '2025-09-23, 1234 g');
+    equal('a key', anonymize('sk-ant-api03-abcdefghijklmnopqrstuv', people), '[Schlüssel]');
     equal('a full name before its parts', anonymize('Moritz Schumacher meinte, Moritz habe recht', people), '[Person] meinte, [Person] habe recht');
     equal('any case, whole words only', anonymize('ANN sagt: Annette und Hannover bleiben', people), '[Person] sagt: Annette und Hannover bleiben');
     equal('short names are left alone', anonymize('Joghurt von Jo', people), 'Joghurt von Jo');
