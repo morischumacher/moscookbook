@@ -2,14 +2,15 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 
-type State = 'working' | 'done' | 'expired' | 'failed' | 'missing';
+type State = 'working' | 'done' | 'moved' | 'expired' | 'failed' | 'missing';
 
 function Verifier() {
     const t = useTranslations('Auth');
     const router = useRouter();
+    const locale = useLocale();
     const token = useSearchParams().get('token') ?? '';
     const [state, setState] = useState<State>(token ? 'working' : 'missing');
 
@@ -27,13 +28,13 @@ function Verifier() {
                 const res = await fetch('/api/auth/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token }),
+                    body: JSON.stringify({ token, locale }),
                 });
 
                 const data = await res.json();
 
                 if (res.ok) {
-                    setState('done');
+                    setState(data.emailChanged ? 'moved' : 'done');
                     // The banner asking for confirmation is rendered on the
                     // server, so the cached render has to be thrown away for it
                     // to disappear.
@@ -49,17 +50,17 @@ function Verifier() {
         };
 
         void run();
-    }, [token, router]);
+    }, [token, router, locale]);
 
     if (state === 'working') {
         return <p className="text-muted">{t('verifyWorking')}</p>;
     }
 
-    if (state === 'done') {
+    if (state === 'done' || state === 'moved') {
         return (
             <div className="flex flex-col gap-6">
                 <p className="rounded-lg border border-line p-4 text-sm leading-relaxed">
-                    {t('verifyDone')}
+                    {state === 'moved' ? t('emailMoved') : t('verifyDone')}
                 </p>
                 <Link href="/" className="text-center text-sm underline underline-offset-4">
                     {t('toCookbook')}

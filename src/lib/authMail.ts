@@ -192,6 +192,36 @@ export function passwordChangedMail(to: string, name: string, forgotUrl: string,
     };
 }
 
+/** The link that makes a new address the account's address. Sent to the new one. */
+export function confirmEmailMail(to: string, name: string, url: string, localeCode: string): Mail {
+    const language = locale(localeCode);
+    const validFor = days(TOKEN_LIFETIME_MINUTES.email);
+
+    if (language === 'de') {
+        const heading = 'Neue E-Mail-Adresse bestätigen';
+        const body = `Hallo ${name}, du möchtest dein Konto bei mo'scookbook auf diese Adresse umstellen. Sie gilt erst, wenn du hier bestätigst – bis dahin bleibt die bisherige Adresse aktiv.`;
+        const footer = `Der Link gilt ${validFor} Tage. Warst du das nicht, ignoriere diese Nachricht einfach.`;
+
+        return {
+            to,
+            subject: "mo'scookbook: Neue E-Mail-Adresse bestätigen",
+            text: `${heading}\n\n${body}\n\n${url}\n\n${footer}\n`,
+            html: wrap(heading, body, 'Adresse bestätigen', url, footer),
+        };
+    }
+
+    const heading = 'Confirm your new e-mail address';
+    const body = `Hello ${name}, you asked to move your mo'scookbook account to this address. It only takes effect once you confirm here – until then your previous address stays active.`;
+    const footer = `The link is valid for ${validFor} days. If this was not you, simply ignore this message.`;
+
+    return {
+        to,
+        subject: "mo'scookbook: confirm your new e-mail address",
+        text: `${heading}\n\n${body}\n\n${url}\n\n${footer}\n`,
+        html: wrap(heading, body, 'Confirm address', url, footer),
+    };
+}
+
 export function verifyMail(to: string, name: string, url: string, localeCode: string): Mail {
     const language = locale(localeCode);
     const validFor = days(TOKEN_LIFETIME_MINUTES.verify);

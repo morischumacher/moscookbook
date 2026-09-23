@@ -172,7 +172,8 @@
     "inviteShareTitle": "Du bist zu Mo'sCookbook eingeladen",
     "inviteShareDescription": "Ein privates Kochbuch. Über den Link legst du dein Konto an.",
     "inviteUsed": "Diese Einladung wurde schon benutzt. Wenn das Konto deins ist, melde dich an — sonst frag Mo nach einem neuen Link.",
-    "inviteExpired": "Diese Einladung ist abgelaufen. Frag Mo nach einem neuen Link."
+    "inviteExpired": "Diese Einladung ist abgelaufen. Frag Mo nach einem neuen Link.",
+    "emailMoved": "Deine neue E-Mail-Adresse ist bestätigt und gilt ab sofort. Die bisherige Adresse wurde informiert."
   },
   "Admin": {
     "loadingPage": "Seite wird geholt…",
@@ -815,8 +816,8 @@
     "emailTitle": "E-Mail-Adresse",
     "newEmail": "Neue Adresse",
     "yourPassword": "Dein Passwort",
-    "emailBody": "Die neue Adresse muss bestätigt werden, deshalb geht sofort ein Link dorthin. Die alte Adresse wird über die Änderung informiert.",
-    "emailSaved": "Die Adresse wurde geändert. Im neuen Postfach liegt der Bestätigungslink.",
+    "emailBody": "Die neue Adresse gilt erst, wenn du den Link bestätigst, den wir dorthin schicken. Bis dahin bleibt deine jetzige Adresse aktiv – ein Tippfehler kostet also nichts.",
+    "emailSaved": "Fast geschafft: Im Postfach der neuen Adresse liegt ein Bestätigungslink. Erst danach wird umgestellt.",
     "passwordTitle": "Passwort",
     "currentPassword": "Aktuelles Passwort",
     "newPassword": "Neues Passwort",
@@ -829,7 +830,14 @@
     "deleted": "Dein Konto wurde gelöscht.",
     "show": "Anzeigen",
     "hide": "Verbergen",
-    "passwordHint": "Mindestens 8 Zeichen. Alle anderen Geräte werden danach abgemeldet, und du bekommst eine Bestätigung per E-Mail."
+    "passwordHint": "Mindestens 8 Zeichen. Alle anderen Geräte werden danach abgemeldet, und du bekommst eine Bestätigung per E-Mail.",
+    "newPasswordAgain": "Neues Passwort wiederholen",
+    "passwordMismatch": "Die beiden Passwörter stimmen nicht überein.",
+    "emailPending": "Wartet auf Bestätigung: {email}. Bis du den Link dort anklickst, bleibt die Adresse oben aktiv.",
+    "emailResend": "Link erneut senden",
+    "emailCancel": "Änderung abbrechen",
+    "emailResent": "Der Link ist noch einmal unterwegs.",
+    "emailCancelled": "Die Änderung ist abgebrochen; es bleibt bei der bisherigen Adresse."
   },
   "Ai": {
     "nav": "KI",

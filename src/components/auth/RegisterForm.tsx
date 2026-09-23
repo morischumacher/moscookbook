@@ -25,12 +25,19 @@ export default function RegisterForm({ invite }: { invite: string }) {
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmation, setConfirmation] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         setError('');
+        // The same check as the reset form: a typo in a password nobody can
+        // see is an account nobody can open.
+        if (password !== confirmation) {
+            setError(t('passwordMismatch'));
+            return;
+        }
         setIsLoading(true);
 
         try {
@@ -119,6 +126,20 @@ export default function RegisterForm({ invite }: { invite: string }) {
                         className={fieldClass}
                     />
                     <p className="mt-2 text-sm text-muted">{t('passwordHint')}</p>
+                </div>
+
+                <div>
+                    <label htmlFor="confirmation" className={labelClass}>{t('repeatPassword')}</label>
+                    <input
+                        type="password"
+                        id="confirmation"
+                        autoComplete="new-password"
+                        minLength={8}
+                        value={confirmation}
+                        onChange={(event) => setConfirmation(event.target.value)}
+                        required
+                        className={fieldClass}
+                    />
                 </div>
 
                 <button

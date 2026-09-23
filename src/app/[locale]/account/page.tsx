@@ -40,9 +40,10 @@ export default async function AccountPage({
         lastName: string;
         email: string;
         avatarUrl: string | null;
+        pendingEmail: string | null;
     } | null = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { name: true, firstName: true, lastName: true, email: true, avatarUrl: true },
+        select: { name: true, firstName: true, lastName: true, email: true, avatarUrl: true, pendingEmail: true },
     });
 
     if (!me) redirect(`/${locale}/login`);
@@ -70,6 +71,7 @@ export default async function AccountPage({
                 firstName={me.firstName}
                 lastName={me.lastName}
                 email={me.email}
+                pendingEmail={me.pendingEmail}
             />
         </main>
     );

@@ -1,7 +1,7 @@
 import prisma from './prisma';
 import { getSiteUrl } from './siteUrl';
 import { sendMail, type SendResult } from './mailer';
-import { resetMail, verifyMail } from './authMail';
+import { confirmEmailMail, resetMail, verifyMail } from './authMail';
 import {
     generateToken,
     hashToken,
@@ -50,7 +50,9 @@ export async function issueToken(
     const mail =
         purpose === 'reset'
             ? resetMail(user.email, user.name, url, locale)
-            : verifyMail(user.email, user.name, url, locale);
+            : purpose === 'email'
+              ? confirmEmailMail(user.email, user.name, url, locale)
+              : verifyMail(user.email, user.name, url, locale);
 
     const result = await sendMail(mail);
 

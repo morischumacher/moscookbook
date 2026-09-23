@@ -30,6 +30,11 @@ model User {
   /// so the address is an identifier before it is a credential. It only
   /// becomes a credential when a password can be reset through it.
   emailVerifiedAt DateTime?
+  /// A new address somebody asked to move to, not yet confirmed. It becomes
+  /// `email` only when the link mailed to it is followed, so a typo never
+  /// takes the account's address away — sign-in and "forgot password" keep
+  /// using the old one until then.
+  pendingEmail   String?
 
   /// A round picture beside this person's contributions.
   ///

@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-45 screens · 75 endpoints · 80 link edges · 76 call edges
+45 screens · 77 endpoints · 80 link edges · 78 call edges
 
 ## Screens
 
@@ -62,6 +62,8 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/account/avatar` | user (manual) | — | yes | `account/AvatarForm` |
 | DELETE | `/api/account/avatar` | user (manual) | — | yes | `account/AvatarForm` |
 | POST | `/api/account/email` | user | zod | yes | `account/AccountSettings` |
+| PUT | `/api/account/email` | user | zod | yes | `account/AccountSettings` |
+| DELETE | `/api/account/email` | user | zod | yes | `account/AccountSettings` |
 | POST | `/api/account/name` | user | zod | — | `account/AccountSettings` |
 | POST | `/api/account/password` | user | zod | yes | `account/AccountSettings` |
 | DELETE | `/api/account` | user | zod | yes | `account/AccountSettings` |
@@ -320,6 +322,10 @@ flowchart LR
   ePOST_api_account_email(["POST /api/account/email"])
   caccount_AccountSettings["account/AccountSettings"]
   caccount_AccountSettings --> ePOST_api_account_email
+  ePUT_api_account_email(["PUT /api/account/email"])
+  caccount_AccountSettings --> ePUT_api_account_email
+  eDELETE_api_account_email(["DELETE /api/account/email"])
+  caccount_AccountSettings --> eDELETE_api_account_email
   ePOST_api_account_name(["POST /api/account/name"])
   caccount_AccountSettings --> ePOST_api_account_name
   ePOST_api_account_password(["POST /api/account/password"])

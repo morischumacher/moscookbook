@@ -30,10 +30,13 @@ export default function AccountSettings({
     firstName,
     lastName,
     email,
+    pendingEmail,
 }: {
     firstName: string;
     lastName: string;
     email: string;
+    /** A new address waiting for its link to be followed. */
+    pendingEmail: string | null;
 }) {
     const t = useTranslations('Account');
     const locale = useLocale();
@@ -51,6 +54,9 @@ export default function AccountSettings({
     const [password, setPassword] = useState('');
     const [current, setCurrent] = useState('');
     const [next, setNext] = useState('');
+    // Typed twice: a typo in a password nobody can see is a password nobody
+    // knows, and the only way back from that is "forgot password".
+    const [again, setAgain] = useState('');
     // Its own, not the address form's: one shared field meant a password typed
     // to change the address also sat in the "delete account" box below.
     const [deletePassword, setDeletePassword] = useState('');
@@ -62,6 +68,7 @@ export default function AccountSettings({
         setPassword('');
         setCurrent('');
         setNext('');
+        setAgain('');
         setReveal(false);
     };
 
@@ -102,6 +109,7 @@ export default function AccountSettings({
             setPassword('');
             setCurrent('');
             setNext('');
+            setAgain('');
             setDeletePassword('');
         }
     };
@@ -129,6 +137,17 @@ export default function AccountSettings({
         );
         if (ok) router.refresh();
     };
+
+    /** The waiting address: its link sent again, or the move called off. */
+    const resendEmail = () =>
+        send('/api/account/email', { method: 'PUT', body: JSON.stringify({ locale }) }, t('emailResent'), t('failed'), 'email');
+
+    const cancelEmail = async () => {
+        const ok = await send('/api/account/email', { method: 'DELETE' }, t('emailCancelled'), t('failed'), 'email');
+        if (ok) router.refresh();
+    };
+
+    const mismatch = again !== '' && again !== next;
 
     const savePassword = () =>
         send(
@@ -307,6 +326,20 @@ export default function AccountSettings({
 
                 <p className="mt-2 text-sm text-muted">{email}</p>
 
+                {pendingEmail && (
+                    <div className="mt-3 rounded-lg bg-surface p-3 text-sm">
+                        <p>{t('emailPending', { email: pendingEmail })}</p>
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                            <button type="button" onClick={() => void resendEmail()} disabled={busy} className="underline underline-offset-4">
+                                {t('emailResend')}
+                            </button>
+                            <button type="button" onClick={() => void cancelEmail()} disabled={busy} className="text-muted underline underline-offset-4 hover:text-danger">
+                                {t('emailCancel')}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {open === 'email' && (
                     <form
                         onSubmit={(event) => {
@@ -421,7 +454,28 @@ export default function AccountSettings({
                             <p className="text-xs text-faint">{t('passwordHint')}</p>
                         </div>
 
-                        <button type="submit" disabled={busy || next.length < 8 || !current} className={buttonPrimarySmall}>
+                        <div className={row}>
+                            <label htmlFor="account-again" className="text-sm text-muted">
+                                {t('newPasswordAgain')}
+                            </label>
+                            <input
+                                id="account-again"
+                                type={reveal ? 'text' : 'password'}
+                                value={again}
+                                onChange={(event) => setAgain(event.target.value)}
+                                autoComplete="new-password"
+                                aria-invalid={mismatch}
+                                aria-describedby={mismatch ? 'account-again-error' : undefined}
+                                className={`${field} ${mismatch ? 'border-danger' : ''}`}
+                            />
+                            {mismatch && (
+                                <p id="account-again-error" className="text-xs text-danger">
+                                    {t('passwordMismatch')}
+                                </p>
+                            )}
+                        </div>
+
+                        <button type="submit" disabled={busy || next.length < 8 || !current || again !== next} className={buttonPrimarySmall}>
                             <BusyLabel busy={busy}>{t('save')}</BusyLabel>
                         </button>
                     </form>

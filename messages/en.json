@@ -172,7 +172,8 @@
     "inviteShareTitle": "You have been invited to Mo'sCookbook",
     "inviteShareDescription": "A private cookbook. Open the link to create your account.",
     "inviteUsed": "This invitation has already been used. If the account is yours, sign in — or ask Mo for a new link.",
-    "inviteExpired": "This invitation has expired. Ask Mo for a new link."
+    "inviteExpired": "This invitation has expired. Ask Mo for a new link.",
+    "emailMoved": "Your new e-mail address is confirmed and in use from now on. The previous address has been told."
   },
   "Admin": {
     "loadingPage": "Fetching the page…",
@@ -815,8 +816,8 @@
     "emailTitle": "E-mail address",
     "newEmail": "New address",
     "yourPassword": "Your password",
-    "emailBody": "The new address has to be confirmed, so a link goes to it straight away. The old address is told about the change.",
-    "emailSaved": "The address has been changed. Check the new one for the confirmation link.",
+    "emailBody": "The new address only takes effect once you confirm the link we send there. Until then your current address stays active – so a typo costs nothing.",
+    "emailSaved": "Nearly done: a confirmation link is waiting in the new address's inbox. Only then is the address switched.",
     "passwordTitle": "Password",
     "currentPassword": "Current password",
     "newPassword": "New password",
@@ -829,7 +830,14 @@
     "deleted": "Your account has been deleted.",
     "show": "Show",
     "hide": "Hide",
-    "passwordHint": "At least 8 characters. Every other device is signed out afterwards, and you get a confirmation by e-mail."
+    "passwordHint": "At least 8 characters. Every other device is signed out afterwards, and you get a confirmation by e-mail.",
+    "newPasswordAgain": "Repeat new password",
+    "passwordMismatch": "The two passwords do not match.",
+    "emailPending": "Waiting for confirmation: {email}. Until you follow the link there, the address above stays active.",
+    "emailResend": "Send the link again",
+    "emailCancel": "Cancel the change",
+    "emailResent": "The link is on its way again.",
+    "emailCancelled": "The change is cancelled; the previous address stays."
   },
   "Ai": {
     "nav": "AI",
