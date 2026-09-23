@@ -37,7 +37,7 @@ export function parseQuantity(text: string): number | null {
  * whole, common fractions stay fractions, everything else gets at most two
  * decimals with no trailing zeros.
  */
-export function formatQuantity(value: number): string {
+export function formatQuantity(value: number, locale: 'en' | 'de' = 'de'): string {
     if (!Number.isFinite(value) || value <= 0) return '0';
 
     const rounded = Math.round(value * 1000) / 1000;
@@ -60,7 +60,9 @@ export function formatQuantity(value: number): string {
         }
     }
 
-    return String(Math.round(rounded * 100) / 100).replace('.', ',');
+    // The decimal separator of the page: "1,25" in German, "1.25" in English.
+    const decimal = String(Math.round(rounded * 100) / 100);
+    return locale === 'de' ? decimal.replace('.', ',') : decimal;
 }
 
 /** ISO 8601 duration from schema.org ("PT1H30M") to minutes. */

@@ -37,9 +37,28 @@ function escapeRegExp(text: string): string {
  * whole words, any case). Short names are left alone — "Jo" would take a bite
  * out of every "Joghurt".
  */
+/*
+ * What a server error or a forwarded mail carries beyond people's names: a
+ * connection string with its password, the database's host, an address on
+ * the private network, a phone number. None of it helps a fixer, and all of
+ * it is on a public page.
+ */
+const CREDENTIAL_URL = /\b[a-z][a-z0-9+.-]*:\/\/[^\s/@:]+:[^\s/@]+@[^\s/]+/gi;
+const DATABASE_URL = /\b(postgres(?:ql)?|mysql|redis|mongodb(?:\+srv)?):\/\/\S+/gi;
+const INTERNAL_HOST = /\b[\w.-]+\.(?:neon\.tech|internal|local|vercel-storage\.com|amazonaws\.com)(?::\d+)?\b/gi;
+const PRIVATE_IP = /\b(?:10|127|192\.168|172\.(?:1[6-9]|2\d|3[01]))(?:\.\d{1,3}){2,3}(?::\d+)?\b/g;
+const PHONE = /(?<![\w/.-])\+?\d[\d ()/-]{7,}\d(?![\w/.-])/g;
+const KEY_LIKE = /\b(?:sk|pk|rk|vercel_blob_rw|ghp|gho|xox[abp])[-_][A-Za-z0-9_-]{16,}\b/g;
+
 export function anonymize(text: string | null | undefined, people: string[]): string {
     if (!text) return '';
     let clean = text
+        .replace(CREDENTIAL_URL, '[Verbindung]')
+        .replace(DATABASE_URL, '[Datenbank]')
+        .replace(KEY_LIKE, '[Schlüssel]')
+        .replace(INTERNAL_HOST, '[Host]')
+        .replace(PRIVATE_IP, '[intern]')
+        .replace(PHONE, (match) => (/^(\+|0)/.test(match) && match.replace(/\D/g, '').length >= 9 ? '[Telefon]' : match))
         .replace(EMAIL, '[E-Mail]')
         .replace(TOKEN_PATH, '/$1/[token]')
         .replace(TOKEN_QUERY, '$1[token]');

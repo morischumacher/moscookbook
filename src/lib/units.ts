@@ -173,6 +173,13 @@ const COUNT_UNITS: Array<[singular: string, plural: string]> = [
 const ENGLISH_COUNT_UNITS = new Set(['clove', 'can', 'slice', 'pinch', 'bunch']);
 const COUNT_ALIASES: Record<string, string> = { stk: 'stück', 'stk.': 'stück', pck: 'packung', 'pck.': 'packung', päckchen: 'packung' };
 
+/** A word that is a unit of its own ("Zehe", "Dosen", "Stk"), not part of the name. */
+export function isCountUnit(word: string): boolean {
+    const lower = word.trim().toLowerCase();
+    const aliased = COUNT_ALIASES[lower] ?? lower;
+    return COUNT_UNITS.some(([one, many]) => aliased === one || aliased === many);
+}
+
 function countUnitKey(unit: string): string {
     const lower = unit.trim().toLowerCase();
     const aliased = COUNT_ALIASES[lower] ?? lower;
