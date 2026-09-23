@@ -1,5 +1,6 @@
 import { suite, equal } from './harness';
 import { safeTicketPath } from '../src/lib/ticketPath';
+import { withoutLinkTokens } from '../src/lib/linkTokens';
 
 /**
  * What may be written into a ticket's `path`.
@@ -50,4 +51,12 @@ export default function ticketPathTests() {
     /* ------------------------------------------------------------- the rest */
 
     equal('refuses an unreasonable length', safeTicketPath('/' + 'a'.repeat(400)), null);
+
+    /* ------------------------------------------------- secrets in the path */
+
+    equal('a share link keeps its route, not its secret', safeTicketPath('/de/r/Abc123_secret'), '/de/r/<token>');
+    equal('the shopping link too, with what follows', safeTicketPath('/en/s/tok/x'), '/en/s/<token>/x');
+    equal('and without a locale', withoutLinkTokens('/m/xyz'), '/m/<token>');
+    equal('an ordinary page is left alone', safeTicketPath('/de/recipe/rote-linsen'), '/de/recipe/rote-linsen');
+    equal('as is one merely starting with the letter', withoutLinkTokens('/de/shopping'), '/de/shopping');
 }

@@ -871,7 +871,7 @@
     "bodyLabel": "Beschreibung",
     "bodyPlaceholder": "Zum Beispiel: Beim Hinzufügen eines Fotos muss ich jedes Mal zweimal tippen.",
     "fromPage": "Diese Seite wird mitgeschickt, damit klar ist, worum es geht:",
-    "send": "Ticket aufmachen",
+    "send": "Absenden",
     "sending": "Wird gesendet…",
     "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
     "thanksTitle": "Ticket ist offen",
@@ -897,7 +897,7 @@
     "exportMarkdown": "Alle als Markdown kopieren",
     "photosLabel": "Screenshots (optional)",
     "photosHint": "Zeigt oft schneller als Worte, was schiefging. Bis zu vier.",
-    "photoAdd": "+ Foto",
+    "photoAdd": "+ Screenshot",
     "photoRemove": "Foto entfernen",
     "photoTooLarge": "Das Bild ist zu groß.",
     "photoFailed": "Das Bild konnte nicht hochgeladen werden."

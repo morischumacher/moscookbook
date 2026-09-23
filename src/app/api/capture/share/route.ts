@@ -16,7 +16,9 @@ import { readInBackground } from '@/lib/captureBackground';
  */
 const body = z.object({
     title: z.string().max(500).optional(),
-    text: z.string().max(10_000).optional(),
+    // As much as the iOS route takes: a whole recipe shared from a notes
+    // app was refused at ten thousand characters.
+    text: z.string().max(200_000).optional(),
     url: z.string().max(2048).optional(),
 });
 

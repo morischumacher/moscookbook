@@ -31,7 +31,8 @@ export default async function SharePage({
      * button has to be pressed first.
      */
     const fetchSite = head.get('sec-fetch-site');
-    const confirm = fetchSite === 'cross-site' || fetchSite === 'same-site';
+    // Fails closed: a browser that sends no header at all is asked too.
+    const confirm = fetchSite !== 'none' && fetchSite !== 'same-origin';
 
     return (
         <main className={`${pageContainer} pb-32`}>

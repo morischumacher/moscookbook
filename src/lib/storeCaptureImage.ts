@@ -57,6 +57,9 @@ export async function storeCaptureImage(base64: string, mediaType: string): Prom
         const blob = await put(`capture_${Date.now()}.${extension}`, buffer, {
             access: 'public',
             contentType,
+            // Not guessable from the time it was shared: a screenshot can show
+            // a private chat, and two shared in one millisecond collided.
+            addRandomSuffix: true,
         });
 
         return { ok: true, url: blob.url };
