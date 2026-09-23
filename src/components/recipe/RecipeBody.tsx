@@ -84,7 +84,7 @@ export default function RecipeBody({
 
     const factor = baseServings && servings ? servings / baseServings : 1;
 
-    const { timers, now, start: startTimer, dismiss: dismissTimer } = useCookTimers();
+    const { timers, now, start: startTimer, dismiss: dismissTimer } = useCookTimers(`moscookbook:timers:${recipeId}`);
     const uiLocale = (locale === 'en' ? 'en' : 'de') as 'en' | 'de';
 
     /*

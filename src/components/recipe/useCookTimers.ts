@@ -20,10 +20,46 @@ export interface RunningTimer {
  * throttled the page in the background still shows the right number when it
  * comes back.
  */
-export function useCookTimers() {
+function readStored(key: string | undefined): RunningTimer[] {
+    if (!key) return [];
+    try {
+        const stored = JSON.parse(sessionStorage.getItem(key) ?? '[]');
+        return Array.isArray(stored) ? (stored as RunningTimer[]).filter((timer) => typeof timer.endsAt === 'number') : [];
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * `storageKey` keeps them across leaving the page: a timer started and then a
+ * tap on a similar recipe, or a reload, used to be lost without a word. In
+ * sessionStorage, so it is this tab's, and gone when the tab is.
+ */
+export function useCookTimers(storageKey?: string) {
     const [timers, setTimers] = useState<RunningTimer[]>([]);
     const [now, setNow] = useState(() => Date.now());
     const nextId = useRef(1);
+    const loaded = useRef(false);
+
+    // Back on the page: whatever was running when it was left.
+    useEffect(() => {
+        const stored = readStored(storageKey);
+        loaded.current = true;
+        if (stored.length === 0) return;
+        nextId.current = Math.max(...stored.map((timer) => timer.id)) + 1;
+        // Restoring external state once, on arrival.
+        setTimers(stored);
+    }, [storageKey]);
+
+    useEffect(() => {
+        if (!storageKey || !loaded.current) return;
+        try {
+            if (timers.length === 0) sessionStorage.removeItem(storageKey);
+            else sessionStorage.setItem(storageKey, JSON.stringify(timers));
+        } catch {
+            // Storage refused: the timers still run while the page is open.
+        }
+    }, [storageKey, timers]);
     const audio = useRef<AudioContext | null>(null);
 
     const running = timers.some((timer) => !timer.done);

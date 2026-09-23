@@ -276,7 +276,10 @@ export default function AccountSettings({
                     <button
                         type="button"
                         onClick={() => show('name')}
-                        className="text-sm underline underline-offset-4"
+                        aria-expanded={open === 'name'}
+                        // Three "Ändern" in a row say nothing to a screen reader.
+                        aria-label={`${open === 'name' ? t('close') : t('change')}: ${t('nameTitle')}`}
+                        className="-my-2 py-3 text-sm underline underline-offset-4"
                     >
                         {open === 'name' ? t('close') : t('change')}
                     </button>
@@ -331,7 +334,10 @@ export default function AccountSettings({
                     <button
                         type="button"
                         onClick={() => show('email')}
-                        className="text-sm underline underline-offset-4"
+                        aria-expanded={open === 'email'}
+                        // Three "Ändern" in a row say nothing to a screen reader.
+                        aria-label={`${open === 'email' ? t('close') : t('change')}: ${t('emailTitle')}`}
+                        className="-my-2 py-3 text-sm underline underline-offset-4"
                     >
                         {open === 'email' ? t('close') : t('change')}
                     </button>
@@ -407,7 +413,10 @@ export default function AccountSettings({
                     <button
                         type="button"
                         onClick={() => show('password')}
-                        className="text-sm underline underline-offset-4"
+                        aria-expanded={open === 'password'}
+                        // Three "Ändern" in a row say nothing to a screen reader.
+                        aria-label={`${open === 'password' ? t('close') : t('change')}: ${t('passwordTitle')}`}
+                        className="-my-2 py-3 text-sm underline underline-offset-4"
                     >
                         {open === 'password' ? t('close') : t('change')}
                     </button>
