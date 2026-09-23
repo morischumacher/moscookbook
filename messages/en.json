@@ -131,7 +131,8 @@
     "cookViewList": "Tick off",
     "cookViewSteps": "Step by step",
     "cookFinish": "Done cooking",
-    "translatedFrom": "Translated from {language, select, de {German} other {English}}"
+    "translatedFrom": "Translated from {language, select, de {German} other {English}}",
+    "translationStale": "The original has changed since."
   },
   "Rating": {
     "rate": "Rate",

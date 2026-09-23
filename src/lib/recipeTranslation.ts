@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { AiKey } from './aiImport';
 import { scrub } from './secretBox';
-import { sectionHeading, toStructuredIngredients, type StructuredIngredient } from './ingredientParts';
+import { sectionHeading, toStructuredIngredients, withHeadingRows, type StructuredIngredient } from './ingredientParts';
 import type { Ingredient } from './recipe';
 
 /**
@@ -280,6 +280,8 @@ export interface StoredTranslation {
     description: string;
     instructions: string;
     ingredients: unknown;
+    /** `sourceKey` of the original when it was translated; '' when unknown. */
+    source?: string;
 }
 
 /**
@@ -298,11 +300,28 @@ export function inLanguage<
         language?: string | null;
         translations?: StoredTranslation[];
     },
->(recipe: T, locale: string): T & { shownIn: RecipeLanguage | null; translated: boolean } {
+>(recipe: T, locale: string): T & { shownIn: RecipeLanguage | null; translated: boolean; stale: boolean } {
     const own = asLanguage(recipe.language ?? null);
     const translation = own === locale ? undefined : recipe.translations?.find((row) => row.locale === locale);
 
-    if (!translation) return { ...recipe, shownIn: own, translated: false };
+    if (!translation) return { ...recipe, shownIn: own, translated: false, stale: false };
+
+    /*
+     * Edited since it was translated: the page says so, rather than showing
+     * last month's amounts as if they were today's. The key is built from the
+     * stored rows exactly as the edit form builds it (withHeadingRows).
+     */
+    const stale =
+        Boolean(translation.source) &&
+        translation.source !==
+            sourceKey({
+                title: recipe.title,
+                description: recipe.description ?? '',
+                instructions: recipe.instructions,
+                ingredients: withHeadingRows(
+                    recipe.ingredients.map((row) => ({ amount: row.raw, item: row.name, section: row.section }))
+                ),
+            });
 
     const ingredients = toStructuredIngredients(storedRows(translation.ingredients));
 
@@ -315,6 +334,7 @@ export function inLanguage<
         ingredients: ingredients.length > 0 ? ingredients : recipe.ingredients,
         shownIn: asLanguage(translation.locale),
         translated: true,
+        stale,
     };
 }
 

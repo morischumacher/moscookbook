@@ -8,6 +8,8 @@ import { parseQuantity } from '../src/lib/amount';
 import { splitAmount } from '../src/lib/ingredientParts';
 import { aisleOf, shoppingKey, lineFromText, amountLabel } from '../src/lib/shopping';
 import { formatQuantity } from '../src/lib/amount';
+import { inLanguage, sourceKey } from '../src/lib/recipeTranslation';
+import { toStructuredIngredients } from '../src/lib/ingredientParts';
 import { toBase, fromBase } from '../src/lib/units';
 
 export default function bugHuntTests() {
@@ -53,4 +55,13 @@ export default function bugHuntTests() {
     check('replacing a recipe updates it in place', restore.includes('prisma.recipe.update({') && !restore.includes('prisma.recipe.deleteMany({ where: { slug: recipe.slug } })'));
     check('the offline restore no longer has its own importer', !read('scripts/restore.mjs').includes('prisma.recipe.create'));
     check('the background reading only writes an open capture', read('src/lib/captureBackground.ts').includes("where: { id: capture.id, status: 'new' }"));
+
+    suite('bug hunt: round 7');
+    const form = { title: 'Käsespätzle', description: '', instructions: '1. Kochen', ingredients: [{ amount: '', item: '## Teig' }, { amount: '400 g', item: 'Spätzle' }] };
+    const translated = {
+        title: form.title, description: null, instructions: form.instructions, ingredients: toStructuredIngredients(form.ingredients), language: 'de',
+        translations: [{ locale: 'en', title: 'Spaetzle', description: '', instructions: '1. Cook', ingredients: [{ amount: '400 g', item: 'spaetzle' }], source: sourceKey(form) }],
+    };
+    equal('a translation of the current text is not stale', inLanguage(translated, 'en').stale, false);
+    equal('one of an edited text is', inLanguage({ ...translated, instructions: '1. Lange kochen' }, 'en').stale, true);
 }
