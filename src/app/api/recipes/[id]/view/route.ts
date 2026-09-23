@@ -46,8 +46,10 @@ export async function POST(
             return NextResponse.json({ message: 'Already viewed' }, { status: 200 });
         }
 
-        await prisma.recipe.update({
-            where: { id: recipeId },
+        // Only a recipe the caller could have opened: without an account that
+        // is a published one. updateMany, so an unknown id is no error.
+        await prisma.recipe.updateMany({
+            where: { id: recipeId, isDraft: false, ...(user ? {} : { isPublic: true }) },
             data: { views: { increment: 1 } },
         });
 

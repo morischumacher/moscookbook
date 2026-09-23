@@ -209,9 +209,12 @@ export default function RecipeBody({
                  * exist" and wrong here: these are the starting point for state
                  * the cook then changes, not a mirror of what is stored.
                  */
+                // Only ticks that still point at a line: the recipe may have
+                // been edited since, and a tick past the end made cook mode
+                // say "all done" with a step still open.
                 // eslint-disable-next-line react-hooks/set-state-in-effect
-                setCheckedIngredients(new Set(saved.ingredients));
-                setCheckedSteps(new Set(saved.steps));
+                setCheckedIngredients(new Set(saved.ingredients.filter((index) => index < ingredients.length)));
+                setCheckedSteps(new Set(saved.steps.filter((index) => index < stepTexts.length)));
                 if (saved.servings !== null) setServings(saved.servings);
             }
         } catch {
@@ -219,7 +222,7 @@ export default function RecipeBody({
         }
 
         restored.current = true;
-    }, [recipeId, locale]);
+    }, [recipeId, locale, ingredients.length, stepTexts.length]);
 
     useEffect(() => {
         if (!restored.current) return;

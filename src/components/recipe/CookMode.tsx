@@ -67,7 +67,7 @@ export default function CookMode({
     const touch = useRef<number | null>(null);
     const dialog = useRef<HTMLDivElement>(null);
 
-    const allDone = steps.length > 0 && checkedSteps.size >= steps.length;
+    const allDone = steps.length > 0 && steps.every((_, index) => checkedSteps.has(index));
 
     const forStep = useMemo(
         () => stepTexts.map((text) => ingredientsInStep(text, ingredients.map((row) => row.name))),

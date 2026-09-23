@@ -7,6 +7,9 @@ import { looksLikeImage } from '@/lib/imageCompression';
 import { uploadPicture } from '@/lib/uploadClient';
 import { labelClass } from './formStyles';
 
+/** As many as a recipe may have: see `imageUrls` in lib/recipeSchema. */
+const MAX_PICTURES = 12;
+
 export default function GalleryField({
     imageUrls,
     onChange,
@@ -37,11 +40,16 @@ export default function GalleryField({
             // Not `type.startsWith('image/')`: an iPhone hands over a HEIC
             // with an empty type often enough that the test on its own dropped
             // real photographs without saying anything.
-            const usable = files.filter(looksLikeImage);
+            // The server takes twelve; more were uploaded and then refused
+            // with the whole save.
+            const room = Math.max(0, MAX_PICTURES - current.current.length);
+            const pictures = files.filter(looksLikeImage);
+            const usable = pictures.slice(0, room);
+            if (pictures.length > usable.length) onError(t('tooManyPictures', { max: MAX_PICTURES }));
             if (usable.length === 0) return;
 
             setUploading((count) => count + usable.length);
-            onError('');
+            if (pictures.length === usable.length) onError('');
 
             for (const file of usable) {
                 try {

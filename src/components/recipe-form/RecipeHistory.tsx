@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRouter } from '@/i18n/routing';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
 import type { ChangedField, RecipeSnapshot } from '@/lib/revisions';
@@ -23,7 +22,6 @@ export interface HistoryEntry {
 export default function RecipeHistory({ recipeId, entries }: { recipeId: number; entries: HistoryEntry[] }) {
     const t = useTranslations('RecipeForm');
     const locale = useLocale();
-    const router = useRouter();
     const [ask, dialog] = useConfirm();
     const [busy, setBusy] = useState<number | null>(null);
     const [failed, setFailed] = useState(false);
@@ -41,7 +39,15 @@ export default function RecipeHistory({ recipeId, entries }: { recipeId: number;
                 setFailed(true);
                 return;
             }
-            router.refresh();
+            // A full reload, not a refresh: the form above keeps what it
+            // loaded in its own state, and would save the old text back over
+            // the restored one. Its autosaved draft goes too, for the same reason.
+            try {
+                window.localStorage.removeItem(`moscookbook:draft:${recipeId}`);
+            } catch {
+                /* storage is a convenience */
+            }
+            window.location.reload();
         } catch {
             setFailed(true);
         } finally {

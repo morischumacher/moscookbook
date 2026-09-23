@@ -22,21 +22,35 @@ const webUrl = z
     .refine((value) => value === '' || /^https?:\/\//i.test(value))
     .default('');
 
+/*
+ * Cut to size rather than refused. One recipe from another app with a long
+ * description refused the whole batch of five — and the import stopped
+ * there, with everything after it never tried.
+ */
+const text = (max: number) => z.string().default('').transform((value) => value.slice(0, max));
+const count = (min: number, max: number) =>
+    z.number().nullable().default(null).transform((value) =>
+        value === null || !Number.isFinite(value) ? null : Math.min(max, Math.max(min, Math.round(value)))
+    );
+
 const body = z.object({
     recipes: z
         .array(
             z.object({
-                title: z.string().trim().min(1).max(200),
-                description: z.string().max(4000).default(''),
-                ingredients: z.array(z.object({ amount: z.string().max(120), item: z.string().max(200) })).max(200).default([]),
-                instructions: z.string().max(50_000).default(''),
-                servings: z.number().int().min(1).max(100).nullable().default(null),
-                prepMinutes: z.number().int().min(0).max(10_000).nullable().default(null),
-                cookMinutes: z.number().int().min(0).max(10_000).nullable().default(null),
-                category: z.string().max(100).default(''),
-                tags: z.array(z.string().max(60)).max(30).default([]),
-                sourceUrl: webUrl,
-                imageUrl: webUrl,
+                title: z.string().trim().min(1).transform((value) => value.slice(0, 200)),
+                description: text(4000),
+                ingredients: z
+                    .array(z.object({ amount: text(120), item: text(200) }))
+                    .default([])
+                    .transform((rows) => rows.slice(0, 200)),
+                instructions: text(50_000),
+                servings: count(1, 100),
+                prepMinutes: count(0, 10_000),
+                cookMinutes: count(0, 10_000),
+                category: text(100),
+                tags: z.array(z.string()).default([]).transform((tags) => tags.slice(0, 30).map((tag) => tag.slice(0, 60))),
+                sourceUrl: webUrl.catch(''),
+                imageUrl: webUrl.catch(''),
             })
         )
         .min(1)

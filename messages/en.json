@@ -366,7 +366,8 @@
     "translationStale": "The recipe has changed since it was translated.",
     "translationRemove": "Remove translation",
     "translateFailed": "The translation did not work. Try again in a moment.",
-    "translateUnusable": "The AI left out or merged ingredients, so the translation was discarded. Try again."
+    "translateUnusable": "The AI left out or merged ingredients, so the translation was discarded. Try again.",
+    "tooManyPictures": "At most {max} pictures per recipe – the rest were not uploaded."
   },
   "QuickImport": {
     "heading": "Fill in quickly",

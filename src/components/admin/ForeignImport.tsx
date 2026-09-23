@@ -28,7 +28,15 @@ export default function ForeignImport() {
     const read = async (file: File | undefined) => {
         if (!file) return;
         setState((current) => ({ ...current, error: '', created: 0, skipped: 0, done: 0 }));
-        const recipes = readForeignFile(file.name, new Uint8Array(await file.arrayBuffer()));
+        let recipes: ReturnType<typeof readForeignFile>;
+        try {
+            recipes = readForeignFile(file.name, new Uint8Array(await file.arrayBuffer()));
+        } catch {
+            // A damaged file: said, instead of a button that does nothing.
+            setFound(null);
+            setState((current) => ({ ...current, error: t('nothingFound') }));
+            return;
+        }
         setFound(recipes);
         setChosen(new Set(recipes.map((_, index) => index)));
         if (recipes.length === 0) setState((current) => ({ ...current, error: t('nothingFound') }));

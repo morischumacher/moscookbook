@@ -16,6 +16,8 @@ export default function InboxPaste({ onAdded }: { onAdded: () => void }) {
     const [state, setState] = useState<'idle' | 'busy' | 'failed'>('idle');
 
     const add = async () => {
+        // Enter pressed twice while the first one is still sending made two.
+        if (state === 'busy') return;
         const pasted = value.trim();
         if (!pasted) return;
         setState('busy');
