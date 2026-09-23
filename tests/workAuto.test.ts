@@ -17,7 +17,7 @@ export default function workAutoTests() {
     equal('not something that read fine', captureIsObvious('ready', null), false);
     equal('not an old row with a sentence', captureIsObvious('failed', 'The page could not be read (timeout).'), false);
 
-    suite('task list: every error is a task');
-    equal('a server error at once', errorIsObvious(), true);
-    equal('a client error at once too (only signed-in reports get this far)', errorIsObvious(), true);
+    suite('task list: every trusted error is a task');
+    equal('a trusted error at once (server, or reported by somebody signed in)', errorIsObvious(true), true);
+    equal('not an anonymous report: anybody can post one', errorIsObvious(false), false);
 }

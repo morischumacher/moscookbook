@@ -35,11 +35,13 @@ export function captureIsObvious(status: string, error: string | null): boolean 
 }
 
 /**
- * Every error is a task, at once — on the task list is where they are worked
- * through, and an error that is not there is one nobody looks at. (Reports
- * from anonymous visitors do not get this far: the error route only syncs a
- * report made by somebody signed in, because anybody can post one.)
+ * Every trusted error is a task, at once — on the task list is where they
+ * are worked through, and an error that is not there is one nobody looks at.
+ * Trusted: seen by the server, or reported by somebody signed in. A report
+ * from an anonymous visitor is kept for the admin, who can hand it over; it
+ * does not publish itself, because anybody can post one and the list is
+ * read by a coding agent.
  */
-export function errorIsObvious(): boolean {
-    return true;
+export function errorIsObvious(trusted: boolean): boolean {
+    return trusted;
 }

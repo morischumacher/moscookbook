@@ -241,6 +241,14 @@ function ItemHead({ item }: { item: Item }) {
     );
 }
 
+function hostOf(url: string): string {
+    try {
+        return new URL(url).host;
+    } catch {
+        return url;
+    }
+}
+
 /** A task the AI reported done: what it says it did, and your answer. */
 function AwaitingRow({ item, onAnswer }: { item: Item; onAnswer: (confirm: boolean, why?: string) => Promise<void> }) {
     const t = useTranslations('Work');
@@ -262,6 +270,8 @@ function AwaitingRow({ item, onAnswer }: { item: Item; onAnswer: (confirm: boole
                 {item.doneRef && (
                     <a href={item.doneRef} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block underline underline-offset-4">
                         {t('doneRef')}
+                        {/* Where it goes, before anybody taps it. */}
+                        <span className="ml-1 text-xs text-faint">({hostOf(item.doneRef)})</span>
                     </a>
                 )}
             </div>

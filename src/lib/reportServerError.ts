@@ -27,8 +27,8 @@ export async function reportServerError(
 
         const row = await prisma.errorLog.upsert({
             where: { fingerprint: report.fingerprint },
-            update: { count: { increment: 1 }, lastSeenAt: new Date(), resolvedAt: null },
-            create: report,
+            update: { count: { increment: 1 }, lastSeenAt: new Date(), resolvedAt: null, trusted: true },
+            create: { ...report, trusted: true },
             select: { id: true },
         });
         // Onto the work list if it is a bug, or reopened there if it is back.

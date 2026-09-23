@@ -187,6 +187,9 @@ model ErrorLog {
   /// The path it happened on, without the query string.
   path        String?
   count       Int      @default(1)
+  /// Seen by the server, or reported by somebody signed in. Only these are
+  /// tasks by themselves (lib/workAuto): anybody can post a client report.
+  trusted     Boolean  @default(false)
   firstSeenAt DateTime @default(now())
   lastSeenAt  DateTime @default(now())
   /// Set when it has been dealt with; the list hides these.

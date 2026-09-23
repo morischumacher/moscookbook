@@ -16,6 +16,15 @@ import { captureIsObvious, errorIsObvious } from './workAuto';
  * ticket done — so failures are logged and swallowed.
  */
 
+/** How long after a "done" report the same error still counts as the old build's. */
+const RECURRENCE_GRACE_MS = 60 * 60 * 1000;
+
+/** A note stays readable: the newest part of it, when it has grown long. */
+function capNote(note: string | null): string | null {
+    if (!note) return note;
+    return note.length > 2000 ? `…${note.slice(-2000)}` : note;
+}
+
 /** Which build the site is running; lets a fixer tell "fixed since" from "still broken". */
 export function appVersion(): string {
     return process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'local';
@@ -113,7 +122,7 @@ export async function publishWorkItem(kind: WorkKind, refId: number, note: strin
     return prisma.workItem.upsert({
         where: { kind_refId: { kind, refId } },
         create: { kind, refId, note, withPhotos, data: data as object },
-        update: { note, withPhotos, data: data as object, closedAt: null, closedReason: null, dismissedAt: null, auto: false, createdAt: new Date() },
+        update: { note, withPhotos, data: data as object, closedAt: null, closedReason: null, dismissedAt: null, auto: false, createdAt: new Date(), doneAt: null, doneNote: null, doneRef: null },
         select: { id: true },
     });
 }
@@ -147,18 +156,44 @@ export async function reopenWorkItem(id: number) {
  */
 export async function reportWorkDone(id: number, note: string, ref: string | null): Promise<boolean> {
     const updated = await prisma.workItem.updateMany({
-        where: { id, closedAt: null, dismissedAt: null },
+        // Not over a report already waiting: a second one (or a leaked key)
+        // must not swap the link the admin is about to confirm.
+        where: { id, closedAt: null, dismissedAt: null, doneAt: null },
         data: { doneAt: new Date(), doneNote: note, doneRef: ref },
     });
     return updated.count === 1;
 }
 
 /** "Not done": back on the list, with why, for the next attempt. */
-export async function rejectWorkDone(id: number, why: string | null) {
+export async function rejectWorkDone(id: number, why: string | null): Promise<boolean> {
     const item = await prisma.workItem.findUnique({ where: { id }, select: { note: true } });
-    if (!item) return;
-    const note = why ? [item.note, `Nicht erledigt: ${why}`].filter(Boolean).join('\n') : item.note;
-    await prisma.workItem.update({ where: { id }, data: { doneAt: null, doneNote: null, doneRef: null, note } });
+    if (!item) return false;
+    const note = why ? capNote([item.note, `Nicht erledigt: ${why}`].filter(Boolean).join('\n')) : item.note;
+    // Only a report still waiting: a stale page must not send back a newer one.
+    const updated = await prisma.workItem.updateMany({
+        where: { id, doneAt: { not: null }, closedAt: null },
+        data: { doneAt: null, doneNote: null, doneRef: null, note },
+    });
+    return updated.count === 1;
+}
+
+/**
+ * "Bestätigen": closes a task that is reported done and still waiting, and
+ * resolves its error or ticket. Returns the task, or null when it was not
+ * waiting any more (the error came back meanwhile, or it was answered in
+ * another tab) — then nothing is closed.
+ */
+export async function confirmWorkDone(id: number) {
+    const claimed = await prisma.workItem.updateMany({
+        where: { id, doneAt: { not: null }, closedAt: null },
+        data: { closedAt: new Date(), closedReason: 'confirmed' },
+    });
+    if (claimed.count !== 1) return null;
+    const item = await prisma.workItem.findUnique({ where: { id } });
+    if (!item) return null;
+    if (item.kind === 'error') await prisma.errorLog.updateMany({ where: { id: item.refId, resolvedAt: null }, data: { resolvedAt: new Date() } });
+    if (item.kind === 'ticket') await prisma.ticket.updateMany({ where: { id: item.refId, resolvedAt: null }, data: { resolvedAt: new Date() } });
+    return item;
 }
 
 /**
@@ -183,13 +218,15 @@ export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void>
         let recurred = false;
 
         if (kind === 'error') {
-            const row = await prisma.errorLog.findUnique({ where: { id: refId }, select: { resolvedAt: true, lastSeenAt: true } });
+            const row = await prisma.errorLog.findUnique({ where: { id: refId }, select: { resolvedAt: true, lastSeenAt: true, trusted: true } });
             if (!row) closeAs = 'removed';
             else if (row.resolvedAt) closeAs = 'resolved';
             else {
                 problem = true;
-                obvious = errorIsObvious();
-                recurred = Boolean(item?.doneAt && row.lastSeenAt > item.doneAt);
+                obvious = errorIsObvious(row.trusted);
+                // Seen again well after the report — not in the hour a deploy
+                // takes, when the old build and old tabs still throw it.
+                recurred = Boolean(item?.doneAt && row.lastSeenAt.getTime() > item.doneAt.getTime() + RECURRENCE_GRACE_MS);
             }
         } else if (kind === 'ticket') {
             const row = await prisma.ticket.findUnique({ where: { id: refId }, select: { resolvedAt: true } });
@@ -217,6 +254,11 @@ export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void>
         if (item) {
             if (problem && (item.closedAt || recurred) && !item.dismissedAt) {
                 const data = await snapshotOf(kind, refId, item.withPhotos);
+                // The report is not thrown away: the next attempt should know
+                // what was tried and did not hold.
+                const tried = item.doneAt
+                    ? `Reported done ${item.doneAt.toISOString().slice(0, 10)}${item.doneRef ? ` (${item.doneRef})` : ''}, but it happened again.`
+                    : null;
                 await prisma.workItem.update({
                     where: { id: item.id },
                     data: {
@@ -225,6 +267,7 @@ export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void>
                         doneAt: null,
                         doneNote: null,
                         doneRef: null,
+                        ...(tried ? { note: capNote([item.note, tried].filter(Boolean).join('\n')) } : {}),
                         ...(data ? { data: data as object } : {}),
                     },
                 });
