@@ -4,6 +4,7 @@ import {
     parseArchive,
     cookEntriesFrom,
     archiveFilename,
+    isGuessableBackup,
     ARCHIVE_VERSION,
     type ExportableRecipe,
 } from '../src/lib/archive';
@@ -363,4 +364,17 @@ export function archiveCollectionsTests() {
         cookEntriesFrom(parsed.archive!).length,
         1
     );
+}
+
+export function archiveBackupNameTests() {
+    suite('archive: backups nobody can guess');
+    // The store is public; a backup under the bare dated name could be fetched
+    // by anyone who typed last Monday's date.
+    check('the old dated name is guessable', isGuessableBackup('backups/moscookbook-2026-09-21.json', 'backups/'));
+    check(
+        'a name with the store\'s random suffix is not',
+        !isGuessableBackup('backups/moscookbook-2026-09-21-Xk3v9QmZ2bW7aPq1RtY8.json', 'backups/')
+    );
+    check('nothing outside the prefix is touched', !isGuessableBackup('moscookbook-2026-09-21.json', 'backups/'));
+    check('the file name the route writes is the guessable one, before the suffix', isGuessableBackup(`backups/${archiveFilename()}`, 'backups/'));
 }

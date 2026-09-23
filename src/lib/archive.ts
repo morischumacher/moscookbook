@@ -427,3 +427,18 @@ export function buildArchive(
 export function archiveFilename(now = new Date()): string {
     return `moscookbook-${now.toISOString().slice(0, 10)}.json`;
 }
+
+/**
+ * A backup stored under the plain dated name, with nothing unguessable in it.
+ *
+ * The Blob store is public — it has to be, it serves every picture on the site
+ * — and its hostname is in every image URL. A backup written as
+ * `backups/moscookbook-2026-09-21.json` could therefore be fetched by anyone
+ * who tried last Monday's date, and it holds every private recipe, draft, note
+ * and name in the cookbook. Backups are now written with the store's random
+ * suffix; these are the old ones, which the next run deletes.
+ */
+export function isGuessableBackup(pathname: string, prefix: string): boolean {
+    if (!pathname.startsWith(prefix)) return false;
+    return /^moscookbook-\d{4}-\d{2}-\d{2}\.json$/.test(pathname.slice(prefix.length));
+}

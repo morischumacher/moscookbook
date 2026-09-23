@@ -12,6 +12,8 @@
  */
 
 import { optionalTable } from './prismaTable';
+import { canUseAi, type AiCapability } from './aiProviders';
+import type { ProcessOptions } from './captureTypes';
 import {
     FAILURES_BEFORE_STALE,
     profileFromStored,
@@ -177,4 +179,25 @@ export async function forgetSite(host: string): Promise<void> {
     if (!model) return;
 
     await model.delete({ where: { host } }).catch(() => undefined);
+}
+
+/**
+ * What an import needs in order to use what has been learned, and to learn.
+ *
+ * Every caller of `processCapture` spreads this into its options. Until it
+ * existed, none of them passed `profiles` or `learnWith`: the pipeline could
+ * read and learn site profiles, and was never given the store to do it with.
+ * The inbox filled with "rules plus AI" for sites it should long since have
+ * known, and the learned-sites list stayed empty.
+ *
+ * Learning uses the first key in the fallback order — the one the import
+ * itself would try first — and only when the AI is switched on at all. It
+ * happens only after a model has already read a page and helped, so it costs
+ * one more call per new site, once.
+ */
+export function siteLearning(ai: AiCapability): Pick<ProcessOptions, 'profiles' | 'learnWith'> {
+    return {
+        profiles: siteProfiles,
+        learnWith: canUseAi(ai) ? ai.keys[0] : undefined,
+    };
 }

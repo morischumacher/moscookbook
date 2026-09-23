@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
-import { extractRecipeFromHtml } from '@/lib/recipeFromHtml';
-import { fetchPage, type FetchFailure } from '@/lib/fetchPage';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
-import { readableText } from '@/lib/readableText';
-import { assistsText, canUseAi, extractRecipeWithAi } from '@/lib/aiImport';
 import { aiCapability, rememberModel } from '@/lib/aiConfig';
+import { classifyCapture } from '@/lib/capture';
+import { processCapture } from '@/lib/captureProcess';
+import { siteLearning } from '@/lib/siteProfileDb';
 import { failed } from '@/lib/reportServerError';
 
 const importSchema = z.object({
@@ -51,87 +50,38 @@ export async function POST(req: NextRequest) {
     }
 
     /*
-     * Through `fetchPage`, which is the point of this change.
+     * The same reading the inbox does, not a second copy of it.
      *
-     * For a year this route called `fetch(url, { redirect: 'follow' })` itself,
-     * with a textual URL check in front of it and nothing else. The runtime
-     * followed redirects without re-checking a single hop and never resolved
-     * a hostname, so a public page answering `302 → http://169.254.169.254/…`
-     * returned the cloud metadata service into a recipe draft. That is the
-     * exact hole `safeFetch` was written to close — and this route, the one
-     * with "import" in its name, was the one place still going round it.
+     * This route used to have its own: rules, then a model when the rules fell
+     * short. The inbox had grown past it — site profiles, captions, YouTube
+     * descriptions, a score that decides whether asking would help — and a
+     * link pasted into the recipe form went to the model every time, even for
+     * a site the cookbook had already learned.
      *
-     * `fetchPage` does the textual check, the DNS resolution, the per-hop
-     * redirect check, the timeout, the size cap and the content-type test.
-     * Nothing below needed any of that to be here.
+     * `processCapture` fetches through `fetchPage`, so the SSRF guard that was
+     * the point of this route's last rewrite is still the only way out.
      */
-    const page = await fetchPage(parsed.data.url);
-
-    if (!page.ok) {
-        return NextResponse.json({ message: FETCH_MESSAGES[page.failure] }, {
-            status: FETCH_STATUS[page.failure],
-        });
+    const classified = classifyCapture({ url: parsed.data.url });
+    if (!classified) {
+        return NextResponse.json({ message: 'Please provide a URL.' }, { status: 400 });
     }
 
-    const html = page.html;
-    const url = page.finalUrl;
-
     try {
-        let recipe = extractRecipeFromHtml(html, url);
-
-        /*
-         * The rules first, always — a page with schema.org markup is read here
-         * and costs nothing. This is the *second* attempt, for the very large
-         * number of food blogs that write their ingredients in a plain list
-         * with no markup at all and until now imported as a title and a
-         * picture.
-         *
-         * Merged rather than replaced: whatever the markup gave up is the
-         * better answer, because it is the site's own statement about itself
-         * rather than a reading of its prose.
-         */
         const ai = await aiCapability();
-        const incomplete = !recipe.title || recipe.ingredients.length === 0 || !recipe.instructions;
-        const force = parsed.data.force === true;
+        const result = await processCapture(classified, ai, {
+            force: parsed.data.force === true,
+            onModel: (provider, model) => void rememberModel(provider, model),
+            ...siteLearning(ai),
+        });
 
-        let usedAi = false;
-
-        if ((force && canUseAi(ai)) || (incomplete && assistsText(ai))) {
-            try {
-                const read = await extractRecipeWithAi(
-                    { kind: 'text', text: readableText(html) },
-                    ai.keys,
-                    (provider, model) => void rememberModel(provider, model)
-                );
-
-                recipe = {
-                    ...recipe,
-                    title: recipe.title || read.title,
-                    description: recipe.description || read.description,
-                    ingredients:
-                        recipe.ingredients.length > 0 ? recipe.ingredients : read.ingredients,
-                    instructions: recipe.instructions || read.instructions,
-                    category: recipe.category || read.category,
-                    nationality: recipe.nationality || read.nationality,
-                    servings: recipe.servings ?? read.servings,
-                    prepMinutes: recipe.prepMinutes ?? read.prepMinutes,
-                    cookMinutes: recipe.cookMinutes ?? read.cookMinutes,
-                };
-
-                usedAi = true;
-            } catch (error) {
-                // The rules' answer is still on the table. An import that
-                // returns less than it might is a far better outcome than one
-                // that returns an error because an optional extra was down.
-                failed('The AI could not help with this import:', error);
-            }
-        }
-
-        if (!recipe.title && recipe.ingredients.length === 0) {
+        const recipe = result.draft;
+        if (!recipe || (!recipe.title && recipe.ingredients.length === 0)) {
             return NextResponse.json(
                 {
                     message:
-                        'No recipe data found on that page. Try copying the recipe text and pasting it instead.',
+                        result.status === 'failed' && result.error
+                            ? result.error
+                            : 'No recipe data found on that page. Try copying the recipe text and pasting it instead.',
                 },
                 { status: 422 }
             );
@@ -146,27 +96,11 @@ export async function POST(req: NextRequest) {
             recipe: { ...recipe, imageUrl },
             // Tell the UI how much it actually got, so it can be honest about it.
             partial: recipe.ingredients.length === 0 || !recipe.instructions,
-            usedAi,
+            usedAi: result.provider !== null && result.readBy !== 'rules+ai-failed',
+            readBy: result.readBy,
         });
     } catch (error) {
         failed('URL import error:', error);
         return NextResponse.json({ message: 'The page could not be read.' }, { status: 502 });
     }
 }
-
-/** One sentence per way a page can fail to arrive, and the status to go with it. */
-const FETCH_MESSAGES: Record<FetchFailure, string> = {
-    'unsafe-url': 'That URL cannot be imported. Please use a public http(s) address.',
-    'http-error': 'The page could not be loaded.',
-    'not-a-page': 'That link does not point to a web page.',
-    timeout: 'The page took too long to respond.',
-    network: 'The page could not be loaded.',
-};
-
-const FETCH_STATUS: Record<FetchFailure, number> = {
-    'unsafe-url': 400,
-    'http-error': 502,
-    'not-a-page': 415,
-    timeout: 504,
-    network: 502,
-};

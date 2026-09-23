@@ -261,6 +261,7 @@
     "partial": "Die Seite hatte nur Teilangaben — bitte den Rest ergänzen.",
     "imported": "Rezept übernommen. Bitte vor dem Speichern prüfen.",
     "importedWithAi": "Importiert, mit Hilfe der KI.",
+    "importedWithProfile": "Mit den gelernten Regeln für diese Seite übernommen — ohne KI.",
     "intro": "Ein ganzes Rezept als Fließtext — von woanders kopiert oder gleich hier getippt. „Übernehmen“ zerlegt es in Titel, Zutaten und Zubereitung und füllt die Felder darunter aus.",
     "formatSummary": "Welche Formate versteht er?",
     "formatIntro": "Das Beispiel unten ist nur eins von vielen. Überschriften sind optional, Aufzählungszeichen und Nummern werden abgeschnitten, Deutsch und Englisch gehen beide. Verstanden werden Brüche (½, 1/2, 1 1/2), Bereiche (2–3 EL), „ca.“ und rund neunzig Einheiten.",

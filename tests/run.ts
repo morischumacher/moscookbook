@@ -13,7 +13,7 @@ import amount from './amount.test';
 import siteUrl from './siteUrl.test';
 import ingredientParts from './ingredientParts.test';
 import invite from './invite.test';
-import archive, { archiveCollectionsTests } from './archive.test';
+import archive, { archiveCollectionsTests, archiveBackupNameTests } from './archive.test';
 import searchText from './searchText.test';
 import capture from './capture.test';
 import youtube from './youtube.test';
@@ -47,7 +47,7 @@ import pageTitle from './pageTitle.test';
 import secretBox from './secretBox.test';
 import readableText from './readableText.test';
 import siteProfile from './siteProfile.test';
-import siteLearn from './siteLearn.test';
+import siteLearn, { siteLearnWiringTests } from './siteLearn.test';
 import drafts from './drafts.test';
 import routeParams from './routeParams.test';
 import prismaErrors from './prismaErrors.test';
@@ -79,6 +79,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['invite', invite],
     ['archive', archive],
     ['archiveCollectionsTests', archiveCollectionsTests],
+    ['archiveBackupNameTests', archiveBackupNameTests],
     ['searchText', searchText],
     ['capture', capture],
     ['youtube', youtube],
@@ -114,6 +115,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['aiProviders', aiProviders],
     ['aiPolish', aiPolish],
     ['siteLearn', siteLearn],
+    ['siteLearnWiringTests', siteLearnWiringTests],
     ['drafts', drafts],
     ['routeParams', routeParams],
     ['prismaErrors', prismaErrors],

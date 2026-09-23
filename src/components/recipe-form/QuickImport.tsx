@@ -139,7 +139,9 @@ export default function QuickImport({
 
             onImport(data.recipe);
             setNote(
-                data.usedAi
+                data.readBy === 'profile'
+                    ? t('importedWithProfile')
+                    : data.usedAi
                     ? t('importedWithAi')
                     : data.partial
                         ? t('partial')

@@ -9,6 +9,7 @@ import { captureInputFrom } from '@/lib/captureInput';
 import { storeCaptureImage, MAX_CAPTURE_IMAGE_BASE64 } from '@/lib/storeCaptureImage';
 import { findDuplicate, type ExistingRecipe } from '@/lib/duplicates';
 import { processCapture } from '@/lib/captureProcess';
+import { siteLearning } from '@/lib/siteProfileDb';
 import { aiCapability, rememberModel } from '@/lib/aiConfig';
 import { DEFAULT_MODEL, canUseAi } from '@/lib/aiImport';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
@@ -203,10 +204,14 @@ export async function POST(req: NextRequest) {
             // upload, so `classified.imageUrl` is null for a screenshot, and
             // handing that to the pipeline made it answer "No picture was stored"
             // about a picture that had just been stored perfectly.
+            const ai = await aiCapability();
             const result = await processCapture(
                 { ...classified, imageUrl: imageUrl ?? classified.imageUrl },
-                await aiCapability(),
-                { onModel: (provider, model) => void rememberModel(provider, model) }
+                ai,
+                {
+                    onModel: (provider, model) => void rememberModel(provider, model),
+                    ...siteLearning(ai),
+                }
             );
 
             // Foreign image hosts are rejected by next/image, so the picture is

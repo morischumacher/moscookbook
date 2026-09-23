@@ -1108,20 +1108,25 @@ tests/                   Logic check suites (npm test)
 
 ## Migrations
 
-`prisma/migrations/0_init` is a PostgreSQL baseline matching the current
+`prisma/migrations/0000_init` is a PostgreSQL baseline matching the current
 schema. It replaces the original SQLite migration, which had been left behind
 when the project moved to PostgreSQL and made `prisma migrate` unusable
 against the real database.
 
-**On the existing database**, mark the baseline as already applied once, then
-migrate normally from there:
+**Deploy migrations with `npm run db:deploy`**, on the existing database and on
+a fresh one alike. It is `prisma migrate deploy` with one step in front.
 
-```bash
-npx prisma migrate resolve --applied 0_init
-npx prisma migrate deploy
-```
+That step is there because the baseline used to be called `0_init`, and Prisma
+applies migrations in the byte order of their folder names: `0001_invites`
+sorted before `0_init`, so on an empty database it ran first and failed on a
+`User` table that did not exist yet. The schema could not be rebuilt from
+scratch, which is what a restore into a new database needs. The step renames
+the old record in `_prisma_migrations` so an existing database does not try to
+apply the baseline a second time; it is safe to repeat and does nothing on a
+fresh database.
 
-**On a fresh database**, `npx prisma migrate deploy` is enough.
+A database from before the baseline existed at all still needs it marked as
+applied once: `npx prisma migrate resolve --applied 0000_init`.
 
 `0009_cook_photos` adds `CookPhoto`, with `ON DELETE CASCADE` on the recipe —
 the opposite of `Post`, deliberately: a written entry stands on its own once its

@@ -261,6 +261,7 @@
     "partial": "The page only had partial data — please fill in the rest.",
     "imported": "Recipe imported. Please check it before saving.",
     "importedWithAi": "Imported, with help from the AI.",
+    "importedWithProfile": "Imported with the rules this cookbook learned for that site — no AI needed.",
     "intro": "A whole recipe as flowing text — copied from somewhere, or typed straight in here. “Apply” splits it into title, ingredients and method and fills the fields below.",
     "formatSummary": "Which formats does it understand?",
     "formatIntro": "The example below is one of many. Headings are optional, bullets and numbers are stripped, German and English both work. It reads fractions (½, 1/2, 1 1/2), ranges (2–3 tbsp), “about”, and around ninety units.",

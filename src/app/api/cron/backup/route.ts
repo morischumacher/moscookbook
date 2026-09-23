@@ -7,6 +7,7 @@ import { BACKUP_PREFIX } from '@/lib/backupPrefix.mjs';
 import {
     buildArchive,
     archiveFilename,
+    isGuessableBackup,
     type ExportableRecipe,
     type ExportablePost,
     type ExportableCookEntry,
@@ -154,27 +155,36 @@ export async function GET(req: NextRequest) {
         const sweptLimits = await sweepRateLimits();
         if (sweptLimits > 0) console.log(`Swept ${sweptLimits} closed rate-limit windows.`);
 
-        const blob = await put(
+        await put(
             `${PREFIX}${archiveFilename()}`,
             JSON.stringify(archive, null, 2),
             {
                 access: 'public',
                 contentType: 'application/json; charset=utf-8',
-                // Two runs on one day overwrite rather than piling up
-                // `-1`, `-2` files nobody asked for.
-                addRandomSuffix: false,
-                allowOverwrite: true,
+                // The store is public and its hostname is in every image URL,
+                // so the name is what keeps this file private: the random
+                // suffix makes it unguessable, and listing the store needs the
+                // token. Without it, anybody could fetch last Monday's backup
+                // by typing the date.
+                addRandomSuffix: true,
             }
         );
 
         // Pruned after the new one is written, never before: a prune that ran
         // first and then failed to write would leave one fewer backup than
-        // there was when it started.
+        // there was when it started. Backups from before the random suffix are
+        // removed whatever their age — they are the ones anybody could fetch.
         const existing = await list({ prefix: PREFIX, limit: 1000 });
-        const old = existing.blobs
+        const newestFirst = existing.blobs
             .slice()
-            .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
-            .slice(KEEP);
+            .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+        const guessable = newestFirst.filter((entry) => isGuessableBackup(entry.pathname, PREFIX));
+        const old = [
+            ...guessable,
+            ...newestFirst
+                .filter((entry) => !isGuessableBackup(entry.pathname, PREFIX))
+                .slice(KEEP),
+        ];
 
         if (old.length > 0) {
             await del(old.map((entry) => entry.url)).catch((error) => {
@@ -190,7 +200,9 @@ export async function GET(req: NextRequest) {
         );
 
         return NextResponse.json({
-            url: blob.url,
+            // No URL: the name is the only secret the file has, and this
+            // response ends up in the cron logs.
+            written: true,
             recipes: recipes.length,
             posts: posts.length,
             cookEntries: cookEntries.length,

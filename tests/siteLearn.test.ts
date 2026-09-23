@@ -1,4 +1,6 @@
 /** siteLearn — proposing a site profile, and refusing to believe it */
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { suite, check, equal } from './harness';
 import { learnSiteProfile, profileFrom, verifyProfile, blockListing } from '../src/lib/siteLearn';
 import { applyProfile, type SiteProfile } from '../src/lib/siteProfile';
@@ -299,3 +301,30 @@ export default async function siteLearnTests() {
     const shapeless = await learnSiteProfile('', extracted, key, answering(JSON.stringify(right)));
     check('a page with no structure is not asked about at all', shapeless.profile === null, shapeless);
 }
+
+function routeFiles(dir: string): string[] {
+    return readdirSync(dir).flatMap((name) => {
+        const path = join(dir, name);
+        return statSync(path).isDirectory() ? routeFiles(path) : name.endsWith('.ts') ? [path] : [];
+    });
+}
+
+/**
+ * The pipeline could read and learn site profiles for months and was never
+ * given the store to do it with: no caller passed `profiles` or `learnWith`,
+ * so nothing was ever learned and the inbox asked a model about the same
+ * sites again and again. This keeps every caller wired.
+ */
+export function siteLearnWiringTests() {
+    suite('site learning: every import is given the store');
+
+    const callers = routeFiles('src/app/api').filter((path) =>
+        readFileSync(path, 'utf8').includes('processCapture(')
+    );
+
+    check('there are routes that read pages', callers.length >= 3, callers);
+    for (const path of callers) {
+        check(`${path} passes siteLearning`, readFileSync(path, 'utf8').includes('...siteLearning('));
+    }
+}
+
