@@ -19,7 +19,7 @@ export interface AdminListQuery {
     page: number;
 }
 
-const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? '';
+const first = (value: string | string[] | undefined) => ((Array.isArray(value) ? value[0] : value) ?? '').replace(/\u0000/g, '');
 
 export function readListQuery(params: Record<string, string | string[] | undefined>): AdminListQuery {
     const sort = first(params.sort);

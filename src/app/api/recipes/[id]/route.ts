@@ -31,7 +31,7 @@ export async function PUT(
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
         }
 
-        const parsed = recipeInputSchema.safeParse(await req.json());
+        const parsed = recipeInputSchema.safeParse(await req.json().catch(() => null));
 
         if (!parsed.success) {
             return NextResponse.json(

@@ -1,6 +1,6 @@
 /** Several screenshots of one share, and the links they show */
 import { suite, equal, check } from './harness';
-import { imagesFrom, sniffImageType } from '../src/lib/captureInput';
+import { captureInputFrom, imagesFrom, sniffImageType } from '../src/lib/captureInput';
 import { processCapture } from '../src/lib/captureProcess';
 import type { AiKey } from '../src/lib/aiImport';
 
@@ -32,6 +32,8 @@ export default async function screenshotsTests() {
     equal('with their time: the one from yesterday is left out', dated.map((image) => image.mediaType), ['image/jpeg', 'image/png']);
     equal('a time that cannot be read keeps the picture', imagesFrom({ images: `gestern|${JPEG}` }, now).length, 1);
     equal('at most four', imagesFrom({ images: [JPEG, JPEG, JPEG, JPEG, JPEG, JPEG].join(',') }).length, 4);
+
+    equal('a NUL from the clipboard is dropped', captureInputFrom({ text: 'Linsen\u0000suppe mit 200 g Linsen' })?.rawText?.includes('\u0000'), false);
 
     suite('screenshots: read together, the link followed');
     const sent: string[] = [];

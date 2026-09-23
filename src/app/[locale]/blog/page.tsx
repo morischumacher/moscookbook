@@ -45,7 +45,7 @@ export default async function BlogIndex({
     searchParams: Promise<{ search?: string }>;
 }) {
     const { locale } = await params;
-    const search = (await searchParams).search?.trim() ?? '';
+    const search = (await searchParams).search?.replace(/\u0000/g, '').trim().slice(0, 200) ?? '';
     const t = await getTranslations('Blog');
     const user = await getCurrentUser();
     const isAdmin = Boolean(user?.admin);

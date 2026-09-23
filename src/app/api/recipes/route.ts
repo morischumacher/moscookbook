@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     if ('response' in auth) return auth.response;
 
     try {
-        const body = await req.json();
+        const body = await req.json().catch(() => null);
         const parsed = recipeInputSchema.safeParse(body);
 
         // Optional and outside the schema on purpose: it is not part of a
@@ -71,8 +71,10 @@ export async function POST(req: NextRequest) {
                 data: { status: 'published', recipeId: recipe.id, error: null },
             });
             await syncWorkItem('capture', captureId);
-            // Its screenshots the recipe did not take go.
-            await releaseCaptureScreenshots(captureId, imageUrls).catch(() => undefined);
+            // Its screenshots the recipe did not take go — but only when it
+            // took a picture at all: a recipe saved with none is not a
+            // reason to delete what was shared.
+            if (imageUrls.length > 0) await releaseCaptureScreenshots(captureId, imageUrls).catch(() => undefined);
         }
 
         // A new recipe can bring a category nobody has used before, and the
