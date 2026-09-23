@@ -134,7 +134,8 @@
     "cookViewSteps": "Step by step",
     "cookFinish": "Done cooking",
     "translatedFrom": "Translated from {language, select, de {German} other {English}}",
-    "translationStale": "The original has changed since."
+    "translationStale": "The original has changed since.",
+    "timerDoneSaid": "Timer for {label} is done."
   },
   "Rating": {
     "rate": "Rate",
@@ -767,7 +768,10 @@
       "years": "{count, plural, one {Cooked # year ago} other {Cooked # years ago}}"
     },
     "explain": "Press it when you make this. Add what you would change, and a photo if you took one.",
-    "viewImage": "See this picture whole"
+    "viewImage": "See this picture whole",
+    "undoLogQuestion": "Remove this entry?",
+    "undoLogConfirm": "Yes, remove",
+    "removePhoto": "Remove photo"
   },
   "Dialog": {
     "cancel": "Cancel",

@@ -134,7 +134,8 @@
     "cookViewSteps": "Schritt für Schritt",
     "cookFinish": "Fertig gekocht",
     "translatedFrom": "Übersetzt aus dem {language, select, en {Englischen} other {Deutschen}}",
-    "translationStale": "Das Original wurde seitdem geändert."
+    "translationStale": "Das Original wurde seitdem geändert.",
+    "timerDoneSaid": "Timer für {label} ist abgelaufen."
   },
   "Rating": {
     "rate": "Bewerten",
@@ -767,7 +768,10 @@
       "years": "{count, plural, one {Vor # Jahr gekocht} other {Vor # Jahren gekocht}}"
     },
     "explain": "Drück drauf, wenn du das kochst. Notiz und Foto kannst du danach dazutun.",
-    "viewImage": "Dieses Bild ganz ansehen"
+    "viewImage": "Dieses Bild ganz ansehen",
+    "undoLogQuestion": "Eintrag entfernen?",
+    "undoLogConfirm": "Ja, entfernen",
+    "removePhoto": "Foto entfernen"
   },
   "Dialog": {
     "cancel": "Abbrechen",

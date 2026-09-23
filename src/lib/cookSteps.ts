@@ -62,11 +62,16 @@ export function timersIn(text: string): StepTimer[] {
             last = null;
             continue;
         }
-        last = { end: (match.index ?? 0) + match[0].length, hours: per === 3600 };
         const seconds = Math.round(amount * per);
         // A "1 min" that is really a line of an ingredient list, or a
-        // twenty-hour dough, is not a kitchen timer.
-        if (seconds < 10 || seconds > 12 * 3600) continue;
+        // twenty-hour dough, is not a kitchen timer — and nothing after it
+        // joins onto it: "24 Stunden und 10 Minuten" left out must not add
+        // its ten minutes to the timer before.
+        if (seconds < 10 || seconds > 12 * 3600) {
+            last = null;
+            continue;
+        }
+        last = { end: (match.index ?? 0) + match[0].length, hours: per === 3600 };
         found.push({ label: match[0].trim(), seconds });
     }
     return found;
