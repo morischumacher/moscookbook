@@ -30,7 +30,9 @@ export async function GET() {
                 title: true,
                 slug: true,
                 description: true,
-                shareToken: true,
+                // The secret link opens the collection's private recipes to
+                // anybody; members must not be able to collect it here.
+                shareToken: user.admin,
                 // The count rather than the rows: a list of collections shows
                 // "6 recipes", not six recipes.
                 _count: { select: { recipes: true } },

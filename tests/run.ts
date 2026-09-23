@@ -73,6 +73,7 @@ import authorSite from './authorSite.test';
 import screenshots from './screenshots.test';
 import adminRecipeList from './adminRecipeList.test';
 import bugHunt from './bugHunt.test';
+import securityHunt from './securityHunt.test';
 import recipeVisibility from './recipeVisibility.test';
 import siteLearn, { siteLearnWiringTests } from './siteLearn.test';
 import drafts from './drafts.test';
@@ -172,6 +173,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['screenshots', screenshots],
     ['adminRecipeList', adminRecipeList],
     ['bugHunt', bugHunt],
+    ['securityHunt', securityHunt],
     ['recipeVisibility', recipeVisibility],
     ['siteLearn', siteLearn],
     ['siteLearnWiringTests', siteLearnWiringTests],

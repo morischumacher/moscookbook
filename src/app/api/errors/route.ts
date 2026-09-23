@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, getCurrentUser } from '@/lib/auth';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { prepareErrorReport } from '@/lib/errorReport';
 import { failed } from '@/lib/reportServerError';
@@ -73,8 +73,15 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        /*
+         * Onto the public work list only from somebody signed in. Anybody can
+         * post here, and a work item is read by a coding agent: two identical
+         * anonymous reports used to publish attacker-written text to it. An
+         * anonymous report is still stored and shown to the admin, who can
+         * publish it by hand.
+         */
         const row = await prisma.errorLog.findUnique({ where: { fingerprint: report.fingerprint }, select: { id: true } });
-        if (row) await syncWorkItem('error', row.id);
+        if (row && (await getCurrentUser())) await syncWorkItem('error', row.id);
     } catch (error) {
         // Reporting must never be the thing that breaks a page. A race between
         // two first reports of the same error lands here, and one is enough.

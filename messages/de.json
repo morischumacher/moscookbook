@@ -1223,7 +1223,8 @@
     "openInbox": "Eingang öffnen",
     "failed": "Das hat nicht geklappt. Bitte noch einmal teilen.",
     "adminOnly": "Nur Admins können so Rezepte hinzufügen.",
-    "nothing": "Hier ist nichts angekommen. Teile einen Link oder Text über das Teilen-Menü, dann landet er im Eingang."
+    "nothing": "Hier ist nichts angekommen. Teile einen Link oder Text über das Teilen-Menü, dann landet er im Eingang.",
+    "confirm": "In den Eingang legen"
   },
   "ForeignImport": {
     "title": "Aus einer anderen App importieren",

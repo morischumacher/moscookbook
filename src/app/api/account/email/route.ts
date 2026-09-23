@@ -83,7 +83,21 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'That address already belongs to another account.' }, { status: 409 });
     }
 
-    await prisma.user.update({ where: { id: me.id }, data: { pendingEmail: email } });
+    /*
+     * Every earlier link withdrawn before the new address is parked, and
+     * awaited. The link applies whatever address is pending when it is
+     * followed, so a link sent to an address the person controls, still
+     * valid after a second change to somebody else's, moved the account to
+     * that address unconfirmed. issueToken withdraws them too — but after the
+     * response, which a serverless function may never get to.
+     */
+    await prisma.$transaction([
+        prisma.authToken.updateMany({
+            where: { userId: me.id, purpose: 'email', usedAt: null },
+            data: { usedAt: new Date() },
+        }),
+        prisma.user.update({ where: { id: me.id }, data: { pendingEmail: email } }),
+    ]);
 
     void issueToken({ ...me, email }, 'email', locale).catch((error) =>
         failed('account/email: confirmation to the new address', error)
@@ -107,7 +121,9 @@ export async function PUT(req: NextRequest) {
         );
     }
 
-    const { locale = 'en' } = resendSchema.parse(await req.json().catch(() => ({})));
+    // A malformed body is not a reason to fail: the link just goes in English.
+    const resend = resendSchema.safeParse(await req.json().catch(() => ({})));
+    const locale = (resend.success && resend.data.locale) || 'en';
     const me = await prisma.user.findUnique({
         where: { id: auth.user.id },
         select: { id: true, name: true, pendingEmail: true },
