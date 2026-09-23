@@ -366,7 +366,8 @@
     "translationStale": "Das Rezept wurde seit der Übersetzung geändert.",
     "translationRemove": "Übersetzung entfernen",
     "translateFailed": "Die Übersetzung hat nicht geklappt. Versuch es gleich noch einmal.",
-    "translateUnusable": "Die KI hat Zutaten ausgelassen oder zusammengelegt, deshalb wurde die Übersetzung verworfen. Versuch es noch einmal."
+    "translateUnusable": "Die KI hat Zutaten ausgelassen oder zusammengelegt, deshalb wurde die Übersetzung verworfen. Versuch es noch einmal.",
+    "tooManyPictures": "Höchstens {max} Bilder pro Rezept – die übrigen wurden nicht hochgeladen."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",

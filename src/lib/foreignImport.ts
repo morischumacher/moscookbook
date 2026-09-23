@@ -291,6 +291,17 @@ export function readForeignFile(name: string, bytes: Uint8Array): ForeignRecipe[
     const out: ForeignRecipe[] = [];
 
     for (const entry of names) {
+        // One damaged recipe in an archive of three hundred is skipped, not
+        // the reason none of them arrive.
+        try {
+            readEntry(entry);
+        } catch {
+            /* skipped */
+        }
+    }
+    return out;
+
+    function readEntry(entry: string) {
         const file = entry.split('/').pop() ?? entry;
         if (file.endsWith('.paprikarecipe')) {
             const json = parseJson(gunzipSync(entries[entry]));
@@ -317,6 +328,4 @@ export function readForeignFile(name: string, bytes: Uint8Array): ForeignRecipe[
             if (recipe) out.push(recipe);
         }
     }
-
-    return out;
 }

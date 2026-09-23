@@ -268,7 +268,9 @@ export default async function HomePage({
     const orderBy: RecipeOrderBy = sort === 'views' ? { views: 'desc' } : { createdAt: 'desc' };
 
     const requestedPage = Number.parseInt(typeof pageParam === 'string' ? pageParam : '1', 10);
-    const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    // Capped: a page number beyond any list is an empty page, and one beyond
+    // a 64-bit integer was a database error.
+    const page = Number.isInteger(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, 10_000) : 1;
     const skip = (page - 1) * PAGE_SIZE;
 
     /*

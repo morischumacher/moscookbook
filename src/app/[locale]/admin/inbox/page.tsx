@@ -264,7 +264,9 @@ export default function AdminInboxPage() {
                 />
             </div>
 
-            {allOpen.length > 3 && (
+            {/* Also while a filter is on, however few rows are left: controls
+                that vanish leave a filtered list with no visible reason. */}
+            {(allOpen.length > 3 || JSON.stringify(query) !== JSON.stringify(NO_FILTER)) && (
                 <InboxFilters
                     query={query}
                     onChange={setQuery}
@@ -301,7 +303,9 @@ export default function AdminInboxPage() {
                         <CaptureRow
                             key={capture.id}
                             capture={capture}
-                            busy={busyId === capture.id}
+                            // Every row waits while one is working: acting on a
+                            // second row re-enabled the first before it was done.
+                            busy={busyId !== null}
                             busyAction={busyId === capture.id ? busyAction : null}
                             aiModel={aiModel}
                             onPublish={() => act(capture.id, 'publish')}

@@ -8,7 +8,10 @@
 
 /** "1 1/2" -> 1.5, "3/4" -> 0.75, "1,5" -> 1.5 */
 export function parseQuantity(text: string): number | null {
-    const cleaned = text.trim().replace(',', '.');
+    const trimmed = text.trim();
+    // "1.000 g" and "1,000 g" are a thousand, not one: the German and the
+    // English way of grouping thousands. ("1,5" is still one and a half.)
+    const cleaned = /^\d{1,3}([.,])\d{3}(\1\d{3})*$/.test(trimmed) ? trimmed.replace(/[.,]/g, '') : trimmed.replace(',', '.');
     if (!cleaned) return null;
 
     const mixed = /^(\d+)\s+(\d+)\s*\/\s*(\d+)$/.exec(cleaned);

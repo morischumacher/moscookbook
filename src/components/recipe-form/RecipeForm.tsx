@@ -122,7 +122,10 @@ export default function RecipeForm({
     const errorBox = useRef<HTMLDivElement>(null);
     const [draftFound, setDraftFound] = useState(false);
 
-    const draftKey = mode === 'create' ? 'moscookbook:draft:new' : `moscookbook:draft:${initial?.id}`;
+    // A form opened from the inbox has a draft of its own: it must not replace
+    // an unrelated new recipe that was being typed.
+    const newKey = captureId ? `moscookbook:draft:capture:${captureId}` : 'moscookbook:draft:new';
+    const draftKey = mode === 'create' ? newKey : `moscookbook:draft:${initial?.id}`;
 
     // Slug follows the title until the author edits it by hand.
     useEffect(() => {
@@ -153,7 +156,9 @@ export default function RecipeForm({
 
     useEffect(() => {
         const isEmpty = !title && !instructions && ingredients.every((row) => !row.item);
-        if (isEmpty) return;
+        // Not while an interrupted draft is waiting to be restored or thrown
+        // away: saving now would overwrite it with the page as it loaded.
+        if (isEmpty || draftFound) return;
 
         const timer = setTimeout(() => {
             try {
@@ -164,7 +169,7 @@ export default function RecipeForm({
         }, 800);
 
         return () => clearTimeout(timer);
-    }, [values, draftKey, title, instructions, ingredients]);
+    }, [values, draftKey, title, instructions, ingredients, draftFound]);
 
     const clearDraft = () => {
         try {
@@ -270,6 +275,7 @@ export default function RecipeForm({
         }
 
         setSaving(true);
+        let saved = false;
         try {
             const endpoint = mode === 'create' ? '/api/recipes' : `/api/recipes/${initial?.id}`;
             const res = await fetch(endpoint, {
@@ -303,13 +309,16 @@ export default function RecipeForm({
                 return;
             }
 
+            // Saved: the button stays disabled while the page changes, or a
+            // second press creates the recipe twice (or a 409 on its slug).
+            saved = true;
             clearDraft();
             router.push(captureId ? '/admin/inbox' : '/admin');
             router.refresh();
         } catch {
             failWith(t('saveFailed'));
         } finally {
-            setSaving(false);
+            if (!saved) setSaving(false);
         }
     };
 
