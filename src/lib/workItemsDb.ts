@@ -147,6 +147,8 @@ export async function closeWorkItem(id: number, reason: 'done' | 'confirmed' = '
 export async function reopenWorkItem(id: number) {
     const item = await prisma.workItem.update({ where: { id }, data: { closedAt: null, closedReason: null, doneAt: null, doneNote: null, doneRef: null } });
     if (item.kind === 'ticket') await prisma.ticket.updateMany({ where: { id: item.refId }, data: { resolvedAt: null } });
+    // The same for an error, or the open task says "resolved" on the list.
+    if (item.kind === 'error') await prisma.errorLog.updateMany({ where: { id: item.refId }, data: { resolvedAt: null } });
 }
 
 /**
@@ -216,6 +218,9 @@ export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void>
 
         // An error seen again after it was reported fixed: the fix was not one.
         let recurred = false;
+        // Seen again within the hour after the admin confirmed the fix: the
+        // old build and tabs opened before the deploy, not the fix failing.
+        let settling = false;
 
         if (kind === 'error') {
             const row = await prisma.errorLog.findUnique({ where: { id: refId }, select: { resolvedAt: true, lastSeenAt: true, trusted: true } });
@@ -227,6 +232,11 @@ export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void>
                 // Seen again well after the report — not in the hour a deploy
                 // takes, when the old build and old tabs still throw it.
                 recurred = Boolean(item?.doneAt && row.lastSeenAt.getTime() > item.doneAt.getTime() + RECURRENCE_GRACE_MS);
+                settling = Boolean(
+                    item?.closedReason === 'confirmed' &&
+                        item.closedAt &&
+                        row.lastSeenAt.getTime() <= Math.max(item.closedAt.getTime(), item.doneAt?.getTime() ?? 0) + RECURRENCE_GRACE_MS
+                );
             }
         } else if (kind === 'ticket') {
             const row = await prisma.ticket.findUnique({ where: { id: refId }, select: { resolvedAt: true, kind: true } });
@@ -257,7 +267,7 @@ export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void>
         }
 
         if (item) {
-            if (problem && (item.closedAt || recurred) && !item.dismissedAt) {
+            if (problem && (item.closedAt || recurred) && !item.dismissedAt && !settling) {
                 const data = await snapshotOf(kind, refId, item.withPhotos);
                 // The report is not thrown away: the next attempt should know
                 // what was tried and did not hold.
@@ -326,12 +336,14 @@ export async function workStates(kind: WorkKind, refIds: number[]): Promise<Map<
  * since. Run when the admin opens the work list and by the weekly job.
  */
 export async function syncAll(): Promise<void> {
-    const [errors, captures, tickets] = await Promise.all([
+    const [errors, captures, tickets, problems] = await Promise.all([
         prisma.errorLog.findMany({ where: { resolvedAt: null }, select: { id: true }, take: 500 }),
         prisma.capture.findMany({ where: { status: { in: ['failed', 'needsWork'] } }, select: { id: true }, take: 500 }),
         prisma.workItem.findMany({ where: { kind: 'ticket', closedAt: null }, select: { refId: true } }),
+        // "Etwas geht nicht" tickets that never got their task.
+        prisma.ticket.findMany({ where: { kind: 'problem', resolvedAt: null }, select: { id: true }, take: 500 }),
     ]);
     for (const row of errors) await syncWorkItem('error', row.id);
     for (const row of captures) await syncWorkItem('capture', row.id);
-    for (const row of tickets) await syncWorkItem('ticket', row.refId);
+    for (const id of new Set([...tickets.map((row) => row.refId), ...problems.map((row) => row.id)])) await syncWorkItem('ticket', id);
 }
