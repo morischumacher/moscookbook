@@ -1060,7 +1060,8 @@
     "askAgainExplain": "Already read with AI (rules plus AI). The same again gives the same answer – try “Read with AI only”.",
     "aiOnly": "Read with AI only (costs)",
     "aiOnlyExplain": "The AI gets everything that was shared – page, caption, video description, subtitles, screenshot – and makes the recipe from it. No rules, nothing learned; replaces the current draft.",
-    "aiOnlyDone": "Already read by the AI alone. Again gives the same."
+    "aiOnlyDone": "Already read by the AI alone. Again gives the same.",
+    "polishFailed": "The revision did not work. Please try again."
   },
   "SiteProfiles": {
     "title": "Learned sites",

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useLocale, useTranslations } from 'next-intl';
 import { useConfirm } from '@/components/ui/useConfirm';
 import InlineConfirm from '@/components/ui/InlineConfirm';
@@ -73,7 +74,7 @@ export default function UserList() {
                     )
                 );
             } else {
-                await ask({ title: data.message || t('genericError'), kind: 'alert' });
+                await ask({ title: sayable(data.message, t('genericError')), kind: 'alert' });
             }
         } catch {
             await ask({ title: t('genericError'), kind: 'alert' });
@@ -89,7 +90,7 @@ export default function UserList() {
             if (res.ok) {
                 setUsers((current) => current.filter((user) => user.id !== userId));
             } else {
-                await ask({ title: data.message || t('genericError'), kind: 'alert' });
+                await ask({ title: sayable(data.message, t('genericError')), kind: 'alert' });
             }
         } catch {
             await ask({ title: t('genericError'), kind: 'alert' });

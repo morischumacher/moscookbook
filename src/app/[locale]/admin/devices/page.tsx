@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useLocale, useTranslations } from 'next-intl';
 import InlineConfirm from '@/components/ui/InlineConfirm';
 import Disclosure from '@/components/ui/Disclosure';
@@ -69,7 +70,7 @@ export default function AdminDevicesPage() {
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                setError(data.message || tAdmin('genericError'));
+                setError(sayable(data?.message, tAdmin('genericError')));
                 return;
             }
             setSecret(data.secret);

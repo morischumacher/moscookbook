@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useTranslations } from 'next-intl';
 import { uploadPicture } from '@/lib/uploadClient';
 import { BusyLabel } from '@/components/ui/Busy';
@@ -32,7 +33,7 @@ export default function PhotoPicker({
         for (const file of [...files].slice(0, max - photos.length)) {
             const result = await uploadPicture(file, '/api/report-photos');
             if (result.ok) next.push(result.url);
-            else setFailed(result.reason === 'too-large' ? t('photoTooLarge') : result.message || t('photoFailed'));
+            else setFailed(result.reason === 'too-large' ? t('photoTooLarge') : sayable(result.message, t('photoFailed')));
         }
         onChange(next);
         setBusy(false);

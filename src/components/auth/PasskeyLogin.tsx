@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { browserSupportsWebAuthn, browserSupportsWebAuthnAutofill, startAuthentication, WebAuthnAbortService } from '@simplewebauthn/browser';
-import { messageFrom } from '@/lib/apiMessage';
+import { messageFrom, sayable } from '@/lib/apiMessage';
 import { buttonSecondary } from '@/lib/ui';
 import { BusyLabel } from '@/components/ui/Busy';
 
@@ -28,7 +28,7 @@ export default function PasskeyLogin({ onSignedIn, onError }: { onSignedIn: (adm
             body: JSON.stringify(answer),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.message || t('failed'));
+        if (!res.ok) throw new Error(sayable(data?.message, t('failed')));
         onSignedIn(Boolean(data.admin));
     };
 

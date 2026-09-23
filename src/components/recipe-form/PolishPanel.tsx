@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useTranslations } from 'next-intl';
 import { buttonPrimarySmall } from '@/lib/ui';
 
@@ -69,7 +70,7 @@ export default function PolishPanel({
             }
 
             if (!res.ok) {
-                setNote(data.message ?? '');
+                setNote(sayable(data.message, t('polishFailed')));
                 return;
             }
 

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import InlineConfirm from '@/components/ui/InlineConfirm';
 import { formatDate } from '@/lib/formatDate';
-import { messageFrom } from '@/lib/apiMessage';
+import { messageFrom, sayable } from '@/lib/apiMessage';
 import { buttonPrimarySmall, chip } from '@/lib/ui';
 import Loading from '@/components/ui/Loading';
 import { BusyLabel } from '@/components/ui/Busy';
@@ -155,7 +155,7 @@ export default function AiKeys() {
             const data = await res.json().catch(() => ({}));
 
             if (!res.ok) {
-                setError(data.message || tAdmin('genericError'));
+                setError(sayable(data?.message, tAdmin('genericError')));
                 return;
             }
 
@@ -182,7 +182,7 @@ export default function AiKeys() {
             const data = await res.json().catch(() => ({}));
 
             if (!res.ok) {
-                setTest({ ok: false, message: data.message || tAdmin('genericError') });
+                setTest({ ok: false, message: sayable(data?.message, tAdmin('genericError')) });
                 return;
             }
 

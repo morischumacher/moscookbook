@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { slugify } from '@/lib/recipe';
@@ -125,7 +126,7 @@ export default function PostForm({
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.message || t('saveFailed'));
+                setError(sayable(data?.message, t('saveFailed')));
                 return;
             }
 

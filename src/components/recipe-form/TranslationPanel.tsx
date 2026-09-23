@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useTranslations } from 'next-intl';
 import { buttonSecondary } from '@/lib/ui';
 import IngredientEditor from './IngredientEditor';
@@ -61,7 +62,7 @@ export default function TranslationPanel({
             const data = await res.json().catch(() => ({}));
 
             if (res.status === 501) return setNote(tAi('polishOff'));
-            if (!res.ok) return setNote(data.message || t('translateFailed'));
+            if (!res.ok) return setNote(sayable(data?.message, t('translateFailed')));
             if (data.ok === false) return setNote(t('translateUnusable'));
 
             onTranslation(data.translation);

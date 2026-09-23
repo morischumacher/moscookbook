@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import ReactMarkdown from 'react-markdown';
 import { useTranslations } from 'next-intl';
 import { looksLikeImage } from '@/lib/imageCompression';
@@ -77,7 +78,7 @@ export default function MarkdownEditor({
         setUploading(false);
 
         if (!result.ok) {
-            setError(result.reason === 'too-large' ? t('uploadTooLarge') : result.message || t('uploadFailed'));
+            setError(result.reason === 'too-large' ? t('uploadTooLarge') : sayable(result.message, t('uploadFailed')));
             return;
         }
 

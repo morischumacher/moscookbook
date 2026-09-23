@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useTranslations } from 'next-intl';
 import { parseRecipeText } from '@/lib/recipeParser';
 import type { Ingredient } from '@/lib/recipe';
@@ -97,7 +98,7 @@ export default function QuickImport({
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.message || t('importFailed'));
+                setError(sayable(data?.message, t('importFailed')));
                 return;
             }
 
@@ -134,7 +135,7 @@ export default function QuickImport({
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.message || t('pageFailed'));
+                setError(sayable(data?.message, t('pageFailed')));
                 return;
             }
 
@@ -204,7 +205,7 @@ export default function QuickImport({
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.message || t('importFailed'));
+                setError(sayable(data?.message, t('importFailed')));
                 return;
             }
 
@@ -234,7 +235,7 @@ export default function QuickImport({
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.message || t('photoFailed'));
+                setError(sayable(data?.message, t('photoFailed')));
                 return;
             }
 
