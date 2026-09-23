@@ -151,7 +151,7 @@ export default function draftsTests() {
 
     check(
         'the inbox can take a capture in as a draft',
-        /'retry', 'askAi', 'publish', 'stage'/.test(capture),
+        /'publish', 'stage'\]/.test(capture),
         'the stage action'
     );
     check(

@@ -613,3 +613,107 @@ async function rememberThisSite(
         learnedBy: `${key.provider}${key.model ? `/${key.model}` : ''}`,
     });
 }
+
+/* -------------------------------------------------------------------------- */
+/* The model alone                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Everything the share carries, as text: the page's words, the caption, the
+ * video's title, description and subtitles, whatever was shared alongside.
+ * Nothing is parsed and nothing learned is applied — this is the material,
+ * not a reading of it. Also the picture that belongs with it.
+ */
+async function materialOf(capture: ProcessableCapture): Promise<{ text: string; imageUrl: string }> {
+    const shared = withoutBareUrls(capture.rawText ?? '').trim();
+    const url = capture.sourceUrl;
+    if (capture.kind !== 'url' || !url) return { text: shared, imageUrl: '' };
+
+    const source = capture.source as CaptureSource;
+
+    if (source === 'youtube') {
+        const videoId = youtubeVideoId(url);
+        const page = videoId ? await fetchPage(url) : null;
+        if (!videoId || !page?.ok) return { text: shared, imageUrl: '' };
+        const video = extractYoutubePage(page.html, videoId);
+        const spoken = await spokenText(captionTracksFrom(page.html));
+        return {
+            text: [video.title, video.description, shared, spoken ? `Gesprochen im Video / spoken in the video:\n${spoken}` : '']
+                .filter((part) => part && part.trim())
+                .join('\n\n'),
+            imageUrl: video.imageUrl,
+        };
+    }
+
+    if (source === 'instagram' || source === 'tiktok') {
+        const code = instagramShortcode(url);
+        const embed = code ? await fetchPage(instagramEmbedUrl(code)) : null;
+        const post = embed?.ok ? readInstagramEmbed(embed.html) : null;
+        if (post?.caption) {
+            return { text: [post.caption, shared].filter(Boolean).join('\n\n'), imageUrl: post.imageUrl ?? '' };
+        }
+    }
+
+    const page = await fetchPage(url);
+    if (!page.ok) return { text: shared, imageUrl: '' };
+    const meta = extractRecipeFromHtml(page.html, page.finalUrl);
+    // The meta tags too: on a social page the whole post is in og:title.
+    return {
+        text: [readableText(page.html), meta.title, meta.description, shared].filter((part) => part && part.trim()).join('\n\n'),
+        imageUrl: meta.imageUrl,
+    };
+}
+
+/**
+ * "Just read it": the model gets everything the share carries and makes the
+ * recipe from it, start to finish.
+ *
+ * The normal path is rules first and a model filling their gaps, which is
+ * right almost always and cheap — and wrong in the one case this is for: the
+ * rules found something plausible-looking and the model is only allowed to
+ * add to it. Here the rules, the learned site layouts and the merge are all
+ * left out; the answer replaces the draft. One call, pressed by a person.
+ */
+export async function readWithAiOnly(
+    capture: ProcessableCapture,
+    ai: AiCapability,
+    options: ProcessOptions = {}
+): Promise<ProcessedCapture> {
+    if (!canUseAi(ai)) return outcome('needsWork', null, reason('pictureNeedsAi'));
+    if (capture.kind === 'image') return processImage(capture.imageUrl ?? null, ai, options);
+
+    try {
+        const material = await materialOf(capture);
+        const provider = ai.keys[0]?.provider ?? null;
+        const text = material.text.slice(0, 60_000);
+
+        if (text.trim().length >= 40) {
+            try {
+                const parsed = await extractRecipeWithAi({ kind: 'text', text }, ai.keys, options.onModel);
+                const draft: ImportedRecipe = {
+                    ...emptyDraft(capture.sourceUrl ?? ''),
+                    ...parsed,
+                    imageUrl: material.imageUrl || capture.imageUrl || '',
+                    sourceUrl: capture.sourceUrl ?? '',
+                };
+                const status = completeness(draft);
+                if (status === 'ready' || !capture.imageUrl) {
+                    const trace = { provider, asked: true, failed: false };
+                    return outcome(status, draft, reasonFor(status, draft, trace, 'page'), trace, 'ai');
+                }
+            } catch (error) {
+                console.error('Reading with the model alone failed:', error);
+                if (!capture.imageUrl) {
+                    return outcome('needsWork', null, reason('somethingWrong'), { provider, asked: true, failed: true }, 'rules+ai-failed');
+                }
+            }
+        }
+
+        // Nothing to read, or not enough in it: the screenshot, if one came.
+        if (capture.imageUrl) return processImage(capture.imageUrl, ai, options);
+        return outcome('failed', null, reason('nothingSent'));
+    } catch (error) {
+        console.error('Capture processing error:', error);
+        return outcome('failed', null, reason('somethingWrong'));
+    }
+}

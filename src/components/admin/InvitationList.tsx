@@ -6,6 +6,7 @@ import InlineConfirm from '@/components/ui/InlineConfirm';
 import { formatDate } from '@/lib/formatDate';
 import { buttonPrimarySmall } from '@/lib/ui';
 import Loading from '@/components/ui/Loading';
+import type { NameCheck } from '@/lib/inviteName';
 
 interface Invite {
     id: number;
@@ -34,7 +35,9 @@ export default function InvitationList() {
     const [invites, setInvites] = useState<Invite[]>([]);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
-    const [note, setNote] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [check, setCheck] = useState<NameCheck>({ state: 'free' });
     const [copiedId, setCopiedId] = useState<number | null>(null);
     const [error, setError] = useState('');
 
@@ -55,6 +58,26 @@ export default function InvitationList() {
         load();
     }, [load]);
 
+    /*
+     * Asked while typing, so a name that is already somebody's is said
+     * before the link exists — with the two ways out: another first name, or
+     * a last name as well. See lib/inviteName.
+     */
+    useEffect(() => {
+        if (firstName.trim() === '') return;
+        const timer = setTimeout(() => {
+            const query = new URLSearchParams({ first: firstName, last: lastName });
+            fetch(`/api/invites/name?${query}`)
+                .then((res) => (res.ok ? res.json() : { state: 'free' }))
+                .then((answer: NameCheck) => setCheck(answer))
+                .catch(() => undefined);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [firstName, lastName]);
+
+    const clash = firstName.trim() !== '' && check.state !== 'free';
+    const needsLastName = check.state !== 'free' || lastName !== '';
+
     const linkFor = (code: string) =>
         `${window.location.origin}/${locale}/register?invite=${encodeURIComponent(code)}`;
 
@@ -65,10 +88,16 @@ export default function InvitationList() {
             const res = await fetch('/api/invites', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ note }),
+                body: JSON.stringify({ firstName, lastName }),
             });
+            if (res.status === 409) {
+                setCheck(await res.json());
+                return;
+            }
             if (!res.ok) throw new Error(tAdmin('genericError'));
-            setNote('');
+            setFirstName('');
+            setLastName('');
+            setCheck({ state: 'free' });
             await load();
         } catch (err) {
             setError(err instanceof Error ? err.message : tAdmin('genericError'));
@@ -108,21 +137,53 @@ export default function InvitationList() {
                 {t('title')}
             </h2>
 
-            <div className="flex flex-col gap-3 border-b border-line py-6 sm:flex-row">
-                <input
-                    type="text"
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                    placeholder={t('notePlaceholder')}
-                    // A placeholder is not a label: it vanishes the moment
-                    // somebody types, taking the only explanation with it.
-                    aria-label={t('notePlaceholder')}
-                    className="flex-1 rounded-lg border border-control bg-transparent px-3 py-2 outline-none focus:border-ink"
-                />
+            <div className="flex flex-col gap-3 border-b border-line py-6">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                    <input
+                        type="text"
+                        value={firstName}
+                        onChange={(event) => {
+                            setFirstName(event.target.value);
+                            if (event.target.value.trim() === '') setCheck({ state: 'free' });
+                        }}
+                        placeholder={t('firstNamePlaceholder')}
+                        // A placeholder is not a label: it vanishes the moment
+                        // somebody types, taking the only explanation with it.
+                        aria-label={t('firstNamePlaceholder')}
+                        aria-invalid={clash}
+                        autoComplete="off"
+                        className="min-w-0 flex-1 rounded-lg border border-control bg-transparent px-3 py-2 outline-none focus:border-ink"
+                    />
+                    {needsLastName && (
+                        <input
+                            type="text"
+                            value={lastName}
+                            onChange={(event) => setLastName(event.target.value)}
+                            placeholder={t('lastNamePlaceholder')}
+                            aria-label={t('lastNamePlaceholder')}
+                            autoComplete="off"
+                            className="min-w-0 flex-1 rounded-lg border border-control bg-transparent px-3 py-2 outline-none focus:border-ink"
+                        />
+                    )}
+                </div>
+
+                {clash && (
+                    <p role="status" className="text-sm text-danger">
+                        {check.state === 'firstTaken'
+                            ? check.holders.every((holder) => holder.toLowerCase() === firstName.trim().toLowerCase())
+                                ? t('firstTakenPlain', { name: firstName.trim() })
+                                : t('firstTaken', { name: firstName.trim(), holders: check.holders.join(', ') })
+                            : t('fullTaken', { name: `${firstName.trim()} ${lastName.trim()}` })}
+                    </p>
+                )}
+                {!clash && firstName.trim() !== '' && (
+                    <p className="text-sm text-muted">{t('nameFixed')}</p>
+                )}
+
                 <button
                     type="button"
                     onClick={create}
-                    disabled={creating}
+                    disabled={creating || firstName.trim() === '' || clash}
                     className={buttonPrimarySmall}
                 >
                     {creating ? t('creating') : t('create')}

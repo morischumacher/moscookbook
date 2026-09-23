@@ -6,7 +6,8 @@ import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
 import { freeRecipeSlug, newRecipeData } from '@/lib/recipeRepo';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
-import { processCapture } from '@/lib/captureProcess';
+import { processCapture, readWithAiOnly } from '@/lib/captureProcess';
+import { canUseAi } from '@/lib/aiImport';
 import { siteLearning } from '@/lib/siteProfileDb';
 import { aiCapability, rememberModel } from '@/lib/aiConfig';
 import { toJsonObject } from '@/lib/json';
@@ -38,7 +39,7 @@ import { syncWorkItem } from '@/lib/workItemsDb';
  * making it serve one would teach people to press past the draft state without
  * reading it.
  */
-const actionSchema = z.object({ action: z.enum(['retry', 'askAi', 'publish', 'stage']) });
+const actionSchema = z.object({ action: z.enum(['retry', 'askAi', 'aiOnly', 'publish', 'stage']) });
 
 function parseId(raw: string): number | null {
     return positiveIntId(raw);
@@ -72,6 +73,35 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     const capture = await prisma.capture.findUnique({ where: { id: captureId } });
     if (!capture) {
         return NextResponse.json({ message: 'Capture not found' }, { status: 404 });
+    }
+
+    /*
+     * `aiOnly`: the model reads everything the share carries — page text,
+     * caption, description, subtitles, the screenshot — and its answer is the
+     * draft. No rules, no learned layout, no merging: for when the rules found
+     * something plausible and wrong. A person pressed it, so it may cost.
+     */
+    if (parsed.data.action === 'aiOnly') {
+        const ai = await aiCapability();
+        if (!canUseAi(ai)) {
+            return NextResponse.json({ message: 'The AI is switched off or has no key.' }, { status: 501 });
+        }
+        const result = await readWithAiOnly(capture, ai, {
+            onModel: (provider, model) => void rememberModel(provider, model),
+        });
+        const updated = await prisma.capture.update({
+            where: { id: captureId },
+            data: {
+                status: result.draft ? result.status : capture.status,
+                error: result.error,
+                readBy: result.readBy,
+                aiProvider: result.provider,
+                draft: result.draft ? toJsonObject(result.draft) : undefined,
+                processedAt: new Date(),
+            },
+        });
+        await syncWorkItem('capture', captureId);
+        return NextResponse.json({ capture: updated });
     }
 
     if (parsed.data.action === 'retry' || parsed.data.action === 'askAi') {

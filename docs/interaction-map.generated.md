@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-45 screens · 86 endpoints · 80 link edges · 88 call edges
+45 screens · 87 endpoints · 80 link edges · 89 call edges
 
 ## Screens
 
@@ -29,7 +29,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/posts` | admin | requires admin | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/posts/[id]`<br>`POST /api/examples` | `/[locale]/admin/posts/[id]`<br>`/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/collections/[id]`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/admin/reports` | admin | requires admin | `* /api/report-photos`<br>`* /api/work`<br>`DELETE /api/errors/[id]`<br>`DELETE /api/report-photos/[id]`<br>`DELETE /api/work-items/[id]`<br>`GET /api/errors`<br>`GET /api/tickets`<br>`GET /api/work`<br>`GET /api/work-items`<br>`GET /api/work-items/[id]`<br>`GET /api/work-items/prompt`<br>`PATCH /api/tickets`<br>`POST /api/errors/[id]`<br>`POST /api/errors/[id]/photos`<br>`POST /api/work-items` | — |
 | `/[locale]/admin/tickets` | admin | requires admin | — | `/[locale]/admin/reports` |
-| `/[locale]/admin/users` | admin | requires admin | `DELETE /api/invites/[id]`<br>`DELETE /api/users/[id]`<br>`GET /api/invites`<br>`GET /api/users`<br>`PATCH /api/users/[id]/role`<br>`POST /api/invites` | — |
+| `/[locale]/admin/users` | admin | requires admin | `DELETE /api/invites/[id]`<br>`DELETE /api/users/[id]`<br>`GET /api/invites`<br>`GET /api/invites/name`<br>`GET /api/users`<br>`PATCH /api/users/[id]/role`<br>`POST /api/invites` | — |
 | `/[locale]/blog/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/collections/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/blog` | account | requires session | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/blog/[id]`<br>`/[locale]/collections/[id]`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/c/[token]` | open | steps aside | — | `/[locale]/recipe/[id]` |
@@ -112,6 +112,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/import/archive` | admin | — | — | `admin/BackupPanel` |
 | POST | `/api/import/url` | admin | zod | yes | `recipe-form/QuickImport` |
 | DELETE | `/api/invites/[id]` | admin | — | — | `admin/InvitationList` |
+| GET | `/api/invites/name` | admin | — | — | `admin/InvitationList` |
 | GET | `/api/invites` | admin | zod | — | `admin/InvitationList` |
 | POST | `/api/invites` | admin | zod | — | `admin/InvitationList` |
 | PUT | `/api/posts/[id]` | admin | zod | — | `post/PostForm` |
@@ -459,6 +460,8 @@ flowchart LR
   eDELETE_api_invites__id_(["DELETE /api/invites/[id]"])
   cadmin_InvitationList["admin/InvitationList"]
   cadmin_InvitationList --> eDELETE_api_invites__id_
+  eGET_api_invites_name(["GET /api/invites/name"])
+  cadmin_InvitationList --> eGET_api_invites_name
   eGET_api_invites(["GET /api/invites"])
   cadmin_InvitationList --> eGET_api_invites
   ePOST_api_invites(["POST /api/invites"])

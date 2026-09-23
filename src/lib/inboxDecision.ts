@@ -13,7 +13,7 @@ import { readReason, type ReasonCode } from './captureReasons';
  * that fit it, the likeliest first.
  */
 
-export type Step = 'askAi' | 'retry' | 'edit' | 'openSource' | 'discard';
+export type Step = 'askAi' | 'aiOnly' | 'retry' | 'edit' | 'openSource' | 'discard';
 export type Situation = 'noRecipe' | 'elsewhere' | 'spoken' | 'picture' | 'partial' | 'failed' | 'incomplete';
 
 export interface Decision {
@@ -22,6 +22,24 @@ export interface Decision {
     steps: Step[];
     /** The AI would have been the right step but is switched off. */
     aiWouldHelp: boolean;
+    /** The last model call failed (no credit, a wrong key …): asking again is the fix. */
+    aiFailed: boolean;
+}
+
+/**
+ * How far the AI has already been involved, from the row's `readBy`.
+ *
+ * "Mit KI lesen" is the rules' draft with a model filling its gaps — exactly
+ * what `rules+ai` already is. Offering it again on such a row offered the
+ * same call for the same money and the same answer. What is left to try then
+ * is the other kind of asking: the model alone, on everything the share
+ * carries (`aiOnly`). After that, nothing a model can do is new.
+ */
+export function aiStage(readBy: string | null | undefined): 'none' | 'failed' | 'helped' | 'alone' {
+    if (readBy === 'rules+ai-failed') return 'failed';
+    if (readBy === 'rules+ai') return 'helped';
+    if (readBy === 'ai') return 'alone';
+    return 'none';
 }
 
 const GROUPS: Record<Situation, ReasonCode[]> = {
@@ -57,15 +75,19 @@ export function situationOf(error: string | null): Situation {
 }
 
 export function decisionFor(
-    capture: { status: string; error: string | null; sourceUrl: string | null },
+    capture: { status: string; error: string | null; sourceUrl: string | null; readBy?: string | null },
     aiAvailable: boolean
 ): Decision | null {
     if (capture.status !== 'needsWork' && capture.status !== 'failed') return null;
     const situation = situationOf(capture.error);
-    const wanted = STEPS[situation];
+    const stage = aiStage(capture.readBy);
+    // Never the same call twice: see aiStage.
+    const wanted = STEPS[situation].flatMap((step): Step[] =>
+        step !== 'askAi' ? [step] : stage === 'helped' ? ['aiOnly'] : stage === 'alone' ? [] : [step]
+    );
     const steps = wanted.filter(
         (step) =>
-            (step !== 'askAi' || aiAvailable) &&
+            ((step !== 'askAi' && step !== 'aiOnly') || aiAvailable) &&
             // No link, nothing to open or to read again from it.
             ((step !== 'openSource' && step !== 'retry') || capture.sourceUrl !== null)
     );
@@ -73,5 +95,6 @@ export function decisionFor(
         situation,
         steps: steps.length > 0 ? steps : ['edit', 'discard'],
         aiWouldHelp: !aiAvailable && wanted.indexOf('askAi') === 0,
+        aiFailed: stage === 'failed',
     };
 }

@@ -197,7 +197,8 @@
     "inviteUsed": "This invitation has already been used. If the account is yours, sign in — or ask Mo for a new link.",
     "inviteExpired": "This invitation has expired. Ask Mo for a new link.",
     "emailMoved": "Your new e-mail address is confirmed and in use from now on. The previous address has been told.",
-    "passkeyLogin": "Sign in with a passkey"
+    "passkeyLogin": "Sign in with a passkey",
+    "nameFromInvite": "The name comes from your invitation."
   },
   "Admin": {
     "loadingPage": "Fetching the page…",
@@ -382,7 +383,6 @@
     "title": "Invitations",
     "create": "New invitation",
     "creating": "Creating…",
-    "notePlaceholder": "Who is it for? (optional)",
     "none": "No invitations yet.",
     "loading": "Loading invitations…",
     "copy": "Copy link",
@@ -393,7 +393,13 @@
     "stateExpired": "Expired",
     "expiresOn": "Expires {date}",
     "usedBy": "Used by {email}",
-    "nav": "Invitations"
+    "nav": "Invitations",
+    "firstNamePlaceholder": "First name",
+    "lastNamePlaceholder": "Last name",
+    "firstTaken": "“{name}” already exists ({holders}). Pick another first name or add a last name.",
+    "fullTaken": "“{name}” already exists. Please pick another name.",
+    "nameFixed": "The name is filled into the registration form and cannot be changed there.",
+    "firstTakenPlain": "“{name}” already exists. Pick another first name or add a last name."
   },
   "Backup": {
     "title": "Backup",
@@ -520,10 +526,13 @@
       "retry": "Read again",
       "edit": "Edit",
       "openSource": "Open the source",
-      "discard": "Delete"
+      "discard": "Delete",
+      "askAiAgain": "Read with AI again",
+      "aiOnly": "Read with AI only"
     },
     "aiOffHint": "The AI could help here, but it is switched off (Admin → AI).",
-    "legendDecision": "Rows with a coloured edge were not fully recognised: the box says what happened, and the steps that fit."
+    "legendDecision": "Rows with a coloured edge were not fully recognised: the box says what happened, and the steps that fit.",
+    "aiFailedHint": "The last AI attempt failed (e.g. no credit left or an invalid key). Reading again makes sense here – check Admin → AI first if needed."
   },
   "Devices": {
     "title": "Devices",
@@ -1003,11 +1012,14 @@
     "modelAuto": "Chosen automatically on {date}, because the previous one did not answer. Overwrite it whenever you like; your choice then stands.",
     "testModel": "Answered by: {model}.",
     "askAiExplain": "Ask a model even though the rules think they managed. Costs one call.",
-    "askAgainExplain": "A model has already read this one. Asking again costs another call and will probably say the same thing."
+    "askAgainExplain": "Already read with AI (rules plus AI). The same again gives the same answer – try “Read with AI only”.",
+    "aiOnly": "Read with AI only (costs)",
+    "aiOnlyExplain": "The AI gets everything that was shared – page, caption, video description, subtitles, screenshot – and makes the recipe from it. No rules, nothing learned; replaces the current draft.",
+    "aiOnlyDone": "Already read by the AI alone. Again gives the same."
   },
   "SiteProfiles": {
     "title": "Learned sites",
-    "intro": "The first import from an unknown site teaches the cookbook where that site puts its recipe. Every later import from it needs no AI. This list fills itself — you are only here to teach a site in advance, or to correct one that has gone out of date.",
+    "intro": "The first import from an unknown site teaches the cookbook where that site puts its recipe. Every later import from it needs no AI. This list fills itself — you are only here to teach a site in advance, or to correct one that has gone out of date. Only recipe websites are learned, and only when the page has no recipe markup and the AI helped. Instagram, TikTok and YouTube have no fixed page layout – the recipe is free text in every post – so they are read fresh each time and never appear here.",
     "urlLabel": "Address of a recipe page",
     "learn": "Learn this site",
     "learning": "Reading …",

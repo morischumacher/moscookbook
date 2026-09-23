@@ -8,6 +8,7 @@ import { sessionOptions, sessionUserFrom, SessionData } from '@/lib/session';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import prisma from '@/lib/prisma';
 import { fullName } from '@/lib/personName';
+import { registeredName } from '@/lib/inviteName';
 import { issueToken } from '@/lib/issueToken';
 import { failed } from '@/lib/reportServerError';
 
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    const { email, firstName, lastName, password, invite, locale = 'en' } = parsed.data;
+    const { email, password, invite, locale = 'en' } = parsed.data;
 
     // Claim the invite before creating anything. updateMany with the conditions
     // in the WHERE clause makes this atomic: if two people redeem the same link
@@ -67,6 +68,11 @@ export async function POST(req: NextRequest) {
      * row was written — a pool timeout while saving the session was enough.
      */
     let accountExists = false;
+
+    // The name the invitation was made for wins over what was typed: the
+    // form shows it fixed, and this is where that is true. See lib/inviteName.
+    const promised = await prisma.invite.findUnique({ where: { code: invite }, select: { firstName: true, lastName: true } });
+    const { firstName, lastName } = registeredName(parsed.data, promised ?? { firstName: null, lastName: null });
 
     const releaseInvite = async () => {
         if (accountExists) return;

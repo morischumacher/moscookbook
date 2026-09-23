@@ -197,7 +197,8 @@
     "inviteUsed": "Diese Einladung wurde schon benutzt. Wenn das Konto deins ist, melde dich an — sonst frag Mo nach einem neuen Link.",
     "inviteExpired": "Diese Einladung ist abgelaufen. Frag Mo nach einem neuen Link.",
     "emailMoved": "Deine neue E-Mail-Adresse ist bestätigt und gilt ab sofort. Die bisherige Adresse wurde informiert.",
-    "passkeyLogin": "Mit Passkey anmelden"
+    "passkeyLogin": "Mit Passkey anmelden",
+    "nameFromInvite": "Der Name kommt aus deiner Einladung."
   },
   "Admin": {
     "loadingPage": "Seite wird geholt…",
@@ -382,7 +383,6 @@
     "title": "Einladungen",
     "create": "Neue Einladung",
     "creating": "Wird erstellt…",
-    "notePlaceholder": "Für wen? (optional)",
     "none": "Noch keine Einladungen.",
     "loading": "Einladungen werden geladen…",
     "copy": "Link kopieren",
@@ -393,7 +393,13 @@
     "stateExpired": "Abgelaufen",
     "expiresOn": "Gültig bis {date}",
     "usedBy": "Eingelöst von {email}",
-    "nav": "Einladungen"
+    "nav": "Einladungen",
+    "firstNamePlaceholder": "Vorname",
+    "lastNamePlaceholder": "Nachname",
+    "firstTaken": "„{name}“ gibt es schon ({holders}). Nimm einen anderen Vornamen oder gib einen Nachnamen dazu.",
+    "fullTaken": "„{name}“ gibt es schon. Bitte einen anderen Namen.",
+    "nameFixed": "Der Name wird bei der Registrierung vorausgefüllt und kann dort nicht geändert werden.",
+    "firstTakenPlain": "„{name}“ gibt es schon. Nimm einen anderen Vornamen oder gib einen Nachnamen dazu."
   },
   "Backup": {
     "title": "Sicherung",
@@ -520,10 +526,13 @@
       "retry": "Neu einlesen",
       "edit": "Bearbeiten",
       "openSource": "Quelle öffnen",
-      "discard": "Löschen"
+      "discard": "Löschen",
+      "askAiAgain": "Nochmal mit KI lesen",
+      "aiOnly": "Nur mit KI lesen"
     },
     "aiOffHint": "Die KI könnte hier helfen, ist aber ausgeschaltet (Verwaltung → KI).",
-    "legendDecision": "Einträge mit farbigem Rand wurden nicht vollständig erkannt: Im Kasten steht, was passiert ist, und die passenden nächsten Schritte."
+    "legendDecision": "Einträge mit farbigem Rand wurden nicht vollständig erkannt: Im Kasten steht, was passiert ist, und die passenden nächsten Schritte.",
+    "aiFailedHint": "Der letzte KI-Versuch ist fehlgeschlagen (z. B. Guthaben leer oder Schlüssel ungültig). Nochmal lesen ist hier sinnvoll – vorher ggf. unter Verwaltung → KI prüfen."
   },
   "Devices": {
     "title": "Geräte",
@@ -1003,11 +1012,14 @@
     "modelAuto": "Automatisch gewählt am {date}, weil das vorherige nicht geantwortet hat. Du kannst es jederzeit überschreiben; dann bleibt deine Wahl stehen.",
     "testModel": "Geantwortet hat: {model}.",
     "askAiExplain": "Ein Modell fragen, obwohl die Regeln meinen, sie hätten es geschafft. Kostet einen Aufruf.",
-    "askAgainExplain": "Ein Modell hat das hier schon gelesen. Noch einmal fragen kostet noch einen Aufruf und sagt vermutlich dasselbe."
+    "askAgainExplain": "Schon mit KI gelesen (Regeln plus KI). Dasselbe nochmal bringt dieselbe Antwort – probier „Nur mit KI lesen“.",
+    "aiOnly": "Nur mit KI lesen (kostet)",
+    "aiOnlyExplain": "Die KI bekommt alles, was geteilt wurde – Seite, Caption, Videobeschreibung, Untertitel, Screenshot – und macht daraus das Rezept. Ohne Regeln und ohne Gelerntes; ersetzt den bisherigen Entwurf.",
+    "aiOnlyDone": "Wurde schon nur von der KI gelesen. Nochmal bringt dasselbe."
   },
   "SiteProfiles": {
     "title": "Gelernte Seiten",
-    "intro": "Beim ersten Import von einer unbekannten Seite merkt sich das Kochbuch, wo diese Seite ihr Rezept hinschreibt. Jeder weitere Import von dort kommt ohne KI aus. Diese Liste füllt sich von selbst — hierher kommst du nur, wenn du eine Seite vorab lernen oder eine veraltete korrigieren willst.",
+    "intro": "Beim ersten Import von einer unbekannten Seite merkt sich das Kochbuch, wo diese Seite ihr Rezept hinschreibt. Jeder weitere Import von dort kommt ohne KI aus. Diese Liste füllt sich von selbst — hierher kommst du nur, wenn du eine Seite vorab lernen oder eine veraltete korrigieren willst. Gelernt wird nur bei Rezept-Webseiten, und nur wenn die Seite kein Rezept-Markup hat und die KI geholfen hat. Instagram, TikTok und YouTube haben kein festes Seitenlayout – dort steht das Rezept jedes Mal frei im Text – deshalb werden sie jedes Mal neu gelesen und erscheinen hier nie.",
     "urlLabel": "Adresse einer Rezeptseite",
     "learn": "Seite lernen",
     "learning": "Liest …",

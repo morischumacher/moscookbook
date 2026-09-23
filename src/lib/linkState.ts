@@ -79,3 +79,12 @@ export async function inviteLinkState(
         return 'valid';
     }
 }
+
+/** The name an invitation was made for, to fill into the registration form. */
+export async function inviteName(code: string | undefined): Promise<{ firstName: string | null; lastName: string | null }> {
+    if (!code) return { firstName: null, lastName: null };
+    const record = await prisma.invite
+        .findUnique({ where: { code }, select: { firstName: true, lastName: true } })
+        .catch(() => null);
+    return { firstName: record?.firstName ?? null, lastName: record?.lastName ?? null };
+}

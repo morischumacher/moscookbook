@@ -74,6 +74,10 @@ model Invite {
   code        String    @unique
   /// Free text for the admin: who it was meant for.
   note        String?
+  /// Who it is for. Filled into the registration form and fixed there; see
+  /// lib/inviteName.ts. The last name only when the first is already taken.
+  firstName   String?
+  lastName    String?
   createdAt   DateTime  @default(now())
   expiresAt   DateTime
   createdById Int

@@ -18,11 +18,20 @@ const labelClass = 'mb-2 block text-sm font-bold uppercase tracking-widest text-
  * another tab between this page loading and the button being pressed, and the
  * server is what decides.
  */
-export default function RegisterForm({ invite }: { invite: string }) {
+export default function RegisterForm({
+    invite,
+    firstName: promisedFirst = null,
+    lastName: promisedLast = null,
+}: {
+    invite: string;
+    /** The name the invitation was made for: filled in and not changeable. */
+    firstName?: string | null;
+    lastName?: string | null;
+}) {
     const t = useTranslations('Auth');
     const locale = useLocale();
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
+    const [firstName, setFirstName] = useState(promisedFirst ?? '');
+    const [lastName, setLastName] = useState(promisedLast ?? '');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmation, setConfirmation] = useState('');
@@ -81,8 +90,10 @@ export default function RegisterForm({ invite }: { invite: string }) {
                             autoComplete="given-name"
                             value={firstName}
                             onChange={(event) => setFirstName(event.target.value)}
+                            readOnly={Boolean(promisedFirst)}
+                            aria-describedby={promisedFirst ? 'name-fixed' : undefined}
                             required
-                            className={fieldClass}
+                            className={promisedFirst ? `${fieldClass} bg-surface text-muted` : fieldClass}
                         />
                     </div>
 
@@ -94,11 +105,15 @@ export default function RegisterForm({ invite }: { invite: string }) {
                             autoComplete="family-name"
                             value={lastName}
                             onChange={(event) => setLastName(event.target.value)}
+                            readOnly={Boolean(promisedLast)}
                             required
-                            className={fieldClass}
+                            className={promisedLast ? `${fieldClass} bg-surface text-muted` : fieldClass}
                         />
                     </div>
                 </div>
+                {promisedFirst && (
+                    <p id="name-fixed" className="-mt-3 text-sm text-muted">{t('nameFromInvite')}</p>
+                )}
 
                 <div>
                     <label htmlFor="email" className={labelClass}>{t('email')}</label>

@@ -67,6 +67,7 @@ import inboxDecision from './inboxDecision.test';
 import recipeLayout from './recipeLayout.test';
 import userProtection from './userProtection.test';
 import recipeTranslation from './recipeTranslation.test';
+import inviteName from './inviteName.test';
 import siteLearn, { siteLearnWiringTests } from './siteLearn.test';
 import drafts from './drafts.test';
 import routeParams from './routeParams.test';
@@ -159,6 +160,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['recipeLayout', recipeLayout],
     ['userProtection', userProtection],
     ['recipeTranslation', recipeTranslation],
+    ['inviteName', inviteName],
     ['siteLearn', siteLearn],
     ['siteLearnWiringTests', siteLearnWiringTests],
     ['drafts', drafts],

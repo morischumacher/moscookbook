@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import RegisterForm from '@/components/auth/RegisterForm';
-import { inviteLinkState } from '@/lib/linkState';
+import { inviteLinkState, inviteName } from '@/lib/linkState';
 
 /**
  * Making an account, which needs an invitation.
@@ -32,7 +32,7 @@ export default async function RegisterPage({
     const raw = (await searchParams).invite;
     const invite = typeof raw === 'string' ? raw : undefined;
 
-    const state = await inviteLinkState(invite);
+    const [state, promised] = await Promise.all([inviteLinkState(invite), inviteName(invite)]);
 
     return (
         <main className="container mx-auto max-w-sm px-4 pb-32 pt-16 sm:pt-24">
@@ -40,7 +40,7 @@ export default async function RegisterPage({
             <p className="mb-8 font-serif text-muted">{t('registerIntro')}</p>
 
             {state === 'valid' ? (
-                <RegisterForm invite={invite as string} />
+                <RegisterForm invite={invite as string} firstName={promised.firstName} lastName={promised.lastName} />
             ) : (
                 <div className="rounded-lg border border-line p-4">
                     {/* Three different situations, and the difference matters:

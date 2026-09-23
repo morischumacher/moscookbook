@@ -15,7 +15,7 @@ import InboxPaste from '@/components/admin/InboxPaste';
 import InboxFilters from '@/components/admin/InboxFilters';
 import { countBy, filterInbox, NO_FILTER, type InboxQuery } from '@/lib/inboxFilter';
 import { readReason } from '@/lib/captureReasons';
-import { decisionFor, type Step } from '@/lib/inboxDecision';
+import { aiStage, decisionFor, type Step } from '@/lib/inboxDecision';
 import ShareToWorkList, { type WorkState } from '@/components/admin/ShareToWorkList';
 
 interface DraftSummary {
@@ -89,7 +89,7 @@ export default function AdminInboxPage() {
     /** And which model would be asked, so the wait can say who is working. */
     const [aiModel, setAiModel] = useState<string | null>(null);
     /** Which row is busy doing what, so the right thing can be said about it. */
-    const [busyAction, setBusyAction] = useState<'retry' | 'askAi' | 'publish' | 'stage' | null>(null);
+    const [busyAction, setBusyAction] = useState<'retry' | 'askAi' | 'aiOnly' | 'publish' | 'stage' | null>(null);
 
     const load = useCallback(async () => {
         try {
@@ -126,7 +126,7 @@ export default function AdminInboxPage() {
         return () => clearTimeout(timer);
     }, [waiting, pollUntil, captures, load]);
 
-    const act = async (id: number, action: 'retry' | 'askAi' | 'publish' | 'stage') => {
+    const act = async (id: number, action: 'retry' | 'askAi' | 'aiOnly' | 'publish' | 'stage') => {
         setBusyId(id);
         setBusyAction(action);
         setError('');
@@ -304,6 +304,7 @@ export default function AdminInboxPage() {
                             onStage={() => act(capture.id, 'stage')}
                             onRetry={() => act(capture.id, 'retry')}
                             onAskAi={() => act(capture.id, 'askAi')}
+                            onAiOnly={() => act(capture.id, 'aiOnly')}
                             aiAvailable={aiAvailable}
                             onDiscard={() => discard(capture.id)}
                             onMerge={
@@ -359,6 +360,7 @@ function CaptureRow({
     onStage,
     onRetry,
     onAskAi,
+    onAiOnly,
     aiAvailable,
     onDiscard,
     onMerge,
@@ -366,13 +368,15 @@ function CaptureRow({
     capture: Capture;
     busy: boolean;
     /** What this row is doing, when it is doing something. */
-    busyAction: 'retry' | 'askAi' | 'publish' | 'stage' | null;
+    busyAction: 'retry' | 'askAi' | 'aiOnly' | 'publish' | 'stage' | null;
     /** The model that would be asked, for the one wait that is somebody else's. */
     aiModel: string | null;
     onPublish: () => void;
     onStage: () => void;
     onRetry: () => void;
     onAskAi: () => void;
+    /** The model alone reads everything the share carries; no rules, nothing learned. */
+    onAiOnly: () => void;
     /** False when no key is configured or the AI is switched off. */
     aiAvailable: boolean;
     onDiscard: () => void;
@@ -422,20 +426,15 @@ function CaptureRow({
     };
 
     /*
-     * Whether a model has already had a go at this one.
+     * Whether a model has already had a go at this one, and how.
      *
-     * "Read again" and "Read with AI" are not two names for one thing, and
-     * the difference was invisible: reading again uses a model *if the
-     * scoring thinks it would help*, and asking explicitly skips that
-     * judgement and pays for a call regardless. Which means that on a row a
-     * model has already read, the second button mostly buys the same answer a
-     * second time.
-     *
-     * Said rather than taken away — the scoring is a guess from shape alone,
-     * and somebody who has read the draft may know better. The button is
-     * dimmed and its explanation changes; it still works.
+     * "Mit KI lesen" on a row the rules and a model already read together
+     * buys the same answer again, so it is not offered there; what is left
+     * is the model alone ("Nur mit KI lesen"). A call that *failed* — no
+     * credit, a wrong key — is the one case where the same thing again is
+     * the fix. See lib/inboxDecision.
      */
-    const alreadyAsked = (capture.readBy ?? '').includes('ai') && capture.status === 'ready';
+    const stage = aiStage(capture.readBy);
 
     // Why it is not ready, in the reader's language. A row from before the
     // pipeline stored codes still has its English sentence, shown as it is.
@@ -570,6 +569,7 @@ function CaptureRow({
                     </p>
                     {why && <p className="mt-1 text-sm leading-relaxed text-muted">{why}</p>}
                     {decision.aiWouldHelp && <p className="mt-1 text-xs text-faint">{t('aiOffHint')}</p>}
+                    {decision.aiFailed && <p className="mt-1 text-xs text-faint">{t('aiFailedHint')}</p>}
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                         {decision.steps.map((step: Step, index: number) => {
                             const style =
@@ -588,10 +588,11 @@ function CaptureRow({
                                     </a>
                                 );
                             }
-                            const act = step === 'askAi' ? onAskAi : step === 'retry' ? onRetry : onDiscard;
+                            const act = step === 'askAi' ? onAskAi : step === 'aiOnly' ? onAiOnly : step === 'retry' ? onRetry : onDiscard;
+                            const label = step === 'askAi' && decision.aiFailed ? t('step.askAiAgain') : t(`step.${step}`);
                             return (
                                 <button key={step} type="button" onClick={act} disabled={busy} className={style}>
-                                    <BusyLabel busy={busy && busyAction === step}>{t(`step.${step}`)}</BusyLabel>
+                                    <BusyLabel busy={busy && busyAction === step}>{label}</BusyLabel>
                                 </button>
                             );
                         })}
@@ -608,12 +609,12 @@ function CaptureRow({
                 either way, which made the expensive wait look like the cheap
                 one — so the one that is not ours names the model doing it.
             */}
-            {busy && (busyAction === 'askAi' || busyAction === 'retry') && (
+            {busy && (busyAction === 'askAi' || busyAction === 'aiOnly' || busyAction === 'retry') && (
                 <Loading
                     className="mt-3"
                     size={22}
-                    label={busyAction === 'askAi' ? tAi('reading') : t('rereading')}
-                    model={busyAction === 'askAi' ? aiModel : null}
+                    label={busyAction === 'retry' ? t('rereading') : tAi('reading')}
+                    model={busyAction === 'retry' ? null : aiModel}
                 />
             )}
 
@@ -693,16 +694,37 @@ function CaptureRow({
                         <button
                             type="button"
                             onClick={fromMenu(onAskAi)}
-                            disabled={busy || !aiAvailable}
+                            disabled={busy || !aiAvailable || stage === 'helped' || stage === 'alone'}
                             className="rounded-lg px-3 py-2 text-left hover:bg-surface disabled:opacity-50"
                         >
-                            <span className="block">{tAi('askAi')}</span>
+                            <span className="block">{stage === 'failed' ? t('step.askAiAgain') : tAi('askAi')}</span>
                             <span className="block text-xs text-muted">
                                 {!aiAvailable
                                     ? tAi('polishOff')
-                                    : alreadyAsked
+                                    : stage === 'helped' || stage === 'alone'
                                       ? tAi('askAgainExplain')
-                                      : tAi('askAiExplain')}
+                                      : stage === 'failed'
+                                        ? t('aiFailedHint')
+                                        : tAi('askAiExplain')}
+                            </span>
+                        </button>
+
+                        {/*
+                            The other way of asking. "Mit KI lesen" lets the
+                            model fill what the rules left; this hands it
+                            everything the share carries and takes its
+                            answer as the draft — for when the rules found
+                            something plausible and wrong.
+                        */}
+                        <button
+                            type="button"
+                            onClick={fromMenu(onAiOnly)}
+                            disabled={busy || !aiAvailable || stage === 'alone'}
+                            className="rounded-lg px-3 py-2 text-left hover:bg-surface disabled:opacity-50"
+                        >
+                            <span className="block">{tAi('aiOnly')}</span>
+                            <span className="block text-xs text-muted">
+                                {!aiAvailable ? tAi('polishOff') : stage === 'alone' ? tAi('aiOnlyDone') : tAi('aiOnlyExplain')}
                             </span>
                         </button>
 
