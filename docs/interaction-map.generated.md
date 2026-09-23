@@ -107,7 +107,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | GET | `/api/cron/backup` | cron secret | — | — | *(nothing in the UI)* |
 | POST | `/api/errors/[id]` | admin | — | — | `admin/ErrorsPanel` |
 | DELETE | `/api/errors/[id]` | admin | — | — | `admin/ErrorsPanel` |
-| POST | `/api/errors` | none (open by design) | zod | yes | `ErrorReporter`<br>`GlobalErrorReporter` |
+| POST | `/api/errors` | user (manual) | zod | yes | `ErrorReporter`<br>`GlobalErrorReporter` |
 | GET | `/api/errors` | admin | zod | yes | `admin/ErrorsPanel` |
 | GET | `/api/export` | admin | — | — | `admin/BackupPanel` |
 | POST | `/api/import/ai` | admin | zod | yes | `recipe-form/QuickImport` |

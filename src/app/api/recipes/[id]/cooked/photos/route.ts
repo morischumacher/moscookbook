@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { hiddenFrom } from '@/lib/recipeVisibilityDb';
 import { put } from '@vercel/blob';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
@@ -75,6 +76,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const recipeId = await recipeIdFrom(params);
     if (recipeId === null) {
         return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
+    }
+    // An admins-only recipe does not exist for anybody else, here as on the
+    // cook-log route beside this one.
+    if (await hiddenFrom(recipeId, user)) {
+        return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
     }
 
     // Per account rather than per IP: what is being rationed is writes to the

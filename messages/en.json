@@ -1223,7 +1223,8 @@
     "openInbox": "Open the inbox",
     "failed": "That did not work. Please share it again.",
     "adminOnly": "Only the cookbook's admin can add recipes this way.",
-    "nothing": "Nothing arrived here. Share a link or some text from the share menu and it lands in the inbox."
+    "nothing": "Nothing arrived here. Share a link or some text from the share menu and it lands in the inbox.",
+    "confirm": "Put it in the inbox"
   },
   "ForeignImport": {
     "title": "Import from another app",

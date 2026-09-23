@@ -21,11 +21,27 @@ import { del } from '@vercel/blob';
  * sweep script is how anything missed is caught later.
  */
 
-/** Vercel Blob serves from *.public.blob.vercel-storage.com. */
+/**
+ * This deployment's own store, from the token (`vercel_blob_rw_<store>_…`),
+ * which is the store's host name. Without a token (tests, a local build) any
+ * Blob store counts, as before.
+ */
+function ourStoreHost(): string | null {
+    const store = /^vercel_blob_rw_([A-Za-z0-9]+)_/.exec(process.env.BLOB_READ_WRITE_TOKEN ?? '')?.[1];
+    return store ? `${store.toLowerCase()}.public.blob.vercel-storage.com` : null;
+}
+
+/**
+ * Vercel Blob serves from <store>.public.blob.vercel-storage.com — and only
+ * our store is ours: a ticket pointing at somebody else's store would show
+ * the admin whatever that store serves.
+ */
 export function isOurs(url: string): boolean {
     try {
         const { hostname, protocol } = new URL(url);
-        return protocol === 'https:' && hostname.endsWith('.public.blob.vercel-storage.com');
+        if (protocol !== 'https:') return false;
+        const own = ourStoreHost();
+        return own ? hostname === own : hostname.endsWith('.public.blob.vercel-storage.com');
     } catch {
         return false;
     }

@@ -195,9 +195,13 @@ export interface ClassifiedCapture {
  * Instagram does, nothing is thrown away.
  */
 export function classifyCapture(input: CaptureInput): ClassifiedCapture | null {
-    const text = (input.text ?? '').trim();
+    const given = (input.url ?? '').trim();
+    // Only a web address is a link. Anything else in the url field
+    // (`javascript:…`, `file:…`, a bare word) is kept as text, never stored
+    // as the source a page later puts in an href.
+    const explicitUrl = /^https?:\/\//i.test(given) ? given : '';
+    const text = [(input.text ?? '').trim(), explicitUrl ? '' : given].filter(Boolean).join('\n');
     const note = (input.note ?? '').trim() || null;
-    const explicitUrl = (input.url ?? '').trim();
     const imageUrl = (input.imageUrl ?? '').trim() || null;
 
     const url = explicitUrl || firstUrlIn(text) || '';
