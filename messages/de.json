@@ -376,7 +376,8 @@
     "rowUp": "Zutat {number} nach oben",
     "rowDown": "Zutat {number} nach unten",
     "rowRemove": "Zutat {number} entfernen",
-    "draftFoundStale": "Es gibt ungespeicherte Änderungen von einem früheren Besuch – das Rezept wurde seitdem aber gespeichert. Wiederherstellen überschreibt das."
+    "draftFoundStale": "Es gibt ungespeicherte Änderungen von einem früheren Besuch – das Rezept wurde seitdem aber gespeichert. Wiederherstellen überschreibt das.",
+    "saveConflict": "Das Rezept wurde inzwischen woanders gespeichert. Lade die Seite neu – deine Änderungen werden dir dann zum Wiederherstellen angeboten."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",

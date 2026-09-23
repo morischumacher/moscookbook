@@ -56,6 +56,7 @@ export default function RecipeForm({
     initial,
     aiEnabled,
     captureId,
+    version,
     knownCategories = [],
 }: {
     mode: 'create' | 'edit';
@@ -70,6 +71,8 @@ export default function RecipeForm({
      * with stale entries stops being read.
      */
     captureId?: number;
+    /** The recipe as the form opened it (lib/recipeVersion), sent back on save. */
+    version?: string;
 }) {
     const t = useTranslations('RecipeForm');
     const router = useRouter();
@@ -319,6 +322,7 @@ export default function RecipeForm({
                     language,
                     translation: translation && translation.locale !== language ? translation : null,
                     ...(mode === 'create' && captureId ? { captureId } : {}),
+                    ...(mode === 'edit' && version ? { baseVersion: version } : {}),
                 }),
             });
 
@@ -328,7 +332,9 @@ export default function RecipeForm({
                 // plain sentence when the reason cannot be said.
                 const reason = sayable(data.message, '');
                 failWith(
-                    res.status === 409
+                    res.status === 409 && data.conflict
+                        ? t('saveConflict')
+                        : res.status === 409
                         ? t('slugTaken')
                         : res.status === 400
                           ? reason
