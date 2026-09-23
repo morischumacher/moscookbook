@@ -35,7 +35,7 @@ export const ADMIN_ONLY_NAMESPACES = [
 ] as const;
 
 /** Read only by server components through getTranslations, never sent. */
-export const SERVER_ONLY_NAMESPACES = ['Legal', 'Site', 'NotFound', 'Visibility', 'Loading'] as const;
+export const SERVER_ONLY_NAMESPACES = ['Legal', 'Site', 'NotFound', 'Loading'] as const;
 
 const WITHHELD = new Set<string>([...ADMIN_ONLY_NAMESPACES, ...SERVER_ONLY_NAMESPACES]);
 

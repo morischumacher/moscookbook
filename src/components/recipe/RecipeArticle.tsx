@@ -224,18 +224,27 @@ export default async function RecipeArticle({
                 Not on paper: a printed recipe wants its method on the first
                 page, not a photograph filling it.
             */}
-            <div className="print:hidden">
-                {/* "hero": full width on a phone, the reading column's width on
-                    a laptop. Without it the photograph spanned the whole
-                    screen and was taller than the window. */}
-                <Gallery
-                    variant="hero"
-                    images={recipe.images.map((image) => image.url)}
-                    title={recipe.title}
-                />
-            </div>
+            {/* No photograph, no hero: an empty grey block the height of a
+                phone's first screen said "picture missing" louder than
+                anything else on the page. The title starts the page instead. */}
+            {recipe.images.length > 0 && (
+                <div className="print:hidden">
+                    {/* "hero": full width on a phone, the reading column's width on
+                        a laptop. Without it the photograph spanned the whole
+                        screen and was taller than the window. */}
+                    <Gallery
+                        variant="hero"
+                        images={recipe.images.map((image) => image.url)}
+                        title={recipe.title}
+                    />
+                </div>
+            )}
 
-            <header className="relative z-10 mx-auto -mt-7 max-w-2xl rounded-t-3xl bg-page px-4 pt-7 sm:-mt-10 sm:px-8 print:mt-0 print:rounded-none print:pt-8">
+            <header
+                className={`relative z-10 mx-auto max-w-2xl bg-page px-4 sm:px-8 print:mt-0 print:rounded-none print:pt-8 ${
+                    recipe.images.length > 0 ? '-mt-7 rounded-t-3xl pt-7 sm:-mt-10' : 'pt-8 sm:pt-12'
+                }`}
+            >
                 {/* The print stylesheet hides the navigation, and the logo used
                     to go with it — a printed recipe came out unbranded. This is
                     the same mark, shown only on paper. */}
