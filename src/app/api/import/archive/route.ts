@@ -241,13 +241,18 @@ export async function POST(req: NextRequest) {
             // its recipe — the same reason its foreign key cascades.
             if (recipeId === undefined) continue;
 
-            const cookedAt = safeDate(entry.cookedAt) ?? new Date();
+            // Without a readable date there is nothing to recognise it by
+            // next time, and "now" made a new copy on every restore.
+            const cookedAt = safeDate(entry.cookedAt);
+            if (!cookedAt) continue;
 
             try {
                 // The recipe and the moment are what make an entry unique, so
                 // restoring the same archive twice does not double it.
                 const already: { id: number } | null = await prisma.cookEntry.findFirst({
-                    where: { recipeId, cookedAt, userId: auth.user.id },
+                    // Whoever wrote it: an entry by somebody else was not found
+                    // under the admin's name and was created again each time.
+                    where: { recipeId, cookedAt },
                     select: { id: true },
                 });
 
