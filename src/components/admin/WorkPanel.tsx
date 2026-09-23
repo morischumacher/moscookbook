@@ -4,6 +4,34 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/lib/formatDate';
 import Loading from '@/components/ui/Loading';
+import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
+
+interface PublicList {
+    currentVersion: string;
+    open: { id: number; kind: string; auto: boolean; note: string | null; data: unknown }[];
+}
+
+/**
+ * The list as Markdown: a heading per item and its data as JSON, which a
+ * chat assistant reads as easily as a person does.
+ */
+function asMarkdown(list: PublicList): string {
+    if (list.open.length === 0) return '(no open items)';
+    return [
+        `currentVersion: ${list.currentVersion}`,
+        ...list.open.map((item) =>
+            [
+                `## work #${item.id} · ${item.kind}${item.auto ? ' · auto' : ''}`,
+                item.note ? `Note: ${item.note}` : null,
+                '```json',
+                JSON.stringify(item.data, null, 2),
+                '```',
+            ]
+                .filter((line) => line !== null)
+                .join('\n')
+        ),
+    ].join('\n\n');
+}
 
 interface Item {
     id: number;
@@ -29,7 +57,34 @@ export default function WorkPanel() {
     // Only ever rendered on the client (the tab is opened by a tap), so the
     // address can be read straight away.
     const [origin] = useState(() => (typeof window === 'undefined' ? '' : window.location.origin));
-    const [copied, setCopied] = useState(false);
+    const [copied, setCopied] = useState<string | null>(null);
+    const [copyFailed, setCopyFailed] = useState(false);
+
+    /** The public list, exactly as an assistant would fetch it. */
+    const list = async () => (await fetch('/api/work', { cache: 'no-store' })).json();
+    const prompt = async () => (await fetch('/api/work-items/prompt')).text();
+
+    const copy = async (what: string, text: () => Promise<string>) => {
+        setCopyFailed(false);
+        try {
+            await navigator.clipboard.writeText(await text());
+            setCopied(what);
+            setTimeout(() => setCopied(null), 2000);
+        } catch {
+            setCopyFailed(true);
+        }
+    };
+
+    const download = async (format: 'json' | 'md') => {
+        const data = await list();
+        const text = format === 'json' ? JSON.stringify(data, null, 2) : asMarkdown(data);
+        const blob = new Blob([text], { type: format === 'json' ? 'application/json' : 'text/markdown' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `arbeitsliste-${new Date().toISOString().slice(0, 10)}.${format}`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    };
 
     const load = useCallback(
         () =>
@@ -58,19 +113,33 @@ export default function WorkPanel() {
                 <a href="/api/work" target="_blank" rel="noopener noreferrer" className="break-all font-mono text-xs underline underline-offset-4">
                     {publicUrl}
                 </a>
-                <button
-                    type="button"
-                    onClick={() => {
-                        void navigator.clipboard.writeText(publicUrl).then(() => {
-                            setCopied(true);
-                            setTimeout(() => setCopied(false), 2000);
-                        });
-                    }}
-                    className="text-xs text-muted underline underline-offset-4"
-                >
-                    {copied ? t('copied') : t('copy')}
+                <button type="button" onClick={() => void copy('link', async () => publicUrl)} className="text-xs text-muted underline underline-offset-4">
+                    {copied === 'link' ? t('copied') : t('copy')}
                 </button>
             </div>
+
+            {/*
+                For a chat assistant that cannot open the address, or for
+                keeping: the brief, the list, or both in one paste.
+            */}
+            <div className="mt-4 flex flex-wrap gap-2">
+                <button type="button" onClick={() => void copy('both', async () => `${await prompt()}\n\n---\n\n${t('exportListHeading')}\n\n${asMarkdown(await list())}`)} className={buttonPrimarySmall}>
+                    {copied === 'both' ? t('copied') : t('copyBoth')}
+                </button>
+                <button type="button" onClick={() => void copy('prompt', prompt)} className={buttonSecondary}>
+                    {copied === 'prompt' ? t('copied') : t('copyPrompt')}
+                </button>
+                <button type="button" onClick={() => void copy('list', async () => JSON.stringify(await list(), null, 2))} className={buttonSecondary}>
+                    {copied === 'list' ? t('copied') : t('copyList')}
+                </button>
+                <button type="button" onClick={() => void download('json')} className={buttonSecondary}>
+                    {t('downloadJson')}
+                </button>
+                <button type="button" onClick={() => void download('md')} className={buttonSecondary}>
+                    {t('downloadMarkdown')}
+                </button>
+            </div>
+            {copyFailed && <p className="mt-2 text-sm text-danger">{t('copyFailed')}</p>}
 
             {items === null ? (
                 <Loading label={t('loading')} />

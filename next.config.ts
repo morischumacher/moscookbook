@@ -66,6 +66,11 @@ function blobHostname(): string {
 }
 
 const nextConfig: NextConfig = {
+  // The work list's prompt is read from the repository at run time.
+  outputFileTracingIncludes: {
+    '/api/work-items/prompt': ['./docs/work-list-prompt.md'],
+  },
+
   // Where a password manager sends you to change this site's password:
   // 1Password, iCloud Keychain and Chrome all look for this address.
   async redirects() {

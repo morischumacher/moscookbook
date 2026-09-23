@@ -13,7 +13,7 @@ export type UploadResult =
     | { ok: false; reason: 'too-large' }
     | { ok: false; reason: 'failed'; message?: string };
 
-export async function uploadPicture(file: File): Promise<UploadResult> {
+export async function uploadPicture(file: File, endpoint = '/api/upload'): Promise<UploadResult> {
     try {
         const prepared = await compressImage(file);
         if (prepared.size > UPLOAD_LIMIT_BYTES) return { ok: false, reason: 'too-large' };
@@ -21,7 +21,7 @@ export async function uploadPicture(file: File): Promise<UploadResult> {
         const formData = new FormData();
         formData.append('file', prepared);
 
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const res = await fetch(endpoint, { method: 'POST', body: formData });
         const data: { url?: string; message?: string } = await res.json().catch(() => ({}));
 
         return res.ok && data.url ? { ok: true, url: data.url } : { ok: false, reason: 'failed', message: data.message };

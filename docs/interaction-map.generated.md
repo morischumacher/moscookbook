@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-45 screens · 84 endpoints · 80 link edges · 85 call edges
+45 screens · 85 endpoints · 80 link edges · 87 call edges
 
 ## Screens
 
@@ -27,7 +27,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/posts/[id]` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts/new` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts` | admin | requires admin | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/posts/[id]`<br>`POST /api/examples` | `/[locale]/admin/posts/[id]`<br>`/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/collections/[id]`<br>`/[locale]/recipe/[id]` |
-| `/[locale]/admin/reports` | admin | requires admin | `* /api/work`<br>`DELETE /api/errors/[id]`<br>`DELETE /api/work-items/[id]`<br>`GET /api/errors`<br>`GET /api/tickets`<br>`GET /api/work`<br>`GET /api/work-items`<br>`GET /api/work-items/[id]`<br>`PATCH /api/tickets`<br>`POST /api/errors/[id]`<br>`POST /api/work-items` | — |
+| `/[locale]/admin/reports` | admin | requires admin | `* /api/report-photos`<br>`* /api/work`<br>`DELETE /api/errors/[id]`<br>`DELETE /api/report-photos/[id]`<br>`DELETE /api/work-items/[id]`<br>`GET /api/errors`<br>`GET /api/tickets`<br>`GET /api/work`<br>`GET /api/work-items`<br>`GET /api/work-items/[id]`<br>`GET /api/work-items/prompt`<br>`PATCH /api/tickets`<br>`POST /api/errors/[id]`<br>`POST /api/errors/[id]/photos`<br>`POST /api/work-items` | — |
 | `/[locale]/admin/tickets` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/users` | admin | requires admin | `DELETE /api/invites/[id]`<br>`DELETE /api/users/[id]`<br>`GET /api/invites`<br>`GET /api/users`<br>`PATCH /api/users/[id]/role`<br>`POST /api/invites` | — |
 | `/[locale]/blog/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/collections/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
@@ -52,7 +52,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/s/[token]` | open | steps aside | `* /api/shopping`<br>`* /api/shopping/share`<br>`* /api/shopping/shared/[id]`<br>`DELETE /api/shopping`<br>`DELETE /api/shopping/[id]`<br>`PATCH /api/shopping/[id]` | `/[locale]` |
 | `/[locale]/share` | account | requires session | `POST /api/capture/share` | `/[locale]/admin/inbox` |
 | `/[locale]/shopping` | account | requires session | `* /api/shopping`<br>`* /api/shopping/share`<br>`* /api/shopping/shared/[id]`<br>`DELETE /api/shopping`<br>`DELETE /api/shopping/[id]`<br>`PATCH /api/shopping/[id]` | `/[locale]`<br>`/[locale]/login` |
-| `/[locale]/tickets` | account | requires session | `POST /api/tickets` | `/[locale]` |
+| `/[locale]/tickets` | account | requires session | `* /api/report-photos`<br>`POST /api/tickets` | `/[locale]` |
 | `/[locale]/verify` | open | steps aside | `POST /api/auth/verify` | `/[locale]` |
 
 ## Endpoints
@@ -132,6 +132,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/recipes/[id]/view` | user (manual) | — | yes | `ViewTracker` |
 | PATCH | `/api/recipes/[id]/visibility` | admin | zod | — | `share/ShareDialog` |
 | POST | `/api/recipes` | admin | zod | — | `recipe-form/RecipeForm` |
+| POST | `/api/report-photos` | user (manual) | — | yes | `admin/ReportPhotos`<br>`ui/PhotoPicker` |
 | DELETE | `/api/site-profiles/[host]` | admin | — | — | `admin/SiteProfiles` |
 | GET | `/api/site-profiles` | admin | zod | yes | `admin/SiteProfiles` |
 | POST | `/api/site-profiles` | admin | zod | yes | `admin/SiteProfiles` |
@@ -154,16 +155,19 @@ Calls the map could not match to an endpoint (a URL built elsewhere, or a path t
 - `* /api/shopping/shared/[id]  (from shopping/ShoppingListView)`
 - `DELETE /api/menus/[id]  (from menu/MenuForm)`
 - `DELETE /api/recipes/[id]/cooked  (from recipe/Cooked)`
+- `DELETE /api/report-photos/[id]  (from admin/ReportPhotos)`
 - `DELETE /api/shopping  (from shopping/ShoppingListView)`
 - `DELETE /api/shopping/[id]  (from shopping/ShoppingListView)`
 - `DELETE /api/work-items/[id]  (from admin/ShareToWorkList)`
 - `GET /api/favorites  (from home/OfflineFavorites)`
 - `GET /api/work-items  (from admin/WorkPanel)`
 - `GET /api/work-items/[id]  (from admin/WorkPanel)`
+- `GET /api/work-items/prompt  (from admin/WorkPanel)`
 - `PATCH /api/recipes/[id]/cooked  (from recipe/Cooked)`
 - `PATCH /api/shopping/[id]  (from shopping/ShoppingListView)`
 - `POST /api/capture/share  (from admin/InboxPaste)`
 - `POST /api/capture/share  (from admin/ShareIntoInbox)`
+- `POST /api/errors/[id]/photos  (from admin/ReportPhotos)`
 - `POST /api/examples  (from admin/ExampleButton)`
 - `POST /api/import/recipes  (from admin/ForeignImport)`
 - `POST /api/recipes/[id]/cooked  (from recipe/Cooked)`
@@ -503,6 +507,11 @@ flowchart LR
   cshare_ShareDialog --> ePATCH_api_recipes__id__visibility
   ePOST_api_recipes(["POST /api/recipes"])
   crecipe_form_RecipeForm --> ePOST_api_recipes
+  ePOST_api_report_photos(["POST /api/report-photos"])
+  cadmin_ReportPhotos["admin/ReportPhotos"]
+  cadmin_ReportPhotos --> ePOST_api_report_photos
+  cui_PhotoPicker["ui/PhotoPicker"]
+  cui_PhotoPicker --> ePOST_api_report_photos
   eDELETE_api_site_profiles__host_(["DELETE /api/site-profiles/[host]"])
   cadmin_SiteProfiles["admin/SiteProfiles"]
   cadmin_SiteProfiles --> eDELETE_api_site_profiles__host_

@@ -92,6 +92,7 @@ export async function GET(req: NextRequest) {
         where: showResolved ? { NOT: { resolvedAt: null } } : { resolvedAt: null },
         orderBy: { lastSeenAt: 'desc' },
         take: 100,
+        include: { photos: { orderBy: { id: 'asc' }, select: { id: true, url: true } } },
     });
 
     // Beside each row: whether it is on the work list.

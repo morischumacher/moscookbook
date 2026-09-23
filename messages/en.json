@@ -774,7 +774,10 @@
     "nav": "Reports",
     "title": "Reports",
     "errors": "Errors",
-    "tickets": "Tickets"
+    "tickets": "Tickets",
+    "photoAlt": "Screenshot",
+    "photoRemove": "Remove screenshot",
+    "photoAttach": "+ Attach screenshot"
   },
   "Tickets": {
     "title": "Open a ticket",
@@ -809,7 +812,13 @@
     "copyFailed": "Could not copy.",
     "ticketHint": "Copies a finished text with the page, the date and the description — to paste wherever it gets fixed.",
     "dropPage": "Leave it out",
-    "exportMarkdown": "Copy all as Markdown"
+    "exportMarkdown": "Copy all as Markdown",
+    "photosLabel": "Screenshots (optional)",
+    "photosHint": "Often shows faster than words what went wrong. Up to four.",
+    "photoAdd": "+ Photo",
+    "photoRemove": "Remove photo",
+    "photoTooLarge": "The picture is too large.",
+    "photoFailed": "The picture could not be uploaded."
   },
   "Account": {
     "devicesTitle": "Devices",
@@ -1190,6 +1199,14 @@
       "published": "done (taken into the cookbook)",
       "ready": "done (now read correctly)",
       "removed": "done (source deleted)"
-    }
+    },
+    "withPhotos": "Publish {count, plural, one {the screenshot} other {the # screenshots}} with it",
+    "copyBoth": "Copy prompt + list (for an AI chat)",
+    "copyPrompt": "Copy the prompt only",
+    "copyList": "Copy the list only (JSON)",
+    "downloadJson": "Download as JSON",
+    "downloadMarkdown": "Download as Markdown",
+    "copyFailed": "Copying did not work – the browser refused access to the clipboard.",
+    "exportListHeading": "# The open items on the work list"
   }
 }

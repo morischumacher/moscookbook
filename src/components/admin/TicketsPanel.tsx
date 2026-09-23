@@ -1,6 +1,7 @@
 'use client';
 
 import ShareToWorkList, { type WorkState } from '@/components/admin/ShareToWorkList';
+import ReportPhotos, { type ReportPhoto } from '@/components/admin/ReportPhotos';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/lib/formatDate';
@@ -9,6 +10,7 @@ import { useCopy } from '@/components/ui/useCopy';
 import Loading from '@/components/ui/Loading';
 
 interface TicketRow {
+    photos: ReportPhoto[];
     /** On the work list, and whether it was put there automatically. */
     work: WorkState | null;
     id: number;
@@ -189,6 +191,8 @@ export default function TicketsPanel() {
                                 {entry.body}
                             </p>
 
+                            <ReportPhotos photos={entry.photos} />
+
                             {entry.path && (
                                 <p className="mt-2 font-mono text-xs text-muted">{entry.path}</p>
                             )}
@@ -203,7 +207,7 @@ export default function TicketsPanel() {
                                     {copied === entry.id ? t('copied') : t('copyTicket')}
                                 </button>
 
-                                <ShareToWorkList kind="ticket" id={entry.id} work={entry.work} key={`w-${entry.id}-${entry.work?.id ?? 0}`} className="text-xs text-muted" />
+                                <ShareToWorkList kind="ticket" id={entry.id} work={entry.work} photoCount={entry.photos.length} key={`w-${entry.id}-${entry.work?.id ?? 0}`} className="text-xs text-muted" />
 
                                 <button
                                     type="button"

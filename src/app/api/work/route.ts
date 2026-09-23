@@ -31,7 +31,7 @@ export async function GET() {
         prisma.workItem.findMany({ where: { closedAt: { gte: since }, dismissedAt: null }, orderBy: { closedAt: 'desc' }, take: 50 }),
     ]);
 
-    const fresh = await Promise.all(open.map((item) => snapshotOf(item.kind as WorkKind, item.refId).catch(() => null)));
+    const fresh = await Promise.all(open.map((item) => snapshotOf(item.kind as WorkKind, item.refId, item.withPhotos).catch(() => null)));
 
     const shape = (item: (typeof open)[number], data: unknown) => ({
         id: item.id,

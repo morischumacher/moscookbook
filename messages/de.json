@@ -774,7 +774,10 @@
     "nav": "Meldungen",
     "title": "Meldungen",
     "errors": "Fehler",
-    "tickets": "Tickets"
+    "tickets": "Tickets",
+    "photoAlt": "Screenshot",
+    "photoRemove": "Screenshot entfernen",
+    "photoAttach": "+ Screenshot anhängen"
   },
   "Tickets": {
     "title": "Ticket aufmachen",
@@ -809,7 +812,13 @@
     "copyFailed": "Kopieren ging nicht.",
     "ticketHint": "Kopiert einen fertigen Text mit Seite, Datum und Beschreibung — zum Einfügen dort, wo es behoben wird.",
     "dropPage": "Nicht mitschicken",
-    "exportMarkdown": "Alle als Markdown kopieren"
+    "exportMarkdown": "Alle als Markdown kopieren",
+    "photosLabel": "Screenshots (optional)",
+    "photosHint": "Zeigt oft schneller als Worte, was schiefging. Bis zu vier.",
+    "photoAdd": "+ Foto",
+    "photoRemove": "Foto entfernen",
+    "photoTooLarge": "Das Bild ist zu groß.",
+    "photoFailed": "Das Bild konnte nicht hochgeladen werden."
   },
   "Account": {
     "devicesTitle": "Geräte",
@@ -1190,6 +1199,14 @@
       "published": "erledigt (ins Kochbuch übernommen)",
       "ready": "erledigt (jetzt richtig gelesen)",
       "removed": "erledigt (Quelle gelöscht)"
-    }
+    },
+    "withPhotos": "{count, plural, one {Den Screenshot} other {Die # Screenshots}} öffentlich mitschicken",
+    "copyBoth": "Prompt + Liste kopieren (für einen KI-Chat)",
+    "copyPrompt": "Nur Prompt kopieren",
+    "copyList": "Nur Liste kopieren (JSON)",
+    "downloadJson": "Als JSON herunterladen",
+    "downloadMarkdown": "Als Markdown herunterladen",
+    "copyFailed": "Kopieren hat nicht geklappt – der Browser hat den Zugriff auf die Zwischenablage verweigert.",
+    "exportListHeading": "# Die offenen Einträge der Arbeitsliste"
   }
 }

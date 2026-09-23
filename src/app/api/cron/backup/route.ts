@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { put, list, del } from '@vercel/blob';
 import prisma from '@/lib/prisma';
 import { sweepRateLimits } from '@/lib/rateLimitShared';
+import { syncAll } from '@/lib/workItemsDb';
 import { BACKUP_PREFIX } from '@/lib/backupPrefix.mjs';
 import {
     buildArchive,
@@ -164,6 +165,9 @@ export async function GET(req: NextRequest) {
         // Nothing depends on it — a closed rate-limit window is reused in
         // place — but without it the table grows a row per address that ever
         // signed in.
+        // And the work list, caught up with whatever happened this week.
+        await syncAll().catch((error) => console.error('Work list catch-up failed:', error));
+
         const sweptLimits = await sweepRateLimits();
         if (sweptLimits > 0) console.log(`Swept ${sweptLimits} closed rate-limit windows.`);
 

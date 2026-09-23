@@ -22,7 +22,7 @@ import { del } from '@vercel/blob';
  */
 
 /** Vercel Blob serves from *.public.blob.vercel-storage.com. */
-function isOurs(url: string): boolean {
+export function isOurs(url: string): boolean {
     try {
         const { hostname, protocol } = new URL(url);
         return protocol === 'https:' && hostname.endsWith('.public.blob.vercel-storage.com');

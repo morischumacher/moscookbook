@@ -38,7 +38,7 @@ function reasonText(error: string | null): string | null {
 }
 
 /** The snapshot of one row, with everything a fixer needs, or null when the row is gone. */
-export async function snapshotOf(kind: WorkKind, refId: number): Promise<Record<string, unknown> | null> {
+export async function snapshotOf(kind: WorkKind, refId: number, withPhotos = false): Promise<Record<string, unknown> | null> {
     const people = await peopleNames();
     const version = appVersion();
 
@@ -71,25 +71,33 @@ export async function snapshotOf(kind: WorkKind, refId: number): Promise<Record<
             appVersion: version,
         };
     }
+    /*
+     * Screenshots: how many there are, always; the pictures themselves only
+     * when the admin ticked "with photos" when sharing. A screenshot can
+     * show a name, an address, a private recipe — whatever was on screen.
+     */
+    const photos = (list: { url: string }[]) =>
+        withPhotos ? { photos: list.map((photo) => photo.url) } : { photoCount: list.length };
+
     if (kind === 'error') {
-        const row = await prisma.errorLog.findUnique({ where: { id: refId } });
-        return row ? { ...errorSnapshot(row, people), resolved: row.resolvedAt !== null, appVersion: version } : null;
+        const row = await prisma.errorLog.findUnique({ where: { id: refId }, include: { photos: { orderBy: { id: 'asc' }, select: { url: true } } } });
+        return row ? { ...errorSnapshot(row, people), ...photos(row.photos), resolved: row.resolvedAt !== null, appVersion: version } : null;
     }
-    const row = await prisma.ticket.findUnique({ where: { id: refId } });
-    return row ? { ...ticketSnapshot(row, people), resolved: row.resolvedAt !== null, appVersion: version } : null;
+    const row = await prisma.ticket.findUnique({ where: { id: refId }, include: { photos: { orderBy: { id: 'asc' }, select: { url: true } } } });
+    return row ? { ...ticketSnapshot(row, people), ...photos(row.photos), resolved: row.resolvedAt !== null, appVersion: version } : null;
 }
 
 /**
  * Hands a row over by hand. Sharing again refreshes the snapshot and note,
  * reopens it, and undoes an earlier "take off the list".
  */
-export async function publishWorkItem(kind: WorkKind, refId: number, note: string | null) {
-    const data = await snapshotOf(kind, refId);
+export async function publishWorkItem(kind: WorkKind, refId: number, note: string | null, withPhotos = false) {
+    const data = await snapshotOf(kind, refId, withPhotos);
     if (!data) return null;
     return prisma.workItem.upsert({
         where: { kind_refId: { kind, refId } },
-        create: { kind, refId, note, data: data as object },
-        update: { note, data: data as object, closedAt: null, closedReason: null, dismissedAt: null, auto: false, createdAt: new Date() },
+        create: { kind, refId, note, withPhotos, data: data as object },
+        update: { note, withPhotos, data: data as object, closedAt: null, closedReason: null, dismissedAt: null, auto: false, createdAt: new Date() },
         select: { id: true },
     });
 }
@@ -166,7 +174,7 @@ export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void>
 
         if (item) {
             if (problem && item.closedAt && !item.dismissedAt) {
-                const data = await snapshotOf(kind, refId);
+                const data = await snapshotOf(kind, refId, item.withPhotos);
                 await prisma.workItem.update({
                     where: { id: item.id },
                     data: { closedAt: null, closedReason: null, ...(data ? { data: data as object } : {}) },
@@ -208,4 +216,23 @@ export async function workStates(kind: WorkKind, refIds: number[]): Promise<Map<
         select: { id: true, refId: true, auto: true, closedAt: true },
     });
     return new Map(items.map((item) => [item.refId, { id: item.id, auto: item.auto, closed: item.closedAt !== null }]));
+}
+
+/**
+ * Everything that is still open, brought in line once.
+ *
+ * The automatic part runs when something happens — an error recorded, a
+ * capture read — so rows that were already there when it was switched on
+ * were never looked at. This catches them up, and anything that slipped past
+ * since. Run when the admin opens the work list and by the weekly job.
+ */
+export async function syncAll(): Promise<void> {
+    const [errors, captures, tickets] = await Promise.all([
+        prisma.errorLog.findMany({ where: { resolvedAt: null }, select: { id: true }, take: 500 }),
+        prisma.capture.findMany({ where: { status: { in: ['failed', 'needsWork'] } }, select: { id: true }, take: 500 }),
+        prisma.workItem.findMany({ where: { kind: 'ticket', closedAt: null }, select: { refId: true } }),
+    ]);
+    for (const row of errors) await syncWorkItem('error', row.id);
+    for (const row of captures) await syncWorkItem('capture', row.id);
+    for (const row of tickets) await syncWorkItem('ticket', row.refId);
 }

@@ -20,18 +20,22 @@ export default function ShareToWorkList({
     kind,
     id,
     work = null,
+    photoCount = 0,
     className = '',
 }: {
     kind: WorkKind;
     id: number;
     /** Whether the row is on the list already, as the list API reports it. */
     work?: WorkState | null;
+    /** Screenshots on the row; offered to publish along, off by default. */
+    photoCount?: number;
     className?: string;
 }) {
     const t = useTranslations('Work');
     const [state, setState] = useState<WorkState | null>(work);
     const [open, setOpen] = useState(false);
     const [note, setNote] = useState('');
+    const [withPhotos, setWithPhotos] = useState(false);
     const [busy, setBusy] = useState(false);
     const [failed, setFailed] = useState(false);
 
@@ -42,7 +46,7 @@ export default function ShareToWorkList({
             const res = await fetch('/api/work-items', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ kind, id, note }),
+                body: JSON.stringify({ kind, id, note, withPhotos }),
             });
             if (!res.ok) throw new Error();
             const data = await res.json();
@@ -99,6 +103,12 @@ export default function ShareToWorkList({
                 autoFocus
                 className="w-full min-w-0 rounded-lg border border-control bg-transparent px-3 py-2 text-sm outline-none focus:border-ink"
             />
+            {photoCount > 0 && (
+                <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={withPhotos} onChange={(event) => setWithPhotos(event.target.checked)} />
+                    {t('withPhotos', { count: photoCount })}
+                </label>
+            )}
             <p className="text-xs text-faint">{t('publicHint')}</p>
             <div className="flex gap-4 text-sm">
                 <button type="submit" disabled={busy} className="font-medium underline underline-offset-4">
