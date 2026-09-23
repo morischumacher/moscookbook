@@ -137,7 +137,7 @@ export function pathAccess(pathname: string): Access {
  * replacement for them: `errors` GET is admin-only inside the route even
  * though the path is open here, because the path is open for its POST.
  */
-const OPEN_API = /^\/api\/(?:auth\/[a-z-]+|capture|errors|recipes\/\d+\/view|cron\/[a-z-]+|shopping\/shared\/[A-Za-z0-9_-]{16,64}|work)\/?$/;
+const OPEN_API = /^\/api\/(?:auth\/[a-z-]+|capture|errors|recipes\/\d+\/view|cron\/[a-z-]+|shopping\/shared\/[A-Za-z0-9_-]{16,64}|work|work\/\d+\/done)\/?$/;
 
 export type ApiAccess = 'open' | 'session';
 

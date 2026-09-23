@@ -35,10 +35,11 @@ export function captureIsObvious(status: string, error: string | null): boolean 
 }
 
 /**
- * A server error is a bug the moment it happens. A client error is published
- * once it has happened twice: one alone is as often a browser extension or a
- * dropped connection as it is the site.
+ * Every error is a task, at once — on the task list is where they are worked
+ * through, and an error that is not there is one nobody looks at. (Reports
+ * from anonymous visitors do not get this far: the error route only syncs a
+ * report made by somebody signed in, because anybody can post one.)
  */
-export function errorIsObvious(source: string, count: number): boolean {
-    return source === 'server' || count >= 2;
+export function errorIsObvious(): boolean {
+    return true;
 }

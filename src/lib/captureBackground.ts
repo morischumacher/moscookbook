@@ -90,3 +90,33 @@ export function readInBackground(captureId: number, classified: ClassifiedCaptur
         }
     });
 }
+
+/**
+ * Reads a stored capture again, the usual way (rules first), in the
+ * background — after a task about it was confirmed fixed, so the inbox shows
+ * what the fixed code makes of it without anybody pressing "Neu einlesen".
+ * Only a capture that is still a problem; one taken into the cookbook or
+ * read well meanwhile is left alone.
+ */
+export async function rereadInBackground(captureId: number): Promise<void> {
+    const row = await prisma.capture.findUnique({ where: { id: captureId } });
+    if (!row || (row.status !== 'failed' && row.status !== 'needsWork')) return;
+    const claimed = await prisma.capture.updateMany({
+        where: { id: captureId, status: row.status },
+        data: { status: 'new' },
+    });
+    if (claimed.count !== 1) return;
+    readInBackground(
+        captureId,
+        {
+            kind: row.kind as ClassifiedCapture['kind'],
+            source: row.source as ClassifiedCapture['source'],
+            sourceUrl: row.sourceUrl,
+            rawText: row.rawText,
+            note: row.note,
+            imageUrl: row.imageUrl,
+        },
+        row.imageUrl ?? undefined,
+        row.moreImageUrls ?? []
+    );
+}

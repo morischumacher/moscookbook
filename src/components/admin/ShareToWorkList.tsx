@@ -9,6 +9,8 @@ export interface WorkState {
     id: number;
     auto: boolean;
     closed: boolean;
+    /** Reported done by the AI, waiting for the admin. */
+    done?: boolean;
 }
 
 /**
@@ -22,6 +24,7 @@ export default function ShareToWorkList({
     work = null,
     photoCount = 0,
     className = '',
+    withHint = false,
 }: {
     kind: WorkKind;
     id: number;
@@ -30,8 +33,14 @@ export default function ShareToWorkList({
     /** Screenshots on the row; offered to publish along, off by default. */
     photoCount?: number;
     className?: string;
+    /** The one-line explanation under the button too (in a menu of choices). */
+    withHint?: boolean;
 }) {
     const t = useTranslations('Work');
+    // Says what happens, per kind: a ticket is to be implemented, an inbox
+    // item's reading to be improved, an error to be fixed.
+    const label = kind === 'ticket' ? t('shareTicket') : kind === 'capture' ? t('shareCapture') : t('share');
+    const explain = kind === 'ticket' ? t('shareExplainTicket') : kind === 'capture' ? t('shareExplainCapture') : t('shareExplainError');
     const [state, setState] = useState<WorkState | null>(work);
     const [open, setOpen] = useState(false);
     const [note, setNote] = useState('');
@@ -50,7 +59,7 @@ export default function ShareToWorkList({
             });
             if (!res.ok) throw new Error();
             const data = await res.json();
-            setState({ id: data.id, auto: false, closed: false });
+            setState({ id: data.id, auto: false, closed: false, done: false });
             setOpen(false);
         } catch {
             setFailed(true);
@@ -71,7 +80,7 @@ export default function ShareToWorkList({
     if (state && !state.closed) {
         return (
             <span className={`inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-sm ${className}`}>
-                <span className="text-muted">✓ {state.auto ? t('sharedAuto') : t('shared')}</span>
+                <span className="text-muted">{state.done ? t('sharedDone') : state.auto ? t('sharedAuto') : t('shared')}</span>
                 <button type="button" onClick={() => void withdraw()} disabled={busy} className="text-muted underline underline-offset-4 hover:text-danger">
                     <BusyLabel busy={busy}>{t('withdraw')}</BusyLabel>
                 </button>
@@ -81,8 +90,9 @@ export default function ShareToWorkList({
 
     if (!open) {
         return (
-            <button type="button" onClick={() => setOpen(true)} className={`text-left text-sm underline underline-offset-4 ${className}`}>
-                {t('share')}
+            <button type="button" onClick={() => setOpen(true)} className={`text-left text-sm ${withHint ? '' : 'underline underline-offset-4'} ${className}`}>
+                <span className="block">{label}</span>
+                {withHint && <span className="block text-xs text-muted">{explain}</span>}
             </button>
         );
     }
@@ -109,6 +119,7 @@ export default function ShareToWorkList({
                     {t('withPhotos', { count: photoCount })}
                 </label>
             )}
+            <p className="text-xs text-muted">{explain}</p>
             <p className="text-xs text-faint">{t('publicHint')}</p>
             <div className="flex gap-4 text-sm">
                 <button type="submit" disabled={busy} className="font-medium underline underline-offset-4">

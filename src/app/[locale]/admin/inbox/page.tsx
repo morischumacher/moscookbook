@@ -702,7 +702,12 @@ function CaptureRow({
                         {t('more')}
                     </summary>
 
-                    <div className="absolute left-0 z-10 mt-1 flex w-64 flex-col rounded-xl border border-line bg-page p-1 text-sm shadow-lg">
+                    {/* On a phone a sheet from the bottom that scrolls inside
+                        itself: as a dropdown it was taller than the screen,
+                        and starting to scroll counted as tapping elsewhere and
+                        closed it. The backdrop is what "elsewhere" is now. */}
+                    <div aria-hidden="true" onPointerDown={closeMenu} className="fixed inset-0 z-40 bg-scrim/40 sm:hidden" />
+                    <div className="fixed inset-x-2 bottom-2 z-50 flex max-h-[80dvh] flex-col overflow-y-auto overscroll-contain rounded-xl border border-line bg-page p-1 text-sm shadow-lg sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:z-10 sm:mt-1 sm:max-h-none sm:w-72 sm:overflow-visible">
                         <button
                             type="button"
                             onClick={fromMenu(onRetry)}
@@ -776,10 +781,11 @@ function CaptureRow({
                             href={`/tickets?from=${encodeURIComponent(`/${locale}/admin/inbox`)}&about=${encodeURIComponent(reportText)}`}
                             className="rounded-lg px-3 py-2 hover:bg-surface"
                         >
-                            {t('report')}
+                            <span className="block">{t('report')}</span>
+                            <span className="block text-xs text-muted">{t('reportExplain')}</span>
                         </Link>
 
-                        <ShareToWorkList kind="capture" id={capture.id} work={capture.work} className="rounded-lg px-3 py-2 no-underline hover:bg-surface" />
+                        <ShareToWorkList kind="capture" id={capture.id} work={capture.work} withHint className="rounded-lg px-3 py-2 no-underline hover:bg-surface" />
 
                         <button
                             type="button"

@@ -979,6 +979,14 @@ model WorkItem {
   /// The admin chose to publish the item's photos with it. Off by default:
   /// a screenshot can show more than its sender meant to.
   withPhotos Boolean   @default(false)
+  /// Reported done by whoever worked on it (an assistant, with the task
+  /// key), waiting for the admin to confirm. Cleared when the admin says it
+  /// is not done, or when the problem comes back.
+  doneAt    DateTime?
+  /// What was done, in the worker's words.
+  doneNote  String?
+  /// Where: a pull request or commit address.
+  doneRef   String?
 
   @@unique([kind, refId])
   @@index([closedAt, createdAt])

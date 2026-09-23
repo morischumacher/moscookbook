@@ -19,10 +19,12 @@ import Reports from '@/components/admin/Reports';
  * is not a reason to withhold the lists.
  */
 export default async function AdminReportsPage() {
-    const [openErrors, openTickets]: [number, number] = await Promise.all([
+    const [openErrors, openTickets, toConfirm]: [number, number, number] = await Promise.all([
         prisma.errorLog.count({ where: { resolvedAt: null } }).catch(() => 0),
         prisma.ticket.count({ where: { resolvedAt: null } }).catch(() => 0),
+        // Tasks an AI reported done: the one thing on the list only you can do.
+        prisma.workItem.count({ where: { doneAt: { not: null }, closedAt: null, dismissedAt: null } }).catch(() => 0),
     ]);
 
-    return <Reports openErrors={openErrors} openTickets={openTickets} />;
+    return <Reports openErrors={openErrors} openTickets={openTickets} toConfirm={toConfirm} />;
 }
