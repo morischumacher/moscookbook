@@ -506,7 +506,12 @@ multiply the bill to protect against nothing, since a store that loses the
 pictures loses the copies with them.
 
 `npm run backup` on a laptop is still the one that matters, because it takes the
-files somewhere else entirely. This is the one that happens whether or not
+files somewhere else entirely. To bring such a folder back when its pictures'
+store is gone, `npm run restore -- backup/<date>` uploads the pictures again and
+writes `recipes.restorable.json` with their new addresses; that file is then
+imported like any other, under Verwaltung → Sicherung → "Aus Datei
+wiederherstellen". (The script used to write to the database itself, with an
+importer that stopped at archive version 1.) This is the one that happens whether or not
 anybody thinks of it, and a backup you have to remember is a backup that
 eventually is not taken.
 

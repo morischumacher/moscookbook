@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 /** Things a review found wrong, each pinned so it stays fixed */
-import { suite, equal } from './harness';
+import { suite, equal, check } from './harness';
 import { splitSteps } from '../src/lib/steps';
 import { timersIn } from '../src/lib/cookSteps';
 import { parseQuantity } from '../src/lib/amount';
@@ -44,4 +46,11 @@ export default function bugHuntTests() {
     equal('Zehen stay a unit', amountLabel(lineFromText('2 Zehen Knoblauch')!.measure, lineFromText('2 Zehen Knoblauch')!.amount, 'de'), '2 Zehen');
     equal('a decimal comma in German', formatQuantity(1.4, 'de'), '1,4');
     equal('a decimal point in English', formatQuantity(1.4, 'en'), '1.4');
+
+    suite('bug hunt: round 6');
+    const read = (path: string) => readFileSync(join(__dirname, '..', path), 'utf8');
+    const restore = read('src/app/api/import/archive/route.ts');
+    check('replacing a recipe updates it in place', restore.includes('prisma.recipe.update({') && !restore.includes('prisma.recipe.deleteMany({ where: { slug: recipe.slug } })'));
+    check('the offline restore no longer has its own importer', !read('scripts/restore.mjs').includes('prisma.recipe.create'));
+    check('the background reading only writes an open capture', read('src/lib/captureBackground.ts').includes("where: { id: capture.id, status: 'new' }"));
 }
