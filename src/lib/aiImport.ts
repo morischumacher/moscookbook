@@ -110,7 +110,7 @@ function promptFor(source: AiSource): string {
         : 'Extract the recipe shown in this image.';
 }
 
-function extractJson(text: string): unknown {
+export function extractJson(text: string): unknown {
     const trimmed = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
 
     try {

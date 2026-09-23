@@ -18,6 +18,8 @@ interface RecipeCardProps {
     rating: number;
     createdAt?: Date;
     nationality?: string;
+    /** Diet, meat or fish and chillies as icons, e.g. "🌱 🌶️🌶️". */
+    marks?: string;
     isFavorited?: boolean;
     isLoggedIn?: boolean;
     /**
@@ -75,6 +77,7 @@ export default function RecipeCard({
     category,
     rating,
     nationality,
+    marks,
     isFavorited = false,
     isLoggedIn = false,
     priority = false,
@@ -127,6 +130,7 @@ export default function RecipeCard({
                         <h3 className="mt-1 text-lg font-bold leading-tight text-ink">
                             {title}
                         </h3>
+                        {marks && <span className="mt-1 block text-sm" aria-hidden="true">{marks}</span>}
                         {rating > 0 && (
                             <span className="mt-2 block">
                                 <Rating value={rating} readonly size="sm" />
@@ -166,6 +170,7 @@ export default function RecipeCard({
                         <h3 className="text-[15px] font-bold leading-tight text-ink">
                             {title}
                         </h3>
+                        {marks && <p className="mt-0.5 text-sm" aria-hidden="true">{marks}</p>}
 
                         {rating > 0 && (
                             <span className="mt-1 flex items-center gap-1 text-accent-text">

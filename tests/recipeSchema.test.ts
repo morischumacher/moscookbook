@@ -12,7 +12,7 @@ export default function run() {
     check('accents', slugify('Crème Brûlée') === 'creme-brulee', slugify('Crème Brûlée'));
 
     suite('recipeInputSchema');
-    const base = { title: 'Test', slug: 'Test Rezept', instructions: 'Kochen.' };
+    const base = { title: 'Test', slug: 'Test Rezept', instructions: 'Kochen.', ingredients: [{ amount: '200 g', item: 'Mehl' }] };
 
     const a = recipeInputSchema.safeParse(base);
     check('minimal payload valid', a.success, a.success ? '' : formatZodError(a.error));
@@ -32,6 +32,10 @@ export default function run() {
     }
     const okHttp = recipeInputSchema.safeParse({ ...base, imageUrl: 'http://example.com/a.jpg' });
     check('http imageUrl allowed', okHttp.success);
+
+    const noIngredients = recipeInputSchema.safeParse({ ...base, ingredients: [] });
+    check('a recipe without ingredients is refused', !noIngredients.success);
+    check('and so is one that leaves them out', !recipeInputSchema.safeParse({ title: 'Test', slug: 'x', instructions: 'Kochen.' }).success);
 
     const e = recipeInputSchema.safeParse({ ...base, title: '' });
     check('empty title rejected', !e.success);

@@ -51,7 +51,7 @@ function picturesIn(text) {
 }
 
 async function referencedUrls() {
-    const [images, posts, cookedPhotos, captures, avatars, collections, recipeTexts] = await Promise.all([
+    const [images, posts, cookedPhotos, captures, avatars, collections, recipeTexts, reportPhotos] = await Promise.all([
         prisma.image.findMany({ select: { url: true } }),
         // The body too: a picture placed inside an entry's text is pointed at
         // by nothing but the text, and without this it would be deleted a
@@ -70,6 +70,8 @@ async function referencedUrls() {
         prisma.collection.findMany({ select: { imageUrl: true, description: true } }),
         // A recipe's method is Markdown as well, and may hold a picture.
         prisma.recipe.findMany({ select: { instructions: true } }),
+        // Screenshots sent with a ticket or attached to an error.
+        prisma.reportPhoto.findMany({ select: { url: true } }),
     ]);
 
     const urls = new Set();
@@ -79,6 +81,7 @@ async function referencedUrls() {
     for (const row of captures) if (row.imageUrl) urls.add(row.imageUrl);
     for (const row of avatars) if (row.avatarUrl) urls.add(row.avatarUrl);
     for (const row of collections) if (row.imageUrl) urls.add(row.imageUrl);
+    for (const row of reportPhotos) if (row.url) urls.add(row.url);
 
     for (const text of [
         ...posts.map((row) => row.body),

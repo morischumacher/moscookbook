@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { slugify } from '@/lib/recipe';
 import { draftFromJson } from '@/lib/captureDraft';
+import { collectionFacets } from '@/lib/collectionFacets';
 
 /**
  * The new-recipe form, optionally opened on a capture from the inbox.
@@ -60,6 +61,7 @@ export default async function CreateRecipePage({
     // and paste-and-parse plus URL import carry the whole flow.
     return (
         <RecipeForm
+            knownCategories={(await collectionFacets()).categories.map((facet) => facet.value)}
             mode="create"
             aiEnabled={canUseAi(await aiCapability())}
             initial={initial}

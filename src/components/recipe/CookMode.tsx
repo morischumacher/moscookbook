@@ -7,14 +7,18 @@ import type { RunningTimer } from './useCookTimers';
 import { buttonPrimaryLarge } from '@/lib/ui';
 
 /**
- * Cooking from the recipe: one step at a time, on a screen that stays on.
+ * Cooking from the recipe, on a screen that stays on.
  *
- * What the page does in a list, this does at the stove. The step being done
- * fills the screen in large type; under it, what that step needs from the
- * ingredient list, at the amounts being cooked; the times in it are buttons
- * that start a timer. "Done" ticks the step off and moves on, and the overview
- * shows at a glance what is done and what is still to come — the same ticks
- * as on the page, so leaving cook mode and coming back loses nothing.
+ * Two ways to cook, one set of ticks:
+ *
+ * - **Abhaken** (the default): the recipe, simplified and large — the
+ *   ingredients, then the steps, each a big row to tick off, with the times
+ *   in a step as buttons that start a timer. The whole thing at a glance.
+ * - **Schritt für Schritt**: one step filling the screen, what it needs from
+ *   the ingredient list under it, "done" moving on. For those who want it.
+ *
+ * "Fertig gekocht" clears the ticks and closes; "Von vorn" clears them and
+ * stays. Ticks also expire after twelve hours (lib/cookProgress).
  *
  * Big targets, swipe between steps, arrow keys on a keyboard. Escape leaves.
  */
@@ -33,6 +37,8 @@ export default function CookMode({
     onDismissTimer,
     wakeLockActive,
     onClose,
+    onFinish,
+    onStartOver,
 }: {
     title: string;
     steps: React.ReactNode[];
@@ -49,11 +55,15 @@ export default function CookMode({
     onDismissTimer: (id: number) => void;
     wakeLockActive: boolean;
     onClose: () => void;
+    /** Cooked: the ticks are cleared and cook mode closes. */
+    onFinish: () => void;
+    /** The ticks cleared, staying in cook mode. */
+    onStartOver: () => void;
 }) {
     const t = useTranslations('Recipe');
     const firstOpen = steps.findIndex((_, index) => !checkedSteps.has(index));
     const [current, setCurrent] = useState(firstOpen === -1 ? 0 : firstOpen);
-    const [view, setView] = useState<'step' | 'overview' | 'ingredients'>(steps.length === 0 ? 'ingredients' : 'step');
+    const [view, setView] = useState<'list' | 'step'>('list');
     const touch = useRef<number | null>(null);
     const dialog = useRef<HTMLDivElement>(null);
 
@@ -96,7 +106,13 @@ export default function CookMode({
             type="button"
             role="tab"
             aria-selected={view === which}
-            onClick={() => setView(which)}
+            onClick={() => {
+                if (which === 'step') {
+                    const open = steps.findIndex((_, index) => !checkedSteps.has(index));
+                    setCurrent(open === -1 ? 0 : open);
+                }
+                setView(which);
+            }}
             className={`rounded-full px-3 py-1.5 text-sm ${view === which ? 'bg-ink text-page' : 'text-muted'}`}
         >
             {label}
@@ -128,9 +144,8 @@ export default function CookMode({
                         <p className="text-xs text-muted">{wakeLockActive ? t('screenStaysOn') : t('screenMayDim')}</p>
                     </div>
                     <div role="tablist" className="flex shrink-0 gap-1">
-                        {steps.length > 0 && tab('step', t('stepsTab'))}
-                        {tab('ingredients', t('ingredientsTab'))}
-                        {steps.length > 0 && tab('overview', t('overviewTab'))}
+                        {tab('list', t('cookViewList'))}
+                        {steps.length > 0 && tab('step', t('cookViewSteps'))}
                     </div>
                 </div>
                 {steps.length > 0 && (
@@ -203,7 +218,7 @@ export default function CookMode({
                                             onClick={() => onStartTimer(timer.label, timer.seconds, current)}
                                             className="inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-ink px-5 text-lg font-semibold"
                                         >
-                                            <span aria-hidden="true">⏱</span> {t('startTimer', { label: timer.label })}
+                                            {t('startTimer', { label: timer.label })}
                                         </button>
                                     ))}
                                 </div>
@@ -226,58 +241,94 @@ export default function CookMode({
                         </>
                     )}
 
-                    {view === 'overview' && (
-                        <ol className="flex flex-col gap-2">
-                            {stepTexts.map((text, index) => {
-                                const done = checkedSteps.has(index);
-                                return (
-                                    <li key={index}>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                go(index);
-                                                setView('step');
-                                            }}
-                                            className={`flex w-full items-start gap-3 rounded-xl p-3 text-left ${index === current ? 'bg-surface' : ''}`}
-                                        >
-                                            <span
-                                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                                                    done ? 'bg-ink text-page' : 'border border-line text-muted'
-                                                }`}
-                                            >
-                                                {done ? '✓' : index + 1}
-                                            </span>
-                                            <span className={`line-clamp-2 pt-1.5 ${done ? 'text-faint line-through' : ''}`}>
-                                                {text.replace(/[*_#>`[\]]/g, '')}
-                                            </span>
-                                        </button>
-                                    </li>
-                                );
-                            })}
-                        </ol>
-                    )}
+                    {view === 'list' && (
+                        <>
+                            {ingredients.length > 0 && (
+                                <section>
+                                    <h2 className="text-sm font-bold uppercase tracking-widest text-muted">{t('ingredients')}</h2>
+                                    <ul className="mt-2 flex flex-col divide-y divide-line text-xl">
+                                        {ingredients.map((row, index) => (
+                                            <li key={index}>
+                                                {row.section && row.section !== ingredients[index - 1]?.section && (
+                                                    <h3 className="pb-1 pt-5 text-sm font-bold uppercase tracking-widest text-muted">{row.section}</h3>
+                                                )}
+                                                <label className="flex min-h-14 cursor-pointer items-center gap-4 py-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checkedIngredients.has(index)}
+                                                        onChange={() => onToggleIngredient(index)}
+                                                        className="h-7 w-7 shrink-0 accent-black"
+                                                    />
+                                                    <span className={checkedIngredients.has(index) ? 'text-faint line-through' : ''}>
+                                                        <span className="font-bold">{row.amount}</span> {row.item}
+                                                    </span>
+                                                </label>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </section>
+                            )}
 
-                    {view === 'ingredients' && (
-                        <ul className="flex flex-col divide-y divide-line text-xl">
-                            {ingredients.map((row, index) => (
-                                <li key={index}>
-                                    {row.section && row.section !== ingredients[index - 1]?.section && (
-                                        <h3 className="pb-1 pt-5 text-sm font-bold uppercase tracking-widest text-muted">{row.section}</h3>
-                                    )}
-                                    <label className="flex cursor-pointer items-baseline gap-3 py-3">
-                                        <input
-                                            type="checkbox"
-                                            checked={checkedIngredients.has(index)}
-                                            onChange={() => onToggleIngredient(index)}
-                                            className="h-6 w-6 shrink-0 accent-black"
-                                        />
-                                        <span className={checkedIngredients.has(index) ? 'text-faint line-through' : ''}>
-                                            <span className="font-bold">{row.amount}</span> {row.item}
-                                        </span>
-                                    </label>
-                                </li>
-                            ))}
-                        </ul>
+                            {steps.length > 0 && (
+                                <section className="mt-10">
+                                    <h2 className="text-sm font-bold uppercase tracking-widest text-muted">{t('instructions')}</h2>
+                                    <ol className="mt-3 flex flex-col gap-3">
+                                        {steps.map((step, index) => {
+                                            const done = checkedSteps.has(index);
+                                            return (
+                                                <li key={index} className={`rounded-2xl border p-4 ${done ? 'border-transparent bg-surface' : 'border-line'}`}>
+                                                    <div className="flex items-start gap-4">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onToggleStep(index)}
+                                                            aria-pressed={done}
+                                                            aria-label={t('checkStep', { number: index + 1 })}
+                                                            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold ${
+                                                                done ? 'bg-ink text-page' : 'border-2 border-ink'
+                                                            }`}
+                                                        >
+                                                            {done ? '✓' : index + 1}
+                                                        </button>
+                                                        <div
+                                                            className={`markdown-step flex-1 cursor-pointer pt-1.5 text-xl leading-relaxed ${done ? 'text-faint' : ''}`}
+                                                            onClick={() => onToggleStep(index)}
+                                                        >
+                                                            {step}
+                                                        </div>
+                                                    </div>
+                                                    {!done && timersForStep[index].length > 0 && (
+                                                        <div className="mt-3 flex flex-wrap gap-2 pl-16">
+                                                            {timersForStep[index].map((timer, timerIndex) => (
+                                                                <button
+                                                                    key={timerIndex}
+                                                                    type="button"
+                                                                    onClick={() => onStartTimer(timer.label, timer.seconds, index)}
+                                                                    className="inline-flex min-h-11 items-center rounded-full border border-ink px-4 text-base font-semibold"
+                                                                >
+                                                                    {t('startTimer', { label: timer.label })}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </li>
+                                            );
+                                        })}
+                                    </ol>
+                                </section>
+                            )}
+
+                            {allDone && <p className="mt-10 text-center text-xl font-bold">{t('allStepsDone')}</p>}
+
+                            {/* The end of a cooking: ticks cleared for next time. */}
+                            <div className="mt-10 flex flex-col items-center gap-3 pb-6">
+                                <button type="button" onClick={onFinish} className={`${buttonPrimaryLarge} w-full sm:w-auto sm:px-12`}>
+                                    {t('cookFinish')}
+                                </button>
+                                <button type="button" onClick={onStartOver} className="text-sm text-muted underline underline-offset-4">
+                                    {t('startOver')}
+                                </button>
+                            </div>
+                        </>
                     )}
                 </div>
             </main>
@@ -297,7 +348,7 @@ export default function CookMode({
                         {checkedSteps.has(current) ? (
                             <button
                                 type="button"
-                                onClick={() => (current < steps.length - 1 ? go(current + 1) : onClose())}
+                                onClick={() => (current < steps.length - 1 ? go(current + 1) : onFinish())}
                                 className={`${buttonPrimaryLarge} flex-[2]`}
                             >
                                 {current < steps.length - 1 ? `${t('nextStep')} →` : t('finishCooking')}

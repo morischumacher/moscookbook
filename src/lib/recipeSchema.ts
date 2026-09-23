@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { normaliseTags } from './tags';
 import { slugify } from './recipe';
+import { RECIPE_LANGUAGES, translationSchema } from './recipeTranslation';
 
 const ingredientSchema = z.object({
     amount: z.string().trim().max(120).default(''),
@@ -28,6 +29,10 @@ const imageUrlSchema = z.union([
     z.literal(''),
 ]);
 
+function uniqueList(list: string[] | undefined): string[] | undefined {
+    return list === undefined ? undefined : [...new Set(list)];
+}
+
 export const recipeInputSchema = z.object({
     title: z.string().trim().min(1, 'Title is required').max(200),
     slug: z
@@ -38,7 +43,16 @@ export const recipeInputSchema = z.object({
     description: z.string().trim().max(4000).default(''),
     category: z.string().trim().max(100).default(''),
     nationality: z.string().trim().max(100).default(''),
-    ingredients: z.array(ingredientSchema).max(200).default([]),
+    /**
+     * Every category and cuisine, at most five each. Given, they win over
+     * the single fields above (see recipeColumns).
+     */
+    categories: z.array(z.string().trim().min(1).max(60)).max(5).optional().transform(uniqueList),
+    cuisines: z.array(z.string().trim().min(1).max(60)).max(5).optional().transform(uniqueList),
+    spiciness: z.number().int().min(0).max(3).optional(),
+    // A recipe without ingredients cannot be shopped for, scaled or cooked
+    // from; the form will not save one.
+    ingredients: z.array(ingredientSchema).min(1, 'Add at least one ingredient').max(200),
     tags: z.array(z.string().max(60)).max(30).default([]).transform(normaliseTags),
     instructions: z.string().trim().min(1, 'Instructions are required').max(50_000),
     // Optional: an existing recipe without these simply does not show them.
@@ -54,6 +68,13 @@ export const recipeInputSchema = z.object({
      * breaking change to an endpoint costs more than four lines of kindness.
      */
     imageUrl: imageUrlSchema.optional(),
+    /** The language it is written in. Left as it is when not given. */
+    language: z.enum(RECIPE_LANGUAGES).optional(),
+    /**
+     * The recipe in its other language (lib/recipeTranslation.ts). Left as it
+     * is when not given; null removes it.
+     */
+    translation: translationSchema.nullable().optional(),
 });
 
 /**

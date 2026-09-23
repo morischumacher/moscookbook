@@ -260,6 +260,9 @@ export default function RecipeBody({
         // not worth saving.
     };
 
+    /** Ticks from an unfinished cooking, restored from this device. */
+    const cooking = checkedIngredients.size > 0 || checkedSteps.size > 0;
+
     const textSize = 'text-xl';
 
     return (
@@ -331,7 +334,7 @@ export default function RecipeBody({
                         aria-pressed={cookMode}
                         className={`${buttonPrimarySmall} flex-1 gap-2 sm:flex-none`}
                     >
-                        <span aria-hidden="true">👩‍🍳</span> {t('cookModeStart')}
+                        {cooking ? t('resumeCooking') : t('cookModeStart')}
                     </button>
                     {canShop && <AddToShopping recipeId={recipeId} servings={baseServings ? servings : null} />}
                 </div>
@@ -371,17 +374,6 @@ export default function RecipeBody({
                 >
                     {t('print')}
                 </button>
-
-                {(checkedIngredients.size > 0 || checkedSteps.size > 0) && (
-                    <button
-                        type="button"
-                        onClick={reset}
-                        className="text-sm text-muted underline underline-offset-4 hover:text-ink"
-                    >
-                        {t('reset')}
-                    </button>
-                )}
-
             </div>
 
             {cookMode && (
@@ -400,6 +392,11 @@ export default function RecipeBody({
                     onDismissTimer={dismissTimer}
                     wakeLockActive={wakeLockActive}
                     onClose={() => setCookMode(false)}
+                    onFinish={() => {
+                        reset();
+                        setCookMode(false);
+                    }}
+                    onStartOver={reset}
                 />
             )}
 
@@ -417,6 +414,25 @@ export default function RecipeBody({
                 </button>
             )}
 
+            {/*
+                The page itself is for reading: the ticks live in cook mode.
+                If a cooking was left half done on this device, it says so
+                here — once, with the way back in and the way to start over.
+            */}
+            {!cookMode && cooking && (
+                <div className="print:hidden mb-10 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-surface px-4 py-3 font-sans text-sm">
+                    <span className="text-muted">
+                        {t('resumeBanner', { done: checkedSteps.size, total: steps.length })}
+                    </span>
+                    <button type="button" onClick={() => setCookMode(true)} className="font-medium underline underline-offset-4">
+                        {t('resumeCooking')}
+                    </button>
+                    <button type="button" onClick={reset} className="text-muted underline underline-offset-4 hover:text-ink">
+                        {t('startOver')}
+                    </button>
+                </div>
+            )}
+
             {/* Ingredients */}
             <section className="mb-16">
                 <h2 className="mb-8 inline-block border-b-2 border-ink pb-1 font-sans text-2xl font-bold uppercase tracking-widest text-ink">
@@ -428,7 +444,6 @@ export default function RecipeBody({
                 ) : (
                     <ul className={`flex flex-col gap-4 ${textSize} leading-relaxed text-ink`}>
                         {ingredients.map((row, index) => {
-                            const checked = checkedIngredients.has(index);
                             // Scaling happens on the stored number, not on the
                             // printed string, so "1/2 TL" x3 gives "1 1/2 TL".
                             const ingredient = displayed[index];
@@ -445,34 +460,12 @@ export default function RecipeBody({
                                             {heading}
                                         </h3>
                                     )}
-                                    {/* The whole line is the target, with
-                                        enough height that hitting it needs no
-                                        aim — the box itself is only where the
-                                        mark appears. */}
-                                    <label className="flex cursor-pointer items-baseline gap-3 py-1.5">
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={() =>
-                                                setCheckedIngredients((set) => toggle(set, index))
-                                            }
-                                            // The box is 24px and the label
-                                            // around it is the real target, so
-                                            // the row has padding rather than
-                                            // the checkbox having a size nobody
-                                            // would draw.
-                                            className="print:hidden mt-1 h-6 w-6 shrink-0 cursor-pointer accent-black"
-                                        />
-                                        <span
-                                            className={`flex flex-1 items-baseline gap-3 transition-opacity ${checked ? 'opacity-40 line-through' : ''
-                                                }`}
-                                        >
-                                            <span className="w-24 shrink-0 font-sans font-bold text-ink sm:w-32">
-                                                {ingredient.amount}
-                                            </span>
-                                            <span>{ingredient.item}</span>
+                                    <div className="flex items-baseline gap-3 py-1.5">
+                                        <span className="w-24 shrink-0 font-sans font-bold text-ink sm:w-32">
+                                            {ingredient.amount}
                                         </span>
-                                    </label>
+                                        <span>{ingredient.item}</span>
+                                    </div>
                                 </li>
                             );
                         })}
@@ -493,33 +486,17 @@ export default function RecipeBody({
                 </h2>
 
                 <ol className={`flex flex-col gap-8 ${textSize} leading-relaxed text-ink`}>
-                    {steps.map((step, index) => {
-                        const checked = checkedSteps.has(index);
-                        return (
-                            <li key={index} className="flex gap-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setCheckedSteps((set) => toggle(set, index))}
-                                    aria-pressed={checked}
-                                    aria-label={t('checkStep', { number: index + 1 })}
-                                    // 44px: a step is ticked off with a
-                                    // wooden spoon in the other hand.
-                                    className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border font-sans text-sm font-bold transition-colors ${checked
-                                        ? 'border-transparent bg-ink text-page'
-                                        : 'border-line text-muted '
-                                        }`}
-                                >
-                                    {checked ? '✓' : index + 1}
-                                </button>
-                                <div
-                                    className={`markdown-step flex-1 transition-opacity ${checked ? 'opacity-40' : ''
-                                        }`}
-                                >
-                                    {step}
-                                </div>
-                            </li>
-                        );
-                    })}
+                    {steps.map((step, index) => (
+                        <li key={index} className="flex gap-4">
+                            <span
+                                aria-hidden="true"
+                                className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line font-sans text-sm font-bold text-muted"
+                            >
+                                {index + 1}
+                            </span>
+                            <div className="markdown-step flex-1">{step}</div>
+                        </li>
+                    ))}
                 </ol>
             </section>
         </div>

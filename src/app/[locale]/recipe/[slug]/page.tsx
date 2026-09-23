@@ -11,6 +11,7 @@ import { getTranslations } from 'next-intl/server';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { shareUrl } from '@/lib/shareToken';
 import { similarRecipes } from '@/lib/similarRecipes';
+import { inLanguage } from '@/lib/recipeTranslation';
 
 // generateMetadata and the page itself both need the recipe; cache() makes
 // that a single database round trip per request instead of two.
@@ -36,7 +37,9 @@ export async function generateMetadata({
     params: Promise<{ slug: string; locale: string }>;
 }): Promise<Metadata> {
     const { slug, locale } = await params;
-    const recipe = await loadRecipe(slug);
+    const found = await loadRecipe(slug);
+    // The title and description in the reader's language, when translated.
+    const recipe = found && inLanguage(found, locale);
 
     const t = await getTranslations({ locale, namespace: 'Recipe' });
 

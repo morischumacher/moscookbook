@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
-import { DIET_TAGS } from '@/lib/tags';
+import { KNOWN_TAGS, TAG_ICONS } from '@/lib/tags';
 
 export interface FacetValue {
     value: string;
@@ -26,13 +26,15 @@ export interface FacetValue {
  * Not a spinner over the results: the old ones are still true until the new
  * ones arrive, and hiding them would be a worse lie than leaving them.
  */
-const isDiet = (tag: string) => (DIET_TAGS as readonly string[]).includes(tag);
+/** Diet, meat and fish: named tags with an icon, first in the row. */
+const isDiet = (tag: string) => KNOWN_TAGS.includes(tag);
 
 export default function FilterChips({
     categories,
     cuisines,
     tags,
     quickCount,
+    spicyCount = 0,
     isLoggedIn,
     total,
 }: {
@@ -40,6 +42,8 @@ export default function FilterChips({
     cuisines: FacetValue[];
     tags: FacetValue[];
     quickCount: number;
+    /** Recipes with at least one chilli. */
+    spicyCount?: number;
     isLoggedIn: boolean;
     total: number;
 }) {
@@ -65,9 +69,10 @@ export default function FilterChips({
     const favoritesOnly = searchParams.get('favorites') === 'true';
     const activeTag = searchParams.get('tag') ?? '';
     const quickOnly = searchParams.get('quick') === 'true';
+    const spicyOnly = searchParams.get('spicy') === 'true';
 
     const hasFilters = Boolean(
-        activeCategory || activeCuisine || favoritesOnly || activeTag || quickOnly || searchParams.get('search') ||
+        activeCategory || activeCuisine || favoritesOnly || activeTag || quickOnly || spicyOnly || searchParams.get('search') ||
         searchParams.get('have')
     );
 
@@ -215,8 +220,21 @@ export default function FilterChips({
             </label>
 
             {/* Horizontal scroll rather than wrapping, so a long list stays one line on a phone. */}
-            {categories.length > 0 && (
+            {(categories.length > 0 || isLoggedIn) && (
                 <div className={railClass} role="group" aria-label={t('category')}>
+                    {/* First in the row, where the eye starts: your own
+                        favourites were a small link at the bottom of the
+                        filters, easy to miss. */}
+                    {isLoggedIn && (
+                        <button
+                            type="button"
+                            onClick={() => setParam('favorites', favoritesOnly ? '' : 'true')}
+                            aria-pressed={favoritesOnly}
+                            className={chipClass(favoritesOnly)}
+                        >
+                            <span aria-hidden="true">♥</span> {t('favoritesChip')}
+                        </button>
+                    )}
                     <button type="button" onClick={() => setParam('category', '')} className={chipClass(!activeCategory)}>
                         {t('allCategories')}
                         <span className="tabular-nums text-xs opacity-60">{total}</span>
@@ -265,7 +283,7 @@ export default function FilterChips({
                 vegan first — the questions asked most on a weeknight — then
                 the cookbook's own tags, busiest first.
             */}
-            {(quickCount > 0 || tags.length > 0) && (
+            {(quickCount > 0 || spicyCount > 0 || tags.length > 0) && (
                 <div className={railClass} role="group" aria-label={t('tagsLabel')}>
                     {quickCount > 0 && (
                         <button
@@ -276,6 +294,17 @@ export default function FilterChips({
                         >
                             {tTags('quick')}
                             <span className="tabular-nums text-xs opacity-60">{quickCount}</span>
+                        </button>
+                    )}
+                    {spicyCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setParam('spicy', spicyOnly ? '' : 'true')}
+                            aria-pressed={spicyOnly}
+                            className={chipClass(spicyOnly)}
+                        >
+                            <span aria-hidden="true">🌶️</span> {tTags('spicy')}
+                            <span className="tabular-nums text-xs opacity-60">{spicyCount}</span>
                         </button>
                     )}
                     {[...tags]
@@ -289,7 +318,13 @@ export default function FilterChips({
                                 aria-pressed={activeTag === facet.value}
                                 className={chipClass(activeTag === facet.value)}
                             >
-                                {isDiet(facet.value) ? tTags(facet.value as 'vegan') : `#${facet.value}`}
+                                {isDiet(facet.value) ? (
+                                    <>
+                                        <span aria-hidden="true">{TAG_ICONS[facet.value]}</span> {tTags(facet.value as 'vegan')}
+                                    </>
+                                ) : (
+                                    `#${facet.value}`
+                                )}
                                 <span className="tabular-nums text-xs opacity-60">{facet.count}</span>
                             </button>
                         ))}
@@ -302,21 +337,7 @@ export default function FilterChips({
                 screen left it hanging off the end of a wrapped row.
             */}
             <div className="flex flex-col gap-3 border-t border-line pt-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                {isLoggedIn ? (
-                    <button
-                        type="button"
-                        onClick={() => setParam('favorites', favoritesOnly ? '' : 'true')}
-                        aria-pressed={favoritesOnly}
-                        className={`self-start underline-offset-4 transition-colors ${favoritesOnly
-                            ? 'font-medium text-ink underline'
-                            : 'text-muted hover:text-ink'
-                            }`}
-                    >
-                        {t('favoritesOnly')}
-                    </button>
-                ) : (
-                    <span />
-                )}
+                <span />
 
                 <label className="flex items-center gap-2">
                     <span className="text-muted">{t('sortBy')}</span>

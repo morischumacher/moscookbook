@@ -7,6 +7,7 @@ import { Link } from '@/i18n/routing';
 import { buttonPrimary, chip, pageContainer, pageHeading, pageTop } from '@/lib/ui';
 import { safeTicketPath } from '@/lib/ticketPath';
 import { BusyLabel } from '@/components/ui/Busy';
+import PhotoPicker from '@/components/ui/PhotoPicker';
 
 /** idea | problem | other. Three, because a chooser with eight is a form. */
 const KINDS = ['idea', 'problem', 'other'] as const;
@@ -67,6 +68,7 @@ function TicketForm() {
 
     // The same rule the route applies, so what is shown is what is stored.
     const [path, setPath] = useState<string | null>(safeTicketPath(fromQuery));
+    const [photos, setPhotos] = useState<string[]>([]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [sent, setSent] = useState(false);
@@ -80,7 +82,7 @@ function TicketForm() {
             const res = await fetch('/api/tickets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ kind, body, path }),
+                body: JSON.stringify({ kind, body, path, photos }),
             });
 
             if (!res.ok) {
@@ -165,6 +167,9 @@ function TicketForm() {
                         className="w-full rounded-lg border border-control bg-transparent p-3 text-base leading-relaxed outline-none transition-colors focus:border-ink"
                     />
                 </div>
+
+                {/* A screenshot says in one picture what takes a paragraph. */}
+                <PhotoPicker photos={photos} onChange={setPhotos} />
 
                 {/*
                     Explained, and removable.

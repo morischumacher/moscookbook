@@ -1,7 +1,7 @@
 {
   "Site": {
     "title": "mo'scookbook",
-    "description": "Eine Sammlung meiner Lieblingsrezepte",
+    "description": "Meine Lieblingsrezepte – gekocht, gesammelt, weitergegeben.",
     "rightsReserved": "Alle Rechte vorbehalten."
   },
   "Navigation": {
@@ -42,7 +42,8 @@
     "tagsLabel": "Ernährung, Zeit und Tags",
     "offlineKeep": "Meine Favoriten offline auf diesem Gerät behalten",
     "offlineKeeping": "{done} von {total} werden gespeichert…",
-    "offlineKept": "{count, plural, one {# Rezept lässt} other {# Rezepte lassen}} sich jetzt ohne Netz öffnen."
+    "offlineKept": "{count, plural, one {# Rezept lässt} other {# Rezepte lassen}} sich jetzt ohne Netz öffnen.",
+    "favoritesChip": "Favoriten"
   },
   "Categories": {
     "Breakfast": "Frühstück",
@@ -50,7 +51,15 @@
     "Dinner": "Abendessen",
     "Dessert": "Nachtisch",
     "Snack": "Snack",
-    "Drink": "Getränk"
+    "Drink": "Getränk",
+    "Starter": "Vorspeise",
+    "Main": "Hauptgericht",
+    "Side": "Beilage",
+    "Soup": "Suppe",
+    "Salad": "Salat",
+    "Baking": "Backen",
+    "Bread": "Brot",
+    "Sauce": "Soße & Dip"
   },
   "Cuisines": {
     "German": "Deutsch",
@@ -59,7 +68,17 @@
     "Mexican": "Mexikanisch",
     "French": "Französisch",
     "Greek": "Griechisch",
-    "Indian": "Indisch"
+    "Indian": "Indisch",
+    "Austrian": "Österreichisch",
+    "Spanish": "Spanisch",
+    "Turkish": "Türkisch",
+    "Middle Eastern": "Orientalisch",
+    "Thai": "Thailändisch",
+    "Vietnamese": "Vietnamesisch",
+    "Chinese": "Chinesisch",
+    "Japanese": "Japanisch",
+    "Korean": "Koreanisch",
+    "American": "Amerikanisch"
   },
   "Recipe": {
     "loadingRecipe": "Rezept wird geholt…",
@@ -94,9 +113,6 @@
     "unitsMetric": "g / ml",
     "unitsOriginal": "Wie geschrieben",
     "screenMayDim": "Display kann ausgehen",
-    "stepsTab": "Schritt",
-    "ingredientsTab": "Zutaten",
-    "overviewTab": "Übersicht",
     "stepOf": "Schritt {number} von {total}",
     "stepDone": "erledigt",
     "startTimer": "{label}",
@@ -105,13 +121,20 @@
     "timerStop": "Timer für {label} stoppen",
     "stepShort": "Schritt {number}",
     "needForStep": "Für diesen Schritt",
-    "allStepsDone": "Alle Schritte erledigt. Guten Appetit!",
+    "allStepsDone": "Alles erledigt. Guten Appetit!",
     "previousStep": "Zurück",
     "nextStep": "Weiter",
     "doneNext": "Erledigt, weiter",
     "doneLast": "Erledigt",
     "finishCooking": "Fertig",
-    "cookModeStart": "Kochmodus starten"
+    "cookModeStart": "Kochmodus starten",
+    "resumeCooking": "Weiterkochen",
+    "startOver": "Von vorn",
+    "resumeBanner": "Du kochst das gerade: {done} von {total} Schritten erledigt.",
+    "cookViewList": "Abhaken",
+    "cookViewSteps": "Schritt für Schritt",
+    "cookFinish": "Fertig gekocht",
+    "translatedFrom": "Übersetzt aus dem {language, select, en {Englischen} other {Deutschen}}"
   },
   "Rating": {
     "rate": "Bewerten",
@@ -208,7 +231,10 @@
     "adminNavLabel": "Admin-Bereiche",
     "invitedBy": "Eingeladen von {name}",
     "invitedByOn": "Eingeladen von {name} · dabei seit {date}",
-    "unverified": "Adresse nicht bestätigt"
+    "unverified": "Adresse nicht bestätigt",
+    "protected_self": "Das bist du",
+    "protected_owner": "Inhaber – geschützt",
+    "protected_lastAdmin": "Einziger Admin – geschützt"
   },
   "RecipeForm": {
     "newRecipe": "Neues Rezept",
@@ -288,7 +314,37 @@
     "field_servings": "Portionen",
     "field_ingredients": "Zutaten",
     "field_instructions": "Zubereitung",
-    "field_tags": "Tags"
+    "field_tags": "Tags",
+    "needIngredient": "Ein Rezept braucht mindestens eine Zutat.",
+    "categoryHint": "Aus der Liste wählen – oder eine neue Kategorie eintippen, sie erscheint dann als Filter.",
+    "labelsAdd": "Eigene hinzufügen (Enter)",
+    "labelsFull": "Höchstens {max}",
+    "dietLabel": "Ernährung · Fleisch & Fisch",
+    "dietSuggested": "Nach den Zutaten wohl: {diet}",
+    "spicinessLabel": "Schärfe",
+    "spicinessLevel": "{level, plural, =0 {Nicht scharf} one {Leicht scharf} =2 {Scharf} other {Sehr scharf}}",
+    "notSpicy": "Nicht scharf",
+    "translationHeading": "Zweite Sprache",
+    "writtenIn": "Das Rezept ist auf",
+    "language": {
+      "de": "Deutsch",
+      "en": "Englisch"
+    },
+    "translateTo": {
+      "de": "Ins Deutsche übersetzen",
+      "en": "Ins Englische übersetzen"
+    },
+    "translationOf": {
+      "de": "Deutsche Fassung — wird mit dem Rezept gespeichert. Du kannst sie hier noch anpassen.",
+      "en": "Englische Fassung — wird mit dem Rezept gespeichert. Du kannst sie hier noch anpassen."
+    },
+    "translating": "Wird übersetzt …",
+    "translateHint": "Mit KI, inklusive Mengen und Einheiten (z. B. tbsp → EL, cups → g/ml). Danach liegt das Rezept in beiden Sprachen vor; jeder sieht es in seiner Sprache.",
+    "translateAgain": "Neu übersetzen",
+    "translationStale": "Das Rezept wurde seit der Übersetzung geändert.",
+    "translationRemove": "Übersetzung entfernen",
+    "translateFailed": "Die Übersetzung hat nicht geklappt. Versuch es gleich noch einmal.",
+    "translateUnusable": "Die KI hat Zutaten ausgelassen oder zusammengelegt, deshalb wurde die Übersetzung verworfen. Versuch es noch einmal."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
@@ -357,13 +413,13 @@
   },
   "Inbox": {
     "title": "Eingang",
-    "explanation": "Alles, was du vom Handy teilst oder hier einfügst, landet zuerst hier. Ins Kochbuch, als Entwurf, oder erst bearbeiten.",
+    "explanation": "Alles, was du vom Handy teilst oder hier einfügst, landet zuerst hier. Vollständig Erkanntes übernimmst du ins Kochbuch; wo etwas fehlt, steht im farbigen Kasten, was du tun kannst.",
     "loading": "Eingang wird geladen…",
     "rereading": "Wird noch einmal mit den Regeln gelesen…",
     "empty": "Nichts da. Teile etwas vom Handy oder füge oben einen Link ein.",
     "untitled": "Ohne Titel",
     "accept": "Ins Kochbuch",
-    "finish": "Erst bearbeiten",
+    "finish": "Bearbeiten",
     "retry": "Neu einlesen",
     "discard": "Löschen",
     "openSource": "Quelle öffnen",
@@ -373,9 +429,9 @@
     "published": "{count, plural, one {# schon übernommen} other {# schon übernommen}}",
     "nav": "Eingang",
     "status": {
-      "new": "Noch nicht gelesen",
-      "ready": "Fertig",
-      "needsWork": "Braucht eine Minute",
+      "new": "Wird gelesen…",
+      "ready": "Vollständig erkannt",
+      "needsWork": "Entscheidung nötig",
       "failed": "Nicht lesbar",
       "published": "Übernommen"
     },
@@ -399,7 +455,7 @@
     "legendTitle": "Was die Knöpfe tun",
     "legendAccept": "Ins Kochbuch — das Rezept kommt direkt in deine Liste, so wie es ist.",
     "legendStage": "Als Entwurf — es wird aufgehoben, aber unter Entwürfe, bis du es gekocht und als fertig markiert hast.",
-    "legendFinish": "Erst bearbeiten — öffnet das Rezeptformular mit allem ausgefüllt, um es vor dem Speichern zu korrigieren.",
+    "legendFinish": "Bearbeiten — öffnet das Rezeptformular mit allem ausgefüllt, zum Korrigieren vor dem Speichern.",
     "legendRetry": "Mehr → Neu einlesen — liest den Link noch einmal mit den Regeln; die KI nur, wenn die Regeln nicht reichen. Kostenlos, solange keine KI nötig ist.",
     "legendAskAi": "Mehr → Mit KI lesen — lässt die KI lesen, auch wenn die Regeln meinen, sie hätten es geschafft. Kostet einen Aufruf.",
     "legendRest": "Mehr → Quelle öffnen, Problem melden (ein Ticket, das diese Zeile schon beschreibt), Löschen.",
@@ -449,7 +505,25 @@
       "unsafe-url": "unsichere Adresse",
       "not-a-page": "keine Webseite",
       "not-an-image": "kein Bild"
-    }
+    },
+    "decision": {
+      "noRecipe": "Kein Rezept gefunden",
+      "elsewhere": "Das Rezept liegt woanders",
+      "spoken": "Rezept nur im Video gesprochen",
+      "picture": "Bild noch nicht ausgelesen",
+      "partial": "Nur teilweise erkannt",
+      "failed": "Import fehlgeschlagen",
+      "incomplete": "Nicht vollständig erkannt"
+    },
+    "step": {
+      "askAi": "Mit KI lesen",
+      "retry": "Neu einlesen",
+      "edit": "Bearbeiten",
+      "openSource": "Quelle öffnen",
+      "discard": "Löschen"
+    },
+    "aiOffHint": "Die KI könnte hier helfen, ist aber ausgeschaltet (Verwaltung → KI).",
+    "legendDecision": "Einträge mit farbigem Rand wurden nicht vollständig erkannt: Im Kasten steht, was passiert ist, und die passenden nächsten Schritte."
   },
   "Devices": {
     "title": "Geräte",
@@ -674,7 +748,7 @@
   "Collections": {
     "title": "Sammlungen",
     "nav": "Sammlungen",
-    "intro": "Ein paar Rezepte mit einem Namen darauf — ein Menü, eine Woche, ein Abend.",
+    "intro": "Rezepte, die zusammengehören – eine Reise, eine Jahreszeit, ein Thema. Für einen Abend mit Gängen gibt es die Menüs.",
     "none": "Noch keine Sammlungen.",
     "empty": "In dieser Sammlung ist noch nichts.",
     "createNew": "Neue Sammlung",
@@ -756,7 +830,10 @@
     "nav": "Meldungen",
     "title": "Meldungen",
     "errors": "Fehler",
-    "tickets": "Tickets"
+    "tickets": "Tickets",
+    "photoAlt": "Screenshot",
+    "photoRemove": "Screenshot entfernen",
+    "photoAttach": "+ Screenshot anhängen"
   },
   "Tickets": {
     "title": "Ticket aufmachen",
@@ -791,7 +868,13 @@
     "copyFailed": "Kopieren ging nicht.",
     "ticketHint": "Kopiert einen fertigen Text mit Seite, Datum und Beschreibung — zum Einfügen dort, wo es behoben wird.",
     "dropPage": "Nicht mitschicken",
-    "exportMarkdown": "Alle als Markdown kopieren"
+    "exportMarkdown": "Alle als Markdown kopieren",
+    "photosLabel": "Screenshots (optional)",
+    "photosHint": "Zeigt oft schneller als Worte, was schiefging. Bis zu vier.",
+    "photoAdd": "+ Foto",
+    "photoRemove": "Foto entfernen",
+    "photoTooLarge": "Das Bild ist zu groß.",
+    "photoFailed": "Das Bild konnte nicht hochgeladen werden."
   },
   "Account": {
     "devicesTitle": "Geräte",
@@ -1057,12 +1140,24 @@
       "other": "Sonstiges",
       "basics": "Wahrscheinlich zu Hause"
     },
-    "addMenuGuests": "Einkaufsliste für {count, plural, one {# Gast} other {# Gäste}}"
+    "addMenuGuests": "Einkaufsliste für {count, plural, one {# Gast} other {# Gäste}}",
+    "undoAdd": "Wieder entfernen",
+    "nothingToAdd": "Dieses Rezept hat keine Zutaten – es kam nichts auf die Liste.",
+    "removedAgain": "Wieder von der Liste genommen."
   },
   "Tags": {
     "vegetarian": "Vegetarisch",
     "vegan": "Vegan",
-    "quick": "Schnell (≤ 30 Min.)"
+    "quick": "Schnell (≤ 30 Min.)",
+    "beef": "Rind",
+    "pork": "Schwein",
+    "poultry": "Geflügel",
+    "lamb": "Lamm",
+    "game": "Wild",
+    "fish": "Fisch",
+    "seafood": "Meeresfrüchte",
+    "spicy": "Scharf",
+    "spicinessLevel": "{level, plural, =0 {Nicht scharf} one {Leicht scharf} =2 {Scharf} other {Sehr scharf}}"
   },
   "ShareTarget": {
     "title": "In den Eingang",
@@ -1172,6 +1267,14 @@
       "published": "erledigt (ins Kochbuch übernommen)",
       "ready": "erledigt (jetzt richtig gelesen)",
       "removed": "erledigt (Quelle gelöscht)"
-    }
+    },
+    "withPhotos": "{count, plural, one {Den Screenshot} other {Die # Screenshots}} öffentlich mitschicken",
+    "copyBoth": "Prompt + Liste kopieren (für einen KI-Chat)",
+    "copyPrompt": "Nur Prompt kopieren",
+    "copyList": "Nur Liste kopieren (JSON)",
+    "downloadJson": "Als JSON herunterladen",
+    "downloadMarkdown": "Als Markdown herunterladen",
+    "copyFailed": "Kopieren hat nicht geklappt – der Browser hat den Zugriff auf die Zwischenablage verweigert.",
+    "exportListHeading": "# Die offenen Einträge der Arbeitsliste"
   }
 }

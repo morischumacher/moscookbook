@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import FilterChips from '@/components/home/FilterChips';
 import OfflineFavorites from '@/components/home/OfflineFavorites';
@@ -10,7 +10,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { buildTsQuery } from '@/lib/searchText';
 import { parseIngredientQuery, variantsOf } from '@/lib/ingredientSearch';
 import { pageContainer } from '@/lib/ui';
-import { QUICK_MINUTES } from '@/lib/tags';
+import { KNOWN_TAGS, QUICK_MINUTES, TAG_ICONS, chillies } from '@/lib/tags';
 
 interface RecipeListRow {
     id: number;
@@ -19,10 +19,14 @@ interface RecipeListRow {
     description: string | null;
     category: string | null;
     nationality: string | null;
+    tags: string[];
+    spiciness: number;
     views: number;
     createdAt: Date;
     images: { url: string }[];
     ratings: { value: number }[];
+    /** Only the reader's language: a tile shows its title and description. */
+    translations: { title: string; description: string }[];
 }
 
 /** One "this recipe has an ingredient like X" clause. */
@@ -44,8 +48,9 @@ interface RecipeWhere {
      * the draft state exists to prevent. They live at /drafts instead.
      */
     isDraft: false;
-    category?: string;
-    nationality?: string;
+    categories?: { has: string };
+    cuisines?: { has: string };
+    spiciness?: { gte: number };
     tags?: { has: string };
     id?: { in: number[] };
     /** One entry per ingredient somebody said they have: all of them must match. */
@@ -132,6 +137,7 @@ export default async function HomePage({
     params: Promise<{ locale: string }>;
 }) {
     const t = await getTranslations('Home');
+    const locale = await getLocale();
     const tSite = await getTranslations('Site');
     const tBlog = await getTranslations('Blog');
 
@@ -144,6 +150,7 @@ export default async function HomePage({
         have: haveParam,
         tag: tagParam,
         quick: quickParam,
+        spicy: spicyParam,
         page: pageParam,
     } = await searchParams;
 
@@ -154,6 +161,7 @@ export default async function HomePage({
     const have = typeof haveParam === 'string' ? haveParam : '';
     const tag = typeof tagParam === 'string' ? tagParam.trim().toLowerCase() : '';
     const quick = quickParam === 'true';
+    const spicy = spicyParam === 'true';
     const showFavorites = favorites === 'true';
 
     /*
@@ -183,8 +191,9 @@ export default async function HomePage({
     const earlyFavorites = showFavorites && isLoggedIn ? await favoritesQuery : null;
 
     const where: RecipeWhere = { isDraft: false };
-    if (category) where.category = category;
-    if (nationality) where.nationality = nationality;
+    if (category) where.categories = { has: category };
+    if (nationality) where.cuisines = { has: nationality };
+    if (spicy) where.spiciness = { gte: 1 };
     if (tag) where.tags = { has: tag };
 
     if (earlyFavorites) {
@@ -276,10 +285,15 @@ export default async function HomePage({
         description: true,
         category: true,
         nationality: true,
+        tags: true,
+        spiciness: true,
         views: true,
         createdAt: true,
         images: { orderBy: { position: 'asc' as const }, take: 1, select: { url: true } },
         ratings: { select: { value: true } },
+        // A recipe written in the other language, in this one when it has
+        // been translated. See lib/recipeTranslation.
+        translations: { where: { locale }, select: { title: true, description: true } },
     };
 
     // The chips describe the whole collection rather than the current result,
@@ -431,6 +445,7 @@ export default async function HomePage({
         if (showFavorites) params.set('favorites', 'true');
         if (tag) params.set('tag', tag);
         if (quick) params.set('quick', 'true');
+        if (spicy) params.set('spicy', 'true');
         if (target > 1) params.set('page', String(target));
         const query = params.toString();
         return query ? `/?${query}` : '/';
@@ -440,12 +455,15 @@ export default async function HomePage({
     // client component, and a spread sent every rating row along with it.
     const formattedRecipes = recipes.map((recipe) => ({
         id: recipe.id,
-        title: recipe.title,
+        title: recipe.translations[0]?.title || recipe.title,
         slug: recipe.slug,
         createdAt: recipe.createdAt,
-        description: recipe.description ?? '',
+        description: (recipe.translations[0] ? recipe.translations[0].description : recipe.description) ?? '',
         category: recipe.category ?? '',
         nationality: recipe.nationality ?? '',
+        // Diet, meat or fish and chillies, as their icons: read at a glance
+        // on a tile too small for words.
+        marks: [...recipe.tags.filter((tag: string) => KNOWN_TAGS.includes(tag)).map((tag: string) => TAG_ICONS[tag]), chillies(recipe.spiciness)].join(' ').trim(),
         imageUrl: recipe.images[0]?.url ?? '',
         rating: averageRating(recipe.ratings),
         isFavorited: favoriteRecipeIds.has(recipe.id),
@@ -475,6 +493,7 @@ export default async function HomePage({
                         cuisines={facets.cuisines}
                         tags={facets.tags}
                         quickCount={facets.quick}
+                        spicyCount={facets.spicy}
                         isLoggedIn={isLoggedIn}
                         total={facets.total}
                     />

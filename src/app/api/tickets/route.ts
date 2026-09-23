@@ -6,6 +6,7 @@ import { rateLimitShared } from '@/lib/rateLimitShared';
 import { safeTicketPath } from '@/lib/ticketPath';
 import { failed } from '@/lib/reportServerError';
 import { syncWorkItem, workStates } from '@/lib/workItemsDb';
+import { isOurs } from '@/lib/blobCleanup';
 
 /**
  * What somebody thinks is wrong with the tool, or wants it to do.
@@ -35,6 +36,16 @@ const schema = z.object({
     body: z.string().trim().min(1, 'Say something').max(MAX_BODY),
     /** Where they were. See lib/ticketPath for what is refused and why. */
     path: z.string().trim().optional().transform(safeTicketPath),
+    /**
+     * Screenshots, already uploaded through /api/report-photos. Only
+     * addresses in our own picture store are taken; anything else is
+     * dropped rather than refused.
+     */
+    photos: z
+        .array(z.string().max(1000))
+        .max(4)
+        .optional()
+        .transform((urls) => (urls ?? []).filter(isOurs)),
 });
 
 export async function POST(req: NextRequest) {
@@ -60,8 +71,9 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+        const { photos, ...fields } = parsed.data;
         const entry: { id: number; createdAt: Date } = await prisma.ticket.create({
-            data: { ...parsed.data, userId: user.id },
+            data: { ...fields, userId: user.id, photos: { create: photos.map((url) => ({ url })) } },
             select: { id: true, createdAt: true },
         });
 
@@ -92,6 +104,7 @@ export async function GET(req: NextRequest) {
                 createdAt: true,
                 resolvedAt: true,
                 user: { select: { name: true } },
+                photos: { orderBy: { id: 'asc' }, select: { id: true, url: true } },
             },
         });
 

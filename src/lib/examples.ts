@@ -44,6 +44,11 @@ export function exampleCollection(locale: ExampleLocale, recipes: ExampleRecipe[
                   '- Die **Rezepte** in einer Reihenfolge, die du mit ↑ und ↓ festlegst',
                   '- Ein **Bild mitten im Text**, wie dieses:',
                   picture(second ?? first, 'Ein Bild im Text, mit Bildunterschrift'),
+                  '## Was du mit einer Sammlung machen kannst',
+                  '1. **Einkaufsliste**: unten auf der Seite kommen alle Zutaten aller Rezepte auf einmal auf die Liste, zusammengefasst.',
+                  '2. **Als Menü anlegen**: macht aus der Sammlung eine Menükarte mit Gängen, zum Drucken oder als Link für Gäste.',
+                  '3. **Teilen**: privat für den Haushalt, mit einem Link für einzelne Leute, oder öffentlich.',
+                  '4. **Im Blog**: ein Beitrag kann von dieser Sammlung erzählen; er erscheint dann unten auf dieser Seite.',
                   first ? `Anfangen würde ich mit [${first.title}](/de/recipe/${first.slug}).` : '',
               ]
             : [
@@ -55,6 +60,11 @@ export function exampleCollection(locale: ExampleLocale, recipes: ExampleRecipe[
                   '- The **recipes** in an order you set with ↑ and ↓',
                   '- A **picture in the middle of the text**, like this one:',
                   picture(second ?? first, 'A picture in the text, with a caption'),
+                  '## What you can do with a collection',
+                  '1. **Shopping list**: at the bottom of the page, every ingredient of every recipe goes onto the list at once, combined.',
+                  '2. **Make a menu**: turns the collection into a menu card with courses, to print or to send to your guests.',
+                  '3. **Share**: private to the household, with a link for particular people, or public.',
+                  '4. **In the blog**: a post can tell the story of this collection; it then appears at the bottom of this page.',
                   first ? `I would start with [${first.title}](/en/recipe/${first.slug}).` : '',
               ];
 
@@ -90,6 +100,10 @@ export function examplePost(locale: ExampleLocale, recipes: ExampleRecipe[], col
                   'Ein Beitrag kann über **mehrere Rezepte** und **Sammlungen** sein. Jedes bekommt am Ende eine Karte, und der Beitrag erscheint auf der Seite jedes Rezepts.',
                   numbered(picked.map(recipeLink)),
                   collection ? `Und die ganze Sammlung: [${collection.title}](/${locale}/collections/${collection.slug}).` : '',
+                  '## Titelbild, Entwurf, Veröffentlichen',
+                  'Das **Titelbild** steht oben über dem Beitrag und in der Übersicht. Solange der Beitrag ein **Entwurf** ist, sehen ihn nur Admins; **Veröffentlichen** macht ihn für den Haushalt sichtbar, und über **Teilen** auch mit einem Link oder öffentlich.',
+                  '## Ein Abend daraus',
+                  `Aus einer Sammlung wird mit „Als Menü anlegen“ eine Menükarte – mit Gängen, im Stil „Unter Freunden“, „Date Night“ oder „Festlich“, zum Drucken als A5 oder als Link für die Gäste. Alle Menüs: [Menüs](/${locale}/menus).`,
               ]
             : [
                   'This is an **example post**. It shows everything the editor can do — open it to edit and see how it is written. It stays a draft until you publish it.',
@@ -106,6 +120,10 @@ export function examplePost(locale: ExampleLocale, recipes: ExampleRecipe[], col
                   'A post can be about **several recipes** and **collections**. Each gets a card at the end, and the post appears on every recipe\'s page.',
                   numbered(picked.map(recipeLink)),
                   collection ? `And the whole collection: [${collection.title}](/${locale}/collections/${collection.slug}).` : '',
+                  '## Cover picture, draft, publishing',
+                  'The **cover picture** sits above the post and in the overview. While the post is a **draft**, only admins see it; **Publish** makes it visible to the household, and **Share** also with a link or publicly.',
+                  '## An evening out of it',
+                  `“Make a menu” turns a collection into a menu card – with courses, in the style “With friends”, “Date night” or “Festive”, to print on A5 or to send to your guests as a link. All menus: [Menus](/${locale}/menus).`,
               ];
 
     return {

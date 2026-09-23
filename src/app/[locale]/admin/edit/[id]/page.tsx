@@ -6,6 +6,8 @@ import RecipeHistory, { type HistoryEntry } from '@/components/recipe-form/Recip
 import RecipeForm from '@/components/recipe-form/RecipeForm';
 import { canUseAi } from '@/lib/aiProviders';
 import { aiCapability } from '@/lib/aiConfig';
+import { collectionFacets } from '@/lib/collectionFacets';
+import { asLanguage, storedRows } from '@/lib/recipeTranslation';
 
 interface EditableRecipe {
     tags: string[];
@@ -15,6 +17,11 @@ interface EditableRecipe {
     description: string | null;
     category: string | null;
     nationality: string | null;
+    categories: string[];
+    cuisines: string[];
+    spiciness: number;
+    language: string | null;
+    translations: { locale: string; title: string; description: string; instructions: string; ingredients: unknown; source: string }[];
     instructions: string;
     servings: number | null;
     prepMinutes: number | null;
@@ -38,6 +45,7 @@ export default async function EditRecipePage({
         include: {
             images: { orderBy: { position: 'asc' } },
             ingredients: { orderBy: { position: 'asc' } },
+            translations: true,
         },
     });
 
@@ -67,6 +75,7 @@ export default async function EditRecipePage({
     return (
         <>
         <RecipeForm
+            knownCategories={(await collectionFacets()).categories.map((facet) => facet.value)}
             mode="edit"
             aiEnabled={canUseAi(await aiCapability())}
             initial={{
@@ -87,6 +96,11 @@ export default async function EditRecipePage({
                 prepMinutes: recipe.prepMinutes,
                 cookMinutes: recipe.cookMinutes,
                 tags: recipe.tags,
+                categories: recipe.categories,
+                cuisines: recipe.cuisines,
+                spiciness: recipe.spiciness,
+                language: asLanguage(recipe.language),
+                translation: translationOf(recipe.translations[0]),
             }}
         />
         <div className="container mx-auto max-w-3xl px-4 pb-24 md:px-8">
@@ -94,4 +108,10 @@ export default async function EditRecipePage({
         </div>
         </>
     );
+}
+
+function translationOf(row: EditableRecipe['translations'][number] | undefined) {
+    const locale = asLanguage(row?.locale);
+    if (!row || !locale) return null;
+    return { ...row, locale, ingredients: storedRows(row.ingredients) };
 }

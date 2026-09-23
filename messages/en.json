@@ -1,7 +1,7 @@
 {
   "Site": {
     "title": "mo'scookbook",
-    "description": "A collection of my favorite recipes",
+    "description": "My favourite recipes – cooked, kept, passed on.",
     "rightsReserved": "All rights reserved."
   },
   "Navigation": {
@@ -42,7 +42,8 @@
     "tagsLabel": "Diet, time and tags",
     "offlineKeep": "Keep my favourites on this device for offline",
     "offlineKeeping": "Saving {done} of {total}…",
-    "offlineKept": "{count, plural, one {# recipe} other {# recipes}} can now be opened without signal."
+    "offlineKept": "{count, plural, one {# recipe} other {# recipes}} can now be opened without signal.",
+    "favoritesChip": "Favourites"
   },
   "Categories": {
     "Breakfast": "Breakfast",
@@ -50,7 +51,15 @@
     "Dinner": "Dinner",
     "Dessert": "Dessert",
     "Snack": "Snack",
-    "Drink": "Drink"
+    "Drink": "Drink",
+    "Starter": "Starter",
+    "Main": "Main course",
+    "Side": "Side",
+    "Soup": "Soup",
+    "Salad": "Salad",
+    "Baking": "Baking",
+    "Bread": "Bread",
+    "Sauce": "Sauce & dip"
   },
   "Cuisines": {
     "German": "German",
@@ -59,7 +68,17 @@
     "Mexican": "Mexican",
     "French": "French",
     "Greek": "Greek",
-    "Indian": "Indian"
+    "Indian": "Indian",
+    "Austrian": "Austrian",
+    "Spanish": "Spanish",
+    "Turkish": "Turkish",
+    "Middle Eastern": "Middle Eastern",
+    "Thai": "Thai",
+    "Vietnamese": "Vietnamese",
+    "Chinese": "Chinese",
+    "Japanese": "Japanese",
+    "Korean": "Korean",
+    "American": "American"
   },
   "Recipe": {
     "loadingRecipe": "Fetching the recipe…",
@@ -94,9 +113,6 @@
     "unitsMetric": "g / ml",
     "unitsOriginal": "As written",
     "screenMayDim": "Screen may dim",
-    "stepsTab": "Step",
-    "ingredientsTab": "Ingredients",
-    "overviewTab": "Overview",
     "stepOf": "Step {number} of {total}",
     "stepDone": "done",
     "startTimer": "{label}",
@@ -105,13 +121,20 @@
     "timerStop": "Stop the {label} timer",
     "stepShort": "step {number}",
     "needForStep": "For this step",
-    "allStepsDone": "All steps done. Enjoy!",
+    "allStepsDone": "All done. Enjoy!",
     "previousStep": "Back",
     "nextStep": "Next",
     "doneNext": "Done, next",
     "doneLast": "Done",
     "finishCooking": "Finish",
-    "cookModeStart": "Start cooking"
+    "cookModeStart": "Start cooking",
+    "resumeCooking": "Carry on cooking",
+    "startOver": "Start over",
+    "resumeBanner": "You are cooking this: {done} of {total} steps done.",
+    "cookViewList": "Tick off",
+    "cookViewSteps": "Step by step",
+    "cookFinish": "Done cooking",
+    "translatedFrom": "Translated from {language, select, de {German} other {English}}"
   },
   "Rating": {
     "rate": "Rate",
@@ -208,7 +231,10 @@
     "adminNavLabel": "Admin sections",
     "invitedBy": "Invited by {name}",
     "invitedByOn": "Invited by {name} · joined {date}",
-    "unverified": "address not confirmed"
+    "unverified": "address not confirmed",
+    "protected_self": "That is you",
+    "protected_owner": "Owner – protected",
+    "protected_lastAdmin": "Only admin – protected"
   },
   "RecipeForm": {
     "newRecipe": "New recipe",
@@ -288,7 +314,37 @@
     "field_servings": "servings",
     "field_ingredients": "ingredients",
     "field_instructions": "method",
-    "field_tags": "tags"
+    "field_tags": "tags",
+    "needIngredient": "A recipe needs at least one ingredient.",
+    "categoryHint": "Choose from the list – or type a new category; it then appears as a filter.",
+    "labelsAdd": "Add your own (Enter)",
+    "labelsFull": "At most {max}",
+    "dietLabel": "Diet · meat & fish",
+    "dietSuggested": "Going by the ingredients: {diet}",
+    "spicinessLabel": "Heat",
+    "spicinessLevel": "{level, plural, =0 {Not hot} one {Mild} =2 {Hot} other {Very hot}}",
+    "notSpicy": "Not hot",
+    "translationHeading": "Second language",
+    "writtenIn": "This recipe is in",
+    "language": {
+      "de": "German",
+      "en": "English"
+    },
+    "translateTo": {
+      "de": "Translate into German",
+      "en": "Translate into English"
+    },
+    "translationOf": {
+      "de": "German version — saved with the recipe. You can still adjust it here.",
+      "en": "English version — saved with the recipe. You can still adjust it here."
+    },
+    "translating": "Translating …",
+    "translateHint": "With AI, amounts and units included (e.g. EL → tbsp, cups → g/ml). The recipe is then available in both languages; everyone sees it in theirs.",
+    "translateAgain": "Translate again",
+    "translationStale": "The recipe has changed since it was translated.",
+    "translationRemove": "Remove translation",
+    "translateFailed": "The translation did not work. Try again in a moment.",
+    "translateUnusable": "The AI left out or merged ingredients, so the translation was discarded. Try again."
   },
   "QuickImport": {
     "heading": "Fill in quickly",
@@ -357,13 +413,13 @@
   },
   "Inbox": {
     "title": "Inbox",
-    "explanation": "Everything you share from your phone or paste here lands in the inbox first. Add it to the cookbook, save it as a draft, or edit it first.",
+    "explanation": "Everything you share from your phone or paste here lands in the inbox first. What was recognised completely you take into the cookbook; where something is missing, the coloured box says what you can do.",
     "loading": "Loading the inbox…",
     "rereading": "Reading it again with the rules…",
     "empty": "Nothing waiting. Share something from your phone, or paste a link above.",
     "untitled": "Untitled",
     "accept": "Add to cookbook",
-    "finish": "Edit first",
+    "finish": "Edit",
     "retry": "Read again",
     "discard": "Delete",
     "openSource": "Open the source",
@@ -373,9 +429,9 @@
     "published": "{count, plural, one {# already taken} other {# already taken}}",
     "nav": "Inbox",
     "status": {
-      "new": "Not read yet",
-      "ready": "Ready",
-      "needsWork": "Needs a minute",
+      "new": "Being read…",
+      "ready": "Complete",
+      "needsWork": "Needs your decision",
       "failed": "Could not be read",
       "published": "Taken"
     },
@@ -399,7 +455,7 @@
     "legendTitle": "What the buttons do",
     "legendAccept": "Add to cookbook — the recipe goes straight into your list, as it is.",
     "legendStage": "Save as draft — it is kept, but under Drafts until you have cooked it and marked it done.",
-    "legendFinish": "Edit first — opens the recipe form with everything filled in, to correct it before saving.",
+    "legendFinish": "Edit — opens the recipe form with everything filled in, to correct it before saving.",
     "legendRetry": "More → Read again — reads the link once more with the rules; the AI only if the rules fall short. Free unless the AI is needed.",
     "legendAskAi": "More → Read with AI — has the AI read it even if the rules think they managed. Costs one call.",
     "legendRest": "More → Open the source, Report a problem (a ticket already describing this row), Delete.",
@@ -449,7 +505,25 @@
       "unsafe-url": "unsafe address",
       "not-a-page": "not a web page",
       "not-an-image": "not a picture"
-    }
+    },
+    "decision": {
+      "noRecipe": "No recipe found",
+      "elsewhere": "The recipe is somewhere else",
+      "spoken": "Recipe only spoken in the video",
+      "picture": "Picture not read yet",
+      "partial": "Only partly recognised",
+      "failed": "Import failed",
+      "incomplete": "Not fully recognised"
+    },
+    "step": {
+      "askAi": "Read with AI",
+      "retry": "Read again",
+      "edit": "Edit",
+      "openSource": "Open the source",
+      "discard": "Delete"
+    },
+    "aiOffHint": "The AI could help here, but it is switched off (Admin → AI).",
+    "legendDecision": "Rows with a coloured edge were not fully recognised: the box says what happened, and the steps that fit."
   },
   "Devices": {
     "title": "Devices",
@@ -674,7 +748,7 @@
   "Collections": {
     "title": "Collections",
     "nav": "Collections",
-    "intro": "A handful of recipes with a name on it — a menu, a week, an evening.",
+    "intro": "Recipes that belong together – a trip, a season, a theme. For an evening in courses there are the menus.",
     "none": "No collections yet.",
     "empty": "Nothing in this collection yet.",
     "createNew": "New collection",
@@ -756,7 +830,10 @@
     "nav": "Reports",
     "title": "Reports",
     "errors": "Errors",
-    "tickets": "Tickets"
+    "tickets": "Tickets",
+    "photoAlt": "Screenshot",
+    "photoRemove": "Remove screenshot",
+    "photoAttach": "+ Attach screenshot"
   },
   "Tickets": {
     "title": "Open a ticket",
@@ -791,7 +868,13 @@
     "copyFailed": "Could not copy.",
     "ticketHint": "Copies a finished text with the page, the date and the description — to paste wherever it gets fixed.",
     "dropPage": "Leave it out",
-    "exportMarkdown": "Copy all as Markdown"
+    "exportMarkdown": "Copy all as Markdown",
+    "photosLabel": "Screenshots (optional)",
+    "photosHint": "Often shows faster than words what went wrong. Up to four.",
+    "photoAdd": "+ Photo",
+    "photoRemove": "Remove photo",
+    "photoTooLarge": "The picture is too large.",
+    "photoFailed": "The picture could not be uploaded."
   },
   "Account": {
     "devicesTitle": "Devices",
@@ -1057,12 +1140,24 @@
       "other": "Other",
       "basics": "Probably at home"
     },
-    "addMenuGuests": "Shopping list for {count, plural, one {# guest} other {# guests}}"
+    "addMenuGuests": "Shopping list for {count, plural, one {# guest} other {# guests}}",
+    "undoAdd": "Take it off again",
+    "nothingToAdd": "This recipe has no ingredients – nothing went onto the list.",
+    "removedAgain": "Taken off the list again."
   },
   "Tags": {
     "vegetarian": "Vegetarian",
     "vegan": "Vegan",
-    "quick": "Quick (≤ 30 min)"
+    "quick": "Quick (≤ 30 min)",
+    "beef": "Beef",
+    "pork": "Pork",
+    "poultry": "Poultry",
+    "lamb": "Lamb",
+    "game": "Game",
+    "fish": "Fish",
+    "seafood": "Seafood",
+    "spicy": "Hot",
+    "spicinessLevel": "{level, plural, =0 {Not hot} one {Mild} =2 {Hot} other {Very hot}}"
   },
   "ShareTarget": {
     "title": "Into the inbox",
@@ -1172,6 +1267,14 @@
       "published": "done (taken into the cookbook)",
       "ready": "done (now read correctly)",
       "removed": "done (source deleted)"
-    }
+    },
+    "withPhotos": "Publish {count, plural, one {the screenshot} other {the # screenshots}} with it",
+    "copyBoth": "Copy prompt + list (for an AI chat)",
+    "copyPrompt": "Copy the prompt only",
+    "copyList": "Copy the list only (JSON)",
+    "downloadJson": "Download as JSON",
+    "downloadMarkdown": "Download as Markdown",
+    "copyFailed": "Copying did not work – the browser refused access to the clipboard.",
+    "exportListHeading": "# The open items on the work list"
   }
 }

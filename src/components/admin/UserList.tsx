@@ -17,6 +17,8 @@ interface User {
     invitedBy: string | null;
     /** When they took it up. */
     joinedAt: string | null;
+    /** Why this row cannot be demoted or deleted here, if it cannot. */
+    protectedAs: 'self' | 'owner' | 'lastAdmin' | null;
 }
 
 /**
@@ -159,6 +161,9 @@ export default function UserList() {
                                 {user.admin ? t('roleAdmin') : t('roleUser')}
                             </span>
 
+                            {user.protectedAs ? (
+                                <span className="shrink-0 text-sm text-muted">{t(`protected_${user.protectedAs}`)}</span>
+                            ) : (
                             <div className="flex shrink-0 items-center gap-3 text-sm">
                                 <button
                                     type="button"
@@ -175,6 +180,7 @@ export default function UserList() {
                                     className="underline underline-offset-4 hover:text-danger"
                                 />
                             </div>
+                            )}
                         </li>
                     ))}
                 </ul>

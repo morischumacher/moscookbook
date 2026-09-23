@@ -1,5 +1,5 @@
 import prisma from './prisma';
-import { linesFor, mergeInto, type PlannedLine } from './shopping';
+import { linesFor, mergeInto, removeFrom, type PlannedLine } from './shopping';
 
 /**
  * The shopping list's storage. The thinking is in lib/shopping.ts; this only
@@ -77,6 +77,23 @@ export async function addLines(listId: number, planned: PlannedLine[]): Promise<
     ]);
 
     return plan.updates.length + plan.creates.length;
+}
+
+/** The same lines taken off the list again. Returns how many lines changed. */
+export async function removeLines(listId: number, planned: PlannedLine[]): Promise<number> {
+    if (planned.length === 0) return 0;
+    const existing = await prisma.shoppingItem.findMany({
+        where: { listId, checked: false },
+        select: { id: true, key: true, measure: true, amount: true, sources: true, checked: true },
+    });
+    const plan = removeFrom(existing, planned);
+    await prisma.$transaction([
+        ...plan.updates.map((update) =>
+            prisma.shoppingItem.update({ where: { id: update.id }, data: { amount: update.amount, sources: update.sources } })
+        ),
+        prisma.shoppingItem.deleteMany({ where: { id: { in: plan.deletes }, listId } }),
+    ]);
+    return plan.updates.length + plan.deletes.length;
 }
 
 const ingredientSelect = {

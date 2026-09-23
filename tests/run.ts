@@ -63,6 +63,10 @@ import socialImport from './socialImport.test';
 import passkeys from './passkeys.test';
 import workItems from './workItems.test';
 import workAuto from './workAuto.test';
+import inboxDecision from './inboxDecision.test';
+import recipeLayout from './recipeLayout.test';
+import userProtection from './userProtection.test';
+import recipeTranslation from './recipeTranslation.test';
 import siteLearn, { siteLearnWiringTests } from './siteLearn.test';
 import drafts from './drafts.test';
 import routeParams from './routeParams.test';
@@ -151,6 +155,10 @@ const suites: [string, () => void | Promise<void>][] = [
     ['passkeys', passkeys],
     ['workItems', workItems],
     ['workAuto', workAuto],
+    ['inboxDecision', inboxDecision],
+    ['recipeLayout', recipeLayout],
+    ['userProtection', userProtection],
+    ['recipeTranslation', recipeTranslation],
     ['siteLearn', siteLearn],
     ['siteLearnWiringTests', siteLearnWiringTests],
     ['drafts', drafts],

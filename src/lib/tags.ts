@@ -11,6 +11,31 @@
 export const DIET_TAGS = ['vegetarian', 'vegan'] as const;
 export type DietTag = (typeof DIET_TAGS)[number];
 
+/** What meat or fish is in it — tags with fixed names, so they filter and show an icon. */
+export const PROTEIN_TAGS = ['beef', 'pork', 'poultry', 'lamb', 'game', 'fish', 'seafood'] as const;
+export type ProteinTag = (typeof PROTEIN_TAGS)[number];
+
+/** The tags the cookbook knows by name: shown with an icon, picked from a list, never typed. */
+export const KNOWN_TAGS: readonly string[] = [...DIET_TAGS, ...PROTEIN_TAGS];
+
+export const TAG_ICONS: Record<string, string> = {
+    vegan: '🌱',
+    vegetarian: '🥕',
+    beef: '🐄',
+    pork: '🐖',
+    poultry: '🐔',
+    lamb: '🐑',
+    game: '🦌',
+    fish: '🐟',
+    seafood: '🦐',
+};
+
+/** 0 = not hot, 1–3 chillies. */
+export const MAX_SPICINESS = 3;
+export function chillies(spiciness: number): string {
+    return '🌶️'.repeat(Math.max(0, Math.min(MAX_SPICINESS, Math.round(spiciness))));
+}
+
 export const MAX_TAGS = 12;
 
 export function normaliseTags(tags: string[]): string[] {
@@ -24,11 +49,36 @@ export function normaliseTags(tags: string[]): string[] {
 }
 
 /** What people type for the two diet tags, in either language. */
-const DIET_ALIASES: Record<string, DietTag> = {
+const DIET_ALIASES: Record<string, DietTag | ProteinTag> = {
     vegetarisch: 'vegetarian',
     veggie: 'vegetarian',
     vegetarian: 'vegetarian',
     vegan: 'vegan',
+    rind: 'beef',
+    rindfleisch: 'beef',
+    beef: 'beef',
+    schwein: 'pork',
+    schweinefleisch: 'pork',
+    pork: 'pork',
+    geflügel: 'poultry',
+    gefluegel: 'poultry',
+    huhn: 'poultry',
+    hähnchen: 'poultry',
+    haehnchen: 'poultry',
+    chicken: 'poultry',
+    pute: 'poultry',
+    ente: 'poultry',
+    poultry: 'poultry',
+    lamm: 'lamb',
+    lamb: 'lamb',
+    wild: 'game',
+    game: 'game',
+    fisch: 'fish',
+    fish: 'fish',
+    meeresfrüchte: 'seafood',
+    meeresfruechte: 'seafood',
+    garnelen: 'seafood',
+    seafood: 'seafood',
 };
 
 const MEAT_OR_FISH =

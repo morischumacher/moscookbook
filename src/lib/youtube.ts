@@ -86,7 +86,11 @@ export function jsonStringAfter(html: string, key: string, from = 0): string | n
 function metaContent(html: string, selector: RegExp): string | null {
     const match = selector.exec(html);
     if (!match) return null;
-    return match[1]
+    return decodeHtml(match[1]);
+}
+
+function decodeHtml(text: string): string {
+    return text
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'")
         .replace(/&amp;/g, '&')
@@ -103,23 +107,75 @@ export interface YoutubePage {
 }
 
 /**
+ * The JSON object that starts right after `"<key>":`, parsed whole.
+ *
+ * Walked to its closing brace, minding strings, rather than searched inside:
+ * searching for the first `"title":"` after "videoDetails" is what used to
+ * name videos "3720" and "737.681". On some pages — Shorts among them — the
+ * first "videoDetails" is a small object without a title, and the next
+ * "title" in the page belonged to something else entirely, a view count.
+ */
+function objectAfter(html: string, key: string): Record<string, unknown> | null {
+    let from = 0;
+    while (true) {
+        const at = html.indexOf(`"${key}":{`, from);
+        if (at === -1) return null;
+        const start = html.indexOf('{', at);
+        let depth = 0;
+        let inString = false;
+        let escaped = false;
+        for (let index = start; index < html.length && index < start + 200_000; index += 1) {
+            const character = html[index];
+            if (inString) {
+                if (escaped) escaped = false;
+                else if (character === '\\') escaped = true;
+                else if (character === '"') inString = false;
+                continue;
+            }
+            if (character === '"') inString = true;
+            else if (character === '{') depth += 1;
+            else if (character === '}') {
+                depth -= 1;
+                if (depth === 0) {
+                    try {
+                        const parsed = JSON.parse(html.slice(start, index + 1)) as Record<string, unknown>;
+                        // The one with a title is the one we want; keep looking otherwise.
+                        if (typeof parsed.title === 'string') return parsed;
+                    } catch {
+                        // Not valid JSON on its own; try the next one.
+                    }
+                    break;
+                }
+            }
+        }
+        from = at + key.length + 3;
+    }
+}
+
+/** A title that is only digits and separators is a counter, not a title. */
+function realTitle(value: string | null | undefined): string | null {
+    const trimmed = (value ?? '').trim();
+    if (!trimmed || /^[\d\s.,:'’]+$/.test(trimmed)) return null;
+    return trimmed;
+}
+
+/**
  * Pulls what a watch page offers. Every field is optional in practice, so each
  * has a fallback and the caller decides whether what came back is enough.
  */
 export function extractYoutubePage(html: string, videoId: string): YoutubePage {
-    // "title" appears hundreds of times in a watch page — every menu item has
-    // one. Anchoring on "videoDetails" is what makes reading the *video's*
-    // title rather than a sidebar entry's reliable.
-    const details = html.indexOf('"videoDetails"');
-    const from = details === -1 ? 0 : details;
+    const details = objectAfter(html, 'videoDetails');
 
+    const pageTitle = /<title>([^<]*)<\/title>/i.exec(html)?.[1]?.replace(/\s*-\s*YouTube\s*$/i, '');
     const title =
-        (details === -1 ? null : jsonStringAfter(html, 'title', from)) ??
-        metaContent(html, /<meta\s+property="og:title"\s+content="([^"]*)"/i) ??
+        realTitle(typeof details?.title === 'string' ? details.title : null) ??
+        realTitle(metaContent(html, /<meta\s+property="og:title"\s+content="([^"]*)"/i)) ??
+        realTitle(metaContent(html, /<meta\s+name="title"\s+content="([^"]*)"/i)) ??
+        realTitle(pageTitle ? decodeHtml(pageTitle) : null) ??
         '';
 
     const description =
-        jsonStringAfter(html, 'shortDescription', from) ??
+        (typeof details?.shortDescription === 'string' ? details.shortDescription : null) ??
         metaContent(html, /<meta\s+property="og:description"\s+content="([^"]*)"/i) ??
         '';
 
@@ -128,6 +184,7 @@ export function extractYoutubePage(html: string, videoId: string): YoutubePage {
         `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
 
     const channel =
+        (typeof details?.author === 'string' ? details.author : null) ??
         jsonStringAfter(html, 'ownerChannelName') ??
         metaContent(html, /<link\s+itemprop="name"\s+content="([^"]*)"/i) ??
         '';

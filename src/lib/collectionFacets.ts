@@ -36,14 +36,10 @@ export interface CollectionFacets {
     tags: { value: string; count: number }[];
     /** How many finished recipes take half an hour or less. */
     quick: number;
+    /** How many have at least one chilli. */
+    spicy: number;
     /** Every recipe, regardless of filter — what "all recipes" counts. */
     total: number;
-}
-
-interface Group {
-    category?: string | null;
-    nationality?: string | null;
-    _count: { _all: number };
 }
 
 async function readFacets(): Promise<CollectionFacets> {
@@ -51,8 +47,20 @@ async function readFacets(): Promise<CollectionFacets> {
         // Drafts are not in the list the chips filter, so counting them would
         // promise results a click cannot deliver — a category chip reading "3"
         // that opens onto two recipes.
-        prisma.recipe.groupBy({ by: ['category'], where: { isDraft: false }, _count: { _all: true } }),
-        prisma.recipe.groupBy({ by: ['nationality'], where: { isDraft: false }, _count: { _all: true } }),
+        // Every category and cuisine a recipe has, not only its first: a soup
+        // filed as a starter and a main counts under both.
+        prisma.$queryRaw<{ value: string; count: bigint }[]>`
+            SELECT value, count(*)::bigint AS count
+            FROM "Recipe", unnest("categories") AS value
+            WHERE "isDraft" = false
+            GROUP BY value
+        `,
+        prisma.$queryRaw<{ value: string; count: bigint }[]>`
+            SELECT value, count(*)::bigint AS count
+            FROM "Recipe", unnest("cuisines") AS value
+            WHERE "isDraft" = false
+            GROUP BY value
+        `,
         prisma.recipe.count({ where: { isDraft: false } }),
         prisma.$queryRaw<{ value: string; count: bigint }[]>`
             SELECT tag AS value, count(*)::bigint AS count
@@ -68,20 +76,22 @@ async function readFacets(): Promise<CollectionFacets> {
               AND COALESCE("prepMinutes", 0) + COALESCE("cookMinutes", 0) BETWEEN 1 AND ${QUICK_MINUTES}
         `,
     ]);
+    const spicy = await prisma.recipe.count({ where: { isDraft: false, spiciness: { gte: 1 } } });
 
     // Shaped here rather than at the call site, so what is kept in the cache is
     // what the chips render — busiest first, blanks dropped.
-    const named = (groups: Group[], key: 'category' | 'nationality') =>
+    const named = (groups: { value: string; count: bigint }[]) =>
         groups
-            .map((group) => ({ value: (group[key] ?? '').trim(), count: group._count._all }))
+            .map((group) => ({ value: (group.value ?? '').trim(), count: Number(group.count) }))
             .filter((entry) => entry.value !== '')
             .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
 
     return {
-        categories: named(categoryGroups, 'category'),
-        cuisines: named(cuisineGroups, 'nationality'),
+        categories: named(categoryGroups),
+        cuisines: named(cuisineGroups),
         tags: tagRows.map((row) => ({ value: row.value, count: Number(row.count) })),
         quick: Number(quickRows[0]?.count ?? 0),
+        spicy,
         total,
     };
 }

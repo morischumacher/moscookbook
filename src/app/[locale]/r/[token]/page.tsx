@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import { inLanguage } from '@/lib/recipeTranslation';
 import RecipeArticle, { recipeInclude, type RecipeRow } from '@/components/recipe/RecipeArticle';
 import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
@@ -45,7 +46,8 @@ export async function generateMetadata({
     params: Promise<{ token: string; locale: string }>;
 }): Promise<Metadata> {
     const { token, locale } = await params;
-    const recipe = await loadShared(token);
+    const found = await loadShared(token);
+    const recipe = found && inLanguage(found, locale);
 
     const tRecipe = await getTranslations({ locale, namespace: 'Recipe' });
 

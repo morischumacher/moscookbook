@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { failed } from '@/lib/reportServerError';
+import { ownerId, protectionOf } from '@/lib/userProtection';
 
 /** What the list needs about one person. Annotated: no generated client. */
 interface UserRow {
@@ -46,8 +47,13 @@ export async function GET() {
             orderBy: { id: 'desc' },
         });
 
+        const owner = await ownerId();
+        const admins = users.filter((user) => user.admin).length;
+
         return NextResponse.json({
             users: users.map((user) => ({
+                // Why the list offers no buttons on this row, if it does not.
+                protectedAs: user.admin ? protectionOf(user.id, auth.user.id, owner, admins) : user.id === auth.user.id ? 'self' : null,
                 id: user.id,
                 name: user.name,
                 email: user.email,

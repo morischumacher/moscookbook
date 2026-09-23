@@ -6,7 +6,8 @@ import { requireAdmin } from '@/lib/auth';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
-import { ingredientRows as positioned, recipeColumns } from '@/lib/recipeRepo';
+import { ingredientRows as positioned, recipeColumns, translationRow } from '@/lib/recipeRepo';
+import { storedRows } from '@/lib/recipeTranslation';
 import { changedFields, snapshotOf } from '@/lib/revisions';
 import { keepRevisionOf } from '@/lib/revisionsDb';
 import { positiveIntId } from '@/lib/routeParams';
@@ -99,6 +100,21 @@ export async function PUT(
         });
         const keepRevision = previous !== null && changedFields(previous, next).length > 0;
 
+        // The translation: replaced when the form sent one (or null to drop
+        // it), otherwise kept — and then still read, so the search columns
+        // rewritten below go on finding the recipe in both languages.
+        const sentTranslation = parsed.data.translation;
+        const language = parsed.data.language;
+        const kept = sentTranslation === undefined
+            ? await prisma.recipeTranslation.findFirst({ where: { recipeId } })
+            : null;
+        const translation = sentTranslation !== undefined
+            ? sentTranslation
+            : kept
+                ? { ...kept, locale: kept.locale as 'de' | 'en', ingredients: storedRows(kept.ingredients) }
+                : null;
+        const newTranslation = sentTranslation !== undefined ? translationRow(sentTranslation, language) : null;
+
         const [updatedRecipe] = await prisma.$transaction([
             prisma.recipe.update({
                 where: { id: recipeId },
@@ -114,8 +130,15 @@ export async function PUT(
                     cookMinutes,
                     ingredients: structured,
                     tags: parsed.data.tags,
+                    categories: parsed.data.categories,
+                    cuisines: parsed.data.cuisines,
+                    spiciness: parsed.data.spiciness,
+                    language,
+                    translation,
                 }),
             }),
+            ...(sentTranslation !== undefined ? [prisma.recipeTranslation.deleteMany({ where: { recipeId } })] : []),
+            ...(newTranslation ? [prisma.recipeTranslation.create({ data: { ...newTranslation, recipeId } })] : []),
             prisma.ingredient.deleteMany({ where: { recipeId } }),
             prisma.ingredient.createMany({ data: ingredientRows }),
             // Replaced wholesale rather than diffed, like the ingredients: the

@@ -1,6 +1,7 @@
 'use client';
 
 import ShareToWorkList, { type WorkState } from '@/components/admin/ShareToWorkList';
+import ReportPhotos, { type ReportPhoto } from '@/components/admin/ReportPhotos';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/lib/formatDate';
@@ -10,6 +11,7 @@ import { useCopy } from '@/components/ui/useCopy';
 import Loading from '@/components/ui/Loading';
 
 interface ErrorRow {
+    photos: ReportPhoto[];
     /** On the work list, and whether it was put there automatically. */
     work: WorkState | null;
     id: number;
@@ -206,6 +208,8 @@ export default function ErrorsPanel() {
                             <p className="mt-2 font-mono text-sm leading-snug">{row.message}</p>
                             {row.path && <p className="mt-1 text-sm text-muted">{row.path}</p>}
 
+                            <ReportPhotos photos={row.photos} attachTo={row.id} />
+
                             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
                                 {row.stack && (
                                     <button
@@ -216,7 +220,7 @@ export default function ErrorsPanel() {
                                         {expanded === row.id ? t('hideStack') : t('showStack')}
                                     </button>
                                 )}
-                                <ShareToWorkList kind="error" id={row.id} work={row.work} key={`w-${row.id}-${row.work?.id ?? 0}`} />
+                                <ShareToWorkList kind="error" id={row.id} work={row.work} photoCount={row.photos.length} key={`w-${row.id}-${row.work?.id ?? 0}`} />
                                 {!showResolved ? (
                                     <button
                                         type="button"

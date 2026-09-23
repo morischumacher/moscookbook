@@ -9,7 +9,8 @@
  * nothing.
  */
 
-export const INBOX_STATES = ['ready', 'needsWork', 'failed', 'new'] as const;
+// What needs you first: undecided, then unreadable, then complete.
+export const INBOX_STATES = ['needsWork', 'failed', 'ready', 'new'] as const;
 export type InboxState = (typeof INBOX_STATES)[number];
 
 export const INBOX_SORTS = ['newest', 'oldest', 'complete'] as const;

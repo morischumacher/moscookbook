@@ -184,6 +184,8 @@ model ErrorLog {
   lastSeenAt  DateTime @default(now())
   /// Set when it has been dealt with; the list hides these.
   resolvedAt  DateTime?
+  /// Screenshots the admin attached to show what it looked like.
+  photos      ReportPhoto[]
 
   @@index([resolvedAt, lastSeenAt])
 }
@@ -387,6 +389,17 @@ model Recipe {
   /// Search columns. Written by searchFields() in src/lib/searchText.ts, never
   /// by hand: they hold the recipe's own wording plus an ae/oe/ue spelling of
   /// every word with an umlaut, so "Kaesespaetzle" finds "Käsespätzle".
+  /// Every category and cuisine the recipe belongs to, the first one being
+  /// `category` / `nationality` above. A trigger (migration 0041) keeps the
+  /// single columns and these lists in step, whichever a writer touches.
+  categories   String[]   @default([])
+  cuisines     String[]   @default([])
+  /// How hot: 0 not at all, 1–3 chillies.
+  spiciness    Int        @default(0)
+  /// The language it was written in, "de" or "en"; null for a recipe from
+  /// before anybody asked. See lib/recipeTranslation.ts.
+  language     String?
+
   searchTitle  String     @default("")
   searchBody   String     @default("")
 
@@ -405,6 +418,7 @@ model Recipe {
   posts          PostRecipe[]
   cookEntries    CookEntry[]
   collections    CollectionRecipe[]
+  translations   RecipeTranslation[]
 
   /// This table had no index at all beyond the two unique columns and the
   /// search vector, while being the table everything sorts and groups by.
@@ -559,6 +573,9 @@ model Ticket {
   /// should not delete the reason the tool got better.
   userId     Int?
   user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  /// Screenshots sent with it.
+  photos     ReportPhoto[]
 
   createdAt  DateTime  @default(now())
 
@@ -947,7 +964,46 @@ model WorkItem {
   /// Taken off the list by the admin. Kept rather than deleted, so an
   /// automatic item that was not wanted does not come straight back.
   dismissedAt DateTime?
+  /// The admin chose to publish the item's photos with it. Off by default:
+  /// a screenshot can show more than its sender meant to.
+  withPhotos Boolean   @default(false)
 
   @@unique([kind, refId])
   @@index([closedAt, createdAt])
+}
+
+/// A photo sent with a ticket, or attached by the admin to an error: what
+/// the page looked like when it went wrong. In the Blob store under an
+/// unguessable name; not in any backup, like the tickets and errors
+/// themselves.
+model ReportPhoto {
+  id         Int       @id @default(autoincrement())
+  url        String
+  ticketId   Int?
+  ticket     Ticket?   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  errorLogId Int?
+  errorLog   ErrorLog? @relation(fields: [errorLogId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@index([ticketId])
+  @@index([errorLogId])
+}
+
+/// A recipe in its other language, made by the AI in the form, looked at and
+/// saved with it. One per language. See lib/recipeTranslation.ts.
+model RecipeTranslation {
+  id           Int      @id @default(autoincrement())
+  recipeId     Int
+  recipe       Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  locale       String
+  title        String
+  description  String   @default("")
+  instructions String   @default("")
+  /// The ingredient editor's rows, [{amount, item}], headings as "## …".
+  ingredients  Json     @default("[]")
+  /// Fingerprint of the original it was made from, to notice it went stale.
+  source       String   @default("")
+  updatedAt    DateTime @updatedAt
+
+  @@unique([recipeId, locale])
 }
