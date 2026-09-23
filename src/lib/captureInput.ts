@@ -134,14 +134,24 @@ export function sniffImageType(base64: string): string {
  * cannot build a list of objects but can join texts — the base64 strings
  * joined with commas (line breaks inside one are ignored).
  */
-export function imagesFrom(body: {
-    image?: { base64: string; mediaType: string };
-    images?: { base64: string; mediaType: string }[] | string;
-}): { base64: string; mediaType: string }[] {
+export function imagesFrom(
+    body: {
+        image?: { base64: string; mediaType: string };
+        images?: { base64: string; mediaType: string }[] | string;
+    },
+    now = new Date()
+): { base64: string; mediaType: string }[] {
     const list: { base64: string; mediaType: string }[] = body.image ? [body.image] : [];
     if (typeof body.images === 'string') {
         for (const part of body.images.split(',')) {
-            const base64 = part.replace(/\s+/g, '');
+            // "2026-09-23T15:02:11+02:00|<base64>": the time the screenshot
+            // was taken, from the Shortcut. Older than a few minutes is not
+            // about this share — the Shortcut always sends the latest three,
+            // and this is where the ones from yesterday are left out.
+            const bar = part.indexOf('|');
+            const taken = bar === -1 ? null : new Date(part.slice(0, bar).trim());
+            if (taken && !Number.isNaN(taken.getTime()) && now.getTime() - taken.getTime() > RECENT_SCREENSHOT_MS) continue;
+            const base64 = (bar === -1 ? part : part.slice(bar + 1)).replace(/\s+/g, '');
             // "data:image/jpeg;base64" is the head of a data URL, split off by the comma.
             if (base64 && !base64.startsWith('data:')) list.push({ base64, mediaType: sniffImageType(base64) });
         }
@@ -150,3 +160,6 @@ export function imagesFrom(body: {
     }
     return list.slice(0, MAX_CAPTURE_IMAGES);
 }
+
+/** How old a screenshot may be and still belong to the share: five minutes, and one for a slow phone. */
+export const RECENT_SCREENSHOT_MS = 6 * 60 * 1000;

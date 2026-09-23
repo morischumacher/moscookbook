@@ -27,6 +27,10 @@ export default async function screenshotsTests() {
     const joined = imagesFrom({ images: `${JPEG},\n${PNG}\n,data:image/jpeg;base64,${JPEG}` });
     equal('joined with commas, line breaks ignored, a data URL head skipped', joined.map((image) => image.mediaType), ['image/jpeg', 'image/png', 'image/jpeg']);
     equal('the single picture comes first', imagesFrom({ image: { base64: PNG, mediaType: 'image/png' }, images: [{ base64: JPEG, mediaType: 'image/jpeg' }] }).length, 2);
+    const now = new Date('2026-09-23T15:05:00+02:00');
+    const dated = imagesFrom({ images: `2026-09-23T15:03:10+02:00|${JPEG},2026-09-22T09:00:00+02:00|${PNG},2026-09-23T15:04:00+02:00|${PNG}` }, now);
+    equal('with their time: the one from yesterday is left out', dated.map((image) => image.mediaType), ['image/jpeg', 'image/png']);
+    equal('a time that cannot be read keeps the picture', imagesFrom({ images: `gestern|${JPEG}` }, now).length, 1);
     equal('at most four', imagesFrom({ images: [JPEG, JPEG, JPEG, JPEG, JPEG, JPEG].join(',') }).length, 4);
 
     suite('screenshots: read together, the link followed');
