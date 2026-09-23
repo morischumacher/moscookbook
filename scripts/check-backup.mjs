@@ -70,6 +70,7 @@ const NOT_BACKED_UP = new Map([
     ['WorkItem', 'a to-do list about this installation; every snapshot can be made again from its source'],
     ['Passkey', 'sign-in keys for accounts, which are not in an archive; a restore makes new accounts and new passkeys'],
     ['RecipeTranslation', "carried inside each recipe's entry as translations, rather than as its own list"],
+    ['AiUsage', 'statistics about calls to AI providers; nothing a restore would miss'],
     ['MenuItem', "carried inside each menu's entry, in order, rather than as its own list"],
     ['CookEntryPhoto', "carried inside each cooking's entry, in order, rather than as its own list"],
 ]);

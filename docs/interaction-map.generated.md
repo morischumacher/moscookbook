@@ -3,14 +3,15 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-45 screens · 87 endpoints · 80 link edges · 89 call edges
+46 screens · 88 endpoints · 82 link edges · 90 call edges
 
 ## Screens
 
 | Route | Access | Proxy | Calls | Links to |
 |---|---|---|---|---|
 | `/[locale]/account` | account | requires session | `* /api/account`<br>`* /api/account/email`<br>`* /api/account/name`<br>`* /api/account/password`<br>`* /api/auth/logout`<br>`DELETE /api/account/avatar`<br>`DELETE /api/account/passkeys/[id]`<br>`GET /api/account/passkeys`<br>`POST /api/account/avatar`<br>`POST /api/account/passkeys`<br>`POST /api/account/passkeys/options` | `/[locale]/login` |
-| `/[locale]/admin/ai` | admin | requires admin | `DELETE /api/ai-keys/[id]`<br>`DELETE /api/site-profiles/[id]`<br>`GET /api/ai-keys`<br>`GET /api/site-profiles`<br>`PATCH /api/ai-keys`<br>`POST /api/ai-keys`<br>`POST /api/ai-keys/[id]/test`<br>`POST /api/site-profiles` | — |
+| `/[locale]/admin/ai` | admin | requires admin | `DELETE /api/ai-keys/[id]`<br>`DELETE /api/site-profiles/[id]`<br>`GET /api/ai-keys`<br>`GET /api/site-profiles`<br>`PATCH /api/ai-keys`<br>`POST /api/ai-keys`<br>`POST /api/ai-keys/[id]/test`<br>`POST /api/site-profiles` | `/[locale]/admin/ai/usage` |
+| `/[locale]/admin/ai/usage` | admin | requires admin | — | `/[locale]/admin/inbox` |
 | `/[locale]/admin/collections/[id]` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/admin/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections/new` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/admin/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections` | admin | requires admin | `POST /api/examples` | `/[locale]/admin/collections/[id]`<br>`/[locale]/admin/collections/new`<br>`/[locale]/collections/[id]` |
@@ -19,7 +20,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/drafts` | admin | requires admin | `POST /api/recipes/[id]/draft` | `/[locale]/recipe/[id]` |
 | `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/ai/translate`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/recipes/[id]/revisions/[id]` | `/[locale]/admin` |
 | `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
-| `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`DELETE /api/work-items/[id]`<br>`GET /api/capture`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge`<br>`POST /api/capture/share`<br>`POST /api/work-items` | `/[locale]/admin/create`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
+| `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`DELETE /api/work-items/[id]`<br>`GET /api/capture`<br>`GET /api/capture/[id]/tokens`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge`<br>`POST /api/capture/share`<br>`POST /api/work-items` | `/[locale]/admin/create`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
 | `/[locale]/admin/invites` | admin | requires admin | — | `/[locale]/admin/users` |
 | `/[locale]/admin/menus/[id]` | admin | requires admin | `* /api/menus`<br>`* /api/menus/[id]`<br>`DELETE /api/menus/[id]` | `/[locale]/menus`<br>`/[locale]/menus/[id]` |
 | `/[locale]/admin/menus/new` | admin | requires admin | `* /api/menus`<br>`* /api/menus/[id]`<br>`DELETE /api/menus/[id]` | `/[locale]/menus`<br>`/[locale]/menus/[id]` |
@@ -93,6 +94,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/capture/[id]/merge` | admin | zod | — | `src/app/[locale]/admin/inbox/page.tsx` |
 | POST | `/api/capture/[id]` | admin | zod | — | `src/app/[locale]/admin/inbox/page.tsx` |
 | DELETE | `/api/capture/[id]` | admin | zod | — | `src/app/[locale]/admin/inbox/page.tsx` |
+| GET | `/api/capture/[id]/tokens` | admin | — | — | `admin/TokenCompare` |
 | POST | `/api/capture` | device token | zod | yes | *(nothing in the UI)* |
 | GET | `/api/capture` | admin | zod | yes | `src/app/[locale]/admin/inbox/page.tsx` |
 | PUT | `/api/collections/[id]` | admin | zod | — | `collection/CollectionForm` |
@@ -208,6 +210,7 @@ flowchart LR
   end
   subgraph admin
     n__locale__admin_ai["/[locale]/admin/ai"]
+    n__locale__admin_ai_usage["/[locale]/admin/ai/usage"]
     n__locale__admin_collections__id_["/[locale]/admin/collections/[id]"]
     n__locale__admin_collections_new["/[locale]/admin/collections/new"]
     n__locale__admin_collections["/[locale]/admin/collections"]
@@ -248,6 +251,8 @@ flowchart LR
     n__locale__verify["/[locale]/verify"]
   end
   n__locale__account --> n__locale__login
+  n__locale__admin_ai --> n__locale__admin_ai_usage
+  n__locale__admin_ai_usage --> n__locale__admin_inbox
   n__locale__admin_collections__id_ --> n__locale__admin_collections
   n__locale__admin_collections__id_ --> n__locale__collections__slug_
   n__locale__admin_collections_new --> n__locale__admin_collections
@@ -417,6 +422,9 @@ flowchart LR
   csrc_app__locale__admin_inbox_page_tsx --> ePOST_api_capture__id_
   eDELETE_api_capture__id_(["DELETE /api/capture/[id]"])
   csrc_app__locale__admin_inbox_page_tsx --> eDELETE_api_capture__id_
+  eGET_api_capture__id__tokens(["GET /api/capture/[id]/tokens"])
+  cadmin_TokenCompare["admin/TokenCompare"]
+  cadmin_TokenCompare --> eGET_api_capture__id__tokens
   eGET_api_capture(["GET /api/capture"])
   csrc_app__locale__admin_inbox_page_tsx --> eGET_api_capture
   ePUT_api_collections__id_(["PUT /api/collections/[id]"])

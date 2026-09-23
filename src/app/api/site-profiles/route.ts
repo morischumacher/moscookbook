@@ -6,12 +6,13 @@ import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { fetchPage } from '@/lib/fetchPage';
 import { extractRecipeFromHtml } from '@/lib/recipeFromHtml';
 import { readableText } from '@/lib/readableText';
-import { extractRecipeWithAi } from '@/lib/aiImport';
-import { aiCapability, rememberModel } from '@/lib/aiConfig';
+import { completeWithKey, extractRecipeWithAi } from '@/lib/aiImport';
+import { aiCapability } from '@/lib/aiConfig';
 import { learnSiteProfile } from '@/lib/siteLearn';
 import { hostOf } from '@/lib/siteProfile';
 import { listSiteProfiles, siteProfiles } from '@/lib/siteProfileDb';
 import { scrub } from '@/lib/secretBox';
+import { usageRecorder } from '@/lib/tokenUsageDb';
 
 /**
  * Learning a site on purpose.
@@ -104,14 +105,13 @@ export async function POST(req: NextRequest) {
      * Asking only for the map would give us something to store and nothing to
      * check it against.
      */
+    const usage = usageRecorder('learn', { source: 'web' });
     let recipe;
     try {
         recipe = await extractRecipeWithAi(
             { kind: 'text', text: readableText(page.html) },
             ai.keys,
-            (provider, model) => {
-                void rememberModel(provider, model);
-            }
+            usage.report
         );
     } catch (error) {
         // A provider's error text can quote the request that failed, and the
@@ -122,6 +122,8 @@ export async function POST(req: NextRequest) {
             { status: 502 }
         );
     }
+
+    await usage.flush();
 
     // A page the model could not read teaches nothing, and the rules' own
     // answer is worth mentioning because it explains an empty result.
@@ -136,7 +138,10 @@ export async function POST(req: NextRequest) {
         });
     }
 
-    const result = await learnSiteProfile(page.html, recipe, key);
+    const result = await learnSiteProfile(page.html, recipe, key, (learnKey, system, text) =>
+        completeWithKey(learnKey, { kind: 'raw', system, text }, usage.report)
+    );
+    await usage.flush();
 
     if (!result.profile) {
         /*

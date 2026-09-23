@@ -16,6 +16,8 @@ import InboxFilters from '@/components/admin/InboxFilters';
 import { countBy, filterInbox, NO_FILTER, type InboxQuery } from '@/lib/inboxFilter';
 import { readReason } from '@/lib/captureReasons';
 import { aiStage, decisionFor, type Step } from '@/lib/inboxDecision';
+import TokenCompare from '@/components/admin/TokenCompare';
+import { shortTokens } from '@/lib/tokenUsage';
 import ShareToWorkList, { type WorkState } from '@/components/admin/ShareToWorkList';
 
 interface DraftSummary {
@@ -65,6 +67,8 @@ interface Capture {
     duplicateOf: DuplicateHint | null;
     /** On the work list, and whether it was put there automatically. */
     work: WorkState | null;
+    /** Tokens every AI call for it used, summed; 0 when none was made. */
+    aiTokens: number;
 }
 
 /**
@@ -385,6 +389,7 @@ function CaptureRow({
 }) {
     const t = useTranslations('Inbox');
     const tAi = useTranslations('Ai');
+    const tTokens = useTranslations('Tokens');
     const tDrafts = useTranslations('Drafts');
     // The site's language, not the browser's: this page used
     // toLocaleDateString() with no argument, so a German reader on an
@@ -435,6 +440,7 @@ function CaptureRow({
      * the fix. See lib/inboxDecision.
      */
     const stage = aiStage(capture.readBy);
+    const [showTokens, setShowTokens] = useState(false);
 
     // Why it is not ready, in the reader's language. A row from before the
     // pipeline stored codes still has its English sentence, shown as it is.
@@ -511,10 +517,27 @@ function CaptureRow({
                     </>
                 )}
 
+                {/* What the model calls cost; opens the comparison. */}
+                {capture.aiTokens > 0 && (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => setShowTokens((open) => !open)}
+                            aria-expanded={showTokens}
+                            className="uppercase tracking-widest underline underline-offset-4"
+                        >
+                            {tTokens('chip', { tokens: shortTokens(capture.aiTokens, locale) })}
+                        </button>
+                        <span aria-hidden="true">·</span>
+                    </>
+                )}
+
                 <time dateTime={capture.createdAt}>
                     {formatDate(capture.createdAt, locale, 'short')}
                 </time>
             </div>
+
+            {showTokens && <TokenCompare captureId={capture.id} />}
 
             <h3 className="mt-2 text-lg font-bold leading-snug">{label}</h3>
 

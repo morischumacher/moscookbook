@@ -295,8 +295,28 @@ export async function GET() {
 
     const work = await workStates('capture', withHints.map((capture) => capture.id));
 
+    // What reading each one cost, summed over its calls; the row shows it
+    // and opens the comparison from it. See lib/tokenUsage.
+    const spent = await prisma.aiUsage
+        .groupBy({
+            by: ['captureId'],
+            where: { captureId: { in: withHints.map((capture) => capture.id) } },
+            _sum: { input: true, output: true },
+        })
+        .catch(() => []);
+    const tokens = new Map(
+        spent.map((row: { captureId: number | null; _sum: { input: number | null; output: number | null } }) => [
+            row.captureId,
+            (row._sum.input ?? 0) + (row._sum.output ?? 0),
+        ])
+    );
+
     return NextResponse.json({
-        captures: withHints.map((capture) => ({ ...capture, work: work.get(capture.id) ?? null })),
+        captures: withHints.map((capture) => ({
+            ...capture,
+            work: work.get(capture.id) ?? null,
+            aiTokens: tokens.get(capture.id) ?? 0,
+        })),
         aiAvailable: canUseAi(ai),
         aiModel: next ? next.model?.trim() || DEFAULT_MODEL[next.provider] : null,
     });

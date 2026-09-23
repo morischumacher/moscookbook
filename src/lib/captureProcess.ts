@@ -7,7 +7,7 @@ import { youtubeVideoId, extractYoutubePage, cleanYoutubeDescription } from './y
 import { fetchImageAsBase64 } from './fetchImage';
 import { readableText } from './readableText';
 import { assessDraft, worthAsking } from './draftQuality';
-import { assistsText, canUseAi, capabilityFromEnv, extractRecipeWithAi, type AiCapability } from './aiImport';
+import { assistsText, canUseAi, capabilityFromEnv, completeWithKey, extractRecipeWithAi, type AiCapability } from './aiImport';
 import { applyProfile, hostOf, NO_PROFILES } from './siteProfile';
 import { learnSiteProfile } from './siteLearn';
 import type { AiTrace, ProcessableCapture, ProcessedCapture, ProcessOptions } from './captureTypes';
@@ -603,7 +603,9 @@ async function rememberThisSite(
     const store = options.profiles;
     if (!key || !store) return;
 
-    const learned = await learnSiteProfile(html, draft, key);
+    const learned = await learnSiteProfile(html, draft, key, (learnKey, system, text) =>
+        completeWithKey(learnKey, { kind: 'raw', system, text }, options.onLearn)
+    );
     if (!learned.profile) return;
 
     await store.save({

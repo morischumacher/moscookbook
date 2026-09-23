@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { canUseAi, completeWithKey } from '@/lib/aiImport';
-import { aiCapability, rememberModel } from '@/lib/aiConfig';
+import { aiCapability } from '@/lib/aiConfig';
 import { polish, polishSchema } from '@/lib/aiPolish';
+import { usageRecorder } from '@/lib/tokenUsageDb';
 
 /**
  * "Fix my spelling" and "turn this into steps".
@@ -54,11 +55,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Invalid request.' }, { status: 400 });
     }
 
+    const usage = usageRecorder('polish');
     const outcome = await polish(parsed.data.mode, parsed.data.text, ai.keys, (key, system, text) =>
-        completeWithKey(key, { kind: 'raw', system, text }, (provider, model) =>
-            void rememberModel(provider, model)
-        )
+        completeWithKey(key, { kind: 'raw', system, text }, usage.report)
     );
+    await usage.flush();
 
     if (!outcome.ok) {
         // 200 with ok:false for the two outcomes that are answers rather than

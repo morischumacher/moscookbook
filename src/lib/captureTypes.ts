@@ -105,6 +105,8 @@ export interface ProcessOptions {
      * rather than rediscovering on every share.
      */
     onModel?: ModelReport;
+    /** Told about the calls the *learning* step makes, which are not the import's. */
+    onLearn?: ModelReport;
 }
 
 export interface ProcessableCapture {

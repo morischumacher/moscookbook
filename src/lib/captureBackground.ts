@@ -3,10 +3,11 @@ import prisma from './prisma';
 import type { ClassifiedCapture } from './capture';
 import { processCapture } from './captureProcess';
 import { siteLearning } from './siteProfileDb';
-import { aiCapability, rememberModel } from './aiConfig';
+import { aiCapability } from './aiConfig';
 import { mirrorImageToBlob } from './mirrorImage';
 import { toJsonObject } from './json';
 import { failed } from './reportServerError';
+import { usageRecorder } from './tokenUsageDb';
 import { syncWorkItem } from './workItemsDb';
 
 /**
@@ -29,14 +30,18 @@ export function readInBackground(captureId: number, classified: ClassifiedCaptur
             // handing that to the pipeline made it answer "No picture was stored"
             // about a picture that had just been stored perfectly.
             const ai = await aiCapability();
+            const usage = usageRecorder('capture', { captureId: capture.id, source: classified.source });
+            const learning = usageRecorder('learn', { captureId: capture.id, source: classified.source });
             const result = await processCapture(
                 { ...classified, imageUrl: imageUrl ?? classified.imageUrl },
                 ai,
                 {
-                    onModel: (provider, model) => void rememberModel(provider, model),
+                    onModel: usage.report,
+                    onLearn: learning.report,
                     ...siteLearning(ai),
                 }
             );
+            await Promise.all([usage.flush(), learning.flush()]);
 
             // Foreign image hosts are rejected by next/image, so the picture is
             // copied into our own store rather than kept as a link that will not

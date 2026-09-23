@@ -1011,3 +1011,24 @@ model RecipeTranslation {
 
   @@unique([recipeId, locale])
 }
+
+/// One call to an AI provider: what for, which model, and what it cost in the
+/// provider's own count. Kept for the token dashboard and for comparing one
+/// inbox item with the others; see lib/tokenUsage.ts.
+model AiUsage {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  /// capture | import | polish | translate | learn | test
+  purpose   String
+  provider  String
+  model     String
+  /// The inbox item it was for, when it was for one; kept when that goes.
+  captureId Int?
+  /// The item's source (instagram, youtube, web …) at the time, to compare like with like.
+  source    String?
+  input     Int      @default(0)
+  output    Int      @default(0)
+
+  @@index([createdAt])
+  @@index([captureId])
+}

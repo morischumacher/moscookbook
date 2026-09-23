@@ -218,7 +218,23 @@ interface AnthropicBlock {
     text?: string;
 }
 
-async function callAnthropic(key: AiKey, source: AiSource): Promise<string> {
+/**
+ * What a call cost, in the provider's own count: tokens read and written.
+ * Every provider sends it with the answer; it used to be thrown away.
+ */
+export interface TokenUsage {
+    input: number;
+    output: number;
+}
+
+interface Answered {
+    text: string;
+    usage: TokenUsage | null;
+}
+
+const count = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
+
+async function callAnthropic(key: AiKey, source: AiSource): Promise<Answered> {
     const content =
         source.kind === 'image'
             ? [
@@ -254,18 +270,27 @@ async function callAnthropic(key: AiKey, source: AiSource): Promise<string> {
         );
     }
 
-    const payload = (await response.json()) as { content?: AnthropicBlock[] };
-    return (payload.content ?? [])
-        .filter((block) => block.type === 'text')
-        .map((block) => block.text ?? '')
-        .join('\n');
+    const payload = (await response.json()) as {
+        content?: AnthropicBlock[];
+        usage?: { input_tokens?: number; output_tokens?: number };
+    };
+    return {
+        text: (payload.content ?? [])
+            .filter((block) => block.type === 'text')
+            .map((block) => block.text ?? '')
+            .join('\n'),
+        usage: payload.usage
+            ? { input: count(payload.usage.input_tokens), output: count(payload.usage.output_tokens) }
+            : null,
+    };
 }
 
 interface OpenAiPayload {
     choices?: { message?: { content?: string | null } }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
 }
 
-async function callOpenAi(key: AiKey, source: AiSource): Promise<string> {
+async function callOpenAi(key: AiKey, source: AiSource): Promise<Answered> {
     const content =
         source.kind === 'image'
             ? [
@@ -313,14 +338,20 @@ async function callOpenAi(key: AiKey, source: AiSource): Promise<string> {
     }
 
     const payload = (await response.json()) as OpenAiPayload;
-    return payload.choices?.[0]?.message?.content ?? '';
+    return {
+        text: payload.choices?.[0]?.message?.content ?? '',
+        usage: payload.usage
+            ? { input: count(payload.usage.prompt_tokens), output: count(payload.usage.completion_tokens) }
+            : null,
+    };
 }
 
 interface GeminiPayload {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number };
 }
 
-async function callGoogle(key: AiKey, source: AiSource): Promise<string> {
+async function callGoogle(key: AiKey, source: AiSource): Promise<Answered> {
     const model = key.model || DEFAULT_MODEL.google;
 
     // The model goes in the path, so it is checked before it gets there.
@@ -370,10 +401,17 @@ async function callGoogle(key: AiKey, source: AiSource): Promise<string> {
     }
 
     const payload = (await response.json()) as GeminiPayload;
-    return (payload.candidates?.[0]?.content?.parts ?? []).map((part) => part.text ?? '').join('\n');
+    const usage = payload.usageMetadata;
+    return {
+        text: (payload.candidates?.[0]?.content?.parts ?? []).map((part) => part.text ?? '').join('\n'),
+        // Thinking is billed as output, so it is counted as output.
+        usage: usage
+            ? { input: count(usage.promptTokenCount), output: count(usage.candidatesTokenCount) + count(usage.thoughtsTokenCount) }
+            : null,
+    };
 }
 
-const CALLS: Record<AiProvider, (key: AiKey, source: AiSource) => Promise<string>> = {
+const CALLS: Record<AiProvider, (key: AiKey, source: AiSource) => Promise<Answered>> = {
     anthropic: callAnthropic,
     openai: callOpenAi,
     google: callGoogle,
@@ -413,7 +451,7 @@ const RETRIES = [800];
  * the suite cannot load Prisma. The callers that can persist it pass one; the
  * ones that cannot pass nothing and the switch lasts for one request.
  */
-export type ModelReport = (provider: AiProvider, model: string) => void;
+export type ModelReport = (provider: AiProvider, model: string, usage?: TokenUsage | null) => void;
 
 /**
  * One provider, every model it might answer on.
@@ -439,8 +477,10 @@ export async function completeWithKey(
         for (let retry = 0; ; retry += 1) {
             try {
                 const answer = await CALLS[key.provider](attempt, source);
-                report?.(key.provider, model);
-                return answer;
+                // Reported before anything is done with the text: an answer
+                // that turns out to be unusable was still paid for.
+                report?.(key.provider, model, answer.usage);
+                return answer.text;
             } catch (error) {
                 /*
                  * Retry first, move on second — and in that order, because the
