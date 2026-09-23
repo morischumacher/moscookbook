@@ -4,7 +4,6 @@ import RatingDisplay from '@/components/RatingDisplay';
 import FavoriteButton from '@/components/FavoriteButton';
 import RecipeSource from '@/components/recipe/RecipeSource';
 import ViewTracker from '@/components/ViewTracker';
-import Logo from '@/components/brand/Logo';
 import ReactMarkdown from 'react-markdown';
 import RecipeBody from '@/components/recipe/RecipeBody';
 import { splitSteps } from '@/lib/steps';
@@ -243,16 +242,13 @@ export default async function RecipeArticle({
             )}
 
             <header
-                className={`relative z-10 mx-auto max-w-2xl bg-page px-4 sm:px-8 print:mt-0 print:rounded-none print:pt-8 ${
+                className={`relative z-10 mx-auto max-w-2xl bg-page px-4 sm:px-8 print:hidden ${
                     recipe.images.length > 0 ? '-mt-7 rounded-t-3xl pt-7 sm:-mt-10' : 'pt-8 sm:pt-12'
                 }`}
             >
                 {/* The print stylesheet hides the navigation, and the logo used
                     to go with it — a printed recipe came out unbranded. This is
                     the same mark, shown only on paper. */}
-                <div className="hidden print:mb-6 print:block">
-                    <Logo height={32} />
-                </div>
 
                 <p className="text-xs font-semibold uppercase tracking-widest text-faint">
                     {head.shown.join(' · ') || formatDate(recipe.createdAt, locale, 'short')}
@@ -396,21 +392,11 @@ export default async function RecipeArticle({
                     the button in the admin list.
                 */}
 
-                {/* On paper the pills and the picture are gone, so the facts
-                    come back as a plain line. */}
-                <dl className="hidden print:mt-4 print:flex print:flex-wrap print:gap-x-8">
-                    {times.map((entry) => (
-                        <div key={entry.label}>
-                            <dt className="text-xs uppercase tracking-widest text-muted">{entry.label}</dt>
-                            <dd className="text-base font-semibold text-ink">{entry.value}</dd>
-                        </div>
-                    ))}
-                </dl>
             </header>
 
-            <div className="h-10 w-full sm:h-14" aria-hidden="true" />
+            <div className="h-10 w-full sm:h-14 print:hidden" aria-hidden="true" />
 
-            <div className="container mx-auto max-w-2xl px-4 font-serif sm:px-8">
+            <div className="container mx-auto max-w-2xl px-4 font-serif sm:px-8 print:max-w-none print:px-0">
                 <RecipeBody
                     recipeId={recipe.id}
                     ingredients={recipe.ingredients}
@@ -436,10 +422,16 @@ export default async function RecipeArticle({
                         mayChange: mode === 'private' && isAdmin,
                         onlyMe: Boolean(written.onlyMe),
                     }}
+                    print={{
+                        eyebrow: labels.join(' · '),
+                        description: recipe.description,
+                        facts: times.filter((entry) => entry.label !== t('servings')),
+                        url,
+                    }}
                 />
 
                 {mode === 'private' && (
-                    <>
+                    <div className="print:hidden">
                         {/* One section, not two. The fact, the note and the
                             pictures are one evening — see the component. */}
                         <Cooked
@@ -459,7 +451,7 @@ export default async function RecipeArticle({
                         />
 
                         <SimilarRecipes recipes={similar} />
-                    </>
+                    </div>
                 )}
             </div>
         </article>

@@ -134,8 +134,7 @@
     "cookViewSteps": "Schritt für Schritt",
     "cookFinish": "Fertig gekocht",
     "translatedFrom": "Übersetzt aus dem {language, select, en {Englischen} other {Deutschen}}",
-    "translationStale": "Das Original wurde seitdem geändert.",
-    "servingsTo": "{count, plural, one {# Portion} other {# Portionen}}"
+    "translationStale": "Das Original wurde seitdem geändert."
   },
   "Rating": {
     "rate": "Bewerten",
@@ -1270,7 +1269,7 @@
     "notePlaceholder": "Was soll die KI tun oder beachten? (optional)",
     "publicHint": "Landet anonymisiert – ohne Namen, E-Mail-Adressen und Links mit Schlüssel – auf der öffentlichen Aufgabenliste.",
     "failed": "Das hat nicht geklappt.",
-    "explain": "Aufgaben für eine KI oder wen auch immer du am Code arbeiten lässt. Jeder Fehler steht von selbst hier; Tickets („Von KI umsetzen lassen“) und Einträge aus dem Eingang („KI soll das Einlesen verbessern“) gibst du dazu. Ist eine Aufgabe erledigt, meldet die KI das – sie steht dann oben unter „Bitte bestätigen“, und dein Tippen schließt sie samt Fehler oder Ticket. Tritt ein Fehler danach wieder auf, geht die Aufgabe von selbst wieder auf. Die Liste ist anonymisiert unter dieser öffentlichen Adresse; den Auftrag für die KI findest du im Repo unter docs/work-list-prompt.md.",
+    "explain": "Aufgaben für eine KI oder wen auch immer du am Code arbeiten lässt. Von selbst stehen hier: jeder Fehler, den der Server sieht oder den jemand Angemeldetes auslöst, und jedes Ticket „Etwas geht nicht“. Ideen und sonstige Tickets („Von KI umsetzen lassen“) und Einträge aus dem Eingang („KI soll das Einlesen verbessern“) gibst du dazu. Ist eine Aufgabe erledigt, meldet die KI das – sie steht dann oben unter „Bitte bestätigen“, und dein Tippen schließt sie samt Fehler oder Ticket. Tritt ein Fehler danach wieder auf, geht die Aufgabe von selbst wieder auf. Die Liste ist anonymisiert unter dieser öffentlichen Adresse; den Auftrag für die KI findest du im Repo unter docs/work-list-prompt.md.",
     "copy": "Kopieren",
     "copied": "Kopiert",
     "loading": "Wird geladen…",
@@ -1324,7 +1323,9 @@
     "tokenMake": "Schlüssel erzeugen",
     "tokenRemake": "Neuen Schlüssel erzeugen (der alte gilt dann nicht mehr)",
     "tokenShown": "Nur jetzt sichtbar – kopiere ihn:",
-    "tokenExists": "Ein Schlüssel ist eingerichtet."
+    "tokenExists": "Ein Schlüssel ist eingerichtet.",
+    "tokenCopy": "Schlüssel kopieren",
+    "tokenTapToCopy": "Antippen zum Kopieren"
   },
   "Tokens": {
     "openDashboard": "Token-Verbrauch und Spartipps ansehen →",

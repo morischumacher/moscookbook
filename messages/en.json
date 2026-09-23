@@ -134,8 +134,7 @@
     "cookViewSteps": "Step by step",
     "cookFinish": "Done cooking",
     "translatedFrom": "Translated from {language, select, de {German} other {English}}",
-    "translationStale": "The original has changed since.",
-    "servingsTo": "{count, plural, one {# serving} other {# servings}}"
+    "translationStale": "The original has changed since."
   },
   "Rating": {
     "rate": "Rate",
@@ -1270,7 +1269,7 @@
     "notePlaceholder": "What should the AI do or look out for? (optional)",
     "publicHint": "Goes onto the public task list, anonymised — without names, e-mail addresses or links with keys.",
     "failed": "That did not work.",
-    "explain": "Tasks for an AI, or whoever you have working on the code. Every error is here by itself; you add tickets (\"Have AI implement it\") and inbox items (\"Have AI improve reading this\"). When a task is done, the AI reports it — it then sits at the top under \"Please confirm\", and your tap closes it along with its error or ticket. If an error happens again afterwards, the task reopens by itself. The list is public and anonymised at this address; the brief for the AI is in the repository at docs/work-list-prompt.md.",
+    "explain": "Tasks for an AI, or whoever you have working on the code. On it by itself: every error the server sees or a signed-in person runs into, and every \"Something is broken\" ticket. You add ideas and other tickets (\"Have AI implement it\") and inbox items (\"Have AI improve reading this\"). When a task is done, the AI reports it — it then sits at the top under \"Please confirm\", and your tap closes it along with its error or ticket. If an error happens again afterwards, the task reopens by itself. The list is public and anonymised at this address; the brief for the AI is in the repository at docs/work-list-prompt.md.",
     "copy": "Copy",
     "copied": "Copied",
     "loading": "Loading…",
@@ -1324,7 +1323,9 @@
     "tokenMake": "Make a key",
     "tokenRemake": "Make a new key (the old one stops working)",
     "tokenShown": "Shown only now – copy it:",
-    "tokenExists": "A key is set up."
+    "tokenExists": "A key is set up.",
+    "tokenCopy": "Copy the key",
+    "tokenTapToCopy": "Tap to copy"
   },
   "Tokens": {
     "openDashboard": "See token usage and how to save →",

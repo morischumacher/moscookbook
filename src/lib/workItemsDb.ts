@@ -229,10 +229,15 @@ export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void>
                 recurred = Boolean(item?.doneAt && row.lastSeenAt.getTime() > item.doneAt.getTime() + RECURRENCE_GRACE_MS);
             }
         } else if (kind === 'ticket') {
-            const row = await prisma.ticket.findUnique({ where: { id: refId }, select: { resolvedAt: true } });
+            const row = await prisma.ticket.findUnique({ where: { id: refId }, select: { resolvedAt: true, kind: true } });
             if (!row) closeAs = 'removed';
             else if (row.resolvedAt) closeAs = 'resolved';
-            else problem = true;
+            else {
+                problem = true;
+                // Something broken, reported by somebody signed in: a task by
+                // itself. An idea is the admin's to decide on first.
+                obvious = row.kind === 'problem';
+            }
         } else {
             const row = await prisma.capture.findUnique({ where: { id: refId }, select: { status: true, error: true } });
             if (!row) closeAs = 'removed';
