@@ -3,14 +3,14 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-36 screens · 76 endpoints · 49 link edges · 83 call edges
+36 screens · 76 endpoints · 48 link edges · 83 call edges
 
 ## Screens
 
 | Route | Access | Proxy | Calls | Links to |
 |---|---|---|---|---|
 | `/[locale]/account` | account | requires session | `* /api/account`<br>`* /api/account/email`<br>`* /api/account/name`<br>`* /api/account/password`<br>`DELETE /api/account/avatar`<br>`POST /api/account/avatar` | `/[locale]/login` |
-| `/[locale]/admin/ai` | admin | requires admin | `DELETE /api/ai-keys/[id]`<br>`DELETE /api/site-profiles/[id]`<br>`GET /api/ai-keys`<br>`GET /api/site-profiles`<br>`PATCH /api/ai-keys`<br>`POST /api/ai-keys`<br>`POST /api/ai-keys/[id]/test`<br>`POST /api/site-profiles` | `/[locale]/admin/devices` |
+| `/[locale]/admin/ai` | admin | requires admin | `DELETE /api/ai-keys/[id]`<br>`DELETE /api/site-profiles/[id]`<br>`GET /api/ai-keys`<br>`GET /api/site-profiles`<br>`PATCH /api/ai-keys`<br>`POST /api/ai-keys`<br>`POST /api/ai-keys/[id]/test`<br>`POST /api/site-profiles` | — |
 | `/[locale]/admin/collections/[id]` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections/new` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/create` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/upload` | `/[locale]/admin` |
@@ -188,7 +188,6 @@ flowchart LR
     n__locale__recipe__slug_["/[locale]/recipe/[slug]"]
   end
   n__locale__account --> n__locale__login
-  n__locale__admin_ai --> n__locale__admin_devices
   n__locale__admin_collections__id_ --> n__locale__collections
   n__locale__admin_collections__id_ --> n__locale__collections__slug_
   n__locale__admin_collections_new --> n__locale__collections
