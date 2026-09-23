@@ -6,6 +6,9 @@ import AvatarForm from '@/components/account/AvatarForm';
 import AccountSettings from '@/components/account/AccountSettings';
 import Passkeys from '@/components/account/Passkeys';
 import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import { titled } from '@/lib/metaTitle';
+
+export const generateMetadata = titled('Account', 'title', false);
 
 /**
  * Your own account.

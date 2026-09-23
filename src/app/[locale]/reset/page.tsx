@@ -2,6 +2,9 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import ResetForm from '@/components/auth/ResetForm';
 import { linkState } from '@/lib/linkState';
+import { titled } from '@/lib/metaTitle';
+
+export const generateMetadata = titled('Auth', 'resetTitle', false);
 
 /**
  * Setting a new password from a mailed link.

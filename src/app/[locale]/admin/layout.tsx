@@ -5,6 +5,10 @@ import prisma from '@/lib/prisma';
 import AdminNav from '@/components/admin/AdminNav';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
+import { titled } from '@/lib/metaTitle';
+
+/** "Verwaltung — mo'scookbook" for every admin page that does not name itself. */
+export const generateMetadata = titled('Navigation', 'admin', false);
 
 // The proxy also guards /admin, from the cookie. This is the check that asks
 // the database — so a person demoted or deleted five minutes ago does not keep
