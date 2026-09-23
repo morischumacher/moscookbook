@@ -1,8 +1,16 @@
 # Prompt: work through the Mo's Cookbook work list
 
-Copy everything below the line into any coding assistant (Claude Code, Codex,
-Cursor, Copilot, …) that has this repository checked out. It is written to
-work without any other context.
+Copy everything below the line into any AI assistant. It works in two ways:
+
+- **A coding assistant** with this repository and a terminal (Claude Code,
+  Codex, Cursor, Copilot agent, …) does everything itself, up to a pull
+  request.
+- **A chat assistant** without them (claude.ai, ChatGPT, Gemini, …) does the
+  thinking and tells you exactly what to fetch, paste or run; you do the
+  parts it cannot reach.
+
+The prompt makes the assistant work out which of the two it is first. It is
+written to work without any other context.
 
 ---
 
@@ -11,7 +19,61 @@ cookbook built with Next.js 16 (App Router), next-intl (German and English),
 Prisma 5 and Postgres, deployed on Vercel.
 
 The site's admin publishes things that need fixing to a **public work list**.
-Your job is to fetch that list, fix what you can, and open a pull request.
+Your job is to work through that list and fix what you can.
+
+## 0. First: what can you do yourself?
+
+Before anything else, check honestly which of these you can do **yourself,
+in this session** — not in principle, but with the tools you have right now:
+
+1. Read the files of this repository.
+2. Run commands in a terminal (`npm`, `git`, `curl`).
+3. Reach the internet (`https://www.moscookbook.com/api/work` and the pages
+   the items link to).
+4. Commit, push and open a pull request.
+
+Then tell the person in one short paragraph which mode you are in, and work
+in that mode.
+
+### Mode A: you can do all four → you do everything
+Follow sections 1–4 below from start to finish. Only stop to ask when
+something is genuinely blocked (the network refuses an address, a decision
+only the owner can make). Do not ask for things you can get yourself.
+
+### Mode B: you cannot do some or all of them → you think, the person runs
+You are the analyst and the author of the fix; the person is your hands.
+Work like this:
+
+- **Ask for exactly what you need, one batch at a time**, as a numbered
+  list the person can work through without guessing. Be concrete:
+  - the list itself: "Open https://www.moscookbook.com/api/work and paste
+    everything it shows";
+  - a file: "Paste `src/lib/captureProcess.ts`" (full paths, as in section
+    2 — never "the capture code");
+  - a web page's source: "Open `view-source:<url>` in Chrome, select all,
+    paste" — or only the part you need, if you can say which;
+  - command output: give the exact command in a code block, e.g.
+    `npm run verify 2>&1 | tail -40`, and say what you are looking for in it.
+- **Never pretend.** Do not invent file contents, page contents, test
+  results or command output you have not been given. If you are unsure
+  what a file contains, ask for it.
+- **Deliver the fix as something the person can apply without thinking:**
+  complete file contents for small files, or exact "replace this block
+  with this block" instructions with enough surrounding lines to find the
+  spot. Include the test (section 2) and the translation lines for both
+  `messages/de.json` and `messages/en.json` when text changes.
+- **Then tell them what to run and what to paste back**, usually
+  `npm run verify 2>&1 | tail -60`, and continue from the real output until
+  it passes. Give them the commit message to use (section 4).
+- If they have a coding assistant available, you may instead hand over a
+  short, precise brief they can paste into it.
+- Group the items first: several items often have one cause. Say which
+  items you would do now, which later, and which need the owner's
+  decision.
+
+If you are somewhere in between (for example you can read the repository
+but not run commands), do yourself what you can and ask only for the rest,
+the Mode B way.
 
 ## 1. Fetch the work list
 
@@ -19,9 +81,10 @@ Your job is to fetch that list, fix what you can, and open a pull request.
 curl -s https://www.moscookbook.com/api/work
 ```
 
-If you cannot reach the address (sandboxed network, proxy, 403), stop and ask
-the person to either allow `www.moscookbook.com` in your network settings or
-paste the JSON from that address into the chat. Do not guess the contents.
+If you cannot reach the address (no internet, sandboxed network, proxy,
+403), ask the person to either allow `www.moscookbook.com` in your network
+settings or open the address in a browser and paste what it shows. Do not
+guess the contents.
 
 The answer looks like this:
 
@@ -114,6 +177,9 @@ as an open question.
   into code, tests, commits or the pull request.
 
 ## 4. Deliver
+
+In Mode B, the person does these steps with what you give them: the branch
+name, the commit message(s) and the pull request text, each ready to copy.
 
 1. Work on a new branch.
 2. One commit per item or per related group, with a message that says what
