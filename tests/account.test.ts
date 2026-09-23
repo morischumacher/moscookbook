@@ -88,6 +88,32 @@ export default function accountTests() {
         'delete route'
     );
 
+    /*
+     * The other half of `session.destroy()`, and the half that is invisible
+     * when it goes missing. The server forgets the account; the client still
+     * holds a cached render of every layout above this page, all of which were
+     * built for somebody signed in. Navigate without discarding it and the
+     * deleted account's name is still in the header.
+     *
+     * Written as a source check because the alternative is a router, and a
+     * router here is more mock than test. It went in when the first version —
+     * a `window.location.href` assignment, chosen on the theory that only a
+     * full load forgets a session — turned out to trip a lint rule and to be
+     * unnecessary: sign-out has the same problem and answers it with this pair.
+     */
+    const settings = source('components/account/AccountSettings.tsx');
+
+    check(
+        'deleting your account throws the cached signed-in render away',
+        /router\.replace\('\/login'\);\s*\n\s*router\.refresh\(\);/.test(settings),
+        'AccountSettings.remove'
+    );
+    check(
+        'and it replaces rather than pushes, so back is not the deleted account',
+        !settings.includes("router.push('/login')"),
+        'AccountSettings.remove'
+    );
+
     suite('account: changing an address');
 
     /*

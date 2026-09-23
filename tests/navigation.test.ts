@@ -1,5 +1,17 @@
-import { suite, equal } from './harness';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { suite, equal, check } from './harness';
 import { withoutLocale, sectionFor, adminSectionFor } from '../src/lib/navigation';
+
+/** Every .ts/.tsx under src, so a convention can be held across all of it. */
+function sourceFiles(dir: string, found: string[] = []): string[] {
+    for (const entry of readdirSync(dir)) {
+        const path = join(dir, entry);
+        if (statSync(path).isDirectory()) sourceFiles(path, found);
+        else if (/\.tsx?$/.test(entry)) found.push(path);
+    }
+    return found;
+}
 
 /**
  * Which part of the site a path belongs to.
@@ -79,4 +91,37 @@ export default function navigationTests() {
     equal('and invitations, which moved into people', adminSectionFor('/en/admin/invites'), '/admin/users');
 
     equal('outside the admin, nothing', adminSectionFor('/de/blog'), null);
+
+    suite('going somewhere inside the app');
+
+    /*
+     * Why this is a test and not left to lint.
+     *
+     * `@next/next/no-location-assign-relative-destination` catches exactly
+     * this, and it caught it — on the machine where the cookbook is actually
+     * built, after a clean install, in code that had passed lint here. Same
+     * next version, same lockfile entry, same integrity hash, and the rule is
+     * simply absent from the plugin installed in this environment. So lint
+     * here is a subset of lint there, and the difference is invisible until
+     * somebody's `npm run verify` goes red on something already committed.
+     *
+     * A test is version-proof: it reads the source rather than asking a plugin
+     * what it happens to know this week. Crude on purpose, and narrow —
+     * assigning a *relative* destination is what breaks client-side routing
+     * (the locale prefix, the cached render, the scroll position); an absolute
+     * URL built from `window.location.origin` is a deliberate full load and is
+     * how `lib/afterAuth.ts` leaves the app on purpose.
+     */
+    const relativeJump =
+        /\blocation(?:\.href\s*=|\.assign\(|\.replace\()\s*(['"`])\//;
+
+    const offenders = sourceFiles(join(__dirname, '..', 'src')).filter((file) =>
+        relativeJump.test(readFileSync(file, 'utf8'))
+    );
+
+    check(
+        'nothing navigates inside the app by assigning a relative location',
+        offenders.length === 0,
+        offenders.map((file) => file.replace(/^.*\/src\//, 'src/'))
+    );
 }
