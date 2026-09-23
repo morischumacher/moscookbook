@@ -1,5 +1,5 @@
 import { isSafePublicUrl } from './privateAddress';
-import { safeFetch } from './safeFetch';
+import { readCapped, safeFetch } from './safeFetch';
 
 /**
  * Reading a picture back out of our own store, as base64.
@@ -46,8 +46,8 @@ export async function fetchImageAsBase64(url: string): Promise<FetchedImage> {
         const mediaType = (response.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
         if (!ALLOWED_TYPES.has(mediaType)) return { ok: false, failure: 'not-an-image' };
 
-        const buffer = Buffer.from(await response.arrayBuffer());
-        if (buffer.byteLength > MAX_IMAGE_BYTES) return { ok: false, failure: 'too-large' };
+        const { bytes: buffer, truncated } = await readCapped(response, MAX_IMAGE_BYTES);
+        if (truncated) return { ok: false, failure: 'too-large' };
 
         return { ok: true, base64: buffer.toString('base64'), mediaType };
     } catch (error) {

@@ -12,3 +12,15 @@
  * is hashed at this. Nobody has to reset anything.
  */
 export const BCRYPT_COST = 12;
+
+/**
+ * Compared against when no account has the address, so that a wrong address
+ * and a wrong password take the same time and cannot be told apart.
+ *
+ * It must be hashed at `BCRYPT_COST`. It used to be a cost-10 hash while real
+ * ones are cost 12 — four times cheaper — so an unknown address answered in a
+ * quarter of the time and the login form told anybody who timed it which
+ * addresses had accounts. A test holds the two together.
+ */
+export const DUMMY_HASH = '$2b$12$5Zf5AB1FDXd6gqS.gFe4D.eVQ2.Zdg0hA1wdP7XW5gvhcVazIh7nm';
+

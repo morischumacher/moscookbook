@@ -70,7 +70,7 @@ export default function draftsTests() {
         [
             'a visitor without an account cannot open one',
             'src/app/[locale]/recipe/[slug]/page.tsx',
-            /!session\.user && \(!recipe\?\.isPublic \|\| recipe\.isDraft\)/,
+            /!user && \(!recipe\?\.isPublic \|\| recipe\.isDraft\)/,
         ],
     ];
 

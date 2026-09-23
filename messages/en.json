@@ -663,6 +663,10 @@
     "exportMarkdown": "Copy all as Markdown"
   },
   "Account": {
+    "devicesTitle": "Devices",
+    "devicesExplain": "Signed in on a phone or computer you no longer have? This signs you out on every device, this one included.",
+    "signOutEverywhere": "Sign out everywhere",
+    "signedOutEverywhere": "Signed out on every device.",
     "title": "Your account",
     "pictureTitle": "Profile picture",
     "pictureBody": "Shown beside your entries in the cooking log. Without one your initials stand there instead, which is also an answer.",

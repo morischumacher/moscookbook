@@ -1,5 +1,5 @@
 import { suite, check, equal } from './harness';
-import { safeFetch, UnsafeUrlError } from '../src/lib/safeFetch';
+import { readCapped, safeFetch, UnsafeUrlError } from '../src/lib/safeFetch';
 
 /**
  * Following a redirect without following it inwards.
@@ -201,3 +201,34 @@ export default async function safeFetchTests() {
         net.restore();
     }
 }
+
+/** A body that keeps coming, as a hostile page would send it. */
+function endless(chunk: number, chunks: number): { response: Response; pulled: () => number } {
+    let sent = 0;
+    const stream = new ReadableStream<Uint8Array>({
+        pull(controller) {
+            if (sent >= chunks) return controller.close();
+            sent += 1;
+            controller.enqueue(new Uint8Array(chunk).fill(97));
+        },
+    });
+    return { response: new Response(stream), pulled: () => sent };
+}
+
+export async function readCappedTests() {
+    suite('safeFetch: a body is read no further than its limit');
+
+    const small = await readCapped(new Response('hello'), 1024);
+    equal('a small body arrives whole', small.bytes.toString(), 'hello');
+    check('and is not marked as cut', !small.truncated);
+
+    const big = endless(1024, 10_000);
+    const capped = await readCapped(big.response, 4096);
+    equal('a big one stops at the limit', capped.bytes.byteLength, 4096);
+    check('and says so', capped.truncated);
+    check('without downloading the rest', big.pulled() < 20, big.pulled());
+
+    const exact = await readCapped(new Response(new Uint8Array(4096)), 4096);
+    check('exactly the limit is not a cut', !exact.truncated && exact.bytes.byteLength === 4096);
+}
+

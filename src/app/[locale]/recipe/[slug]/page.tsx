@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import RecipeArticle, { recipeInclude, type RecipeRow } from '@/components/recipe/RecipeArticle';
 import prisma from '@/lib/prisma';
-import { getSession } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 import FinishDraft from '@/components/recipe/FinishDraft';
 import { pageContainer, pageTop } from '@/lib/ui';
 import { getTranslations } from 'next-intl/server';
@@ -74,7 +74,7 @@ export default async function RecipePage({
     const { slug, locale } = await params;
 
     const recipe = await loadRecipe(slug);
-    const session = await getSession();
+    const user = await getCurrentUser();
 
     /*
      * The one page whose access the proxy does not decide.
@@ -90,7 +90,7 @@ export default async function RecipePage({
      * login form, carrying where they were headed, so following a link and
      * signing in still lands on the recipe.
      */
-    if (!session.user && (!recipe?.isPublic || recipe.isDraft)) {
+    if (!user && (!recipe?.isPublic || recipe.isDraft)) {
         const next = encodeURIComponent(`/${locale}/recipe/${slug}`);
         redirect(`/${locale}/login?next=${next}`);
     }
@@ -102,13 +102,13 @@ export default async function RecipePage({
 
     // Shown optimistically; the actual increment happens in ViewTracker so that
     // a server component never has to write a cookie.
-    const views = !session.user?.admin && !hasViewed ? recipe.views + 1 : recipe.views;
+    const views = !user?.admin && !hasViewed ? recipe.views + 1 : recipe.views;
 
     let isFavorited = false;
     let userRatingValue = 0;
 
-    if (session.user) {
-        const userId = session.user.id;
+    if (user) {
+        const userId = user.id;
         const favorite = await prisma.favorite.findUnique({
             where: { userId_recipeId: { userId, recipeId: recipe.id } },
         });
@@ -130,14 +130,14 @@ export default async function RecipePage({
      * Queried conditionally rather than filtered later: the cheapest way to
      * not leak something is not to fetch it.
      */
-    const isMember = Boolean(session.user);
+    const isMember = Boolean(user);
 
     // Oldest first: a cooking log is read as a sequence. Drafts only for an
     // admin, same rule as the blog index.
     const notes = isMember ? await prisma.post.findMany({
         where: {
             recipeId: recipe.id,
-            ...(session.user?.admin ? {} : { publishedAt: { not: null } }),
+            ...(user?.admin ? {} : { publishedAt: { not: null } }),
         },
         orderBy: [{ publishedAt: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
         take: 50,
@@ -190,7 +190,7 @@ export default async function RecipePage({
         <div className={`${pageContainer} ${pageTop}`}>
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-control p-4">
                 <p className="max-w-prose font-serif text-sm text-muted">{tDrafts('banner')}</p>
-                {session.user?.admin && <FinishDraft recipeId={recipe.id} />}
+                {user?.admin && <FinishDraft recipeId={recipe.id} />}
             </div>
         </div>
     ) : null;
@@ -203,15 +203,15 @@ export default async function RecipePage({
             similar={similar}
             notes={notes}
             cooked={cooked}
-            currentUserId={session.user?.id ?? null}
+            currentUserId={user?.id ?? null}
             locale={locale}
             // A member sees the cookbook; a visitor to a public recipe sees
             // the recipe. "shared" is already exactly that shape — it is what
             // a share link renders — so there is no third mode to keep in
             // step with the other two.
             mode={isMember ? 'private' : 'shared'}
-            isLoggedIn={Boolean(session.user)}
-            isAdmin={Boolean(session.user?.admin)}
+            isLoggedIn={Boolean(user)}
+            isAdmin={Boolean(user?.admin)}
             isFavorited={isFavorited}
             userRatingValue={userRatingValue}
             views={views}

@@ -3,7 +3,8 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
 import prisma from '@/lib/prisma';
-import { requireUser } from '@/lib/auth';
+import { getSession, requireUser } from '@/lib/auth';
+import { sessionUserFrom } from '@/lib/session';
 import { passwordMatches } from '@/lib/accountGuard';
 import { BCRYPT_COST } from '@/lib/passwordHash';
 import { rateLimitShared } from '@/lib/rateLimitShared';
@@ -50,10 +51,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'That is not your current password.' }, { status: 403 });
     }
 
-    await prisma.user.update({
+    const updated = await prisma.user.update({
         where: { id: auth.user.id },
-        data: { password: await bcrypt.hash(parsed.data.next, BCRYPT_COST) },
+        data: {
+            password: await bcrypt.hash(parsed.data.next, BCRYPT_COST),
+            // Every other device is signed out — a new password is what you
+            // choose when you think the old one is known — and this one is
+            // re-sealed with the new number so it stays signed in.
+            sessionVersion: { increment: 1 },
+        },
     });
+
+    const session = await getSession();
+    session.user = sessionUserFrom(updated);
+    await session.save();
 
     /*
      * The session is left alone on purpose.

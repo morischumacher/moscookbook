@@ -37,9 +37,9 @@ import ownership from './ownership.test';
 import ticketPath from './ticketPath.test';
 import oysterMark from './oysterMark.test';
 import cookProgress from './cookProgress.test';
-import safeFetch from './safeFetch.test';
+import safeFetch, { readCappedTests } from './safeFetch.test';
 import similarRecipes from './similarRecipes.test';
-import privateAddress from './privateAddress.test';
+import privateAddress, { privateIPv6FormsTests } from './privateAddress.test';
 import sinceCooked from './sinceCooked.test';
 import fixtures from './fixtures.test';
 import transcripts from './transcript.test';
@@ -53,7 +53,7 @@ import routeParams from './routeParams.test';
 import prismaErrors from './prismaErrors.test';
 import htmlMeta from './htmlMeta.test';
 import apiMessage from './apiMessage.test';
-import account from './account.test';
+import account, { sessionVersionTests } from './account.test';
 import publicPages from './publicPages.test';
 import shareStage from './shareStage.test';
 import aiProviders from './aiProviders.test';
@@ -106,8 +106,10 @@ const suites: [string, () => void | Promise<void>][] = [
     ['oysterMark', oysterMark],
     ['cookProgress', cookProgress],
     ['safeFetch', safeFetch],
+    ['readCappedTests', readCappedTests],
     ['similarRecipes', similarRecipes],
     ['privateAddress', privateAddress],
+    ['privateIPv6FormsTests', privateIPv6FormsTests],
     ['sinceCooked', sinceCooked],
     ['secretBox', secretBox],
     ['readableText', readableText],
@@ -122,6 +124,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['htmlMeta', htmlMeta],
     ['apiMessage', apiMessage],
     ['account', account],
+    ['sessionVersionTests', sessionVersionTests],
     ['publicPages', publicPages],
     ['shareStage', shareStage],
     ['draftQuality', draftQuality],

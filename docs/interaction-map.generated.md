@@ -3,13 +3,13 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-36 screens · 78 endpoints · 50 link edges · 81 call edges
+36 screens · 78 endpoints · 50 link edges · 82 call edges
 
 ## Screens
 
 | Route | Access | Proxy | Calls | Links to |
 |---|---|---|---|---|
-| `/[locale]/account` | account | requires session | `* /api/account`<br>`* /api/account/email`<br>`* /api/account/name`<br>`* /api/account/password`<br>`DELETE /api/account/avatar`<br>`POST /api/account/avatar` | `/[locale]/login` |
+| `/[locale]/account` | account | requires session | `* /api/account`<br>`* /api/account/email`<br>`* /api/account/name`<br>`* /api/account/password`<br>`* /api/auth/logout`<br>`DELETE /api/account/avatar`<br>`POST /api/account/avatar` | `/[locale]/login` |
 | `/[locale]/admin/ai` | admin | requires admin | `DELETE /api/ai-keys/[id]`<br>`DELETE /api/site-profiles/[id]`<br>`GET /api/ai-keys`<br>`GET /api/site-profiles`<br>`PATCH /api/ai-keys`<br>`POST /api/ai-keys`<br>`POST /api/ai-keys/[id]/test`<br>`POST /api/site-profiles` | — |
 | `/[locale]/admin/collections/[id]` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections/new` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/collections`<br>`/[locale]/collections/[id]` |
@@ -64,7 +64,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/ai/polish` | admin | zod | yes | `recipe-form/PolishPanel` |
 | POST | `/api/auth/forgot` | none (open by design) | zod | yes | `src/app/[locale]/forgot/page.tsx` |
 | POST | `/api/auth/login` | none (open by design) | zod | yes | `src/app/[locale]/login/page.tsx` |
-| POST | `/api/auth/logout` | none (open by design) | — | — | `LogoutButton` |
+| POST | `/api/auth/logout` | none (open by design) | — | — | `LogoutButton`<br>`account/AccountSettings` |
 | POST | `/api/auth/register` | none (open by design) | zod | yes | `auth/RegisterForm` |
 | POST | `/api/auth/resend-verification` | user | zod | yes | `auth/ResendVerification` |
 | POST | `/api/auth/reset` | device token | zod | yes | `auth/ResetForm` |
@@ -281,6 +281,7 @@ flowchart LR
   ePOST_api_auth_logout(["POST /api/auth/logout"])
   cLogoutButton["LogoutButton"]
   cLogoutButton --> ePOST_api_auth_logout
+  caccount_AccountSettings --> ePOST_api_auth_logout
   ePOST_api_auth_register(["POST /api/auth/register"])
   cauth_RegisterForm["auth/RegisterForm"]
   cauth_RegisterForm --> ePOST_api_auth_register

@@ -27,15 +27,24 @@
  *   escape hatch is not a feature, it is a hostage situation.
  *
  * What is deliberately not cached: anything under /api, anything that is not a
- * GET, and any page that requires being signed in to be *correct*. The last
- * one is not enforceable from here — the server decides — which is why a
- * cached page is only ever shown when the network has already failed, where
- * the alternative is a blank screen rather than a different page.
+ * GET, anything that is not a page navigation (scripts, pictures and the data
+ * requests behind client-side navigation have the browser's own cache), the
+ * admin area, and the pages whose address carries a secret (reset, verify,
+ * invitations, share links). Every copy is thrown away when somebody signs
+ * out — see src/lib/offlineCopies.ts — so a shared kitchen tablet does not
+ * keep the last person's cookbook.
+ *
+ * And the page is handed to the browser the moment it starts arriving. The
+ * first version of this file waited for the copy to be stored — which means
+ * for the whole page to have been rendered and downloaded — before returning
+ * anything, and every page on the site lost streaming, its loading states and
+ * a good part of its speed to a feature that is only used offline.
  */
 
 const DISABLED = false;
 
-const VERSION = 'v1';
+// v2: v1 kept signed-in and admin pages and ran on every script and picture.
+const VERSION = 'v2';
 const CACHE = `moscookbook-${VERSION}`;
 
 /** Roughly a cookbook's worth of pages and pictures, not a mirror of the site. */
@@ -86,6 +95,12 @@ self.addEventListener('activate', (event) => {
                     .map((name) => caches.delete(name))
             );
 
+            // The page request leaves while the worker is still starting, so
+            // having a worker costs a navigation nothing.
+            if (self.registration.navigationPreload) {
+                await self.registration.navigationPreload.enable().catch(() => undefined);
+            }
+
             await self.clients.claim();
         })()
     );
@@ -105,15 +120,34 @@ async function trim(cache) {
     }
 }
 
+/**
+ * Pages that are never kept, whatever they return: the admin area, and every
+ * address with a secret in it. `/(en|de)/` first, as every page has.
+ */
+const NEVER_KEPT = /^\/(?:en|de)\/(?:admin|login|register|forgot|reset|verify|account|r|p|c)(?:\/|$)/;
+
 function isCacheable(request, url) {
     if (request.method !== 'GET') return false;
+    if (request.mode !== 'navigate') return false;
     if (url.origin !== self.location.origin) return false;
 
     // The API is the live state of the cookbook. A cached answer to "who am I"
     // or "what is in the inbox" is worse than no answer.
     if (url.pathname.startsWith('/api/')) return false;
+    if (NEVER_KEPT.test(url.pathname)) return false;
 
     return true;
+}
+
+async function keep(request, response) {
+    try {
+        const cache = await caches.open(CACHE);
+        await cache.put(request, response);
+        await trim(cache);
+    } catch {
+        // A full disk or a private window: the page was shown, and that was
+        // the part that mattered.
+    }
 }
 
 self.addEventListener('fetch', (event) => {
@@ -127,16 +161,17 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         (async () => {
             try {
-                const response = await fetch(request);
+                const response = (await event.preloadResponse) || (await fetch(request));
 
                 // Only a real answer is worth keeping. A 404, a redirect to
                 // the login form, or an error page cached is a bug that
                 // outlives the deploy that caused it.
-                if (response.ok && response.status === 200) {
-                    const copy = response.clone();
-                    const cache = await caches.open(CACHE);
-                    await cache.put(request, copy);
-                    await trim(cache);
+                //
+                // Stored after the page is returned, never before: `waitUntil`
+                // keeps the worker alive for the copy while the browser is
+                // already rendering the original as it streams in.
+                if (response.ok && response.status === 200 && !response.redirected) {
+                    event.waitUntil(keep(request, response.clone()));
                 }
 
                 return response;
@@ -147,10 +182,8 @@ self.addEventListener('fetch', (event) => {
 
                 // A navigation with nothing cached: say so in the site's own
                 // words rather than showing the browser's dinosaur.
-                if (request.mode === 'navigate') {
-                    const offline = await caches.match(OFFLINE_PAGE);
-                    if (offline) return offline;
-                }
+                const offline = await caches.match(OFFLINE_PAGE);
+                if (offline) return offline;
 
                 throw error;
             }

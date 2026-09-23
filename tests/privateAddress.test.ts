@@ -155,3 +155,39 @@ export default function privateAddressTests() {
     check('a file URL is refused', !isSafePublicUrl('file:///etc/passwd'));
     check('nonsense is refused', !isSafePublicUrl('not a url'));
 }
+
+export function privateIPv6FormsTests() {
+    suite('privateAddress: the IPv6 forms that reach an IPv4 address');
+
+    const refused: Array<[string, string]> = [
+        ['::7f00:1', 'the "compatible" form of 127.0.0.1, as the URL parser writes it'],
+        ['::127.0.0.1', 'the same, dotted'],
+        ['64:ff9b::a9fe:a9fe', 'NAT64 to the metadata address'],
+        ['64:ff9b::10.0.0.5', 'NAT64 to a private address, dotted'],
+        ['2002:7f00:1::', '6to4 wrapping loopback'],
+        ['fec0::1', 'old site-local'],
+        ['febf::1', 'the top of link-local'],
+        ['ff02::1', 'multicast'],
+        ['2001:db8::1', 'documentation'],
+        ['2001:0:4136:e378::1', 'Teredo'],
+        ['fe80::1%eth0', 'an address with a zone'],
+        ['not:an:address', 'something that is not an address at all'],
+        ['0:0:0:0:0:ffff:0a00:0005', '::ffff:10.0.0.5 written out in full'],
+    ];
+    for (const [address, why] of refused) {
+        check(`${address} is refused — ${why}`, isPrivateIPv6(address));
+    }
+
+    const allowed: Array<[string, string]> = [
+        ['2606:4700::6810:85e5', 'a public address'],
+        ['64:ff9b::8.8.8.8', 'NAT64 to a public address'],
+        ['2002:0808:0808::', '6to4 wrapping a public address'],
+        ['[2a00:1450:4001:82b::200e]', 'a bracketed public address'],
+    ];
+    for (const [address, why] of allowed) {
+        check(`${address} is allowed — ${why}`, !isPrivateIPv6(address));
+    }
+
+    check('and through the URL check', !isSafePublicUrl('http://[::7f00:1]/'));
+}
+

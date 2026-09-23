@@ -49,6 +49,22 @@ const SECURITY_HEADERS = [
   },
 ];
 
+/**
+ * The one Blob store this site's pictures live in.
+ *
+ * The optimizer used to accept `*.public.blob.vercel-storage.com` — every
+ * Vercel customer's store — so anybody could have `/_next/image` fetch,
+ * resize and cache their pictures on this project's bill. The store's id is
+ * the fourth part of its token (`vercel_blob_rw_<storeId>_<secret>`), which is
+ * exactly how @vercel/blob itself builds a store's address; the token is
+ * there at build time wherever the site is deployed. Without one (a fresh
+ * checkout) it falls back to the wildcard, since nothing is being served.
+ */
+function blobHostname(): string {
+    const storeId = process.env.BLOB_READ_WRITE_TOKEN?.split('_')[3];
+    return storeId ? `${storeId.toLowerCase()}.public.blob.vercel-storage.com` : '*.public.blob.vercel-storage.com';
+}
+
 const nextConfig: NextConfig = {
   async headers() {
     return [{ source: '/(.*)', headers: SECURITY_HEADERS }];
@@ -58,7 +74,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '*.public.blob.vercel-storage.com',
+        hostname: blobHostname(),
         port: '',
       },
     ],

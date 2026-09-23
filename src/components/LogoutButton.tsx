@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { useAction } from '@/components/ui/useAction';
+import { forgetOfflineCopies } from '@/lib/offlineCopies';
 
 export default function LogoutButton({ className }: { className?: string }) {
     const t = useTranslations('Navigation');
@@ -18,6 +19,7 @@ export default function LogoutButton({ className }: { className?: string }) {
          * consequences: somebody who believes they are signed out and is not.
          */
         if (!(await run(() => fetch('/api/auth/logout', { method: 'POST' }), t('logoutFailed')))) return;
+        await forgetOfflineCopies();
 
         // refresh() discards the cached server render, so the navigation
         // and every page below it are rebuilt without the session.

@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
-import { getSession } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 import AvatarForm from '@/components/account/AvatarForm';
 import AccountSettings from '@/components/account/AccountSettings';
 import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
@@ -28,11 +28,11 @@ export default async function AccountPage({
 }) {
     const { locale } = await params;
     const t = await getTranslations('Account');
-    const session = await getSession();
+    const user = await getCurrentUser();
 
     // The proxy already requires an account for this path; this is the second
     // lock on the same door, and it costs one query that the page needs anyway.
-    if (!session.user) redirect(`/${locale}/login`);
+    if (!user) redirect(`/${locale}/login`);
 
     const me: {
         name: string;
@@ -41,7 +41,7 @@ export default async function AccountPage({
         email: string;
         avatarUrl: string | null;
     } | null = await prisma.user.findUnique({
-        where: { id: session.user.id },
+        where: { id: user.id },
         select: { name: true, firstName: true, lastName: true, email: true, avatarUrl: true },
     });
 

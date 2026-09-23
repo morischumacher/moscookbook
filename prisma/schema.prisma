@@ -19,6 +19,12 @@ model User {
   lastName       String     @default("")
   password       String
   admin          Boolean    @default(false)
+  /// Sealed into the session cookie at sign-in and compared on every request.
+  /// Raising it ends every session this person has: a password change or
+  /// reset, a demotion, "sign out everywhere". The cookie is stateless, so
+  /// without this a stolen or left-behind one stayed valid for its full
+  /// fourteen days whatever happened to the account.
+  sessionVersion Int        @default(0)
   /// Set once the address has been confirmed by following a mailed link.
   /// Null means unconfirmed, which is allowed — registration is by invitation,
   /// so the address is an identifier before it is a credential. It only

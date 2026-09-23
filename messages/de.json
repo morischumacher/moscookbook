@@ -663,6 +663,10 @@
     "exportMarkdown": "Alle als Markdown kopieren"
   },
   "Account": {
+    "devicesTitle": "Geräte",
+    "devicesExplain": "Noch auf einem Handy oder Computer angemeldet, den du nicht mehr hast? Das meldet dich auf allen Geräten ab, auch auf diesem.",
+    "signOutEverywhere": "Überall abmelden",
+    "signedOutEverywhere": "Auf allen Geräten abgemeldet.",
     "title": "Dein Konto",
     "pictureTitle": "Profilbild",
     "pictureBody": "Wird neben deinen Einträgen im Kochprotokoll gezeigt. Ohne Bild stehen dort deine Initialen — das ist auch eine Antwort.",

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { BCRYPT_COST } from '@/lib/passwordHash';
 import { isPrismaError } from '@/lib/prismaErrors';
-import { sessionOptions, SessionData } from '@/lib/session';
+import { sessionOptions, sessionUserFrom, SessionData } from '@/lib/session';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import prisma from '@/lib/prisma';
 import { fullName } from '@/lib/personName';
@@ -117,12 +117,7 @@ export async function POST(req: NextRequest) {
         const res = NextResponse.json({ success: true, verificationMail: mailed });
         const session = await getIronSession<SessionData>(req, res, sessionOptions);
 
-        session.user = {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            admin: user.admin,
-        };
+        session.user = sessionUserFrom(user);
 
         await session.save();
 

@@ -133,3 +133,54 @@ export async function safeFetch(
 
     throw new UnsafeUrlError(`${target} (too many redirects)`);
 }
+
+/**
+ * A response body, read no further than `maxBytes`.
+ *
+ * `text()` and `arrayBuffer()` read the whole body and only then let the
+ * caller look at its size, so every size limit in this codebase was checked
+ * after the fact: a hostile page could stream until the timeout and hold that
+ * much memory in a function with very little of it. A missing or lying
+ * `content-length` got past the one early check there was. This stops reading
+ * at the limit and cancels the rest of the download.
+ *
+ * `truncated` says whether there was more. A page cut short still has its
+ * recipe near the top; a picture cut short is not a picture, and the caller
+ * decides which kind it is holding.
+ */
+export async function readCapped(
+    response: Response,
+    maxBytes: number
+): Promise<{ bytes: Buffer; truncated: boolean }> {
+    // No stream: an empty body, or a stand-in object in a test. Neither can be
+    // large, so reading it whole is safe.
+    if (!response.body) {
+        const whole = Buffer.from(await response.arrayBuffer());
+        return whole.byteLength > maxBytes
+            ? { bytes: whole.subarray(0, maxBytes), truncated: true }
+            : { bytes: whole, truncated: false };
+    }
+
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const room = maxBytes - total;
+        if (value.byteLength > room) {
+            chunks.push(value.subarray(0, room));
+            total += room;
+            await reader.cancel().catch(() => undefined);
+            return { bytes: Buffer.concat(chunks, total), truncated: true };
+        }
+
+        chunks.push(value);
+        total += value.byteLength;
+    }
+
+    return { bytes: Buffer.concat(chunks, total), truncated: false };
+}
+

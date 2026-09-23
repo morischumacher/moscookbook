@@ -1,6 +1,28 @@
 import { z } from 'zod';
 
 /**
+ * A picture's address, as an archive may carry it: absolute http(s) only.
+ *
+ * These were bare strings, which skipped the protocol check every other way
+ * in applies — so an archive could put `javascript:…` or a relative path
+ * into an image `src`. Admin-only, and next/image refuses unknown hosts, but
+ * a restore is exactly the path nobody watches.
+ */
+const webUrl = z
+    .string()
+    .trim()
+    .min(1)
+    .max(2048)
+    .refine((value) => {
+        try {
+            const { protocol } = new URL(value);
+            return protocol === 'https:' || protocol === 'http:';
+        } catch {
+            return false;
+        }
+    }, 'Picture addresses must be absolute http(s) URLs');
+
+/**
  * The backup format.
  *
  * A cookbook that exists only inside one hosting account is one billing
@@ -62,7 +84,7 @@ const archiveRecipeSchema = z.object({
     isDraft: z.boolean().default(false),
     createdAt: z.string().default(() => new Date().toISOString()),
     /** Absolute URLs at the time of export; a local backup also keeps the files. */
-    images: z.array(z.string()).default([]),
+    images: z.array(webUrl).default([]),
     ingredients: z.array(archiveIngredientSchema).default([]),
 });
 
@@ -82,7 +104,8 @@ const archivePostSchema = z.object({
     title: z.string().min(1),
     slug: z.string().min(1),
     body: z.string().default(''),
-    imageUrl: z.string().nullable().default(null),
+    // An empty string is how some older exports said "no picture".
+    imageUrl: z.preprocess((value) => (value === '' ? null : value), webUrl.nullable()).default(null),
     publishedAt: z.string().nullable().default(null),
     createdAt: z.string().default(() => new Date().toISOString()),
     /** The recipe it belongs to, by slug. Null for a standalone entry. */
@@ -107,7 +130,7 @@ const archiveCookEntrySchema = z.object({
     note: z.string().nullable().default(null),
     author: z.string().nullable().default(null),
     /** Picture URLs, in the order they were arranged. */
-    photos: z.array(z.string().min(1)).default([]),
+    photos: z.array(webUrl).default([]),
 });
 
 /*
@@ -121,7 +144,7 @@ const archiveCookEntrySchema = z.object({
  */
 
 const legacyCookPhotoSchema = z.object({
-    url: z.string().min(1),
+    url: webUrl,
     caption: z.string().nullable().default(null),
     createdAt: z.string().default(() => new Date().toISOString()),
     recipeSlug: z.string().min(1),

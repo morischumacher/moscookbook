@@ -347,6 +347,7 @@ export async function siteProfilePipelineTests() {
                 url: at,
                 headers: new Headers({ 'content-type': 'text/html; charset=utf-8' }),
                 text: async () => (at === url ? html : ''),
+                arrayBuffer: async () => new TextEncoder().encode(at === url ? html : '').buffer,
                 json: async () => ({}),
             } as unknown as Response;
         }) as Fetch;
@@ -702,6 +703,7 @@ ${Array.from({ length: 12 }, (_, i) => `<p>Step ${i + 1}. Keep everything cold a
             ok: at === BLOG_URL, status: at === BLOG_URL ? 200 : 404, url: at,
             headers: new Headers({ 'content-type': 'text/html; charset=utf-8' }),
             text: async () => (at === BLOG_URL ? BLOG_PAGE : ''),
+            arrayBuffer: async () => new TextEncoder().encode(at === BLOG_URL ? BLOG_PAGE : '').buffer,
             json: async () => ({}),
         } as unknown as Response;
     }) as typeof globalThis.fetch;

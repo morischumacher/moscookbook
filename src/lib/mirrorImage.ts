@@ -1,6 +1,6 @@
 import { put } from '@vercel/blob';
 import { isSafePublicUrl } from './privateAddress';
-import { safeFetch } from './safeFetch';
+import { readCapped, safeFetch } from './safeFetch';
 
 /**
  * Copies an imported image into our own Blob store.
@@ -54,8 +54,8 @@ export async function mirrorImageToBlob(sourceUrl: string): Promise<string> {
         const declaredLength = Number(response.headers.get('content-length') ?? '0');
         if (declaredLength > MAX_IMAGE_BYTES) return '';
 
-        const buffer = Buffer.from(await response.arrayBuffer());
-        if (buffer.byteLength === 0 || buffer.byteLength > MAX_IMAGE_BYTES) return '';
+        const { bytes: buffer, truncated } = await readCapped(response, MAX_IMAGE_BYTES);
+        if (buffer.byteLength === 0 || truncated) return '';
 
         const blob = await put(`imported_${Date.now()}.${EXTENSIONS[contentType]}`, buffer, {
             access: 'public',

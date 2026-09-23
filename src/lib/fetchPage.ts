@@ -1,4 +1,4 @@
-import { safeFetch, UnsafeUrlError } from './safeFetch';
+import { readCapped, safeFetch, UnsafeUrlError } from './safeFetch';
 import { isSafePublicUrl } from './privateAddress';
 
 /**
@@ -66,7 +66,9 @@ export async function fetchPage(rawUrl: string): Promise<FetchPageResult> {
 
         return {
             ok: true,
-            html: (await response.text()).slice(0, MAX_HTML_BYTES),
+            // Cut rather than refused: a recipe is near the top of its page,
+            // and what is past four megabytes is comments and scripts.
+            html: new TextDecoder().decode((await readCapped(response, MAX_HTML_BYTES)).bytes),
             finalUrl: response.url || url,
         };
     } catch (error) {
