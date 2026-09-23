@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
@@ -87,7 +88,7 @@ export default function Cooked({
 
             if (!res.ok) {
                 const data = await res.json().catch(() => null);
-                setError(data?.message || t('failed'));
+                setError(sayable(data?.message, t('failed')));
                 return;
             }
 
@@ -186,7 +187,7 @@ export default function Cooked({
                 // A 413 can come from the platform rather than from us, and
                 // then it is a page of HTML with no message in it — so the
                 // status says what the body could not.
-                setError(data?.message || (res.status === 413 ? t('tooLarge') : t('failed')));
+                setError(sayable(data?.message, (res.status === 413 ? t('tooLarge') : t('failed'))));
                 return;
             }
 

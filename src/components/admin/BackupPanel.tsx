@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { useConfirm } from '@/components/ui/useConfirm';
@@ -69,7 +70,7 @@ export default function BackupPanel() {
             const data = await res.json().catch(() => null);
 
             if (!res.ok || !data) {
-                setError(data?.message || t('failed'));
+                setError(sayable(data?.message, t('failed')));
                 return;
             }
 

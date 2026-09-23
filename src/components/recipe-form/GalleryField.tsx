@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { looksLikeImage } from '@/lib/imageCompression';
@@ -63,7 +64,7 @@ export default function GalleryField({
                         onError(
                             result.reason === 'too-large'
                                 ? t('uploadTooLarge')
-                                : result.message || t('uploadFailed')
+                                : sayable(result.message, t('uploadFailed'))
                         );
                     }
                 } finally {

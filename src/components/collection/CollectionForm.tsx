@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import InlineConfirm from '@/components/ui/InlineConfirm';
@@ -71,7 +72,7 @@ export default function CollectionForm({
             const data = await res.json().catch(() => null);
 
             if (!res.ok) {
-                setError(data?.message || t('saveFailed'));
+                setError(sayable(data?.message, t('saveFailed')));
                 return;
             }
 

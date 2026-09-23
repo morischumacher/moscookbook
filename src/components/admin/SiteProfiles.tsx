@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import InlineConfirm from '@/components/ui/InlineConfirm';
 import Disclosure from '@/components/ui/Disclosure';
 import { formatDate } from '@/lib/formatDate';
-import { messageFrom } from '@/lib/apiMessage';
+import { messageFrom, sayable } from '@/lib/apiMessage';
 import { buttonPrimarySmall } from '@/lib/ui';
 import { BusyLabel } from '@/components/ui/Busy';
 
@@ -98,7 +98,7 @@ export default function SiteProfiles() {
              */
             setMessage({
                 good: response.ok && data.learned === true,
-                text: data.message ?? t('failed'),
+                text: sayable(data.message, t('failed')),
             });
 
             if (response.ok) {

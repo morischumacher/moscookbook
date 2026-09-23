@@ -1060,7 +1060,8 @@
     "askAgainExplain": "Schon mit KI gelesen (Regeln plus KI). Dasselbe noch einmal bringt dieselbe Antwort – probier „Nur mit KI lesen“.",
     "aiOnly": "Nur mit KI lesen (kostet)",
     "aiOnlyExplain": "Die KI bekommt alles, was geteilt wurde – Seite, Bildtext, Videobeschreibung, Untertitel, Screenshot – und macht daraus das Rezept. Ohne Regeln und ohne Gelerntes; ersetzt den bisherigen Entwurf.",
-    "aiOnlyDone": "Wurde schon nur von der KI gelesen. Noch einmal bringt dasselbe."
+    "aiOnlyDone": "Wurde schon nur von der KI gelesen. Noch einmal bringt dasselbe.",
+    "polishFailed": "Die Überarbeitung hat nicht geklappt. Versuch es bitte noch einmal."
   },
   "SiteProfiles": {
     "title": "Gelernte Seiten",

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import ReactMarkdown from 'react-markdown';
@@ -305,12 +306,16 @@ export default function RecipeForm({
 
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                // The server says it in English; the reason is said here.
+                // Which field, in the page's language (lib/apiMessageDe); the
+                // plain sentence when the reason cannot be said.
+                const reason = sayable(data.message, '');
                 failWith(
                     res.status === 409
                         ? t('slugTaken')
-                        : res.status === 400 && data.message
-                          ? `${t('saveInvalid')} (${data.message})`
+                        : res.status === 400
+                          ? reason
+                              ? `${t('saveInvalid')} (${reason})`
+                              : t('saveInvalid')
                           : t('saveFailed')
                 );
                 return;

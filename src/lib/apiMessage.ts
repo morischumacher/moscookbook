@@ -15,6 +15,24 @@
  * caller's fallback, which is a sentence about what was being attempted and
  * therefore more use than "Unexpected token < in JSON".
  */
+import { germanFor, looksGerman } from './apiMessageDe';
+
+/** The page's language, as the root layout sets it. */
+function pageLocale(): string {
+    return typeof document === 'undefined' ? 'en' : document.documentElement.lang || 'en';
+}
+
+/**
+ * A route's sentence, fit to show on this page: in German on a German page
+ * (lib/apiMessageDe), and the caller's own fallback when there is no
+ * sentence — or only an English one nobody has translated yet.
+ */
+export function sayable(message: unknown, fallback: string, locale: string = pageLocale()): string {
+    if (typeof message !== 'string' || message.trim() === '') return fallback;
+    if (locale !== 'de') return message;
+    return germanFor(message) ?? (looksGerman(message) ? message : fallback);
+}
+
 export async function messageFrom(response: Response, fallback: string): Promise<string> {
     let body: unknown;
 
@@ -29,5 +47,5 @@ export async function messageFrom(response: Response, fallback: string): Promise
     const { message } = body as { message?: unknown };
 
     // A whitespace-only message is a message nobody wrote on purpose.
-    return typeof message === 'string' && message.trim() !== '' ? message : fallback;
+    return sayable(message, fallback);
 }

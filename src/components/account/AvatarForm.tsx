@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import Avatar from '@/components/Avatar';
@@ -48,7 +49,7 @@ export default function AvatarForm({
             const data = await res.json().catch(() => null);
 
             if (!res.ok || !data?.avatarUrl) {
-                setError(data?.message || t('failed'));
+                setError(sayable(data?.message, t('failed')));
                 return;
             }
 

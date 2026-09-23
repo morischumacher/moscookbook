@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { captureLabel } from '@/lib/capture';
@@ -142,7 +143,7 @@ export default function AdminInboxPage() {
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                setError(data.message || tAdmin('genericError'));
+                setError(sayable(data?.message, tAdmin('genericError')));
                 return;
             }
 
@@ -192,7 +193,7 @@ export default function AdminInboxPage() {
             const data = await res.json().catch(() => ({}));
 
             if (!res.ok) {
-                setError(data.message || tAdmin('genericError'));
+                setError(sayable(data?.message, tAdmin('genericError')));
                 return;
             }
 

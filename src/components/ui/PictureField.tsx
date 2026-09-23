@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { sayable } from '@/lib/apiMessage';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { looksLikeImage } from '@/lib/imageCompression';
@@ -42,7 +43,7 @@ export default function PictureField({
         setBusy(false);
 
         if (result.ok) onChange(result.url);
-        else setError(result.reason === 'too-large' ? t('uploadTooLarge') : result.message || t('uploadFailed'));
+        else setError(result.reason === 'too-large' ? t('uploadTooLarge') : sayable(result.message, t('uploadFailed')));
     };
 
     return (
