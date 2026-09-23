@@ -38,7 +38,8 @@
     "pageOf": "Seite {page} von {pages}",
     "havePlaceholder": "Ich habe… z. B. Zucchini, Feta",
     "haveLabel": "Zutaten, die du hast — ein Rezept muss alle davon verwenden",
-    "sortForgotten": "Lange nicht gemacht"
+    "sortForgotten": "Lange nicht gemacht",
+    "tagsLabel": "Ernährung, Zeit und Tags"
   },
   "Categories": {
     "Breakfast": "Frühstück",
@@ -256,7 +257,13 @@
     "moveImageLater": "Bild {number} nach hinten",
     "removeImageNumber": "Bild {number} entfernen",
     "uploadTooLarge": "Dieses Bild ist auch verkleinert noch zu groß. Bitte ein kleineres wählen.",
-    "servingsHint": "Schaltet den Portionsrechner frei."
+    "servingsHint": "Schaltet den Portionsrechner frei.",
+    "tags": "Tags",
+    "tagsPlaceholder": "grillen, weihnachten, vorkochen…",
+    "removeTag": "{tag} entfernen",
+    "tagsSuggested": "Nach den Zutaten sieht das so aus:",
+    "tagsDoubt": "Als {tags} markiert, aber eine Zutat spricht dagegen — lohnt einen Blick.",
+    "tagsHint": "Enter oder ein Komma fügt ein Tag hinzu. Tags werden zu Filtern in der Rezeptliste."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
@@ -949,5 +956,10 @@
       "other": "Sonstiges",
       "basics": "Wahrscheinlich zu Hause"
     }
+  },
+  "Tags": {
+    "vegetarian": "Vegetarisch",
+    "vegan": "Vegan",
+    "quick": "Schnell (≤ 30 Min.)"
   }
 }

@@ -27,6 +27,7 @@ function row(overrides: Partial<ExportableRecipe> = {}): ExportableRecipe {
         isDraft: false,
         createdAt: new Date('2026-02-01T10:00:00Z'),
         images: [{ url: 'https://example.com/a.jpg' }],
+        tags: ['vegetarian'],
         ingredients: [
             { position: 1, quantity: 200, quantityMax: null, unit: 'g', name: 'Bergkäse', raw: '200 g' },
             { position: 0, quantity: 400, quantityMax: null, unit: 'g', name: 'Spätzle', raw: '400 g' },

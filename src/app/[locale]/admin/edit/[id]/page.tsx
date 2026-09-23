@@ -5,6 +5,7 @@ import { canUseAi } from '@/lib/aiProviders';
 import { aiCapability } from '@/lib/aiConfig';
 
 interface EditableRecipe {
+    tags: string[];
     id: number;
     title: string;
     slug: string;
@@ -59,6 +60,7 @@ export default async function EditRecipePage({
                 servings: recipe.servings,
                 prepMinutes: recipe.prepMinutes,
                 cookMinutes: recipe.cookMinutes,
+                tags: recipe.tags,
             }}
         />
     );

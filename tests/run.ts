@@ -53,6 +53,7 @@ import examples from './examples.test';
 import units from './units.test';
 import shopping from './shopping.test';
 import cookSteps from './cookSteps.test';
+import tags from './tags.test';
 import siteLearn, { siteLearnWiringTests } from './siteLearn.test';
 import drafts from './drafts.test';
 import routeParams from './routeParams.test';
@@ -129,6 +130,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['units', units],
     ['shopping', shopping],
     ['cookSteps', cookSteps],
+    ['tags', tags],
     ['siteLearn', siteLearn],
     ['siteLearnWiringTests', siteLearnWiringTests],
     ['drafts', drafts],

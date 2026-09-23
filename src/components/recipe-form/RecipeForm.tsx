@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import { slugify, type Ingredient } from '@/lib/recipe';
 import PolishPanel from './PolishPanel';
 import GalleryField from './GalleryField';
+import TagField from './TagField';
 import IngredientEditor, { EMPTY_ROW } from './IngredientEditor';
 import { fieldClass, labelClass } from './formStyles';
 import QuickImport, { type ImportedDraft } from './QuickImport';
@@ -27,6 +28,7 @@ export interface RecipeFormValues {
     servings: number | null;
     prepMinutes: number | null;
     cookMinutes: number | null;
+    tags: string[];
 }
 
 
@@ -65,6 +67,7 @@ export default function RecipeForm({
     const [description, setDescription] = useState(initial?.description ?? '');
     const [category, setCategory] = useState(initial?.category ?? '');
     const [nationality, setNationality] = useState(initial?.nationality ?? '');
+    const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
     const [imageUrls, setImageUrls] = useState<string[]>(initial?.imageUrls ?? []);
     const [instructions, setInstructions] = useState(initial?.instructions ?? '');
     const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
@@ -112,11 +115,11 @@ export default function RecipeForm({
     const values = useMemo(
         () => ({
             title, slug, description, category, nationality, imageUrls, instructions,
-            ingredients, servings, prepMinutes, cookMinutes,
+            ingredients, servings, prepMinutes, cookMinutes, tags,
         }),
         [
             title, slug, description, category, nationality, imageUrls, instructions,
-            ingredients, servings, prepMinutes, cookMinutes,
+            ingredients, servings, prepMinutes, cookMinutes, tags,
         ]
     );
 
@@ -156,6 +159,7 @@ export default function RecipeForm({
             setDescription(draft.description ?? '');
             setCategory(draft.category ?? '');
             setNationality(draft.nationality ?? '');
+            setTags(draft.tags ?? []);
             setImageUrls(draft.imageUrls ?? []);
             setInstructions(draft.instructions ?? '');
             setIngredients(
@@ -238,6 +242,7 @@ export default function RecipeForm({
                     description,
                     category,
                     nationality,
+                    tags,
                     imageUrls,
                     instructions,
                     ingredients: cleanedIngredients,
@@ -386,6 +391,8 @@ export default function RecipeForm({
                         </datalist>
                     </div>
                 </div>
+
+                <TagField value={tags} onChange={setTags} ingredientNames={ingredients.map((row) => row.item)} />
 
                 <div className="grid gap-6 sm:grid-cols-3">
                     <div>

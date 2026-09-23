@@ -30,6 +30,8 @@ export interface RecipeFields {
     cookMinutes: number | null | undefined;
     /** In the order they are listed. */
     ingredients: StructuredIngredient[];
+    /** Left as they are when not given. See lib/tags.ts. */
+    tags?: string[];
 }
 
 /** Every column a recipe's own text decides — the search columns included. */
@@ -44,6 +46,7 @@ export function recipeColumns(fields: RecipeFields) {
         servings: fields.servings ?? null,
         prepMinutes: fields.prepMinutes ?? null,
         cookMinutes: fields.cookMinutes ?? null,
+        ...(fields.tags !== undefined ? { tags: fields.tags } : {}),
         ...searchFields({
             title: fields.title,
             description: fields.description,

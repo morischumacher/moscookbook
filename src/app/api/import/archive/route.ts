@@ -4,6 +4,7 @@ import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { requireAdmin } from '@/lib/auth';
 import { parseArchive, cookEntriesFrom, postRecipeSlugs, type ArchivePost, type ArchiveRecipe } from '@/lib/archive';
 import { newRecipeData } from '@/lib/recipeRepo';
+import { normaliseTags } from '@/lib/tags';
 import { describeWriteFailure } from '@/lib/prismaErrors';
 import { failed as reportFailure } from '@/lib/reportServerError';
 
@@ -51,6 +52,7 @@ function recipeData(recipe: ArchiveRecipe) {
         createdAt: safeDate(recipe.createdAt) ?? new Date(),
         imageUrls: recipe.images,
         ingredients: recipe.ingredients,
+        tags: normaliseTags(recipe.tags),
     });
 }
 

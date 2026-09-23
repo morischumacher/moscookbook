@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normaliseTags } from './tags';
 import { slugify } from './recipe';
 
 const ingredientSchema = z.object({
@@ -38,6 +39,7 @@ export const recipeInputSchema = z.object({
     category: z.string().trim().max(100).default(''),
     nationality: z.string().trim().max(100).default(''),
     ingredients: z.array(ingredientSchema).max(200).default([]),
+    tags: z.array(z.string().max(60)).max(30).default([]).transform(normaliseTags),
     instructions: z.string().trim().min(1, 'Instructions are required').max(50_000),
     // Optional: an existing recipe without these simply does not show them.
     servings: z.number().int().min(1).max(100).nullable().optional(),

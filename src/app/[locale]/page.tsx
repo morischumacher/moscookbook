@@ -9,6 +9,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { buildTsQuery } from '@/lib/searchText';
 import { parseIngredientQuery, variantsOf } from '@/lib/ingredientSearch';
 import { pageContainer } from '@/lib/ui';
+import { QUICK_MINUTES } from '@/lib/tags';
 
 interface RecipeListRow {
     id: number;
@@ -44,6 +45,7 @@ interface RecipeWhere {
     isDraft: false;
     category?: string;
     nationality?: string;
+    tags?: { has: string };
     id?: { in: number[] };
     /** One entry per ingredient somebody said they have: all of them must match. */
     AND?: HasIngredient[];
@@ -107,6 +109,16 @@ async function postsMatching(tsquery: string): Promise<number> {
     return Number(hits[0]?.count ?? 0);
 }
 
+/** Recipes that take half an hour or less, prep and cooking together. */
+async function quickRecipeIds(): Promise<number[]> {
+    const rows = await prisma.$queryRaw<{ id: number }[]>`
+        SELECT "id" FROM "Recipe"
+        WHERE "isDraft" = false
+          AND COALESCE("prepMinutes", 0) + COALESCE("cookMinutes", 0) BETWEEN 1 AND ${QUICK_MINUTES}
+    `;
+    return rows.map((row) => row.id);
+}
+
 function averageRating(ratings: { value: number }[]): number {
     if (ratings.length === 0) return 0;
     return ratings.reduce((sum, rating) => sum + rating.value, 0) / ratings.length;
@@ -129,6 +141,8 @@ export default async function HomePage({
         favorites,
         search: searchParam,
         have: haveParam,
+        tag: tagParam,
+        quick: quickParam,
         page: pageParam,
     } = await searchParams;
 
@@ -137,6 +151,8 @@ export default async function HomePage({
     const nationality = typeof nationalityParam === 'string' ? nationalityParam : '';
     const search = typeof searchParam === 'string' ? searchParam : '';
     const have = typeof haveParam === 'string' ? haveParam : '';
+    const tag = typeof tagParam === 'string' ? tagParam.trim().toLowerCase() : '';
+    const quick = quickParam === 'true';
     const showFavorites = favorites === 'true';
 
     /*
@@ -150,10 +166,11 @@ export default async function HomePage({
      */
     const tsquery = search ? buildTsQuery(search) : null;
 
-    const [user, ranked, matchingPosts] = await Promise.all([
+    const [user, ranked, matchingPosts, quickIds] = await Promise.all([
         getCurrentUser(),
         tsquery !== null ? rankedSearch(tsquery) : null,
         tsquery !== null ? postsMatching(tsquery) : 0,
+        quick ? quickRecipeIds() : null,
     ]);
     const isLoggedIn = user !== null;
 
@@ -167,6 +184,7 @@ export default async function HomePage({
     const where: RecipeWhere = { isDraft: false };
     if (category) where.category = category;
     if (nationality) where.nationality = nationality;
+    if (tag) where.tags = { has: tag };
 
     if (earlyFavorites) {
         where.id = { in: earlyFavorites.map((favorite) => favorite.recipeId) };
@@ -209,6 +227,13 @@ export default async function HomePage({
     }
 
     let rankById: Map<number, number> | null = null;
+
+    // Half an hour or less, all in: a sum of two columns, which the query
+    // builder cannot say, so it narrows by id like the search does.
+    if (quickIds) {
+        const allowed = new Set(quickIds);
+        where.id = where.id ? { in: where.id.in.filter((id) => allowed.has(id)) } : { in: quickIds };
+    }
 
     if (ranked) {
         const matchedIds = ranked.map((row) => row.id);
@@ -403,6 +428,8 @@ export default async function HomePage({
         if (search) params.set('search', search);
         if (have) params.set('have', have);
         if (showFavorites) params.set('favorites', 'true');
+        if (tag) params.set('tag', tag);
+        if (quick) params.set('quick', 'true');
         if (target > 1) params.set('page', String(target));
         const query = params.toString();
         return query ? `/?${query}` : '/';
@@ -445,6 +472,8 @@ export default async function HomePage({
                     <FilterChips
                         categories={facets.categories}
                         cuisines={facets.cuisines}
+                        tags={facets.tags}
+                        quickCount={facets.quick}
                         isLoggedIn={isLoggedIn}
                         total={facets.total}
                     />

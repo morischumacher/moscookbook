@@ -323,6 +323,9 @@ model Recipe {
   id           Int        @id @default(autoincrement())
   title        String
   slug         String     @unique
+  /// Free words, lower case, plus the diet tags "vegetarian" and "vegan".
+  /// See lib/tags.ts.
+  tags         String[]   @default([])
   description  String?
   instructions String     // Markdown content
   views        Int        @default(0)

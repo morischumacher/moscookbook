@@ -38,7 +38,8 @@
     "pageOf": "Page {page} of {pages}",
     "havePlaceholder": "I have… e.g. zucchini, feta",
     "haveLabel": "Ingredients you have, all of which a recipe must use",
-    "sortForgotten": "Not made in a while"
+    "sortForgotten": "Not made in a while",
+    "tagsLabel": "Diet, time and tags"
   },
   "Categories": {
     "Breakfast": "Breakfast",
@@ -256,7 +257,13 @@
     "moveImageLater": "Move picture {number} later",
     "removeImageNumber": "Remove picture {number}",
     "uploadTooLarge": "That picture is too large to send, even after shrinking it. Try a smaller one.",
-    "servingsHint": "Unlocks the servings calculator."
+    "servingsHint": "Unlocks the servings calculator.",
+    "tags": "Tags",
+    "tagsPlaceholder": "grilling, christmas, meal prep…",
+    "removeTag": "Remove {tag}",
+    "tagsSuggested": "From the ingredients this looks:",
+    "tagsDoubt": "Tagged {tags}, but an ingredient suggests otherwise — worth a look.",
+    "tagsHint": "Enter or a comma adds a tag. They become filters on the recipe list."
   },
   "QuickImport": {
     "heading": "Fill in quickly",
@@ -949,5 +956,10 @@
       "other": "Other",
       "basics": "Probably at home"
     }
+  },
+  "Tags": {
+    "vegetarian": "Vegetarian",
+    "vegan": "Vegan",
+    "quick": "Quick (≤ 30 min)"
   }
 }

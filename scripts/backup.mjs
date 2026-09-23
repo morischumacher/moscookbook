@@ -65,6 +65,7 @@ async function main() {
              * work nobody did.
              */
             isDraft: true,
+            tags: true,
             images: { orderBy: { position: 'asc' }, select: { url: true } },
             ingredients: {
                 orderBy: { position: 'asc' },

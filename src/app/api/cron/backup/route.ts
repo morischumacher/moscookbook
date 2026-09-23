@@ -82,6 +82,7 @@ export async function GET(req: NextRequest) {
                 views: true,
                 isPublic: true,
                 isDraft: true,
+                tags: true,
                 createdAt: true,
                 images: { orderBy: { position: 'asc' }, select: { url: true } },
                 ingredients: {

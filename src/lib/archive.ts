@@ -85,6 +85,8 @@ const archiveRecipeSchema = z.object({
     createdAt: z.string().default(() => new Date().toISOString()),
     /** Absolute URLs at the time of export; a local backup also keeps the files. */
     images: z.array(webUrl).default([]),
+    /** Version 6. */
+    tags: z.array(z.string()).default([]),
     ingredients: z.array(archiveIngredientSchema).default([]),
 });
 
@@ -259,6 +261,7 @@ export interface ExportableRecipe {
     views: number;
     createdAt: Date;
     images: { url: string }[];
+    tags: string[];
     ingredients: {
         position: number;
         quantity: number | null;
@@ -323,6 +326,7 @@ export function toArchiveRecipe(recipe: ExportableRecipe): ArchiveRecipe {
         isDraft: recipe.isDraft,
         createdAt: recipe.createdAt.toISOString(),
         images: recipe.images.map((image) => image.url),
+        tags: recipe.tags,
         ingredients: recipe.ingredients
             .slice()
             .sort((a, b) => a.position - b.position)
