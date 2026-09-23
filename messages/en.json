@@ -1136,7 +1136,7 @@
     "addPlaceholder": "e.g. 500 g flour",
     "add": "Add",
     "empty": "The list is empty.",
-    "emptyHint": "Add a recipe or a whole collection from its page, or type something above.",
+    "emptyHint": "Add a recipe or a whole collection on its page, or something by hand below.",
     "toRecipes": "To the recipes",
     "allDone": "Everything is in the trolley.",
     "inTrolley": "In the trolley ({count})",
