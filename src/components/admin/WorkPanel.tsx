@@ -241,6 +241,14 @@ function ItemHead({ item }: { item: Item }) {
     );
 }
 
+function hostOf(url: string): string {
+    try {
+        return new URL(url).host;
+    } catch {
+        return url;
+    }
+}
+
 /** A task the AI reported done: what it says it did, and your answer. */
 function AwaitingRow({ item, onAnswer }: { item: Item; onAnswer: (confirm: boolean, why?: string) => Promise<void> }) {
     const t = useTranslations('Work');
@@ -262,6 +270,8 @@ function AwaitingRow({ item, onAnswer }: { item: Item; onAnswer: (confirm: boole
                 {item.doneRef && (
                     <a href={item.doneRef} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block underline underline-offset-4">
                         {t('doneRef')}
+                        {/* Where it goes, before anybody taps it. */}
+                        <span className="ml-1 text-xs text-faint">({hostOf(item.doneRef)})</span>
                     </a>
                 )}
             </div>
@@ -304,6 +314,7 @@ function TaskKey() {
     const [exists, setExists] = useState<boolean | null>(null);
     const [shown, setShown] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         let alive = true;
@@ -324,6 +335,7 @@ function TaskKey() {
         if (data) {
             setShown(data.token);
             setExists(true);
+            setCopied(false);
         }
     };
 
@@ -333,7 +345,25 @@ function TaskKey() {
             <p className="mt-1 text-muted">{t('tokenExplain')}</p>
             {shown && (
                 <p className="mt-2">
-                    {t('tokenShown')} <code className="break-all rounded bg-surface px-1 font-mono text-xs">{shown}</code>
+                    {t('tokenShown')}{' '}
+                    {/* A tap copies it: selecting 47 characters on a phone is
+                        the part that goes wrong. */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            void navigator.clipboard
+                                .writeText(shown)
+                                .then(() => setCopied(true))
+                                .catch(() => setCopied(false));
+                        }}
+                        className="break-all rounded bg-surface px-1 text-left font-mono text-xs underline decoration-dotted underline-offset-4"
+                        aria-label={t('tokenCopy')}
+                    >
+                        {shown}
+                    </button>{' '}
+                    <span role="status" className="text-xs text-muted">
+                        {copied ? t('copied') : t('tokenTapToCopy')}
+                    </span>
                 </p>
             )}
             {exists && !shown && <p className="mt-2 text-muted">{t('tokenExists')}</p>}

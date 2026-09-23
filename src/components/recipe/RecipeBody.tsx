@@ -11,14 +11,15 @@ import { useCookTimers } from './useCookTimers';
 import { clock } from '@/lib/cookSteps';
 import { formatMeasured, hasNonMetric, tidy, toMetric, unitOf, type UnitSystem } from '@/lib/units';
 import { cookProgressKey, parseCookProgress, worthSaving } from '@/lib/cookProgress';
+import PrintSheet, { type PrintInfo } from './PrintSheet';
 
-const SERVING_STEPS = [1, 2, 3, 4, 6, 8, 10, 12];
 
 export default function RecipeBody({
     recipeId,
     ingredients,
     steps,
     stepTexts,
+    print,
     canShop,
     baseServings,
     title,
@@ -39,6 +40,8 @@ export default function RecipeBody({
     steps: React.ReactNode[];
     /** The same steps as text, for what cook mode reads out of them: timers, ingredients. */
     stepTexts: string[];
+    /** The printed sheet's header (components/recipe/PrintSheet). */
+    print?: PrintInfo;
     /** Whether "add to shopping list" is offered — people with an account. */
     canShop: boolean;
     baseServings: number | null;
@@ -280,13 +283,28 @@ export default function RecipeBody({
     const textSize = 'text-xl';
 
     return (
-        <div>
+        <>
+        {print && (
+            <PrintSheet
+                title={title}
+                info={print}
+                servingsLabel={t('servings')}
+                servings={baseServings ? servings : null}
+                ingredients={displayed.map((row) => ({ amount: row.amount, item: row.item, section: row.section }))}
+                ingredientsHeading={t('ingredients')}
+                steps={steps}
+                stepsHeading={t('instructions')}
+                scaledNote={baseServings && factor !== 1 ? t('scaledFrom', { base: baseServings, current: servings }) : null}
+            />
+        )}
+        {/* On paper the sheet above stands in for all of this. */}
+        <div className={print ? 'print:hidden' : undefined}>
             {/* Controls */}
             {/* Sans, whatever the article around it is set in: these are controls,
                 and in the serif they read as footnotes. */}
             <div className="print:hidden mb-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-line py-4 [font-family:var(--font-sans)]">
                 {baseServings ? (
-                    // Wraps: the label, the stepper and four shortcuts are
+                    // Wraps: the label and the stepper are
                     // wider than a phone, and a row that cannot wrap made the
                     // whole page scroll sideways.
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -320,37 +338,15 @@ export default function RecipeBody({
                                 +
                             </button>
                         </div>
-                        {/* The shortcuts were `hidden sm:flex`, which put them
-                            on the machine that has a keyboard and took them
-                            away from the one that does not. Going from four
-                            servings to twelve on a phone was eight taps on a
-                            small button; it is one here. */}
-                        <div className="flex gap-1">
-                            {/* The four nearest to where it stands: always the first
-                                four left 8, 10 and 12 out of reach. */}
-                            {SERVING_STEPS.filter((value) => value !== servings)
-                                .sort((a, b) => Math.abs(a - servings) - Math.abs(b - servings) || a - b)
-                                .slice(0, 4)
-                                .sort((a, b) => a - b)
-                                .map((value) => (
-                                <button
-                                    key={value}
-                                    type="button"
-                                    onClick={() => setServings(value)}
-                                    aria-label={t('servingsTo', { count: value })}
-                                    className="h-11 min-w-11 rounded-full px-2 text-sm text-muted hover:text-ink"
-                                >
-                                    {value}
-                                </button>
-                            ))}
-                        </div>
                     </div>
                 ) : null}
 
                 {/* The two things done with a recipe in the kitchen, as the
                     largest targets on the page: full width on a phone, where
                     they are pressed with one hand. */}
-                <div className="flex w-full flex-wrap gap-3 sm:w-auto">
+                {/* items-start: the "on the list" line under the shopping button
+                    made the row taller, and the cook button stretched with it. */}
+                <div className="flex w-full flex-wrap items-start gap-3 sm:w-auto">
                     <button
                         type="button"
                         onClick={() => setCookMode(true)}
@@ -526,5 +522,6 @@ export default function RecipeBody({
                 </ol>
             </section>
         </div>
+        </>
     );
 }

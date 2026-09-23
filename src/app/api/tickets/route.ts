@@ -76,6 +76,9 @@ export async function POST(req: NextRequest) {
             data: { ...fields, userId: user.id, photos: { create: photos.map((url) => ({ url })) } },
             select: { id: true, createdAt: true },
         });
+        // "Etwas ist kaputt" is a task at once, like an error; an idea or
+        // anything else waits under Tickets until the admin hands it over.
+        await syncWorkItem('ticket', entry.id);
 
         return NextResponse.json(entry, { status: 201 });
     } catch (error) {

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { appVersion, peopleNames, snapshotOf } from '@/lib/workItemsDb';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
-import type { WorkKind } from '@/lib/workItems';
+import { anonymize, type WorkKind } from '@/lib/workItems';
 
 /**
  * The work list, public: what was handed over for fixing — by the admin, or
@@ -17,7 +17,7 @@ import type { WorkKind } from '@/lib/workItems';
 export const dynamic = 'force-dynamic';
 
 const ABOUT =
-    "Mo's Cookbook task list, for an AI or developer working on the code. Every error the application records is a task by itself; tickets and inbox items are added by the site's admin. Everything is anonymized. " +
+    "Mo's Cookbook task list, for an AI or developer working on the code. Every error the server records or a signed-in person reports, and every \"something is broken\" ticket, is a task by itself; other tickets and inbox items are added by the site's admin. Everything is anonymized. " +
     'kind "error" is an error the application recorded (count, first and last seen); "ticket" a request or problem somebody wrote — implement or fix it; "capture" an inbox import that did not read well — improve how such sources are read (reason codes: src/lib/captureReasons.ts; reasonText says it in English). ' +
     'appVersion is the build that was running; compare with currentVersion. Refer to tasks as "work #<id>" in commits and pull requests. ' +
     'When your fix for a task is merged, report it done: POST /api/work/<id>/done with header "Authorization: Bearer <task key>" and JSON {"summary": "what you changed and why it fixes it", "ref": "<pull request URL>"}. ' +
@@ -46,11 +46,13 @@ export async function GET(req: NextRequest) {
         id: item.id,
         kind: item.kind,
         auto: item.auto,
-        note: item.note,
+        // Typed by the admin, or appended when sent back: scrubbed like the
+        // rest, since a quick reply is where a name ends up.
+        note: item.note ? anonymize(item.note, people) : null,
         sharedAt: item.createdAt.toISOString(),
         closedAt: item.closedAt?.toISOString() ?? null,
         closedReason: item.closedReason,
-        ...(item.doneAt ? { reportedDoneAt: item.doneAt.toISOString(), doneSummary: item.doneNote, doneRef: item.doneRef } : {}),
+        ...(item.doneAt ? { reportedDoneAt: item.doneAt.toISOString(), doneSummary: item.doneNote ? anonymize(item.doneNote, people) : null, doneRef: item.doneRef } : {}),
         data,
     });
 

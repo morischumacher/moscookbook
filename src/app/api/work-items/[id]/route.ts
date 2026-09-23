@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
-import { idFrom, route } from '@/lib/route';
-import { closeWorkItem, rejectWorkDone, reopenWorkItem } from '@/lib/workItemsDb';
+import { idFrom, refuse, route } from '@/lib/route';
+import { closeWorkItem, confirmWorkDone, rejectWorkDone, reopenWorkItem } from '@/lib/workItemsDb';
 import { rereadInBackground } from '@/lib/captureBackground';
 
 type Params = { id: string };
@@ -23,10 +23,13 @@ export const PATCH = route<'admin', typeof body, Params>({ access: 'admin', body
     if (change.confirm === true) {
         // Closed, and the error or ticket with it; an inbox item is read
         // again, so the fix shows on it without anybody pressing a button.
-        const item = await closeWorkItem(id, 'confirmed');
+        const item = await confirmWorkDone(id);
+        if (!item) refuse(409, 'That task is no longer waiting for a confirmation.');
         if (item.kind === 'capture') await rereadInBackground(item.refId);
     }
-    if (change.confirm === false) await rejectWorkDone(id, change.why ?? null);
+    if (change.confirm === false && !(await rejectWorkDone(id, change.why ?? null))) {
+        refuse(409, 'That task is no longer waiting for a confirmation.');
+    }
     if (change.closed === true) await closeWorkItem(id);
     if (change.closed === false) await reopenWorkItem(id);
     if (change.dismissed !== undefined) {

@@ -50,9 +50,17 @@ export async function POST(req: NextRequest) {
     try {
         // A recurrence reopens it: something marked as dealt with that is
         // still happening has not been dealt with.
+        // Signed in or not decides what a report may do. Anybody's counts;
+        // only a signed-in one reopens a resolved error, moves "last seen"
+        // (which reopens a task reported done) and makes the error trusted —
+        // a task by itself. Otherwise one anonymous POST, copied from the
+        // public task list, could reopen any task at will.
+        const signedIn = Boolean(await getCurrentUser());
         const seen = await prisma.errorLog.updateMany({
             where: { fingerprint: report.fingerprint },
-            data: { count: { increment: 1 }, lastSeenAt: new Date(), resolvedAt: null },
+            data: signedIn
+                ? { count: { increment: 1 }, lastSeenAt: new Date(), resolvedAt: null, trusted: true }
+                : { count: { increment: 1 } },
         });
 
         /*
@@ -69,7 +77,7 @@ export async function POST(req: NextRequest) {
         if (seen.count === 0) {
             const open = await prisma.errorLog.count({ where: { source: 'client', resolvedAt: null } });
             if (open < MAX_OPEN_CLIENT_ERRORS) {
-                await prisma.errorLog.create({ data: report });
+                await prisma.errorLog.create({ data: { ...report, trusted: signedIn } });
             }
         }
 
@@ -81,7 +89,7 @@ export async function POST(req: NextRequest) {
          * publish it by hand.
          */
         const row = await prisma.errorLog.findUnique({ where: { fingerprint: report.fingerprint }, select: { id: true } });
-        if (row && (await getCurrentUser())) await syncWorkItem('error', row.id);
+        if (row && signedIn) await syncWorkItem('error', row.id);
     } catch (error) {
         // Reporting must never be the thing that breaks a page. A race between
         // two first reports of the same error lands here, and one is enough.

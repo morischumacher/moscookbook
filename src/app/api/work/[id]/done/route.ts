@@ -19,6 +19,7 @@ const body = z.object({
         .trim()
         .max(500)
         .regex(/^https?:\/\//, 'ref must be a web address')
+        .or(z.literal(''))
         .nullish()
         .transform((value) => value || null),
 });
