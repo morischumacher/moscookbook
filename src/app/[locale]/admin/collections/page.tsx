@@ -6,6 +6,7 @@ import { buttonPrimarySmall, pageContainer } from '@/lib/ui';
 import PageHeader from '@/components/admin/PageHeader';
 import ExampleButton from '@/components/admin/ExampleButton';
 import { EXAMPLE_COLLECTION_SLUG } from '@/lib/examples';
+import { stageOf } from '@/lib/shareStage';
 
 /**
  * Every collection, to open and change — the admin's list, like Blog's.
@@ -17,6 +18,7 @@ import { EXAMPLE_COLLECTION_SLUG } from '@/lib/examples';
  */
 export default async function AdminCollections() {
     const t = await getTranslations('Collections');
+    const tShare = await getTranslations('Share');
 
     const collections = await prisma.collection.findMany({
         orderBy: { createdAt: 'desc' },
@@ -25,6 +27,7 @@ export default async function AdminCollections() {
             title: true,
             slug: true,
             isPublic: true,
+            shareToken: true,
             imageUrl: true,
             _count: { select: { recipes: true } },
             recipes: {
@@ -66,7 +69,14 @@ export default async function AdminCollections() {
                                     </Link>
                                     <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-muted">
                                         {t('recipeCount', { count: collection._count.recipes })} •{' '}
-                                        {collection.isPublic ? t('isPublic') : t('isPrivate')}
+                                        {
+                                            {
+                                                admins: tShare('stageAdmins'),
+                                                household: tShare('stageHousehold'),
+                                                link: tShare('stageLink'),
+                                                web: tShare('stageWeb'),
+                                            }[stageOf({ isPublic: collection.isPublic, linkUrl: collection.shareToken })]
+                                        }
                                     </p>
                                 </div>
                                 <Link
