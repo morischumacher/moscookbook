@@ -817,13 +817,16 @@
     "passwordTitle": "Password",
     "currentPassword": "Current password",
     "newPassword": "New password",
-    "passwordSaved": "Your password has been changed.",
+    "passwordSaved": "Password changed. Every other device is signed out; a confirmation is on its way by e-mail.",
     "deleteTitle": "Delete your account",
     "deleteExplain": "Your ratings, favourites and sign-ins go with it. Notes and photographs of what you cooked stay in the cookbook without your name on them, and the recipes are the household’s.",
     "deleteConfirm": "Delete your account?",
     "deleteBody": "This cannot be undone.",
     "deleteAction": "Delete my account",
-    "deleted": "Your account has been deleted."
+    "deleted": "Your account has been deleted.",
+    "show": "Show",
+    "hide": "Hide",
+    "passwordHint": "At least 8 characters. Every other device is signed out afterwards, and you get a confirmation by e-mail."
   },
   "Ai": {
     "nav": "AI",

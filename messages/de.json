@@ -817,13 +817,16 @@
     "passwordTitle": "Passwort",
     "currentPassword": "Aktuelles Passwort",
     "newPassword": "Neues Passwort",
-    "passwordSaved": "Dein Passwort wurde geändert.",
+    "passwordSaved": "Passwort geändert. Alle anderen Geräte sind abgemeldet; eine Bestätigung ist per E-Mail unterwegs.",
     "deleteTitle": "Konto löschen",
     "deleteExplain": "Deine Bewertungen, Favoriten und Anmeldungen gehen mit. Notizen und Fotos von dem, was du gekocht hast, bleiben ohne deinen Namen im Kochbuch, und die Rezepte gehören dem Haushalt.",
     "deleteConfirm": "Dein Konto löschen?",
     "deleteBody": "Das lässt sich nicht rückgängig machen.",
     "deleteAction": "Mein Konto löschen",
-    "deleted": "Dein Konto wurde gelöscht."
+    "deleted": "Dein Konto wurde gelöscht.",
+    "show": "Anzeigen",
+    "hide": "Verbergen",
+    "passwordHint": "Mindestens 8 Zeichen. Alle anderen Geräte werden danach abgemeldet, und du bekommst eine Bestätigung per E-Mail."
   },
   "Ai": {
     "nav": "KI",

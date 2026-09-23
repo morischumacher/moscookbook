@@ -66,6 +66,12 @@ function blobHostname(): string {
 }
 
 const nextConfig: NextConfig = {
+  // Where a password manager sends you to change this site's password:
+  // 1Password, iCloud Keychain and Chrome all look for this address.
+  async redirects() {
+    return [{ source: '/.well-known/change-password', destination: '/de/account', permanent: false }];
+  },
+
   async headers() {
     return [{ source: '/(.*)', headers: SECURITY_HEADERS }];
   },

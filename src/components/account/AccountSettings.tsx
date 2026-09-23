@@ -42,7 +42,8 @@ export default function AccountSettings({
 
     const [open, setOpen] = useState<Panel | null>(null);
     const [busy, setBusy] = useState(false);
-    const [said, setSaid] = useState<{ good: boolean; text: string } | null>(null);
+    /** How the last thing went, and which section it belongs under. */
+    const [said, setSaid] = useState<{ good: boolean; text: string; panel: Panel | 'devices' | 'delete' } | null>(null);
 
     const [first, setFirst] = useState(firstName);
     const [last, setLast] = useState(lastName);
@@ -50,6 +51,10 @@ export default function AccountSettings({
     const [password, setPassword] = useState('');
     const [current, setCurrent] = useState('');
     const [next, setNext] = useState('');
+    // Its own, not the address form's: one shared field meant a password typed
+    // to change the address also sat in the "delete account" box below.
+    const [deletePassword, setDeletePassword] = useState('');
+    const [reveal, setReveal] = useState(false);
 
     const show = (panel: Panel) => {
         setOpen(open === panel ? null : panel);
@@ -57,6 +62,7 @@ export default function AccountSettings({
         setPassword('');
         setCurrent('');
         setNext('');
+        setReveal(false);
     };
 
     /** One request, one sentence about how it went. */
@@ -64,7 +70,8 @@ export default function AccountSettings({
         url: string,
         init: RequestInit,
         good: string,
-        fallback: string
+        fallback: string,
+        panel: Panel | 'devices' | 'delete'
     ): Promise<boolean> => {
         setBusy(true);
         setSaid(null);
@@ -76,14 +83,18 @@ export default function AccountSettings({
             });
 
             if (!res.ok) {
-                setSaid({ good: false, text: await messageFrom(res, fallback) });
+                setSaid({ good: false, text: await messageFrom(res, fallback), panel });
                 return false;
             }
 
-            setSaid({ good: true, text: good });
+            setSaid({ good: true, text: good, panel });
+            // Done is done: the form closes, and what happened is said under
+            // the heading. Left open, an emptied form with a password
+            // manager's highlight on it read as "something still to do".
+            if (panel !== 'devices' && panel !== 'delete') setOpen(null);
             return true;
         } catch {
-            setSaid({ good: false, text: fallback });
+            setSaid({ good: false, text: fallback, panel });
             return false;
         } finally {
             setBusy(false);
@@ -91,6 +102,7 @@ export default function AccountSettings({
             setPassword('');
             setCurrent('');
             setNext('');
+            setDeletePassword('');
         }
     };
 
@@ -99,7 +111,8 @@ export default function AccountSettings({
             '/api/account/name',
             { method: 'POST', body: JSON.stringify({ firstName: first, lastName: last }) },
             t('nameSaved'),
-            t('failed')
+            t('failed'),
+            'name'
         );
         // The greeting in the header is rendered on the server and still says
         // the old name until the cached render is thrown away.
@@ -111,7 +124,8 @@ export default function AccountSettings({
             '/api/account/email',
             { method: 'POST', body: JSON.stringify({ password, email: nextEmail, locale }) },
             t('emailSaved'),
-            t('failed')
+            t('failed'),
+            'email'
         );
         if (ok) router.refresh();
     };
@@ -119,9 +133,10 @@ export default function AccountSettings({
     const savePassword = () =>
         send(
             '/api/account/password',
-            { method: 'POST', body: JSON.stringify({ current, next }) },
+            { method: 'POST', body: JSON.stringify({ current, next, locale }) },
             t('passwordSaved'),
-            t('failed')
+            t('failed'),
+            'password'
         );
 
     const remove = async () => {
@@ -135,9 +150,10 @@ export default function AccountSettings({
 
         const ok = await send(
             '/api/account',
-            { method: 'DELETE', body: JSON.stringify({ password }) },
+            { method: 'DELETE', body: JSON.stringify({ password: deletePassword }) },
             t('deleted'),
-            t('failed')
+            t('failed'),
+            'delete'
         );
 
         if (!ok) return;
@@ -169,7 +185,8 @@ export default function AccountSettings({
             '/api/auth/logout',
             { method: 'POST', body: JSON.stringify({ everywhere: true }) },
             t('signedOutEverywhere'),
-            t('failed')
+            t('failed'),
+            'devices'
         );
         if (!ok) return;
 
@@ -179,26 +196,46 @@ export default function AccountSettings({
     };
 
     const field =
-        'w-full min-w-0 rounded border border-control bg-transparent px-2 py-1.5 text-base';
+        'w-full min-w-0 rounded-lg border border-control bg-transparent px-3 py-2 text-base outline-none transition-colors focus:border-ink';
+
+    /** Under the section it is about, not in a box at the top of the page. */
+    const note = (panel: Panel | 'devices' | 'delete') =>
+        said?.panel === panel ? (
+            <p
+                role="status"
+                className={`mt-3 rounded-lg p-3 text-sm ${
+                    said.good ? 'bg-surface text-ink' : 'border border-danger-line bg-danger-surface text-danger'
+                }`}
+            >
+                {said.good && <span aria-hidden="true">✓ </span>}
+                {said.text}
+            </p>
+        ) : null;
+
+    /*
+     * The account's address, invisibly, in every form that asks for a
+     * password. Password managers file a password under the username beside
+     * it; without one, 1Password saved the new password as a login with no
+     * name, or offered to update the wrong one.
+     */
+    const username = (
+        <input
+            type="email"
+            name="username"
+            value={email}
+            autoComplete="username"
+            readOnly
+            tabIndex={-1}
+            aria-hidden="true"
+            className="sr-only"
+        />
+    );
     const legend = 'text-xs font-bold uppercase tracking-widest text-muted';
     const row = 'flex flex-col gap-1.5';
 
     return (
         <>
             {dialog}
-
-            {said && (
-                <p
-                    role="status"
-                    className={`mt-6 rounded-lg border p-3 text-sm ${
-                        said.good
-                            ? 'border-line text-muted'
-                            : 'border-danger-line bg-danger-surface text-danger'
-                    }`}
-                >
-                    {said.text}
-                </p>
-            )}
 
             {/* ───────────────────────────────────────────────── the name */}
             <section className="mt-10 border-t border-line pt-6">
@@ -252,6 +289,7 @@ export default function AccountSettings({
                         </button>
                     </form>
                 )}
+                {note('name')}
             </section>
 
             {/* ──────────────────────────────────────────────── the address */}
@@ -278,6 +316,7 @@ export default function AccountSettings({
                         className="mt-4 flex flex-col gap-3"
                     >
                         <p className="text-sm leading-relaxed text-muted">{t('emailBody')}</p>
+                        {username}
 
                         <div className={row}>
                             <label htmlFor="account-email" className="text-sm text-muted">
@@ -312,6 +351,7 @@ export default function AccountSettings({
                         </button>
                     </form>
                 )}
+                {note('email')}
             </section>
 
             {/* ─────────────────────────────────────────────── the password */}
@@ -335,6 +375,7 @@ export default function AccountSettings({
                         }}
                         className="mt-4 flex flex-col gap-3"
                     >
+                        {username}
                         <div className={row}>
                             <label htmlFor="account-current" className="text-sm text-muted">
                                 {t('currentPassword')}
@@ -353,21 +394,39 @@ export default function AccountSettings({
                             <label htmlFor="account-next" className="text-sm text-muted">
                                 {t('newPassword')}
                             </label>
-                            <input
-                                id="account-next"
-                                type="password"
-                                value={next}
-                                onChange={(event) => setNext(event.target.value)}
-                                autoComplete="new-password"
-                                className={field}
-                            />
+                            <div className="flex items-center gap-2">
+                                <input
+                                    id="account-next"
+                                    name="new-password"
+                                    type={reveal ? 'text' : 'password'}
+                                    value={next}
+                                    onChange={(event) => setNext(event.target.value)}
+                                    autoComplete="new-password"
+                                    minLength={8}
+                                    // Read by Safari and 1Password when they
+                                    // suggest a password, so the suggestion
+                                    // fits the rule the server applies.
+                                    {...{ passwordrules: 'minlength: 8;' }}
+                                    className={field}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setReveal((shown) => !shown)}
+                                    aria-pressed={reveal}
+                                    className="shrink-0 text-sm text-muted underline underline-offset-4"
+                                >
+                                    {reveal ? t('hide') : t('show')}
+                                </button>
+                            </div>
+                            <p className="text-xs text-faint">{t('passwordHint')}</p>
                         </div>
 
-                        <button type="submit" disabled={busy} className={buttonPrimarySmall}>
+                        <button type="submit" disabled={busy || next.length < 8 || !current} className={buttonPrimarySmall}>
                             <BusyLabel busy={busy}>{t('save')}</BusyLabel>
                         </button>
                     </form>
                 )}
+                {note('password')}
             </section>
 
             {/* ─────────────────────────────────────────────── the devices */}
@@ -382,6 +441,7 @@ export default function AccountSettings({
                 >
                     {t('signOutEverywhere')}
                 </button>
+                {note('devices')}
             </section>
 
             {/* ───────────────────────────────────────────────── the exit */}
@@ -396,6 +456,7 @@ export default function AccountSettings({
                     }}
                     className="mt-4 flex flex-col gap-3"
                 >
+                    {username}
                     <div className={row}>
                         <label htmlFor="account-delete-password" className="text-sm text-muted">
                             {t('yourPassword')}
@@ -403,17 +464,22 @@ export default function AccountSettings({
                         <input
                             id="account-delete-password"
                             type="password"
-                            value={password}
-                            onChange={(event) => setPassword(event.target.value)}
-                            autoComplete="current-password"
+                            value={deletePassword}
+                            onChange={(event) => setDeletePassword(event.target.value)}
+                            // "off", not current-password: a password manager
+                            // filling this box by itself is the last thing an
+                            // account deletion should have happen to it.
+                            autoComplete="off"
+                            {...{ 'data-1p-ignore': true }}
                             className={field}
                         />
                     </div>
 
-                    <button type="submit" disabled={busy || password === ''} className={buttonDanger}>
-                        <BusyLabel busy={busy && password !== ''}>{t('deleteAction')}</BusyLabel>
+                    <button type="submit" disabled={busy || deletePassword === ''} className={buttonDanger}>
+                        <BusyLabel busy={busy && deletePassword !== ''}>{t('deleteAction')}</BusyLabel>
                     </button>
                 </form>
+                {note('delete')}
             </section>
         </>
     );

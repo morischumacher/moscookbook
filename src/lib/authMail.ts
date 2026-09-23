@@ -158,6 +158,40 @@ export function emailChangedMail(to: string, name: string, next: string, localeC
     };
 }
 
+/**
+ * "Your password was changed" — to the account's own address, after a change
+ * made while signed in. A notice with one way out: whoever did not make the
+ * change can take the account back through "forgot password", which only the
+ * mailbox can finish.
+ */
+export function passwordChangedMail(to: string, name: string, forgotUrl: string, localeCode: string): Mail {
+    const language = locale(localeCode);
+
+    if (language === 'de') {
+        const heading = 'Dein Passwort wurde geändert';
+        const body = `Hallo ${name}, das Passwort deines Kontos bei mo'scookbook wurde eben geändert. Alle anderen Geräte wurden dabei abgemeldet.`;
+        const footer = 'Warst du das nicht, setz dein Passwort über den Knopf oben sofort neu.';
+
+        return {
+            to,
+            subject: "mo'scookbook: Passwort geändert",
+            text: `${heading}\n\n${body}\n\n${footer}\n${forgotUrl}\n`,
+            html: wrap(heading, body, 'Passwort zurücksetzen', forgotUrl, footer),
+        };
+    }
+
+    const heading = 'Your password was changed';
+    const body = `Hello ${name}, the password on your mo'scookbook account was just changed. Every other device was signed out.`;
+    const footer = 'If that was not you, reset your password with the button above straight away.';
+
+    return {
+        to,
+        subject: "mo'scookbook: password changed",
+        text: `${heading}\n\n${body}\n\n${footer}\n${forgotUrl}\n`,
+        html: wrap(heading, body, 'Reset password', forgotUrl, footer),
+    };
+}
+
 export function verifyMail(to: string, name: string, url: string, localeCode: string): Mail {
     const language = locale(localeCode);
     const validFor = days(TOKEN_LIFETIME_MINUTES.verify);
