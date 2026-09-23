@@ -25,6 +25,16 @@ export type ExampleLocale = 'en' | 'de';
 export const EXAMPLE_COLLECTION_SLUG = { en: 'example-collection', de: 'beispiel-sammlung' } as const;
 export const EXAMPLE_POST_SLUG = { en: 'example-post', de: 'beispiel-beitrag' } as const;
 
+/**
+ * The examples written in the other language, to leave out of a public list:
+ * posts and collections carry no language, and the German example sat on the
+ * English blog beside its English twin (and the other way round).
+ */
+export function otherLanguageExamples(locale: string): { posts: string[]; collections: string[] } {
+    const other = locale === 'de' ? 'en' : 'de';
+    return { posts: [EXAMPLE_POST_SLUG[other]], collections: [EXAMPLE_COLLECTION_SLUG[other]] };
+}
+
 function picture(recipe: ExampleRecipe | undefined, caption: string): string {
     return recipe?.image ? `![${recipe.title}](${recipe.image} "${caption}")` : '';
 }
@@ -103,7 +113,7 @@ export function examplePost(locale: ExampleLocale, recipes: ExampleRecipe[], col
                   '## Titelbild, Entwurf, Veröffentlichen',
                   'Das **Titelbild** steht oben über dem Beitrag und in der Übersicht. Solange der Beitrag ein **Entwurf** ist, sehen ihn nur Admins; **Veröffentlichen** macht ihn für den Haushalt sichtbar, und über **Teilen** auch mit einem Link oder öffentlich.',
                   '## Ein Abend daraus',
-                  `Aus einer Sammlung wird mit „Als Menü anlegen“ eine Menükarte – mit Gängen, im Stil „Unter Freunden“, „Date Night“ oder „Festlich“, zum Drucken als A5 oder als Link für die Gäste. Alle Menüs: [Menüs](/${locale}/menus).`,
+                  `Aus einer Sammlung wird mit „Als Menü anlegen“ eine Menükarte – mit Gängen, im Stil „Unter Freunden“, „Zu zweit“ oder „Festlich“, zum Drucken als A5 oder als Link für die Gäste. Alle Menüs: [Menüs](/${locale}/menus).`,
               ]
             : [
                   'This is an **example post**. It shows everything the editor can do — open it to edit and see how it is written. It stays a draft until you publish it.',

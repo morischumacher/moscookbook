@@ -31,6 +31,7 @@ export default function Reports({
 }) {
     const t = useTranslations('Reports');
     const tWork = useTranslations('Work');
+    const tAdmin = useTranslations('Admin');
     const [side, setSide] = useState<Side>(openTickets > 0 ? 'tickets' : 'errors');
 
     const tab = (value: Side, label: string, count: number) => {
@@ -51,7 +52,7 @@ export default function Reports({
                 {count > 0 && (
                     <span
                         className="inline-block min-w-[1.25rem] rounded-full bg-danger-surface px-1.5 text-center text-xs font-semibold text-danger"
-                        aria-label={`, ${count}`}
+                        aria-label={tAdmin('openCount', { count })}
                     >
                         {count > 99 ? '99+' : count}
                     </span>

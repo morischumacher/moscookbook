@@ -8,6 +8,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { excerptOf } from '@/lib/postSchema';
 import { buildTsQuery } from '@/lib/searchText';
 import { formatDate } from '@/lib/formatDate';
+import { otherLanguageExamples } from '@/lib/examples';
 
 export const metadata: Metadata = {
     robots: { index: false, follow: false },
@@ -81,6 +82,7 @@ export default async function BlogIndex({
         where: {
             ...(isAdmin ? {} : { publishedAt: { not: null } }),
             ...(matchedIds === null ? {} : { id: { in: matchedIds } }),
+            slug: { notIn: otherLanguageExamples(locale).posts },
         },
         // Nulls first puts an admin's unfinished drafts at the top, where they
         // are a to-do list rather than something buried under last year.

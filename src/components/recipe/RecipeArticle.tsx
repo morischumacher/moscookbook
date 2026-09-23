@@ -182,10 +182,10 @@ export default async function RecipeArticle({
 
     const totalMinutes = (recipe.prepMinutes ?? 0) + (recipe.cookMinutes ?? 0);
     const times = [
-        recipe.prepMinutes ? { label: t('prepTime'), value: formatMinutes(recipe.prepMinutes) } : null,
-        recipe.cookMinutes ? { label: t('cookTime'), value: formatMinutes(recipe.cookMinutes) } : null,
+        recipe.prepMinutes ? { label: t('prepTime'), value: formatMinutes(recipe.prepMinutes, locale) } : null,
+        recipe.cookMinutes ? { label: t('cookTime'), value: formatMinutes(recipe.cookMinutes, locale) } : null,
         recipe.prepMinutes && recipe.cookMinutes
-            ? { label: t('totalTime'), value: formatMinutes(totalMinutes) }
+            ? { label: t('totalTime'), value: formatMinutes(totalMinutes, locale) }
             : null,
         recipe.servings ? { label: t('servings'), value: String(recipe.servings) } : null,
     ].filter((entry): entry is { label: string; value: string } => entry !== null);

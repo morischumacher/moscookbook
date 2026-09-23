@@ -53,12 +53,12 @@ const KEY_LIKE = /\b(?:sk|pk|rk|vercel_blob_rw|ghp|gho|xox[abp])[-_][A-Za-z0-9_-
 export function anonymize(text: string | null | undefined, people: string[]): string {
     if (!text) return '';
     let clean = text
-        .replace(CREDENTIAL_URL, '[Verbindung]')
-        .replace(DATABASE_URL, '[Datenbank]')
-        .replace(KEY_LIKE, '[Schlüssel]')
+        .replace(CREDENTIAL_URL, '[connection]')
+        .replace(DATABASE_URL, '[database]')
+        .replace(KEY_LIKE, '[key]')
         .replace(INTERNAL_HOST, '[Host]')
-        .replace(PRIVATE_IP, '[intern]')
-        .replace(PHONE, (match) => (/^(\+|0)/.test(match) && match.replace(/\D/g, '').length >= 9 ? '[Telefon]' : match))
+        .replace(PRIVATE_IP, '[internal]')
+        .replace(PHONE, (match) => (/^(\+|0)/.test(match) && match.replace(/\D/g, '').length >= 9 ? '[phone]' : match))
         .replace(EMAIL, '[E-Mail]')
         .replace(TOKEN_PATH, '/$1/[token]')
         .replace(TOKEN_QUERY, '$1[token]');

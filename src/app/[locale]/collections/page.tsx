@@ -1,10 +1,11 @@
 import Image from 'next/image';
 import { excerptOf } from '@/lib/postSchema';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
 import { pageContainer, pageTop, pageHeading, buttonPrimarySmall } from '@/lib/ui';
 import { getCurrentUser } from '@/lib/auth';
+import { otherLanguageExamples } from '@/lib/examples';
 
 /**
  * Every collection.
@@ -15,6 +16,7 @@ import { getCurrentUser } from '@/lib/auth';
  */
 export default async function CollectionsPage() {
     const t = await getTranslations('Collections');
+    const locale = await getLocale();
     const user = await getCurrentUser();
 
     const collections: {
@@ -26,6 +28,7 @@ export default async function CollectionsPage() {
         _count: { recipes: number };
         recipes: { recipe: { images: { url: string }[] } }[];
     }[] = await prisma.collection.findMany({
+        where: { slug: { notIn: otherLanguageExamples(locale).collections } },
         orderBy: { createdAt: 'desc' },
         take: 100,
         select: {
