@@ -89,8 +89,11 @@ function sorted(body: CaptureBody): CaptureBody {
     };
 }
 
+/** A NUL character cannot be stored in Postgres text; a clipboard can hold one. */
+const clean = (value: string | undefined) => value?.replace(/\u0000/g, '');
+
 export function captureInputFrom(raw: CaptureBody): ClassifiedCapture | null {
-    const body = sorted(raw);
+    const body = sorted({ ...raw, url: clean(raw.url), text: clean(raw.text), note: clean(raw.note), subject: clean(raw.subject) });
     const hasImage = Boolean(body.image) || Boolean(body.imageUrl);
 
     if (body.via !== 'email') return classifyCapture({ ...body, hasImage });

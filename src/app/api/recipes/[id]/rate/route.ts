@@ -25,7 +25,7 @@ export async function POST(
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
         }
 
-        const parsed = rateSchema.safeParse(await req.json());
+        const parsed = rateSchema.safeParse(await req.json().catch(() => null));
 
         if (!parsed.success) {
             return NextResponse.json(

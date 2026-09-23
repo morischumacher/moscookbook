@@ -154,12 +154,16 @@ export default async function HomePage({
         page: pageParam,
     } = await searchParams;
 
-    const sort = typeof sortParam === 'string' ? sortParam : 'recent';
-    const category = typeof categoryParam === 'string' ? categoryParam : '';
-    const nationality = typeof nationalityParam === 'string' ? nationalityParam : '';
-    const search = typeof searchParam === 'string' ? searchParam : '';
-    const have = typeof haveParam === 'string' ? haveParam : '';
-    const tag = typeof tagParam === 'string' ? tagParam.trim().toLowerCase() : '';
+    // Text from the address, made safe to hand to Postgres: a NUL character
+    // ("?tag=%00") is not valid in its text and failed the whole query.
+    const text = (value: string | string[] | undefined) =>
+        typeof value === 'string' ? value.replace(/\u0000/g, '').slice(0, 200) : '';
+    const sort = text(sortParam) || 'recent';
+    const category = text(categoryParam);
+    const nationality = text(nationalityParam);
+    const search = text(searchParam);
+    const have = text(haveParam);
+    const tag = text(tagParam).trim().toLowerCase();
     const quick = quickParam === 'true';
     const spicy = spicyParam === 'true';
     const showFavorites = favorites === 'true';

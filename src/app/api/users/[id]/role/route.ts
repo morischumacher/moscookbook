@@ -26,7 +26,7 @@ export async function PATCH(
             return NextResponse.json({ message: 'Invalid user ID' }, { status: 400 });
         }
 
-        const parsed = roleSchema.safeParse(await req.json());
+        const parsed = roleSchema.safeParse(await req.json().catch(() => null));
 
         if (!parsed.success) {
             return NextResponse.json({ message: 'Invalid payload' }, { status: 400 });
