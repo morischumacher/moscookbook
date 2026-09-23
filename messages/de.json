@@ -39,7 +39,10 @@
     "havePlaceholder": "Ich habe… z. B. Zucchini, Feta",
     "haveLabel": "Zutaten, die du hast — ein Rezept muss alle davon verwenden",
     "sortForgotten": "Lange nicht gemacht",
-    "tagsLabel": "Ernährung, Zeit und Tags"
+    "tagsLabel": "Ernährung, Zeit und Tags",
+    "offlineKeep": "Meine Favoriten offline auf diesem Gerät behalten",
+    "offlineKeeping": "{done} von {total} werden gespeichert…",
+    "offlineKept": "{count, plural, one {# Rezept lässt} other {# Rezepte lassen}} sich jetzt ohne Netz öffnen."
   },
   "Categories": {
     "Breakfast": "Frühstück",
@@ -961,5 +964,13 @@
     "vegetarian": "Vegetarisch",
     "vegan": "Vegan",
     "quick": "Schnell (≤ 30 Min.)"
+  },
+  "ShareTarget": {
+    "title": "In den Eingang",
+    "sending": "Wird in den Eingang geschickt…",
+    "done": "Ist im Eingang und wird gelesen.",
+    "openInbox": "Eingang öffnen",
+    "failed": "Das hat nicht geklappt. Bitte noch einmal teilen.",
+    "adminOnly": "Nur die Verwaltung des Kochbuchs kann so Rezepte hinzufügen."
   }
 }

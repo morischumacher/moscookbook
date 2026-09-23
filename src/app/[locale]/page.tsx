@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import FilterChips from '@/components/home/FilterChips';
+import OfflineFavorites from '@/components/home/OfflineFavorites';
 import RecipeCard from '@/components/RecipeCard';
 import prisma from '@/lib/prisma';
 import { collectionFacets } from '@/lib/collectionFacets';
@@ -478,6 +479,14 @@ export default async function HomePage({
                         total={facets.total}
                     />
                 </Suspense>
+
+                {/* With the favourites showing, the offer to keep them for a
+                    kitchen with no signal. */}
+                {showFavorites && isLoggedIn && (
+                    <div className="mt-3">
+                        <OfflineFavorites />
+                    </div>
+                )}
             </div>
 
             {formattedRecipes.length > 0 ? (

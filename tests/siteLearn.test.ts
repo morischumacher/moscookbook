@@ -318,11 +318,13 @@ function routeFiles(dir: string): string[] {
 export function siteLearnWiringTests() {
     suite('site learning: every import is given the store');
 
-    const callers = routeFiles('src/app/api').filter((path) =>
+    // captureProcess is the pipeline itself: it calls itself, and is not a caller.
+    const callers = [...routeFiles('src/app/api'), ...routeFiles('src/lib')].filter((path) => path !== join('src/lib', 'captureProcess.ts')).filter((path) =>
         readFileSync(path, 'utf8').includes('processCapture(')
     );
 
     check('there are routes that read pages', callers.length >= 3, callers);
+    check('the background reader is among them', callers.includes('src/lib/captureBackground.ts'), callers);
     for (const path of callers) {
         check(`${path} passes siteLearning`, readFileSync(path, 'utf8').includes('...siteLearning('));
     }

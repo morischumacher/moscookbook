@@ -39,7 +39,10 @@
     "havePlaceholder": "I have… e.g. zucchini, feta",
     "haveLabel": "Ingredients you have, all of which a recipe must use",
     "sortForgotten": "Not made in a while",
-    "tagsLabel": "Diet, time and tags"
+    "tagsLabel": "Diet, time and tags",
+    "offlineKeep": "Keep my favourites on this device for offline",
+    "offlineKeeping": "Saving {done} of {total}…",
+    "offlineKept": "{count, plural, one {# recipe} other {# recipes}} can now be opened without signal."
   },
   "Categories": {
     "Breakfast": "Breakfast",
@@ -961,5 +964,13 @@
     "vegetarian": "Vegetarian",
     "vegan": "Vegan",
     "quick": "Quick (≤ 30 min)"
+  },
+  "ShareTarget": {
+    "title": "Into the inbox",
+    "sending": "Sending it to the inbox…",
+    "done": "It is in the inbox and being read.",
+    "openInbox": "Open the inbox",
+    "failed": "That did not work. Please share it again.",
+    "adminOnly": "Only the cookbook's admin can add recipes this way."
   }
 }

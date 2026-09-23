@@ -24,3 +24,34 @@ export async function forgetOfflineCopies(): Promise<void> {
         // Nothing to add: a cache that cannot be listed cannot be read either.
     }
 }
+
+/**
+ * The service worker's cache, by name. Must match `CACHE` in public/sw.js —
+ * tests/offline.test.ts checks that it does.
+ */
+export const OFFLINE_CACHE = 'moscookbook-v2';
+
+/**
+ * Puts these pages into the offline store now, rather than when they are
+ * next opened: "keep my favourites for the kitchen". Fetched one after
+ * another, so a phone on a weak signal is not asked for thirty pages at once.
+ * Returns how many were kept.
+ */
+export async function keepOffline(paths: string[], onProgress?: (done: number) => void): Promise<number> {
+    if (typeof caches === 'undefined') return 0;
+    const cache = await caches.open(OFFLINE_CACHE);
+    let kept = 0;
+    for (const path of paths) {
+        try {
+            const response = await fetch(path, { credentials: 'same-origin' });
+            if (response.ok && !response.redirected) {
+                await cache.put(path, response);
+                kept += 1;
+            }
+        } catch {
+            // One page that did not come is not a reason to stop.
+        }
+        onProgress?.(kept);
+    }
+    return kept;
+}
