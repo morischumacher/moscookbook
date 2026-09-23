@@ -38,7 +38,7 @@ export default function CookMode({
     steps: React.ReactNode[];
     stepTexts: string[];
     /** As displayed: scaled and in the chosen units. */
-    ingredients: { amount: string; item: string; name: string }[];
+    ingredients: { amount: string; item: string; name: string; section: string | null }[];
     checkedSteps: Set<number>;
     onToggleStep: (index: number, done?: boolean) => void;
     checkedIngredients: Set<number>;
@@ -261,6 +261,9 @@ export default function CookMode({
                         <ul className="flex flex-col divide-y divide-line text-xl">
                             {ingredients.map((row, index) => (
                                 <li key={index}>
+                                    {row.section && row.section !== ingredients[index - 1]?.section && (
+                                        <h3 className="pb-1 pt-5 text-sm font-bold uppercase tracking-widest text-muted">{row.section}</h3>
+                                    )}
                                     <label className="flex cursor-pointer items-baseline gap-3 py-3">
                                         <input
                                             type="checkbox"

@@ -433,6 +433,9 @@ model Ingredient {
   name        String
   /// Exactly what the author typed in the amount field
   raw         String  @default("")
+  /// The heading this ingredient is listed under ("Für den Teig"), or null
+  /// for a recipe with one list. Ingredients of one section are consecutive.
+  section     String?
 
   @@unique([recipeId, position])
 

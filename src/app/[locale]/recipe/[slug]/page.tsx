@@ -54,7 +54,16 @@ export async function generateMetadata({
     return {
         title,
         description: recipe.description ?? undefined,
-        alternates: { canonical: url },
+        // Both languages name each other, as the sitemap already does, so a
+        // search engine shows German readers the German page.
+        alternates: {
+            canonical: url,
+            languages: {
+                de: `${getSiteUrl()}/de/recipe/${recipe.slug}`,
+                en: `${getSiteUrl()}/en/recipe/${recipe.slug}`,
+                'x-default': `${getSiteUrl()}/de/recipe/${recipe.slug}`,
+            },
+        },
         robots: { index: true, follow: true },
         openGraph: {
             type: 'article',

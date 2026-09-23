@@ -94,6 +94,7 @@ export async function GET(req: NextRequest) {
                         unit: true,
                         name: true,
                         raw: true,
+                        section: true,
                     },
                 },
             },

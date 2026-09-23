@@ -266,7 +266,11 @@
     "removeTag": "Remove {tag}",
     "tagsSuggested": "From the ingredients this looks:",
     "tagsDoubt": "Tagged {tags}, but an ingredient suggests otherwise — worth a look.",
-    "tagsHint": "Enter or a comma adds a tag. They become filters on the recipe list."
+    "tagsHint": "Enter or a comma adds a tag. They become filters on the recipe list.",
+    "addSection": "+ Section",
+    "sectionPlaceholder": "Section, e.g. For the dough",
+    "sectionLabel": "Section heading",
+    "removeSection": "Remove heading"
   },
   "QuickImport": {
     "heading": "Fill in quickly",

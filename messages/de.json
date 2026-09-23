@@ -266,7 +266,11 @@
     "removeTag": "{tag} entfernen",
     "tagsSuggested": "Nach den Zutaten sieht das so aus:",
     "tagsDoubt": "Als {tags} markiert, aber eine Zutat spricht dagegen — lohnt einen Blick.",
-    "tagsHint": "Enter oder ein Komma fügt ein Tag hinzu. Tags werden zu Filtern in der Rezeptliste."
+    "tagsHint": "Enter oder ein Komma fügt ein Tag hinzu. Tags werden zu Filtern in der Rezeptliste.",
+    "addSection": "+ Abschnitt",
+    "sectionPlaceholder": "Abschnitt, z. B. Für den Teig",
+    "sectionLabel": "Abschnittsüberschrift",
+    "removeSection": "Überschrift entfernen"
   },
   "QuickImport": {
     "heading": "Schnell befüllen",

@@ -52,6 +52,8 @@ const archiveIngredientSchema = z.object({
     unit: z.string().nullable().default(null),
     name: z.string().min(1),
     raw: z.string().default(''),
+    /** Version 6. */
+    section: z.string().nullable().default(null),
 });
 
 const archiveRecipeSchema = z.object({
@@ -269,6 +271,7 @@ export interface ExportableRecipe {
         unit: string | null;
         name: string;
         raw: string;
+        section: string | null;
     }[];
 }
 

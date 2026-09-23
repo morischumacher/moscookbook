@@ -4,9 +4,15 @@ import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type { Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
+import { sectionHeading } from '@/lib/ingredientParts';
 import { fieldClass, labelClass } from './formStyles';
 
 export const EMPTY_ROW: Ingredient = { amount: '', item: '' };
+
+/** A heading row, including one that has just been added and is still empty. */
+function isHeadingRow(row: Ingredient): boolean {
+    return row.amount.trim() === '' && (/^#/.test(row.item.trim()) || sectionHeading(row) !== null);
+}
 
 export default function IngredientEditor({
     ingredients,
@@ -98,7 +104,32 @@ export default function IngredientEditor({
             )}
 
             <div className="flex flex-col gap-2">
-                {ingredients.map((row, index) => (
+                {ingredients.map((row, index) =>
+                    isHeadingRow(row) ? (
+                        // A heading: one wide field, drawn as a heading, with
+                        // the "## " that marks it kept out of sight.
+                        <div key={index} className="mt-3 flex items-center gap-2">
+                            <input
+                                ref={(element) => {
+                                    itemRefs.current[index] = element;
+                                }}
+                                type="text"
+                                value={row.item.replace(/^#{1,3}\s?/, '').replace(/:$/, '')}
+                                onChange={(event) => update(index, 'item', `## ${event.target.value}`)}
+                                placeholder={t('sectionPlaceholder')}
+                                aria-label={t('sectionLabel')}
+                                className={fieldClass + ' flex-1 font-bold'}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => removeRow(index)}
+                                aria-label={t('removeSection')}
+                                className="flex h-10 w-8 shrink-0 items-center justify-center text-faint hover:text-danger"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    ) : (
                     <div key={index} className="flex items-center gap-2">
                         <input
                             type="text"
@@ -152,16 +183,35 @@ export default function IngredientEditor({
                             </button>
                         </div>
                     </div>
-                ))}
+                    )
+                )}
             </div>
 
-            <button
-                type="button"
-                onClick={() => addRow()}
-                className="mt-3 rounded-full border border-line px-4 py-1.5 text-sm hover:border-ink"
-            >
-                {t('addIngredient')}
-            </button>
+            <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                    type="button"
+                    onClick={() => addRow()}
+                    className="rounded-full border border-line px-4 py-1.5 text-sm hover:border-ink"
+                >
+                    {t('addIngredient')}
+                </button>
+                {/* "For the dough", "For the sauce": everything below a
+                    heading belongs to it, until the next one. */}
+                <button
+                    type="button"
+                    onClick={() => {
+                        // An empty last row is replaced rather than left
+                        // stranded above the new heading.
+                        const last = ingredients[ingredients.length - 1];
+                        const kept = last && !last.item.trim() && !last.amount.trim() ? ingredients.slice(0, -1) : ingredients;
+                        onChange([...kept, { amount: '', item: '## ' }, { ...EMPTY_ROW }]);
+                        requestAnimationFrame(() => itemRefs.current[kept.length]?.focus());
+                    }}
+                    className="rounded-full border border-line px-4 py-1.5 text-sm text-muted hover:border-ink hover:text-ink"
+                >
+                    {t('addSection')}
+                </button>
+            </div>
             <p className="mt-2 text-xs text-muted">
                 {t('enterHint')}
             </p>

@@ -134,6 +134,7 @@ export async function GET() {
                                         unit: true,
                                         name: true,
                                         raw: true,
+                                        section: true,
                                     },
                                 },
                             },

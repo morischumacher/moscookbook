@@ -129,7 +129,7 @@ export default function RecipeBody({
         return formatMeasured(shown, uiLocale, formatAmount);
     };
 
-    const displayed = ingredients.map((row) => ({ amount: amountOf(row), item: row.name, name: row.name }));
+    const displayed = ingredients.map((row) => ({ amount: amountOf(row), item: row.name, name: row.name, section: row.section ?? null }));
 
     const setStep = (index: number, done?: boolean) =>
         setCheckedSteps((set) => {
@@ -429,8 +429,19 @@ export default function RecipeBody({
                             // Scaling happens on the stored number, not on the
                             // printed string, so "1/2 TL" x3 gives "1 1/2 TL".
                             const ingredient = displayed[index];
+                            // A heading where the section changes: "Für den
+                            // Teig", then what goes into it.
+                            const heading =
+                                ingredient.section && ingredient.section !== displayed[index - 1]?.section
+                                    ? ingredient.section
+                                    : null;
                             return (
                                 <li key={index} className="border-b border-line pb-4">
+                                    {heading && (
+                                        <h3 className="mb-2 mt-4 font-sans text-sm font-bold uppercase tracking-widest text-muted">
+                                            {heading}
+                                        </h3>
+                                    )}
                                     {/* The whole line is the target, with
                                         enough height that hitting it needs no
                                         aim — the box itself is only where the

@@ -69,7 +69,7 @@ async function main() {
             images: { orderBy: { position: 'asc' }, select: { url: true } },
             ingredients: {
                 orderBy: { position: 'asc' },
-                select: { position: true, quantity: true, quantityMax: true, unit: true, name: true, raw: true },
+                select: { position: true, quantity: true, quantityMax: true, unit: true, name: true, raw: true, section: true },
             },
         },
     });

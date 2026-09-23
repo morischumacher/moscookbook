@@ -65,6 +65,7 @@ export function ingredientRows(ingredients: StructuredIngredient[]) {
         unit: row.unit,
         name: row.name,
         raw: row.raw,
+        section: row.section ?? null,
     }));
 }
 

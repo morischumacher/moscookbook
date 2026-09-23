@@ -11,7 +11,7 @@ import recipeParser from './recipeParser.test';
 import recipeFromHtml from './recipeFromHtml.test';
 import amount from './amount.test';
 import siteUrl from './siteUrl.test';
-import ingredientParts from './ingredientParts.test';
+import ingredientParts, { ingredientSectionTests } from './ingredientParts.test';
 import invite from './invite.test';
 import archive, { archiveCollectionsTests, archiveBackupNameTests } from './archive.test';
 import searchText from './searchText.test';
@@ -84,6 +84,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['amount', amount],
     ['siteUrl', siteUrl],
     ['ingredientParts', ingredientParts],
+    ['ingredientSectionTests', ingredientSectionTests],
     ['invite', invite],
     ['archive', archive],
     ['archiveCollectionsTests', archiveCollectionsTests],

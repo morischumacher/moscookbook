@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
+import { withHeadingRows } from '@/lib/ingredientParts';
 import RecipeForm from '@/components/recipe-form/RecipeForm';
 import { canUseAi } from '@/lib/aiProviders';
 import { aiCapability } from '@/lib/aiConfig';
@@ -17,7 +18,7 @@ interface EditableRecipe {
     prepMinutes: number | null;
     cookMinutes: number | null;
     images: { url: string }[];
-    ingredients: { raw: string; name: string }[];
+    ingredients: { raw: string; name: string; section: string | null }[];
 }
 
 export default async function EditRecipePage({
@@ -52,10 +53,11 @@ export default async function EditRecipePage({
                 category: recipe.category ?? '',
                 nationality: recipe.nationality ?? '',
                 instructions: recipe.instructions,
-                ingredients: recipe.ingredients.map((row) => ({
-                    amount: row.raw,
-                    item: row.name,
-                })),
+                // Headings come back as rows of their own, where the section
+                // changes — the shape the editor writes them in.
+                ingredients: withHeadingRows(
+                    recipe.ingredients.map((row) => ({ amount: row.raw, item: row.name, section: row.section }))
+                ),
                 imageUrls: recipe.images.map((image) => image.url),
                 servings: recipe.servings,
                 prepMinutes: recipe.prepMinutes,
