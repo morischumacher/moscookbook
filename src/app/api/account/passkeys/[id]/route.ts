@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireUser } from '@/lib/auth';
+import { positiveIntId } from '@/lib/routeParams';
 
 /**
  * Removing one of your own passkeys. The device keeps its half until it is
@@ -10,8 +11,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const auth = await requireUser();
     if ('response' in auth) return auth.response;
 
-    const id = Number.parseInt((await params).id, 10);
-    if (!Number.isInteger(id)) return NextResponse.json({ message: 'Not found' }, { status: 404 });
+    // Strict: "1abc" was passkey 1, and a number past INT4 a 500.
+    const id = positiveIntId((await params).id);
+    if (id === null) return NextResponse.json({ message: 'Not found' }, { status: 404 });
 
     // Scoped to the owner in the query itself: someone else's id deletes nothing.
     await prisma.passkey.deleteMany({ where: { id, userId: auth.user.id } });

@@ -933,7 +933,7 @@
     "newPassword": "New password",
     "passwordSaved": "Password changed. Every other device is signed out; a confirmation is on its way by e-mail.",
     "deleteTitle": "Delete your account",
-    "deleteExplain": "Your ratings, favourites and sign-ins go with it. Notes and photographs of what you cooked stay in the cookbook without your name on them, and the recipes are the household’s.",
+    "deleteExplain": "Your ratings, favourites and sign-ins go with it. Notes and photographs of what you cooked stay in the cookbook without your name on them, and the recipes are the household’s. Shopping lists you share with others pass to whoever joined first.",
     "deleteConfirm": "Delete your account?",
     "deleteBody": "This cannot be undone.",
     "deleteAction": "Delete my account",
@@ -963,7 +963,8 @@
     "passkeyAddedOn": "Added {date}",
     "wrongPassword": "That password is not right.",
     "addressTaken": "That address already belongs to another account.",
-    "tooMany": "Too many attempts. Please wait a few minutes."
+    "tooMany": "Too many attempts. Please wait a few minutes.",
+    "passkeyRemoveFailed": "That did not work. Please try again."
   },
   "Ai": {
     "nav": "AI",

@@ -67,6 +67,11 @@ export async function POST(req: NextRequest) {
         },
     });
 
+    // A reset link mailed before the change would still set a new password
+    // for whoever has that mailbox: the change is the answer to "someone
+    // knows my password", so it ends those too.
+    await prisma.authToken.updateMany({ where: { userId: auth.user.id, purpose: 'reset', usedAt: null }, data: { usedAt: new Date() } });
+
     const session = await getSession();
     session.user = sessionUserFrom(updated);
     await session.save();

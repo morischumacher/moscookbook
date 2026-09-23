@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
 import { ownerId } from '@/lib/userProtection';
+import { handOverLists } from '@/lib/shoppingDb';
 
 export async function DELETE(
     req: NextRequest,
@@ -32,7 +33,10 @@ export async function DELETE(
             return NextResponse.json({ message: 'The owner of the cookbook cannot be deleted.' }, { status: 403 });
         }
 
-        const gone = await prisma.user.delete({ where: { id: targetUserId }, select: { avatarUrl: true } });
+        const gone = await prisma.$transaction(async (tx) => {
+            await handOverLists(tx, targetUserId);
+            return tx.user.delete({ where: { id: targetUserId }, select: { avatarUrl: true } });
+        });
         await deleteBlobs([gone.avatarUrl]);
 
         return NextResponse.json({ success: true });

@@ -81,8 +81,9 @@ model Invite {
   lastName    String?
   createdAt   DateTime  @default(now())
   expiresAt   DateTime
-  createdById Int
-  createdBy   User      @relation("InviteCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  /// Null once that account is gone: the link and the "invited by" stay.
+  createdById Int?
+  createdBy   User?     @relation("InviteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   usedAt      DateTime?
   usedById    Int?
   usedBy      User?     @relation("InviteUsedBy", fields: [usedById], references: [id], onDelete: SetNull)

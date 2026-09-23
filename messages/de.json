@@ -933,7 +933,7 @@
     "newPassword": "Neues Passwort",
     "passwordSaved": "Passwort geändert. Alle anderen Geräte sind abgemeldet; eine Bestätigung ist per E-Mail unterwegs.",
     "deleteTitle": "Konto löschen",
-    "deleteExplain": "Deine Bewertungen, Favoriten und Anmeldungen gehen mit. Notizen und Fotos von dem, was du gekocht hast, bleiben ohne deinen Namen im Kochbuch, und die Rezepte gehören dem Haushalt.",
+    "deleteExplain": "Deine Bewertungen, Favoriten und Anmeldungen gehen mit. Notizen und Fotos von dem, was du gekocht hast, bleiben ohne deinen Namen im Kochbuch, und die Rezepte gehören dem Haushalt. Einkaufslisten, die du mit anderen teilst, gehen an die Person über, die als Erste beigetreten ist.",
     "deleteConfirm": "Dein Konto löschen?",
     "deleteBody": "Das lässt sich nicht rückgängig machen.",
     "deleteAction": "Mein Konto löschen",
@@ -963,7 +963,8 @@
     "passkeyAddedOn": "Hinzugefügt am {date}",
     "wrongPassword": "Das Passwort stimmt nicht.",
     "addressTaken": "Diese E-Mail-Adresse gehört schon zu einem anderen Konto.",
-    "tooMany": "Zu viele Versuche. Bitte warte ein paar Minuten."
+    "tooMany": "Zu viele Versuche. Bitte warte ein paar Minuten.",
+    "passkeyRemoveFailed": "Das hat nicht geklappt. Bitte noch einmal."
   },
   "Ai": {
     "nav": "KI",

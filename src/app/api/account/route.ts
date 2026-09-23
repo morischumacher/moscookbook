@@ -8,6 +8,8 @@ import { getSession } from '@/lib/auth';
 import { passwordMatches } from '@/lib/accountGuard';
 import { rateLimitShared } from '@/lib/rateLimitShared';
 import { formatZodError } from '@/lib/zodMessage';
+import { handOverLists } from '@/lib/shoppingDb';
+import { isPrismaError } from '@/lib/prismaErrors';
 
 const schema = z.object({
     password: z.string().min(1, 'Your password is required').max(200),
@@ -24,10 +26,11 @@ const schema = z.object({
  * rather than remembered, because getting this wrong in a comment is how
  * somebody later believes their ratings survived:
  *
- *   cascade   ratings, favourites, sign-in tokens, and the invitations this
- *             person created
- *   set null  the cooking log, blog entries, tickets, and the invitation this
- *             person used — the note and the photograph of a dish stay in the
+ *   cascade   ratings, favourites, sign-in tokens, memberships of other
+ *             people's shopping lists, and their own lists nobody else is on
+ *   handed    their shopping lists somebody else shops on (handOverLists)
+ *   set null  the cooking log, blog entries, tickets, the invitations this
+ *             person created (migration 0052) and the one they used — the note and the photograph of a dish stay in the
  *             cookbook without a name on them, which is the point of that
  *             column being nullable
  *
@@ -74,24 +77,40 @@ export async function DELETE(req: NextRequest) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    if (me.admin) {
-        const otherAdmins: number = await prisma.user.count({
-            where: { admin: true, id: { not: auth.user.id } },
+    /*
+     * The check and the delete in one serializable transaction: two admins
+     * deleting their accounts at the same moment each saw the other one and
+     * left the cookbook with nobody who can let anyone in.
+     */
+    const gone = await prisma
+        .$transaction(
+            async (tx) => {
+                if (me.admin && (await tx.user.count({ where: { admin: true, id: { not: auth.user.id } } })) === 0) return null;
+                await handOverLists(tx, auth.user.id);
+                return tx.user.delete({ where: { id: auth.user.id }, select: { avatarUrl: true } });
+            },
+            { isolationLevel: 'Serializable' }
+        )
+        .catch((error: unknown) => {
+            // Serialization conflict: another account change went first.
+            if (isPrismaError(error, 'P2034')) return 'retry' as const;
+            throw error;
         });
 
-        if (otherAdmins === 0) {
-            return NextResponse.json(
-                {
-                    message:
-                        'You are the only admin. Make somebody else an admin first, or this cookbook would have nobody who can let anyone in.',
-                },
-                { status: 409 }
-            );
-        }
+    if (gone === 'retry') {
+        return NextResponse.json({ message: 'That did not work.' }, { status: 409 });
+    }
+    if (!gone) {
+        return NextResponse.json(
+            {
+                message:
+                    'You are the only admin. Make somebody else an admin first, or this cookbook would have nobody who can let anyone in.',
+            },
+            { status: 409 }
+        );
     }
 
     // The avatar is a file of its own, which the row going does not take.
-    const gone = await prisma.user.delete({ where: { id: auth.user.id }, select: { avatarUrl: true } });
     await deleteBlobs([gone.avatarUrl]);
 
     // The cookie outlives the row by a fortnight otherwise, and every page it

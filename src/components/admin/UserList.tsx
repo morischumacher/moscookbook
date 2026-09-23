@@ -168,13 +168,14 @@ export default function UserList() {
                                 <span className="shrink-0 text-sm text-muted">{t(`protected_${user.protectedAs}`)}</span>
                             ) : (
                             <div className="flex shrink-0 items-center gap-3 text-sm">
-                                <button
-                                    type="button"
-                                    onClick={() => handleToggleRole(user.id, user.admin)}
+                                {/* Asked first, like deleting beside it: one stray tap
+                                    gave somebody the whole cookbook. */}
+                                <InlineConfirm
+                                    label={user.admin ? t('revokeAdmin') : t('makeAdmin')}
+                                    confirmLabel={user.admin ? t('revokeAdmin') : t('makeAdmin')}
+                                    onConfirm={() => handleToggleRole(user.id, user.admin)}
                                     className="underline underline-offset-4 hover:text-muted"
-                                >
-                                    {user.admin ? t('revokeAdmin') : t('makeAdmin')}
-                                </button>
+                                />
                                 <InlineConfirm
                                     label={t('delete')}
                                     confirmLabel={t('delete')}
