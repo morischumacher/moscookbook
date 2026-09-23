@@ -120,8 +120,12 @@ export default async function CollectionPage({
                     title={collection.title}
                     locale={locale}
                     isPublic={collection.isPublic}
+                    // The secret link only to an admin: this component runs in
+                    // the browser, so whatever it is given is in the page for
+                    // anybody who reads it — and /c/<token> shows the
+                    // collection's private recipes too.
                     linkUrl={
-                        collection.shareToken
+                        user?.admin && collection.shareToken
                             ? shareUrl(getSiteUrl(), locale, collection.shareToken, 'collection')
                             : null
                     }

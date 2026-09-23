@@ -110,8 +110,9 @@ export default async function BlogPostPage({
             mode={user ? 'private' : 'shared'}
             isAdmin={Boolean(user?.admin)}
             url={`${getSiteUrl()}/${locale}/blog/${post.slug}`}
+            // Only an admin is given the secret link: see the collection page.
             publicUrl={
-                post.shareToken ? shareUrl(getSiteUrl(), locale, post.shareToken, 'post') : null
+                user?.admin && post.shareToken ? shareUrl(getSiteUrl(), locale, post.shareToken, 'post') : null
             }
         />
     );

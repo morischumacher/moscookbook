@@ -120,6 +120,10 @@ async function moveToNewAddress(userId: number, now: Date, locale: string) {
         where: { id: user.id },
         data: { email: user.pendingEmail, emailVerifiedAt: now, pendingEmail: null },
     });
+    // A reset link already sent to the old address must not outlive the
+    // move: the address may have been changed because that mailbox is not
+    // safe any more.
+    await prisma.authToken.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: now } });
     forgetVerified(user.id);
 
     void sendMail(emailChangedMail(user.email, user.name, user.pendingEmail, locale)).catch((error) =>

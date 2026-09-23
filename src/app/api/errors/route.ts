@@ -20,10 +20,13 @@ import { syncWorkItem, workStates } from '@/lib/workItemsDb';
 /** See the POST handler: the ceiling on new client errors while old ones are open. */
 const MAX_OPEN_CLIENT_ERRORS = 200;
 
+// Cut to size rather than refused, and a missing stack may be null: a
+// rejected promise with no Error in it has none, and those reports were
+// dropped whole — the one kind of error the admin could not otherwise see.
 const reportSchema = z.object({
-    message: z.string().trim().min(1).max(2000),
-    stack: z.string().max(20_000).optional(),
-    path: z.string().max(2048).optional(),
+    message: z.string().trim().min(1).transform((text) => text.slice(0, 2000)),
+    stack: z.string().nullish().transform((text) => (text ? text.slice(0, 20_000) : undefined)),
+    path: z.string().nullish().transform((text) => (text ? text.slice(0, 2048) : undefined)),
 });
 
 export async function POST(req: NextRequest) {
