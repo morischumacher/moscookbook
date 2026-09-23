@@ -26,6 +26,7 @@ export default function RecipeRowActions({
     isPublic,
     url,
     shareUrl,
+    showStage = true,
 }: {
     recipeId: number;
     title: string;
@@ -35,6 +36,8 @@ export default function RecipeRowActions({
     url: string;
     /** The secret link, when one already exists. */
     shareUrl: string | null;
+    /** False where the row already says it (the admin list, next to the title). */
+    showStage?: boolean;
 }) {
     const t = useTranslations('Share');
 
@@ -44,7 +47,7 @@ export default function RecipeRowActions({
 
     return (
         <span className="flex flex-wrap items-center gap-3">
-            <span className="text-xs uppercase tracking-widest text-faint">{label}</span>
+            {showStage && <span className="text-xs uppercase tracking-widest text-faint">{label}</span>}
 
             <ShareButton
                 id={recipeId}
