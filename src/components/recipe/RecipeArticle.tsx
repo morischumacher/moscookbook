@@ -92,7 +92,7 @@ export const recipeInclude = {
      */
     captures: { orderBy: { id: 'asc' }, take: 1, select: { sourceUrl: true } },
     // Both, at most two rows; the page picks the reader's (lib/recipeTranslation).
-    translations: { select: { locale: true, title: true, description: true, instructions: true, ingredients: true } },
+    translations: { select: { locale: true, title: true, description: true, instructions: true, ingredients: true, source: true } },
 } as const;
 
 export interface RecipeArticleProps {
@@ -264,6 +264,7 @@ export default async function RecipeArticle({
                 {recipe.translated && written.language && (
                     <p lang={locale} className="mt-1 text-xs text-faint">
                         {t('translatedFrom', { language: written.language })}
+                        {recipe.stale && <> · {t('translationStale')}</>}
                     </p>
                 )}
 

@@ -131,7 +131,8 @@
     "cookViewList": "Abhaken",
     "cookViewSteps": "Schritt für Schritt",
     "cookFinish": "Fertig gekocht",
-    "translatedFrom": "Übersetzt aus dem {language, select, en {Englischen} other {Deutschen}}"
+    "translatedFrom": "Übersetzt aus dem {language, select, en {Englischen} other {Deutschen}}",
+    "translationStale": "Das Original wurde seitdem geändert."
   },
   "Rating": {
     "rate": "Bewerten",
