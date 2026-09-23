@@ -6,6 +6,9 @@ import prisma from '@/lib/prisma';
 import { pageContainer, pageTop, pageHeading, buttonPrimarySmall } from '@/lib/ui';
 import { getCurrentUser } from '@/lib/auth';
 import { otherLanguageExamples } from '@/lib/examples';
+import { titled } from '@/lib/metaTitle';
+
+export const generateMetadata = titled('Collections', 'title');
 
 /**
  * Every collection.

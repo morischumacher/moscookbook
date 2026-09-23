@@ -2,6 +2,9 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { inviteLinkState, inviteName } from '@/lib/linkState';
+import { titled } from '@/lib/metaTitle';
+
+export const generateMetadata = titled('Auth', 'registerTitle', false);
 
 /**
  * Making an account, which needs an invitation.

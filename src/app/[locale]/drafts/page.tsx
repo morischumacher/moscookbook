@@ -1,4 +1,7 @@
 import { redirect } from 'next/navigation';
+import { titled } from '@/lib/metaTitle';
+
+export const generateMetadata = titled('Drafts', 'title', false);
 
 /**
  * Drafts moved under /admin, where the rest of the admin's rooms are.

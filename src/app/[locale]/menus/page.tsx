@@ -4,6 +4,9 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { menuStyle } from '@/lib/menu';
 import { buttonPrimarySmall, pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import { titled } from '@/lib/metaTitle';
+
+export const generateMetadata = titled('Menus', 'title');
 
 /** Every menu, the next evening first, then the ones that have been. */
 export default async function MenusPage({ params }: { params: Promise<{ locale: string }> }) {
