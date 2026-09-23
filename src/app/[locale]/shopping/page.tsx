@@ -3,9 +3,9 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { getCurrentUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { itemsOf, listFor, listOf, listsSharedWith } from '@/lib/shoppingDb';
-import { Link } from '@/i18n/routing';
+import { activeList, householdOf, invitationsFor, itemsOf } from '@/lib/shoppingDb';
 import ShoppingListView from '@/components/shopping/ShoppingListView';
+import ShoppingInvitations from '@/components/shopping/ShoppingInvitations';
 import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -15,69 +15,38 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 /**
- * The signed-in person's shopping list, and beside it any list somebody else
- * shared with them (`?list=<id>`). See components/shopping/ShoppingListView.
+ * The list the signed-in person shops on: their own, or the household's they
+ * joined. See components/shopping/ShoppingListView.
  */
-export default async function ShoppingPage({
-    params,
-    searchParams,
-}: {
-    params: Promise<{ locale: string }>;
-    searchParams: Promise<{ list?: string | string[] }>;
-}) {
-    const [{ locale }, query] = await Promise.all([params, searchParams]);
+export default async function ShoppingPage({ params }: { params: Promise<{ locale: string }> }) {
+    const { locale } = await params;
     const user = await getCurrentUser();
     if (!user) redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/shopping`)}`);
 
-    const requested = typeof query.list === 'string' ? query.list : null;
-    // A list no longer shared (or never) opens one's own rather than an error.
-    const access = (await listFor(user.id, requested)) ?? (await listFor(user.id, null))!;
-    const [t, own, shared, items] = await Promise.all([
+    const list = await activeList(user.id);
+    const [t, items, household, invitations, settings] = await Promise.all([
         getTranslations('Shopping'),
-        listOf(user.id),
-        listsSharedWith(user.id),
-        itemsOf(access.id),
+        itemsOf(list.id),
+        householdOf(list.id),
+        invitationsFor(user.id),
+        prisma.shoppingList.findUnique({ where: { id: list.id }, select: { shareToken: true, shareCanAdd: true } }),
     ]);
-    const settings = access.owner
-        ? await prisma.shoppingList.findUnique({ where: { id: own.id }, select: { shareToken: true, shareCanAdd: true } })
-        : null;
-    const current = shared.find((list) => list.id === access.id);
 
-    const tab = (active: boolean) =>
-        `shrink-0 rounded-full border px-4 py-2 text-sm transition-colors ${
-            active ? 'border-ink bg-ink text-page' : 'border-control text-muted hover:border-ink hover:text-ink'
-        }`;
+    // Everybody on the list but the person looking at it.
+    const others = household ? [household.owner, ...household.members].filter((person) => person.id !== user.id).map((person) => person.name) : [];
 
     return (
         <main className={`${pageContainer} pb-32`}>
-            <h1 className={`${pageTop} ${pageHeading} mb-6`}>{t('title')}</h1>
+            <h1 className={`${pageTop} ${pageHeading} ${others.length ? 'mb-2' : 'mb-6'}`}>{t('title')}</h1>
+            {others.length > 0 && <p className="mb-6 text-sm text-muted">{t('sharedWith', { names: others.join(', ') })}</p>}
 
-            {shared.length > 0 && (
-                <nav aria-label={t('listsLabel')} className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1">
-                    <Link href="/shopping" className={tab(access.owner)} aria-current={access.owner ? 'page' : undefined}>
-                        {t('myList')}
-                    </Link>
-                    {shared.map((list) => (
-                        <Link
-                            key={list.id}
-                            href={`/shopping?list=${list.id}`}
-                            className={tab(list.id === access.id)}
-                            aria-current={list.id === access.id ? 'page' : undefined}
-                        >
-                            {t('sharedBy', { name: list.owner })}
-                        </Link>
-                    ))}
-                </nav>
-            )}
+            {invitations.length > 0 && <ShoppingInvitations invitations={invitations} />}
 
+            {/* Keyed by the list: joining or leaving swaps it for another. */}
             <ShoppingListView
-                key={access.id}
+                key={list.id}
                 initial={items}
-                mode={
-                    access.owner
-                        ? { kind: 'own', shareToken: settings?.shareToken ?? null, canAdd: settings?.shareCanAdd ?? true }
-                        : { kind: 'member', listId: access.id, ownerName: current?.owner ?? '' }
-                }
+                mode={{ kind: 'account', owner: list.owner, shareToken: settings?.shareToken ?? null, canAdd: settings?.shareCanAdd ?? true }}
             />
         </main>
     );

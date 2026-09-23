@@ -3,7 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { refuse, route } from '@/lib/route';
 import { lineFromText } from '@/lib/shopping';
-import { addLines, collectionLines, itemsOf, listFor, recipeLines } from '@/lib/shoppingDb';
+import { activeList, addLines, collectionLines, itemsOf, recipeLines } from '@/lib/shoppingDb';
 import { menuLines } from '@/lib/menuDb';
 
 /**
@@ -13,18 +13,12 @@ import { menuLines } from '@/lib/menuDb';
  * read at, a whole collection, or a line typed by hand — and the same
  * ingredient already on the list is added to rather than listed twice.
  *
- * `?list=<id>` works on a list somebody shared with this person instead of
- * their own. Emptying it, like sharing it, stays with its owner.
+ * Always the list the person shops on: their own, or the household's one they
+ * joined (lib/shoppingDb activeList).
  */
 
-async function theList(req: Request, userId: number) {
-    const list = await listFor(userId, new URL(req.url).searchParams.get('list'));
-    if (!list) refuse(404, 'This list is not shared with you.');
-    return list;
-}
-
-export const GET = route({ access: 'user', label: 'Shopping list' }, async ({ req, user }) => {
-    const list = await theList(req, user.id);
+export const GET = route({ access: 'user', label: 'Shopping list' }, async ({ user }) => {
+    const list = await activeList(user.id);
     return NextResponse.json({ items: await itemsOf(list.id) });
 });
 
@@ -35,7 +29,7 @@ const addBody = z.union([
     z.object({ text: z.string().trim().min(1).max(200) }),
 ]);
 
-export const POST = route({ access: 'user', body: addBody, label: 'Adding to the shopping list' }, async ({ req, user, body }) => {
+export const POST = route({ access: 'user', body: addBody, label: 'Adding to the shopping list' }, async ({ user, body }) => {
     const lines =
         'recipeId' in body
             ? await recipeLines(body.recipeId, body.servings ?? null, body.locale, user)
@@ -47,7 +41,7 @@ export const POST = route({ access: 'user', body: addBody, label: 'Adding to the
 
     if (lines === null) refuse(404, 'That is no longer there.');
 
-    const list = await theList(req, user.id);
+    const list = await activeList(user.id);
     const changed = await addLines(list.id, lines);
 
     return NextResponse.json({ added: lines.length, changed, items: await itemsOf(list.id) });
@@ -58,8 +52,7 @@ export const DELETE = route({ access: 'user', label: 'Clearing the shopping list
     const which = new URL(req.url).searchParams.get('which');
     if (which !== 'checked' && which !== 'all') refuse(400, 'Clear what?');
 
-    const list = await theList(req, user.id);
-    if (which === 'all' && !list.owner) refuse(403, 'Only its owner can empty this list.');
+    const list = await activeList(user.id);
     await prisma.shoppingItem.deleteMany({ where: { listId: list.id, ...(which === 'checked' ? { checked: true } : {}) } });
 
     return NextResponse.json({ items: await itemsOf(list.id) });

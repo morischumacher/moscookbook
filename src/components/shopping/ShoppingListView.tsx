@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Link, useRouter } from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
 import { AISLES, amountLabel, listAsText, type Aisle } from '@/lib/shopping';
 import type { ShoppingItemRow } from '@/lib/shoppingDb';
 import { useConfirm } from '@/components/ui/useConfirm';
@@ -19,16 +19,13 @@ import ShoppingSharing from './ShoppingSharing';
  * the phone and sent when the signal comes back, so the list never argues
  * with the person holding it.
  *
- * The same component serves the owner (at /shopping), the people the owner
- * shared it with (at /shopping?list=<id>), who can add, tick and remove but
- * not empty or share it, and whoever was sent the link (at /s/<token>), who
- * can tick — and add, if the owner allows it.
+ * The same component serves everybody shopping on the list with an account
+ * (at /shopping — the owner and whoever joined it, who can do everything but
+ * choose who else is on it), and whoever was sent the link (at /s/<token>),
+ * who can tick — and add, if the owner allows it.
  */
 
-type Mode =
-    | { kind: 'own'; shareToken: string | null; canAdd: boolean }
-    | { kind: 'member'; listId: number; ownerName: string }
-    | { kind: 'shared'; token: string; canAdd: boolean };
+type Mode = { kind: 'account'; owner: boolean; shareToken: string | null; canAdd: boolean } | { kind: 'shared'; token: string; canAdd: boolean };
 
 /*
  * One store per list: ticks queued on your own list are not sent to somebody
@@ -61,14 +58,13 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     const [text, setText] = useState('');
     const [adding, setAdding] = useState(false);
     const [note, setNote] = useState('');
-    const router = useRouter();
     // Whether the link may add. It can change while somebody has it open.
     const [linkCanAdd, setLinkCanAdd] = useState(mode.kind === 'shared' ? mode.canAdd : true);
     const canAdd = mode.kind !== 'shared' || linkCanAdd;
 
-    const listQuery = mode.kind === 'member' ? `list=${mode.listId}` : '';
-    const base =
-        mode.kind === 'shared' ? `/api/shopping/shared/${mode.token}` : mode.kind === 'member' ? `/api/shopping?${listQuery}` : '/api/shopping';
+    const base = mode.kind === 'shared' ? `/api/shopping/shared/${mode.token}` : '/api/shopping';
+    // The add field is folded away: most lines come from recipes.
+    const [adderOpen, setAdderOpen] = useState(false);
 
     /** Sends one tick. Returns false when it could not be sent. */
     const sendTick = useCallback(
@@ -193,33 +189,27 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             }))
         )
             return;
-        const res = await fetch(`/api/shopping?which=${which}${listQuery ? `&${listQuery}` : ''}`, { method: 'DELETE' }).catch(() => null);
+        const res = await fetch(`/api/shopping?which=${which}`, { method: 'DELETE' }).catch(() => null);
         if (res?.ok) setItems(((await res.json()) as { items: ShoppingItemRow[] }).items);
     };
 
     // The address is only known in the browser. Read after hydration, so the
     // server's HTML and the first client render agree.
-    const [shareToken, setShareToken] = useState(mode.kind === 'own' ? mode.shareToken : null);
+    const [shareToken, setShareToken] = useState(mode.kind === 'account' ? mode.shareToken : null);
     const [origin, setOrigin] = useState('');
     useEffect(() => setOrigin(window.location.origin), []);
     const shareLink = shareToken && origin ? `${origin}/${locale}/s/${shareToken}` : null;
 
-    const leave = async () => {
-        if (mode.kind !== 'member') return;
-        if (
-            !(await ask({
-                title: t('leaveQuestion', { name: mode.ownerName }),
-                confirmLabel: t('leave'),
-            }))
-        )
-            return;
-        const res = await fetch(`/api/shopping/members?${listQuery}`, {
-            method: 'DELETE',
+    /** Everything one recipe put on the list, taken off again. */
+    const removeRecipe = async (source: string) => {
+        if (!(await ask({ title: t('removeRecipeQuestion', { recipe: source }), confirmLabel: t('removeRecipe'), destructive: true }))) return;
+        const res = await fetch('/api/shopping/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source }),
         }).catch(() => null);
-        if (res?.ok) {
-            router.replace('/shopping');
-            router.refresh();
-        } else setNote(t('failed'));
+        if (res?.ok) setItems(((await res.json()) as { items: ShoppingItemRow[] }).items);
+        else setNote(t('failed'));
     };
 
     const aisleName = useCallback((aisle: Aisle) => t(`aisle.${aisle}`), [t]);
@@ -280,13 +270,12 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         );
     };
 
-    return (
-        <div>
-            {dialog}
+    // The recipes on the list, in the order they first appear, for taking one off whole.
+    const recipes = [...new Set(items.flatMap((item) => item.sources))];
 
-            {!canAdd && <p className="text-sm text-muted">{t('linkTickOnly')}</p>}
-
-            {canAdd && (
+    const adder = canAdd && (
+        <div className="mt-6">
+            {adderOpen ? (
                 <form
                     onSubmit={(event) => {
                         event.preventDefault();
@@ -299,6 +288,8 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                     </label>
                     <input
                         id="shopping-add"
+                        // Opened by a tap on "add": the field is what was asked for.
+                        autoFocus
                         value={text}
                         onChange={(event) => setText(event.target.value)}
                         placeholder={t('addPlaceholder')}
@@ -308,7 +299,19 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                         <BusyLabel busy={adding}>{t('add')}</BusyLabel>
                     </button>
                 </form>
+            ) : (
+                <button type="button" onClick={() => setAdderOpen(true)} className="text-sm font-medium underline underline-offset-4">
+                    {t('addSomething')}
+                </button>
             )}
+        </div>
+    );
+
+    return (
+        <div>
+            {dialog}
+
+            {!canAdd && <p className="text-sm text-muted">{t('linkTickOnly')}</p>}
 
             {/* Always there, empty until something is said: a status region
                 that appears together with its text is often not read out. */}
@@ -317,7 +320,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             </p>
 
             {items.length === 0 ? (
-                <div className="py-16 text-center text-muted">
+                <div className="py-12 text-center text-muted">
                     <p>{t('empty')}</p>
                     {mode.kind !== 'shared' && (
                         <p className="mt-2 text-sm">
@@ -334,7 +337,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                         const here = open.filter((item) => item.aisle === aisle);
                         if (here.length === 0) return null;
                         return (
-                            <section key={aisle} className="mt-8">
+                            <section key={aisle} className="mt-8 first:mt-2">
                                 <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-muted">{aisleName(aisle)}</h2>
                                 <ul className="divide-y divide-line">{here.map(line)}</ul>
                             </section>
@@ -342,25 +345,43 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                     })}
 
                     {open.length === 0 && <p className="mt-10 text-center text-muted">{t('allDone')}</p>}
-
-                    {done.length > 0 && (
-                        <section className="mt-10 border-t border-line pt-4">
-                            <div className="flex items-baseline justify-between gap-4">
-                                <h2 className="text-xs font-bold uppercase tracking-widest text-faint">{t('inTrolley', { count: done.length })}</h2>
-                                {mode.kind !== 'shared' && (
-                                    <button
-                                        type="button"
-                                        onClick={() => void clear('checked')}
-                                        className="text-sm text-muted underline underline-offset-4"
-                                    >
-                                        {t('clearChecked')}
-                                    </button>
-                                )}
-                            </div>
-                            <ul className="divide-y divide-line">{done.map(line)}</ul>
-                        </section>
-                    )}
                 </>
+            )}
+
+            {adder}
+
+            {done.length > 0 && (
+                <section className="mt-10 border-t border-line pt-4">
+                    <div className="flex items-baseline justify-between gap-4">
+                        <h2 className="text-xs font-bold uppercase tracking-widest text-faint">{t('inTrolley', { count: done.length })}</h2>
+                        {mode.kind !== 'shared' && (
+                            <button type="button" onClick={() => void clear('checked')} className="text-sm text-muted underline underline-offset-4">
+                                {t('clearChecked')}
+                            </button>
+                        )}
+                    </div>
+                    <ul className="divide-y divide-line">{done.map(line)}</ul>
+                </section>
+            )}
+
+            {mode.kind !== 'shared' && recipes.length > 0 && (
+                <section className="mt-10 border-t border-line pt-4">
+                    <h2 className="text-xs font-bold uppercase tracking-widest text-muted">{t('recipesOnList')}</h2>
+                    <ul className="mt-1 divide-y divide-line">
+                        {recipes.map((recipe) => (
+                            <li key={recipe} className="flex items-center justify-between gap-3 py-1">
+                                <span className="min-w-0 text-sm">{recipe}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => void removeRecipe(recipe)}
+                                    className="min-h-11 shrink-0 text-sm text-muted underline underline-offset-4 hover:text-danger"
+                                >
+                                    {t('removeRecipe')}
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
             )}
 
             <div className="mt-12 flex flex-col gap-4 border-t border-line pt-6 text-sm">
@@ -370,23 +391,12 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                     </button>
                 )}
 
-                {mode.kind === 'own' && <ShoppingSharing shareLink={shareLink} onShareToken={setShareToken} canAdd={mode.canAdd} onNote={setNote} />}
-
-                {mode.kind === 'member' && (
-                    <div className="rounded-xl border border-line p-4">
-                        <p className="text-muted">{t('memberExplain', { name: mode.ownerName })}</p>
-                        <button type="button" onClick={() => void leave()} className="mt-3 text-muted underline underline-offset-4 hover:text-danger">
-                            {t('leave')}
-                        </button>
-                    </div>
+                {mode.kind === 'account' && (
+                    <ShoppingSharing owner={mode.owner} shareLink={shareLink} onShareToken={setShareToken} canAdd={mode.canAdd} onNote={setNote} />
                 )}
 
-                {mode.kind === 'own' && items.length > 0 && (
-                    <button
-                        type="button"
-                        onClick={() => void clear('all')}
-                        className="self-start text-faint underline underline-offset-4 hover:text-danger"
-                    >
+                {mode.kind === 'account' && items.length > 0 && (
+                    <button type="button" onClick={() => void clear('all')} className="self-start text-faint underline underline-offset-4 hover:text-danger">
                         {t('clearAll')}
                     </button>
                 )}

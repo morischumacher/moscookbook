@@ -2,58 +2,63 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { refuse, route } from '@/lib/route';
-import { listOf } from '@/lib/shoppingDb';
+import { activeList, householdOf } from '@/lib/shoppingDb';
 
 /**
- * Who the shopping list is shared with, among the people of the cookbook.
- * They see it beside their own list and can add, tick and remove lines.
+ * Who shops on the list. One list per household: the owner invites people of
+ * the cookbook, who use it instead of their own once they accept
+ * (/api/shopping/invitations).
  *
- * GET and POST/DELETE with `userId` are the owner's. DELETE with `?list=<id>`
- * is a member leaving a list somebody else shared with them.
+ * GET: the household, and for the owner everybody who could be invited.
+ * POST `{userId}`: the owner invites somebody.
+ * DELETE `?userId=`: the owner takes somebody off (or withdraws an invitation).
+ * DELETE `?leave=1`: a member goes back to their own list.
  */
 
-const person = { id: true, name: true, firstName: true } as const;
+export const GET = route({ access: 'user', label: 'Shopping list household' }, async ({ user }) => {
+    const list = await activeList(user.id);
+    const household = await householdOf(list.id);
+    if (!household) refuse(404, 'That is no longer there.');
 
-export const GET = route({ access: 'user', label: 'Shopping list members' }, async ({ user }) => {
-    const list = await listOf(user.id);
-    const [members, people] = await Promise.all([
-        prisma.shoppingListMember.findMany({ where: { listId: list.id }, select: { userId: true } }),
-        prisma.user.findMany({ where: { id: { not: user.id } }, orderBy: { name: 'asc' }, select: person, take: 200 }),
-    ]);
-    const chosen = new Set(members.map((member) => member.userId));
-    return NextResponse.json({
-        people: people.map((p) => ({ id: p.id, name: p.name || p.firstName, member: chosen.has(p.id) })),
-    });
+    let people: { id: number; name: string }[] = [];
+    if (list.owner) {
+        const taken = new Set([household.owner.id, ...household.members.map((m) => m.id), ...household.invited.map((m) => m.id)]);
+        const everyone = await prisma.user.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, firstName: true }, take: 200 });
+        people = everyone.filter((p) => !taken.has(p.id)).map((p) => ({ id: p.id, name: p.firstName || p.name }));
+    }
+    return NextResponse.json({ owner: list.owner, household, people });
 });
 
-const addBody = z.object({ userId: z.number().int().positive().max(2_147_483_647) });
+const inviteBody = z.object({ userId: z.number().int().positive().max(2_147_483_647) });
 
-export const POST = route({ access: 'user', body: addBody, label: 'Sharing the shopping list with somebody' }, async ({ user, body }) => {
+export const POST = route({ access: 'user', body: inviteBody, label: 'Inviting somebody to the shopping list' }, async ({ user, body }) => {
+    const list = await activeList(user.id);
+    if (!list.owner) refuse(403, 'Only whoever made this list chooses who is on it.');
     if (body.userId === user.id) refuse(400, 'That is your own list.');
     const other = await prisma.user.findUnique({ where: { id: body.userId }, select: { id: true } });
     if (!other) refuse(404, 'There is nobody by that name here.');
 
-    const list = await listOf(user.id);
     await prisma.shoppingListMember.upsert({
         where: { listId_userId: { listId: list.id, userId: body.userId } },
         create: { listId: list.id, userId: body.userId },
         update: {},
     });
-    return NextResponse.json({ userId: body.userId, member: true });
+    return NextResponse.json({ invited: body.userId });
 });
 
-export const DELETE = route({ access: 'user', label: 'Unsharing the shopping list with somebody' }, async ({ req, user }) => {
+export const DELETE = route({ access: 'user', label: 'Taking somebody off the shopping list' }, async ({ req, user }) => {
     const query = new URL(req.url).searchParams;
-    const leaving = query.get('list');
-    if (leaving) {
-        if (!/^\d{1,9}$/.test(leaving)) refuse(404, 'This list is not shared with you.');
-        await prisma.shoppingListMember.deleteMany({ where: { listId: Number(leaving), userId: user.id } });
+    const list = await activeList(user.id);
+
+    if (query.get('leave')) {
+        if (list.owner) refuse(400, 'This is your own list.');
+        await prisma.shoppingListMember.deleteMany({ where: { listId: list.id, userId: user.id } });
         return NextResponse.json({ left: true });
     }
 
+    if (!list.owner) refuse(403, 'Only whoever made this list chooses who is on it.');
     const userId = Number(query.get('userId'));
-    if (!Number.isInteger(userId) || userId <= 0 || userId > 2_147_483_647) refuse(400, 'Unshare with whom?');
-    const list = await listOf(user.id);
+    if (!Number.isInteger(userId) || userId <= 0 || userId > 2_147_483_647) refuse(400, 'Take off whom?');
     await prisma.shoppingListMember.deleteMany({ where: { listId: list.id, userId } });
-    return NextResponse.json({ userId, member: false });
+    return NextResponse.json({ removed: userId });
 });

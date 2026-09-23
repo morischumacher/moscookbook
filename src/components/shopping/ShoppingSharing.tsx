@@ -1,59 +1,91 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/routing';
+import { useConfirm } from '@/components/ui/useConfirm';
 
 interface Person {
     id: number;
     name: string;
-    member: boolean;
+}
+
+interface Household {
+    owner: Person;
+    members: Person[];
+    invited: Person[];
 }
 
 /**
- * Who else sees the owner's list, in two ways.
+ * Who else shops on the list, in two ways.
  *
- * People of the cookbook, chosen by name: the list turns up beside their own
- * under Einkaufsliste, and they add, tick and remove on it as the owner does.
- * And a link for somebody without an account, which can tick and — if the
- * owner leaves it on — add, and nothing else.
+ * People of the cookbook, invited by name: once they accept, it is the list
+ * they shop on too — one list for the household, the same for everybody on
+ * it. Whoever made the list chooses who is on it and can take people off;
+ * the others can leave. And a link for somebody without an account, which can
+ * tick and — if the owner leaves it on — add, and nothing else.
  */
 export default function ShoppingSharing({
+    owner,
     shareLink,
     onShareToken,
     canAdd: initialCanAdd,
     onNote,
 }: {
+    owner: boolean;
     shareLink: string | null;
     onShareToken: (token: string | null) => void;
     canAdd: boolean;
     onNote: (note: string) => void;
 }) {
     const t = useTranslations('Shopping');
-    const [people, setPeople] = useState<Person[] | null>(null);
+    const router = useRouter();
+    const [ask, dialog] = useConfirm();
+    const [household, setHousehold] = useState<Household | null>(null);
+    const [people, setPeople] = useState<Person[]>([]);
     const [canAdd, setCanAdd] = useState(initialCanAdd);
-    const [busy, setBusy] = useState<number | 'link' | 'canAdd' | null>(null);
+    const [busy, setBusy] = useState<number | 'link' | 'canAdd' | 'leave' | null>(null);
 
-    useEffect(() => {
-        let alive = true;
-        fetch('/api/shopping/members')
-            .then((res) => (res.ok ? (res.json() as Promise<{ people: Person[] }>) : null))
-            .then((data) => alive && data && setPeople(data.people))
-            .catch(() => undefined);
-        return () => {
-            alive = false;
-        };
+    const load = useCallback(async () => {
+        const res = await fetch('/api/shopping/members').catch(() => null);
+        if (!res?.ok) return;
+        const data = (await res.json()) as { household: Household; people: Person[] };
+        setHousehold(data.household);
+        setPeople(data.people);
     }, []);
 
-    const togglePerson = async (person: Person) => {
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- loads once, from the server
+        void load();
+    }, [load]);
+
+    const invite = async (person: Person) => {
         setBusy(person.id);
-        const res = await fetch(
-            person.member ? `/api/shopping/members?userId=${person.id}` : '/api/shopping/members',
-            person.member
-                ? { method: 'DELETE' }
-                : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: person.id }) }
-        ).catch(() => null);
+        const res = await fetch('/api/shopping/members', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: person.id }),
+        }).catch(() => null);
         setBusy(null);
-        if (res?.ok) setPeople((current) => current?.map((p) => (p.id === person.id ? { ...p, member: !p.member } : p)) ?? null);
+        if (res?.ok) await load();
+        else onNote(t('failed'));
+    };
+
+    const takeOff = async (person: Person, joined: boolean) => {
+        if (joined && !(await ask({ title: t('takeOffQuestion', { name: person.name }), confirmLabel: t('takeOff'), destructive: true }))) return;
+        setBusy(person.id);
+        const res = await fetch(`/api/shopping/members?userId=${person.id}`, { method: 'DELETE' }).catch(() => null);
+        setBusy(null);
+        if (res?.ok) await load();
+        else onNote(t('failed'));
+    };
+
+    const leave = async () => {
+        if (!(await ask({ title: t('leaveQuestion'), confirmLabel: t('leave') }))) return;
+        setBusy('leave');
+        const res = await fetch('/api/shopping/members?leave=1', { method: 'DELETE' }).catch(() => null);
+        setBusy(null);
+        if (res?.ok) router.refresh();
         else onNote(t('failed'));
     };
 
@@ -80,36 +112,79 @@ export default function ShoppingSharing({
     const box = (on: boolean) =>
         `flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-sm ${on ? 'border-transparent bg-ink text-page' : 'border-control'}`;
 
+    const row = 'flex min-h-11 items-center justify-between gap-3';
+    const small = 'shrink-0 text-muted underline underline-offset-4 hover:text-danger disabled:opacity-60';
+
+    if (!owner) {
+        return (
+            <div className="rounded-xl border border-line p-4">
+                {dialog}
+                <p className="font-medium">{t('shareTitle')}</p>
+                {household && (
+                    <p className="mt-1 text-muted">
+                        {t('memberExplain', { name: household.owner.name, names: [household.owner, ...household.members].map((p) => p.name).join(', ') })}
+                    </p>
+                )}
+                <button type="button" disabled={busy === 'leave'} onClick={() => void leave()} className={`mt-3 ${small}`}>
+                    {t('leave')}
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="rounded-xl border border-line p-4">
+            {dialog}
             <p className="font-medium">{t('shareTitle')}</p>
 
             <section className="mt-4">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-muted">{t('sharePeople')}</h3>
                 <p className="mt-1 text-muted">{t('sharePeopleExplain')}</p>
-                {people === null ? null : people.length === 0 ? (
-                    <p className="mt-3 text-faint">{t('sharePeopleNone')}</p>
-                ) : (
-                    <ul className="mt-2">
-                        {people.map((person) => (
-                            <li key={person.id}>
-                                <button
-                                    type="button"
-                                    role="checkbox"
-                                    aria-checked={person.member}
-                                    disabled={busy === person.id}
-                                    onClick={() => void togglePerson(person)}
-                                    className="flex min-h-11 w-full items-center gap-3 text-left disabled:opacity-60"
-                                >
-                                    <span className={box(person.member)} aria-hidden>
-                                        {person.member ? '✓' : ''}
-                                    </span>
-                                    {person.name}
+                {household && (household.members.length > 0 || household.invited.length > 0) && (
+                    <ul className="mt-2 divide-y divide-line">
+                        {household.members.map((person) => (
+                            <li key={person.id} className={row}>
+                                <span>{person.name}</span>
+                                <button type="button" disabled={busy === person.id} onClick={() => void takeOff(person, true)} className={small}>
+                                    {t('takeOff')}
+                                </button>
+                            </li>
+                        ))}
+                        {household.invited.map((person) => (
+                            <li key={person.id} className={row}>
+                                <span>
+                                    {person.name} <span className="text-faint">· {t('invitedPending')}</span>
+                                </span>
+                                <button type="button" disabled={busy === person.id} onClick={() => void takeOff(person, false)} className={small}>
+                                    {t('withdraw')}
                                 </button>
                             </li>
                         ))}
                     </ul>
                 )}
+                {household &&
+                    (people.length === 0 ? (
+                        household.members.length + household.invited.length === 0 && <p className="mt-3 text-faint">{t('sharePeopleNone')}</p>
+                    ) : (
+                        <details className="mt-2">
+                            <summary className="min-h-11 cursor-pointer py-2 font-medium">{t('invite')}</summary>
+                            <ul className="divide-y divide-line">
+                                {people.map((person) => (
+                                    <li key={person.id} className={row}>
+                                        <span>{person.name}</span>
+                                        <button
+                                            type="button"
+                                            disabled={busy === person.id}
+                                            onClick={() => void invite(person)}
+                                            className="shrink-0 font-medium underline underline-offset-4 disabled:opacity-60"
+                                        >
+                                            {t('inviteOne')}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </details>
+                    ))}
             </section>
 
             <section className="mt-5 border-t border-line pt-4">
