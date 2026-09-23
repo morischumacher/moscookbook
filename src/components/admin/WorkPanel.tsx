@@ -159,7 +159,7 @@ export default function WorkPanel() {
                                 )}
                             </p>
                             <p className="mt-1 break-words font-medium">{item.title}</p>
-                            {item.note && <p className="mt-1 text-sm text-muted">„{item.note}“</p>}
+                            {item.note && <p className="mt-1 text-sm text-muted">{locale === 'de' ? '„' : '“'}{item.note}{locale === 'de' ? '“' : '”'}</p>}
                             <div className="mt-2 flex gap-4 text-sm">
                                 {item.dismissed ? (
                                     <button

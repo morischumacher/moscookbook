@@ -151,7 +151,7 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
                                                 {(link.count ?? 0) > 0 && (
                                                     <span
                                                         className="ml-1.5 inline-block min-w-[1.25rem] rounded-full bg-danger-surface px-1.5 text-center text-xs font-semibold text-danger"
-                                                        aria-label={`, ${link.count ?? 0}`}
+                                                        aria-label={t('openCount', { count: link.count ?? 0 })}
                                                     >
                                                         {(link.count ?? 0) > 99 ? '99+' : link.count}
                                                     </span>

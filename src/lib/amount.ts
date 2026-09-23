@@ -101,11 +101,13 @@ export function parseServings(value: unknown): number | null {
 }
 
 /** "1 h 30 min" for display; null stays null so the UI can hide the field. */
-export function formatMinutes(minutes: number | null | undefined): string {
+export function formatMinutes(minutes: number | null | undefined, locale: string = 'de'): string {
     if (!minutes || minutes <= 0) return '';
-    if (minutes < 60) return `${minutes} Min.`;
+    // "Min."/"Std." are German abbreviations; the English page said them too.
+    const [min, hr] = locale === 'en' ? ['min', 'h'] : ['Min.', 'Std.'];
+    if (minutes < 60) return `${minutes} ${min}`;
 
     const hours = Math.floor(minutes / 60);
     const rest = minutes % 60;
-    return rest === 0 ? `${hours} Std.` : `${hours} Std. ${rest} Min.`;
+    return rest === 0 ? `${hours} ${hr}` : `${hours} ${hr} ${rest} ${min}`;
 }

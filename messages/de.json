@@ -255,7 +255,8 @@
     "listNext": "Weiter →",
     "listPage": "Seite {page} von {pages}",
     "backupCounts": "{recipes, plural, one {# Rezept} other {# Rezepte}}, {posts, plural, one {# Beitrag} other {# Beiträge}}, {cooks, plural, one {# Mal gekocht} other {# Mal gekocht}}",
-    "backupFailedWith": "fehlgeschlagen: {detail}"
+    "backupFailedWith": "fehlgeschlagen: {detail}",
+    "openCount": "{count, plural, one {# offen} other {# offen}}"
   },
   "RecipeForm": {
     "newRecipe": "Neues Rezept",
