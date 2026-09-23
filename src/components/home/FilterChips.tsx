@@ -235,7 +235,7 @@ export default function FilterChips({
                             <span aria-hidden="true">♥</span> {t('favoritesChip')}
                         </button>
                     )}
-                    <button type="button" onClick={() => setParam('category', '')} className={chipClass(!activeCategory)}>
+                    <button type="button" onClick={() => setParam('category', '')} aria-pressed={!activeCategory} className={chipClass(!activeCategory)}>
                         {t('allCategories')}
                         <span className="tabular-nums text-xs opacity-60">{total}</span>
                     </button>
@@ -244,6 +244,7 @@ export default function FilterChips({
                             key={facet.value}
                             type="button"
                             onClick={() => setParam('category', activeCategory === facet.value ? '' : facet.value)}
+                            aria-pressed={activeCategory === facet.value}
                             className={chipClass(activeCategory === facet.value)}
                         >
                             {label(tCategory, facet.value)}
@@ -269,6 +270,7 @@ export default function FilterChips({
                             onClick={() =>
                                 setParam('nationality', activeCuisine === facet.value ? '' : facet.value)
                             }
+                            aria-pressed={activeCuisine === facet.value}
                             className={chipClass(activeCuisine === facet.value)}
                         >
                             {label(tCuisine, facet.value)}

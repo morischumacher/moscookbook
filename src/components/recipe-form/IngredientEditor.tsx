@@ -160,7 +160,7 @@ export default function IngredientEditor({
                             <button
                                 type="button"
                                 onClick={() => move(index, -1)}
-                                aria-label={t('moveUp')}
+                                aria-label={t('rowUp', { number: index + 1 })}
                                 className="flex h-10 w-7 items-center justify-center text-faint hover:text-ink sm:w-8"
                             >
                                 ↑
@@ -168,7 +168,7 @@ export default function IngredientEditor({
                             <button
                                 type="button"
                                 onClick={() => move(index, 1)}
-                                aria-label={t('moveDown')}
+                                aria-label={t('rowDown', { number: index + 1 })}
                                 className="flex h-10 w-7 items-center justify-center text-faint hover:text-ink sm:w-8"
                             >
                                 ↓
@@ -176,7 +176,7 @@ export default function IngredientEditor({
                             <button
                                 type="button"
                                 onClick={() => removeRow(index)}
-                                aria-label={t('removeIngredient')}
+                                aria-label={t('rowRemove', { number: index + 1 })}
                                 className="flex h-10 w-7 items-center justify-center text-faint hover:text-danger sm:w-8"
                             >
                                 ×
