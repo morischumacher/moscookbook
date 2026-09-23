@@ -44,6 +44,8 @@ export default function MobileNavbar({ user, profile, otherLocale }: MobileNavba
     const t = useTranslations('Navigation');
     const tBlog = useTranslations('Blog');
     const tCollections = useTranslations('Collections');
+    const tShopping = useTranslations('Shopping');
+    const tMenus = useTranslations('Menus');
     const [isOpen, setIsOpen] = useState(false);
     const toggleRef = useRef<HTMLButtonElement>(null);
 
@@ -74,7 +76,9 @@ export default function MobileNavbar({ user, profile, otherLocale }: MobileNavba
         ? [
               { href: '/', label: t('recipes'), section: 'recipes' },
               { href: '/collections', label: tCollections('nav'), section: 'collections' },
+              { href: '/menus', label: tMenus('title'), section: 'menus' },
               { href: '/blog', label: tBlog('nav'), section: 'blog' },
+              { href: '/shopping', label: tShopping('nav'), section: 'shopping' },
               ...(user.admin
                   ? [{ href: '/admin', label: t('admin'), section: 'admin' as Section }]
                   : []),

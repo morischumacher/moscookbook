@@ -8,6 +8,7 @@
  * test and were among the least tested.
  */
 
+import { z } from 'zod';
 import type { ImportedRecipe } from './recipeFromHtml';
 import type { ProfileResult } from './siteProfile';
 import { assessDraft } from './draftQuality';
@@ -79,3 +80,44 @@ export function draftFromProfile(read: ProfileResult, sourceUrl: string): Import
             .filter((ingredient) => ingredient.item.trim() !== ''),
     };
 }
+
+/**
+ * A stored draft, read back.
+ *
+ * `Capture.draft` is a JSON column that every path in the pipeline has
+ * written into over the years, in whatever shape it had at the time, and it
+ * was read with `as unknown as ImportedRecipe` in four places. A draft
+ * without a title turned `draft.title.trim()` into a TypeError and the inbox
+ * into "something went wrong". This fills every missing field with its empty
+ * value and drops what is not a draft at all, so the callers can trust the
+ * type they are given.
+ */
+const text = z.preprocess((value) => (typeof value === 'string' ? value : ''), z.string());
+const count = z.preprocess(
+    (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null),
+    z.number().nullable()
+);
+
+const storedDraftSchema = z.object({
+    title: text,
+    description: text,
+    instructions: text,
+    imageUrl: text,
+    category: text,
+    nationality: text,
+    sourceUrl: text,
+    servings: count,
+    prepMinutes: count,
+    cookMinutes: count,
+    ingredients: z.preprocess(
+        (value) => (Array.isArray(value) ? value : []),
+        z.array(z.object({ amount: text, item: text })).transform((rows) => rows.filter((row) => row.item.trim() !== ''))
+    ),
+});
+
+export function draftFromJson(value: unknown): ImportedRecipe | null {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+    const parsed = storedDraftSchema.safeParse(value);
+    return parsed.success ? parsed.data : null;
+}
+

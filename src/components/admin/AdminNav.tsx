@@ -59,13 +59,16 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
     // translation checker.
     const groups: { href: string; label: string; count?: number }[][] = [
         [
-            { href: '/admin', label: t('dashboard') },
+            // In the order the work arrives: shared into the inbox, taken in
+            // as a draft, finished into a recipe, arranged into collections,
+            // written about. Every link is a noun — the section — and making
+            // a new thing is a button on that section's page.
             { href: '/admin/inbox', label: tInbox('nav') },
-            // Straight after the inbox, because that is the step after it.
             { href: '/admin/drafts', label: tDrafts('nav') },
-            { href: '/admin/collections/new', label: tCollections('createNew') },
+            { href: '/admin', label: t('dashboard') },
+            { href: '/admin/collections', label: tCollections('adminNav') },
+            { href: '/admin/posts', label: tBlog('adminNav') },
         ],
-        [{ href: '/admin/posts', label: tBlog('adminNav') }],
         [
             { href: '/admin/users', label: t('people') },
             { href: '/admin/reports', label: tReports('nav'), count: unresolvedReports },
@@ -83,9 +86,11 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
                 "am I in the admin?" being "look closely".
             */}
             <div className="container mx-auto max-w-3xl px-4 md:px-8">
-                <div className="flex flex-wrap items-center gap-x-1 gap-y-0">
+                {/* One row that scrolls sideways on a phone, like an app's tab bar,
+                    rather than two rows of links that push the page down. */}
+                <div className="-mx-4 flex items-center gap-x-1 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
                     {groups.map((group, index) => (
-                        <div key={group[0].href} className="flex items-center">
+                        <div key={group[0].href} className="flex shrink-0 items-center">
                             {index > 0 && (
                                 <span
                                     aria-hidden="true"

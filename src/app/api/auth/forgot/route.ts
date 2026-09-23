@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
@@ -43,21 +43,31 @@ export async function POST(req: NextRequest) {
     const perAddress = await rateLimitShared(`forgot:address:${email.toLowerCase()}`, 3, 60 * 60 * 1000);
     if (!perAddress.ok) return NextResponse.json({ ok: true });
 
-    try {
-        const user =
-            (await prisma.user.findUnique({ where: { email } })) ??
-            (await prisma.user.findFirst({
-                where: { email: { equals: email, mode: 'insensitive' } },
-            }));
+    /*
+     * After the answer, not before it. Looking the address up, writing a token
+     * and handing a mail to the SMTP server took a second or two when the
+     * account existed and a few milliseconds when it did not, so the neutral
+     * "a link is on its way" was not neutral to anybody with a stopwatch. The
+     * answer now leaves at the same moment either way, and the work runs
+     * after it.
+     */
+    after(async () => {
+        try {
+            const user =
+                (await prisma.user.findUnique({ where: { email } })) ??
+                (await prisma.user.findFirst({
+                    where: { email: { equals: email, mode: 'insensitive' } },
+                }));
 
-        if (user) {
-            await issueToken(user, 'reset', locale);
+            if (user) {
+                await issueToken(user, 'reset', locale);
+            }
+        } catch (error) {
+            // Logged, not reported. The person is told the same thing either
+            // way, so that a failure here cannot be used to probe for accounts.
+            failed('Password reset request failed:', error);
         }
-    } catch (error) {
-        // Logged, not reported. The person is told the same thing either way,
-        // so that a failure here cannot be used to probe for accounts.
-        failed('Password reset request failed:', error);
-    }
+    });
 
     return NextResponse.json({ ok: true });
 }

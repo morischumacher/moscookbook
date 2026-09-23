@@ -26,7 +26,7 @@ const prisma = new PrismaClient();
 // Kept in step with src/lib/archive.ts by hand, and checked by
 // scripts/check-backup.mjs — this file had quietly stayed at 1 while the
 // application moved to 2, which is exactly the drift that guard is for.
-const ARCHIVE_VERSION = 5;
+const ARCHIVE_VERSION = 7;
 
 function outputDir() {
     const flag = process.argv.indexOf('--out');
@@ -39,6 +39,11 @@ function localName(url) {
     const hash = createHash('sha256').update(url).digest('hex').slice(0, 16);
     const extension = (url.split('?')[0].match(/\.([a-z0-9]{2,5})$/i)?.[1] ?? 'jpg').toLowerCase();
     return `${hash}.${extension}`;
+}
+
+/** Our own pictures written into a text as Markdown. See scripts/sweep-blobs.mjs. */
+function picturesIn(text) {
+    return [...text.matchAll(/https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\/[^\s)"'<>]+/gi)].map((match) => match[0]);
 }
 
 async function main() {
@@ -60,10 +65,11 @@ async function main() {
              * work nobody did.
              */
             isDraft: true,
+            tags: true,
             images: { orderBy: { position: 'asc' }, select: { url: true } },
             ingredients: {
                 orderBy: { position: 'asc' },
-                select: { position: true, quantity: true, quantityMax: true, unit: true, name: true, raw: true },
+                select: { position: true, quantity: true, quantityMax: true, unit: true, name: true, raw: true, section: true },
             },
         },
     });
@@ -73,7 +79,8 @@ async function main() {
         select: {
             title: true, slug: true, body: true, imageUrl: true,
             publishedAt: true, createdAt: true,
-            recipe: { select: { slug: true } },
+            recipes: { orderBy: { position: 'asc' }, select: { recipe: { select: { slug: true } } } },
+            collections: { orderBy: { position: 'asc' }, select: { collection: { select: { slug: true } } } },
             author: { select: { name: true } },
         },
     });
@@ -96,10 +103,22 @@ async function main() {
     const collections = await prisma.collection.findMany({
         orderBy: { createdAt: 'asc' },
         select: {
-            title: true, slug: true, description: true, createdAt: true,
+            title: true, slug: true, description: true, imageUrl: true, createdAt: true,
             recipes: {
                 orderBy: { position: 'asc' },
                 select: { recipe: { select: { slug: true } } },
+            },
+        },
+    });
+
+    // An evening in courses; each dish by its recipe's slug, or by none.
+    const menus = await prisma.menu.findMany({
+        orderBy: { createdAt: 'asc' },
+        select: {
+            title: true, slug: true, occasion: true, date: true, guests: true, style: true, intro: true, createdAt: true,
+            items: {
+                orderBy: { position: 'asc' },
+                select: { course: true, title: true, description: true, recipe: { select: { slug: true } } },
             },
         },
     });
@@ -123,7 +142,9 @@ async function main() {
             imageUrl: post.imageUrl,
             publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
             createdAt: post.createdAt.toISOString(),
-            recipeSlug: post.recipe?.slug ?? null,
+            recipeSlugs: post.recipes.map((row) => row.recipe.slug),
+            collectionSlugs: post.collections.map((row) => row.collection.slug),
+            recipeSlug: null,
             author: post.author?.name ?? null,
         })),
         cookEntries: cookEntries.map((entry) => ({
@@ -141,8 +162,25 @@ async function main() {
             title: collection.title,
             slug: collection.slug,
             description: collection.description,
+            imageUrl: collection.imageUrl,
             createdAt: collection.createdAt.toISOString(),
             recipeSlugs: collection.recipes.map((row) => row.recipe.slug),
+        })),
+        menus: menus.map((menu) => ({
+            title: menu.title,
+            slug: menu.slug,
+            occasion: menu.occasion,
+            date: menu.date ? menu.date.toISOString() : null,
+            guests: menu.guests,
+            style: menu.style,
+            intro: menu.intro,
+            createdAt: menu.createdAt.toISOString(),
+            items: menu.items.map((item) => ({
+                course: item.course,
+                title: item.title,
+                description: item.description,
+                recipeSlug: item.recipe?.slug ?? null,
+            })),
         })),
     };
 
@@ -156,6 +194,10 @@ async function main() {
             ...recipes.flatMap((recipe) => recipe.images.map((image) => image.url)),
             ...posts.map((post) => post.imageUrl).filter(Boolean),
             ...cookEntries.flatMap((entry) => entry.photos.map((photo) => photo.url)),
+            ...collections.map((collection) => collection.imageUrl).filter(Boolean),
+            // Pictures placed inside the text of an entry or a collection.
+            ...posts.flatMap((post) => picturesIn(post.body)),
+            ...collections.flatMap((collection) => picturesIn(collection.description ?? '')),
         ]),
     ];
     const map = {};

@@ -67,14 +67,51 @@ export interface SessionUser {
     email: string;
     name: string;
     admin: boolean;
+    /**
+     * `User.sessionVersion` at sign-in. A cookie whose number no longer
+     * matches the row has been revoked. Missing on cookies issued before
+     * versions existed, and read as 0, which is what every row started at.
+     */
+    v?: number;
 }
 
 export interface SessionData {
     user?: SessionUser;
+    /**
+     * When the proxy last checked this session against the database, in
+     * milliseconds. See `SESSION_RECHECK_MS` in proxy.ts.
+     */
+    checkedAt?: number;
+}
+
+/** The fields a session is made from, as they are read from a `User` row. */
+export interface SessionSource {
+    id: number;
+    email: string;
+    name: string;
+    admin: boolean;
+    sessionVersion: number;
+}
+
+/** The one way a signed-in session is written, so none of them forgets the version. */
+export function sessionUserFrom(user: SessionSource): SessionUser {
+    return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        admin: user.admin,
+        v: user.sessionVersion,
+    };
+}
+
+/** Whether a cookie's version still matches its account. */
+export function sessionStillValid(cookie: SessionUser, row: { sessionVersion: number } | null): boolean {
+    return row !== null && row.sessionVersion === (cookie.v ?? 0);
 }
 
 declare module 'iron-session' {
     interface IronSessionData {
         user?: SessionUser;
+        checkedAt?: number;
     }
 }

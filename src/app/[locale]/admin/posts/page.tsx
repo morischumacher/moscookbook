@@ -1,10 +1,15 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
+import { aboutTitles, postAboutTitlesSelect } from '@/components/post/PostArticle';
 import DeletePostButton from '@/components/post/DeletePostButton';
 import { formatDate } from '@/lib/formatDate';
 import { buttonPrimarySmall, pageContainer } from '@/lib/ui';
 import PageHeader from '@/components/admin/PageHeader';
+import ExampleButton from '@/components/admin/ExampleButton';
+import { EXAMPLE_POST_SLUG } from '@/lib/examples';
+
+const isExampleSlug = (slug: string) => (Object.values(EXAMPLE_POST_SLUG) as string[]).includes(slug);
 
 interface AdminPostRow {
     id: number;
@@ -13,7 +18,8 @@ interface AdminPostRow {
     publishedAt: Date | null;
     createdAt: Date;
     shareToken: string | null;
-    recipe: { title: string } | null;
+    recipes: { recipe: { title: string } }[];
+    collections: { collection: { title: string } }[];
 }
 
 export default async function AdminPosts({
@@ -34,7 +40,7 @@ export default async function AdminPosts({
             publishedAt: true,
             createdAt: true,
             shareToken: true,
-            recipe: { select: { title: true } },
+            ...postAboutTitlesSelect,
         },
     });
 
@@ -48,7 +54,10 @@ export default async function AdminPosts({
             </PageHeader>
 
             {posts.length === 0 ? (
-                <p className="py-20 text-center text-muted">{t('empty')}</p>
+                <div className="py-16 text-center">
+                    <p className="text-muted">{t('empty')}</p>
+                    <ExampleButton kind="post" />
+                </div>
             ) : (
                 <ul className="divide-y divide-line">
                     {posts.map((post) => (
@@ -64,7 +73,7 @@ export default async function AdminPosts({
                                 <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs font-semibold uppercase tracking-widest text-muted">
                                     <span>{formatDate(post.publishedAt ?? post.createdAt, locale, 'short')}</span>
                                     <span>• {post.publishedAt ? t('published') : t('draft')}</span>
-                                    {post.recipe && <span>• {post.recipe.title}</span>}
+                                    {aboutTitles(post) && <span>• {aboutTitles(post)}</span>}
                                     {post.shareToken && <span>• {t('hasPublicLink')}</span>}
                                 </p>
                             </div>
@@ -78,6 +87,14 @@ export default async function AdminPosts({
                         </li>
                     ))}
                 </ul>
+            )}
+
+            {/* Until there is one: the quickest way to learn the editor is a
+                finished entry that uses all of it. */}
+            {posts.length > 0 && !posts.some((post) => isExampleSlug(post.slug)) && (
+                <div className="border-t border-line pt-2">
+                    <ExampleButton kind="post" />
+                </div>
             )}
         </main>
     );

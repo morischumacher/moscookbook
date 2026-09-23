@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
+import { DIET_TAGS } from '@/lib/tags';
 
 export interface FacetValue {
     value: string;
@@ -25,20 +26,27 @@ export interface FacetValue {
  * Not a spinner over the results: the old ones are still true until the new
  * ones arrive, and hiding them would be a worse lie than leaving them.
  */
+const isDiet = (tag: string) => (DIET_TAGS as readonly string[]).includes(tag);
+
 export default function FilterChips({
     categories,
     cuisines,
+    tags,
+    quickCount,
     isLoggedIn,
     total,
 }: {
     categories: FacetValue[];
     cuisines: FacetValue[];
+    tags: FacetValue[];
+    quickCount: number;
     isLoggedIn: boolean;
     total: number;
 }) {
     const t = useTranslations('Home');
     const tCategory = useTranslations('Categories');
     const tCuisine = useTranslations('Cuisines');
+    const tTags = useTranslations('Tags');
 
     const router = useRouter();
     const pathname = usePathname();
@@ -55,9 +63,11 @@ export default function FilterChips({
     const activeCuisine = searchParams.get('nationality') ?? '';
     const activeSort = searchParams.get('sort') ?? 'recent';
     const favoritesOnly = searchParams.get('favorites') === 'true';
+    const activeTag = searchParams.get('tag') ?? '';
+    const quickOnly = searchParams.get('quick') === 'true';
 
     const hasFilters = Boolean(
-        activeCategory || activeCuisine || favoritesOnly || searchParams.get('search') ||
+        activeCategory || activeCuisine || favoritesOnly || activeTag || quickOnly || searchParams.get('search') ||
         searchParams.get('have')
     );
 
@@ -247,6 +257,42 @@ export default function FilterChips({
                             <span className="tabular-nums text-xs opacity-60">{facet.count}</span>
                         </button>
                     ))}
+                </div>
+            )}
+
+            {/*
+                How it is cooked rather than what it is: quick, vegetarian,
+                vegan first — the questions asked most on a weeknight — then
+                the cookbook's own tags, busiest first.
+            */}
+            {(quickCount > 0 || tags.length > 0) && (
+                <div className={railClass} role="group" aria-label={t('tagsLabel')}>
+                    {quickCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setParam('quick', quickOnly ? '' : 'true')}
+                            aria-pressed={quickOnly}
+                            className={chipClass(quickOnly)}
+                        >
+                            {tTags('quick')}
+                            <span className="tabular-nums text-xs opacity-60">{quickCount}</span>
+                        </button>
+                    )}
+                    {[...tags]
+                        .sort((a, b) => Number(isDiet(b.value)) - Number(isDiet(a.value)))
+                        .slice(0, 14)
+                        .map((facet) => (
+                            <button
+                                key={facet.value}
+                                type="button"
+                                onClick={() => setParam('tag', activeTag === facet.value ? '' : facet.value)}
+                                aria-pressed={activeTag === facet.value}
+                                className={chipClass(activeTag === facet.value)}
+                            >
+                                {isDiet(facet.value) ? tTags(facet.value as 'vegan') : `#${facet.value}`}
+                                <span className="tabular-nums text-xs opacity-60">{facet.count}</span>
+                            </button>
+                        ))}
                 </div>
             )}
 

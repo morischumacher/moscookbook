@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server';
-import ReactMarkdown from 'react-markdown';
+import { excerptOf } from '@/lib/postSchema';
 import { Link } from '@/i18n/routing';
 import { formatDate } from '@/lib/formatDate';
 
@@ -106,9 +106,16 @@ export default async function RecipeNotes({
                                 </Link>
                             </h3>
 
-                            <div className="post-body font-serif leading-relaxed">
-                                <ReactMarkdown>{note.body}</ReactMarkdown>
-                            </div>
+                            {/* The opening words and the way in. A short note
+                                used to fit here whole; a post with headings
+                                and pictures poured into the middle of a
+                                recipe, so the recipe shows where it starts. */}
+                            <p className="font-serif leading-relaxed text-muted">
+                                {excerptOf(note.body, 220)}{' '}
+                                <Link href={`/blog/${note.slug}`} className="whitespace-nowrap font-sans text-sm text-ink underline underline-offset-4">
+                                    {t('readMore')}
+                                </Link>
+                            </p>
                         </li>
                     ))}
             </ol>

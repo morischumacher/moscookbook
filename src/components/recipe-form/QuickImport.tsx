@@ -6,6 +6,7 @@ import { parseRecipeText } from '@/lib/recipeParser';
 import type { Ingredient } from '@/lib/recipe';
 import Disclosure from '@/components/ui/Disclosure';
 import { buttonPrimarySmall } from '@/lib/ui';
+import { BusyLabel } from '@/components/ui/Busy';
 
 export interface ImportedDraft {
     title: string;
@@ -139,7 +140,9 @@ export default function QuickImport({
 
             onImport(data.recipe);
             setNote(
-                data.usedAi
+                data.readBy === 'profile'
+                    ? t('importedWithProfile')
+                    : data.usedAi
                     ? t('importedWithAi')
                     : data.partial
                         ? t('partial')
@@ -335,7 +338,7 @@ export default function QuickImport({
                             disabled={busy}
                             className={buttonPrimarySmall}
                         >
-                            {busy ? t('reading') : t('apply')}
+                            <BusyLabel busy={busy} busyText={t('reading')}>{t('apply')}</BusyLabel>
                         </button>
                         {aiEnabled && (
                             <label className="flex items-center gap-2 text-sm text-muted">
@@ -374,7 +377,7 @@ export default function QuickImport({
                         disabled={busy}
                         className={buttonPrimarySmall}
                     >
-                        {busy ? t('loading') : t('import')}
+                        <BusyLabel busy={busy} busyText={t('loading')}>{t('import')}</BusyLabel>
                     </button>
                 </div>
             )}
@@ -395,7 +398,11 @@ export default function QuickImport({
                     />
                     <p className="text-sm text-muted">
                         {aiEnabled ? t('photoHint') : tAi('polishOff')}
-                        {busy && ` ${t('reading')}`}
+                        {busy && (
+                            <span className="ml-2 inline-flex align-middle">
+                                <BusyLabel busy>{t('reading')}</BusyLabel>
+                            </span>
+                        )}
                     </p>
                 </div>
             )}
@@ -409,7 +416,7 @@ export default function QuickImport({
                     disabled={busy || !aiEnabled}
                     className="text-sm underline underline-offset-4 disabled:text-faint disabled:no-underline"
                 >
-                    {busy ? t('reading') : tAi('rebuildWithAi')}
+                    <BusyLabel busy={busy} busyText={t('reading')}>{tAi('rebuildWithAi')}</BusyLabel>
                 </button>
                 {!aiEnabled && <p className="mt-1 text-sm text-faint">{tAi('polishOff')}</p>}
             </div>

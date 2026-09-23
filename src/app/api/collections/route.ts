@@ -53,13 +53,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: formatCollectionError(parsed.error) }, { status: 400 });
     }
 
-    const { title, description, recipeIds } = parsed.data;
+    const { title, description, imageUrl, recipeIds } = parsed.data;
 
     try {
         const collection = await prisma.collection.create({
             data: {
                 title,
                 description,
+                imageUrl,
                 slug: await freeSlug(title),
                 // Position is the order they arrived in, which is the order
                 // somebody arranged them in the form.

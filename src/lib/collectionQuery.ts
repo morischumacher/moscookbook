@@ -14,6 +14,12 @@ export interface CollectionRow {
     title: string;
     slug: string;
     description: string | null;
+    /**
+     * The collection's own picture. When it has none, the page shows its
+     * first recipe's — the first one the viewer may see, which is why that is
+     * decided on the page and not here.
+     */
+    imageUrl: string | null;
     /** Whether this collection's own address answers without a session. */
     isPublic: boolean;
     shareToken: string | null;
@@ -43,6 +49,7 @@ interface RawCollection {
     title: string;
     slug: string;
     description: string | null;
+    imageUrl: string | null;
     isPublic: boolean;
     shareToken: string | null;
     recipes: JoinRow[];
@@ -85,6 +92,7 @@ function flatten(collection: RawCollection): CollectionRow {
         title: collection.title,
         slug: collection.slug,
         description: collection.description,
+        imageUrl: collection.imageUrl,
         isPublic: collection.isPublic,
         shareToken: collection.shareToken,
         recipes: collection.recipes.map((row) => ({
@@ -105,6 +113,7 @@ export async function collectionBySlug(slug: string): Promise<CollectionRow | nu
             title: true,
             slug: true,
             description: true,
+            imageUrl: true,
             isPublic: true,
             shareToken: true,
             ...include,
@@ -126,6 +135,7 @@ export async function collectionByToken(token: string): Promise<CollectionRow | 
             title: true,
             slug: true,
             description: true,
+            imageUrl: true,
             isPublic: true,
             shareToken: true,
             ...include,

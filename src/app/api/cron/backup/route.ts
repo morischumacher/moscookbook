@@ -7,10 +7,13 @@ import { BACKUP_PREFIX } from '@/lib/backupPrefix.mjs';
 import {
     buildArchive,
     archiveFilename,
+    isGuessableBackup,
     type ExportableRecipe,
     type ExportablePost,
     type ExportableCookEntry,
     type ExportableCollection,
+    type ExportableMenu,
+    menuArchiveSelect,
 } from '@/lib/archive';
 import { failed } from '@/lib/reportServerError';
 import { recordBackupRun } from '@/lib/backupStatus';
@@ -81,6 +84,7 @@ export async function GET(req: NextRequest) {
                 views: true,
                 isPublic: true,
                 isDraft: true,
+                tags: true,
                 createdAt: true,
                 images: { orderBy: { position: 'asc' }, select: { url: true } },
                 ingredients: {
@@ -92,6 +96,7 @@ export async function GET(req: NextRequest) {
                         unit: true,
                         name: true,
                         raw: true,
+                        section: true,
                     },
                 },
             },
@@ -106,7 +111,8 @@ export async function GET(req: NextRequest) {
                 imageUrl: true,
                 publishedAt: true,
                 createdAt: true,
-                recipe: { select: { slug: true } },
+                recipes: { orderBy: { position: 'asc' }, select: { recipe: { select: { slug: true } } } },
+                collections: { orderBy: { position: 'asc' }, select: { collection: { select: { slug: true } } } },
                 author: { select: { name: true } },
             },
         });
@@ -131,6 +137,7 @@ export async function GET(req: NextRequest) {
                 title: true,
                 slug: true,
                 description: true,
+                imageUrl: true,
                 createdAt: true,
                 recipes: {
                     orderBy: { position: 'asc' },
@@ -139,12 +146,18 @@ export async function GET(req: NextRequest) {
             },
         });
 
+        const menus: ExportableMenu[] = await prisma.menu.findMany({
+            orderBy: { createdAt: 'asc' },
+            select: menuArchiveSelect,
+        });
+
         const archive = buildArchive(
             recipes,
             new Date(),
             posts,
             cookEntries,
-            collections
+            collections,
+            menus
         );
 
         // Housekeeping, attached to the one thing that already runs weekly.
@@ -154,27 +167,36 @@ export async function GET(req: NextRequest) {
         const sweptLimits = await sweepRateLimits();
         if (sweptLimits > 0) console.log(`Swept ${sweptLimits} closed rate-limit windows.`);
 
-        const blob = await put(
+        await put(
             `${PREFIX}${archiveFilename()}`,
             JSON.stringify(archive, null, 2),
             {
                 access: 'public',
                 contentType: 'application/json; charset=utf-8',
-                // Two runs on one day overwrite rather than piling up
-                // `-1`, `-2` files nobody asked for.
-                addRandomSuffix: false,
-                allowOverwrite: true,
+                // The store is public and its hostname is in every image URL,
+                // so the name is what keeps this file private: the random
+                // suffix makes it unguessable, and listing the store needs the
+                // token. Without it, anybody could fetch last Monday's backup
+                // by typing the date.
+                addRandomSuffix: true,
             }
         );
 
         // Pruned after the new one is written, never before: a prune that ran
         // first and then failed to write would leave one fewer backup than
-        // there was when it started.
+        // there was when it started. Backups from before the random suffix are
+        // removed whatever their age — they are the ones anybody could fetch.
         const existing = await list({ prefix: PREFIX, limit: 1000 });
-        const old = existing.blobs
+        const newestFirst = existing.blobs
             .slice()
-            .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
-            .slice(KEEP);
+            .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+        const guessable = newestFirst.filter((entry) => isGuessableBackup(entry.pathname, PREFIX));
+        const old = [
+            ...guessable,
+            ...newestFirst
+                .filter((entry) => !isGuessableBackup(entry.pathname, PREFIX))
+                .slice(KEEP),
+        ];
 
         if (old.length > 0) {
             await del(old.map((entry) => entry.url)).catch((error) => {
@@ -190,7 +212,9 @@ export async function GET(req: NextRequest) {
         );
 
         return NextResponse.json({
-            url: blob.url,
+            // No URL: the name is the only secret the file has, and this
+            // response ends up in the cron logs.
+            written: true,
             recipes: recipes.length,
             posts: posts.length,
             cookEntries: cookEntries.length,

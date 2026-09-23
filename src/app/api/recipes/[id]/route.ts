@@ -6,7 +6,9 @@ import { requireAdmin } from '@/lib/auth';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
-import { searchFields } from '@/lib/searchText';
+import { ingredientRows as positioned, recipeColumns } from '@/lib/recipeRepo';
+import { changedFields, snapshotOf } from '@/lib/revisions';
+import { keepRevisionOf } from '@/lib/revisionsDb';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
 
@@ -53,11 +55,8 @@ export async function PUT(
 
         // Ingredient rows are replaced wholesale rather than diffed: the list is
         // short, order matters, and a rewrite keeps positions contiguous.
-        const ingredientRows = toStructuredIngredients(ingredients).map((row, index) => ({
-            ...row,
-            recipeId,
-            position: index,
-        }));
+        const structured = toStructuredIngredients(ingredients);
+        const ingredientRows = positioned(structured).map((row) => ({ ...row, recipeId }));
 
         // Which files this edit is about to stop pointing at. Read before the
         // write, because after it there is nothing left to ask. Deleting a
@@ -78,26 +77,44 @@ export async function PUT(
             }
         }
 
+        /*
+         * The version this edit replaces, kept so it can be looked at and
+         * undone (lib/revisions). Only when something the history shows
+         * actually changed: saving twice is not two versions.
+         */
+        const before = await prisma.recipe.findUnique({
+            where: { id: recipeId },
+            select: {
+                title: true, slug: true, description: true, category: true, nationality: true,
+                instructions: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true,
+                ingredients: { orderBy: { position: 'asc' }, select: { raw: true, name: true, section: true } },
+            },
+        });
+        const previous = before ? snapshotOf(before) : null;
+        const next = snapshotOf({
+            title, slug, description, category, nationality, instructions,
+            servings: servings ?? null, prepMinutes: prepMinutes ?? null, cookMinutes: cookMinutes ?? null,
+            tags: parsed.data.tags,
+            ingredients: structured.map((row) => ({ raw: row.raw, name: row.name, section: row.section ?? null })),
+        });
+        const keepRevision = previous !== null && changedFields(previous, next).length > 0;
+
         const [updatedRecipe] = await prisma.$transaction([
             prisma.recipe.update({
                 where: { id: recipeId },
-                data: {
+                data: recipeColumns({
                     title,
                     slug,
                     description,
                     category,
                     nationality,
                     instructions,
-                    servings: servings ?? null,
-                    prepMinutes: prepMinutes ?? null,
-                    cookMinutes: cookMinutes ?? null,
-                    ...searchFields({
-                        title,
-                        description,
-                        instructions,
-                        ingredients: ingredientRows.map((row) => row.name),
-                    }),
-                },
+                    servings,
+                    prepMinutes,
+                    cookMinutes,
+                    ingredients: structured,
+                    tags: parsed.data.tags,
+                }),
             }),
             prisma.ingredient.deleteMany({ where: { recipeId } }),
             prisma.ingredient.createMany({ data: ingredientRows }),
@@ -118,6 +135,8 @@ export async function PUT(
         // if the write rolls back, and a row pointing at a missing picture is a
         // worse outcome than a file nobody points at.
         if (droppedUrls.length > 0) await deleteBlobs(droppedUrls);
+
+        if (keepRevision && previous) await keepRevisionOf(recipeId, previous, auth.user.name);
 
         // The category or cuisine may have changed, and with it the rail.
         forgetCollectionFacets();

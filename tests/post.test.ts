@@ -9,26 +9,23 @@ export default function postTests() {
     const full = postInputSchema.safeParse({
         title: '  Zwetschgen, September  ',
         body: 'Jedes Jahr dasselbe, und jedes Jahr wieder gut.',
-        recipeId: 7,
+        recipeIds: [7, 3],
         published: true,
     });
 
     check('accepts a complete entry', full.success, full.success ? '' : full.error.issues);
     equal('trims the title', full.success && full.data.title, 'Zwetschgen, September');
-    equal('keeps the recipe it belongs to', full.success && full.data.recipeId, 7);
+    equal('keeps the recipes it is about, in order', full.success && full.data.recipeIds, [7, 3]);
 
     // The whole point of the nullable column: writing never requires a recipe.
     const standalone = postInputSchema.safeParse({ title: 'Über Salz', body: 'Mehr, als man denkt.' });
     check('accepts an entry with no recipe at all', standalone.success);
     equal(
-        'and leaves the recipe unset rather than inventing one',
-        standalone.success && standalone.data.recipeId,
-        undefined
+        'and leaves the list empty rather than inventing one',
+        standalone.success && standalone.data.recipeIds,
+        []
     );
-
-    const detached = postInputSchema.safeParse({ title: 'x', body: 'y', recipeId: null });
-    check('accepts a recipe explicitly removed', detached.success);
-    equal('as null', detached.success && detached.data.recipeId, null);
+    equal('the same for collections', standalone.success && standalone.data.collectionIds, []);
 
     check(
         'refuses an entry with no title',

@@ -27,6 +27,8 @@ export interface JsonLdRecipeInput {
     images: { url: string }[];
     ingredients: StructuredIngredient[];
     ratings: { value: number }[];
+    /** Optional so older callers and tests need not know about it. */
+    tags?: string[];
     url: string;
 }
 
@@ -80,6 +82,17 @@ export function buildRecipeJsonLd(recipe: JsonLdRecipeInput): Record<string, unk
     if (recipe.images.length > 0) data.image = recipe.images.map((image) => image.url);
     if (recipe.category?.trim()) data.recipeCategory = recipe.category.trim();
     if (recipe.nationality?.trim()) data.recipeCuisine = recipe.nationality.trim();
+
+    // The tags as keywords, and the two diet tags in the vocabulary search
+    // engines filter recipe results by.
+    const tags = recipe.tags ?? [];
+    const free = tags.filter((tag) => tag !== 'vegetarian' && tag !== 'vegan');
+    if (free.length > 0) data.keywords = free.join(', ');
+    const diets = [
+        ...(tags.includes('vegan') ? ['https://schema.org/VeganDiet'] : []),
+        ...(tags.includes('vegetarian') || tags.includes('vegan') ? ['https://schema.org/VegetarianDiet'] : []),
+    ];
+    if (diets.length > 0) data.suitableForDiet = diets;
     if (recipe.servings !== null) data.recipeYield = String(recipe.servings);
     if (recipe.prepMinutes !== null) data.prepTime = isoDuration(recipe.prepMinutes);
     if (recipe.cookMinutes !== null) data.cookTime = isoDuration(recipe.cookMinutes);

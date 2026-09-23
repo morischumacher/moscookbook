@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
+import { aboutTitles, postAboutTitlesSelect } from '@/components/post/PostArticle';
 import { getCurrentUser } from '@/lib/auth';
 import { excerptOf } from '@/lib/postSchema';
 import { buildTsQuery } from '@/lib/searchText';
@@ -20,7 +21,8 @@ interface PostListRow {
     imageUrl: string | null;
     publishedAt: Date | null;
     createdAt: Date;
-    recipe: { title: string; slug: string } | null;
+    recipes: { recipe: { title: string } }[];
+    collections: { collection: { title: string } }[];
 }
 
 /**
@@ -92,7 +94,7 @@ export default async function BlogIndex({
             imageUrl: true,
             publishedAt: true,
             createdAt: true,
-            recipe: { select: { title: true, slug: true } },
+            ...postAboutTitlesSelect,
         },
     });
 
@@ -157,7 +159,7 @@ export default async function BlogIndex({
                                     <p className="mb-2 flex flex-wrap items-center gap-x-2 text-xs font-semibold uppercase tracking-widest text-muted">
                                         <span>{formatDate(post.publishedAt ?? post.createdAt, locale)}</span>
                                         {post.publishedAt === null && <span>• {t('draft')}</span>}
-                                        {post.recipe && <span>• {post.recipe.title}</span>}
+                                        {aboutTitles(post) && <span>• {aboutTitles(post)}</span>}
                                     </p>
 
                                     <h2 className="mb-2 text-xl font-bold leading-tight tracking-tight underline-offset-4 group-hover:underline sm:text-2xl">

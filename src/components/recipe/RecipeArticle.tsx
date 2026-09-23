@@ -1,10 +1,15 @@
 import { getTranslations } from 'next-intl/server';
+import { Link } from '@/i18n/routing';
 import RatingDisplay from '@/components/RatingDisplay';
 import FavoriteButton from '@/components/FavoriteButton';
 import RecipeSource from '@/components/recipe/RecipeSource';
 import ViewTracker from '@/components/ViewTracker';
 import Logo from '@/components/brand/Logo';
+import ReactMarkdown from 'react-markdown';
 import RecipeBody from '@/components/recipe/RecipeBody';
+import { splitSteps } from '@/lib/steps';
+import { withCelsius } from '@/lib/units';
+import { DIET_TAGS } from '@/lib/tags';
 import Gallery from '@/components/recipe/Gallery';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import Cooked, { type CookedEntry } from '@/components/recipe/Cooked';
@@ -27,6 +32,7 @@ export interface RecipeRow {
     servings: number | null;
     prepMinutes: number | null;
     cookMinutes: number | null;
+    tags: string[];
     createdAt: Date;
     /** Whether the recipe's own address works without an account. */
     isPublic: boolean;
@@ -134,6 +140,12 @@ export default async function RecipeArticle({
     similar,
 }: RecipeArticleProps) {
     const t = await getTranslations('Recipe');
+    const tTags = await getTranslations('Tags');
+    const tagLabel = (tag: string) => ((DIET_TAGS as readonly string[]).includes(tag) ? tTags(tag as 'vegan') : `#${tag}`);
+
+    // The method one step each, with any Fahrenheit given in Celsius beside
+    // it: the oven here has a Celsius dial.
+    const stepTexts = splitSteps(withCelsius(recipe.instructions));
     const tCategory = await getTranslations('Categories');
     const tCuisine = await getTranslations('Cuisines');
 
@@ -249,6 +261,28 @@ export default async function RecipeArticle({
                     </div>
                 )}
 
+                {/* Tags lead back to the list, filtered — "what else is vegan".
+                    Only for people with an account: the list is theirs. */}
+                {recipe.tags.length > 0 && (
+                    <div className="print:hidden mt-3 flex flex-wrap gap-2 text-sm">
+                        {recipe.tags.map((tag) =>
+                            mode === 'private' ? (
+                                <Link
+                                    key={tag}
+                                    href={`/?tag=${encodeURIComponent(tag)}`}
+                                    className="rounded-full border border-line px-3 py-1 text-muted hover:border-ink hover:text-ink"
+                                >
+                                    {tagLabel(tag)}
+                                </Link>
+                            ) : (
+                                <span key={tag} className="rounded-full border border-line px-3 py-1 text-muted">
+                                    {tagLabel(tag)}
+                                </span>
+                            )
+                        )}
+                    </div>
+                )}
+
                 {/* The heart shares the rating's row rather than taking one of
                     its own: they are the same gesture — what you thought of it —
                     and stacked they cost three lines between the facts above and
@@ -325,7 +359,11 @@ export default async function RecipeArticle({
                 <RecipeBody
                     recipeId={recipe.id}
                     ingredients={recipe.ingredients}
-                    instructions={recipe.instructions}
+                    steps={stepTexts.map((step, index) => (
+                        <ReactMarkdown key={index}>{step}</ReactMarkdown>
+                    ))}
+                    stepTexts={stepTexts}
+                    canShop={mode === 'private' && isLoggedIn}
                     baseServings={recipe.servings}
                     title={recipe.title}
                     locale={locale}

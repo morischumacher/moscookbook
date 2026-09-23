@@ -11,9 +11,9 @@ import recipeParser from './recipeParser.test';
 import recipeFromHtml from './recipeFromHtml.test';
 import amount from './amount.test';
 import siteUrl from './siteUrl.test';
-import ingredientParts from './ingredientParts.test';
+import ingredientParts, { ingredientSectionTests } from './ingredientParts.test';
 import invite from './invite.test';
-import archive, { archiveCollectionsTests } from './archive.test';
+import archive, { archiveCollectionsTests, archiveBackupNameTests } from './archive.test';
 import searchText from './searchText.test';
 import capture from './capture.test';
 import youtube from './youtube.test';
@@ -37,9 +37,9 @@ import ownership from './ownership.test';
 import ticketPath from './ticketPath.test';
 import oysterMark from './oysterMark.test';
 import cookProgress from './cookProgress.test';
-import safeFetch from './safeFetch.test';
+import safeFetch, { readCappedTests } from './safeFetch.test';
 import similarRecipes from './similarRecipes.test';
-import privateAddress from './privateAddress.test';
+import privateAddress, { privateIPv6FormsTests } from './privateAddress.test';
 import sinceCooked from './sinceCooked.test';
 import fixtures from './fixtures.test';
 import transcripts from './transcript.test';
@@ -47,13 +47,24 @@ import pageTitle from './pageTitle.test';
 import secretBox from './secretBox.test';
 import readableText from './readableText.test';
 import siteProfile from './siteProfile.test';
-import siteLearn from './siteLearn.test';
+import clientMessages from './clientMessages.test';
+import recipeRepo, { recipeRoutesPassTags, storedDraftTests } from './recipeRepo.test';
+import examples from './examples.test';
+import units from './units.test';
+import shopping from './shopping.test';
+import cookSteps from './cookSteps.test';
+import tags from './tags.test';
+import offline from './offline.test';
+import revisions from './revisions.test';
+import foreignImport from './foreignImport.test';
+import menu from './menu.test';
+import siteLearn, { siteLearnWiringTests } from './siteLearn.test';
 import drafts from './drafts.test';
 import routeParams from './routeParams.test';
 import prismaErrors from './prismaErrors.test';
 import htmlMeta from './htmlMeta.test';
 import apiMessage from './apiMessage.test';
-import account from './account.test';
+import account, { sessionVersionTests } from './account.test';
 import publicPages from './publicPages.test';
 import shareStage from './shareStage.test';
 import aiProviders from './aiProviders.test';
@@ -76,9 +87,11 @@ const suites: [string, () => void | Promise<void>][] = [
     ['amount', amount],
     ['siteUrl', siteUrl],
     ['ingredientParts', ingredientParts],
+    ['ingredientSectionTests', ingredientSectionTests],
     ['invite', invite],
     ['archive', archive],
     ['archiveCollectionsTests', archiveCollectionsTests],
+    ['archiveBackupNameTests', archiveBackupNameTests],
     ['searchText', searchText],
     ['capture', capture],
     ['youtube', youtube],
@@ -105,21 +118,38 @@ const suites: [string, () => void | Promise<void>][] = [
     ['oysterMark', oysterMark],
     ['cookProgress', cookProgress],
     ['safeFetch', safeFetch],
+    ['readCappedTests', readCappedTests],
     ['similarRecipes', similarRecipes],
     ['privateAddress', privateAddress],
+    ['privateIPv6FormsTests', privateIPv6FormsTests],
     ['sinceCooked', sinceCooked],
     ['secretBox', secretBox],
     ['readableText', readableText],
     ['siteProfile', siteProfile],
     ['aiProviders', aiProviders],
     ['aiPolish', aiPolish],
+    ['clientMessages', clientMessages],
+    ['recipeRepo', recipeRepo],
+    ['storedDraftTests', storedDraftTests],
+    ['recipeRoutesPassTags', recipeRoutesPassTags],
+    ['examples', examples],
+    ['units', units],
+    ['shopping', shopping],
+    ['cookSteps', cookSteps],
+    ['tags', tags],
+    ['offline', offline],
+    ['revisions', revisions],
+    ['foreignImport', foreignImport],
+    ['menu', menu],
     ['siteLearn', siteLearn],
+    ['siteLearnWiringTests', siteLearnWiringTests],
     ['drafts', drafts],
     ['routeParams', routeParams],
     ['prismaErrors', prismaErrors],
     ['htmlMeta', htmlMeta],
     ['apiMessage', apiMessage],
     ['account', account],
+    ['sessionVersionTests', sessionVersionTests],
     ['publicPages', publicPages],
     ['shareStage', shareStage],
     ['draftQuality', draftQuality],

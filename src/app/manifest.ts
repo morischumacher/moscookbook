@@ -30,6 +30,18 @@ export default function manifest(): MetadataRoute.Manifest {
         display: 'standalone',
         background_color: '#FFF8F0',
         theme_color: '#FFF8F0',
+        /*
+         * "Share to Mo'sCookbook" in Android's and desktop Chrome's share
+         * sheet, once the site is installed. A link or a caption shared from
+         * any app lands in the inbox, the same as the iOS Shortcut does. Plain
+         * GET: what is shared is a title, a text and a link, and the page it
+         * opens asks the admin's session, not a device token.
+         */
+        share_target: {
+            action: '/de/share',
+            method: 'GET',
+            params: { title: 'title', text: 'text', url: 'url' },
+        },
         icons: [
             {
                 src: '/brand/icon-192.png',

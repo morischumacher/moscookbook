@@ -4,7 +4,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { BCRYPT_COST } from '@/lib/passwordHash';
 import prisma from '@/lib/prisma';
-import { sessionOptions, SessionData } from '@/lib/session';
+import { sessionOptions, sessionUserFrom, SessionData } from '@/lib/session';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { hashToken, tokenState } from '@/lib/authTokens';
 import { failed } from '@/lib/reportServerError';
@@ -80,6 +80,10 @@ export async function POST(req: NextRequest) {
                 // that proof a second time, in a separate mail, would be
                 // ceremony rather than security.
                 emailVerifiedAt: now,
+                // Whoever else is signed in to this account is signed out: a
+                // reset is what somebody does when they think a password is
+                // known to someone else.
+                sessionVersion: { increment: 1 },
             },
         });
 
@@ -96,12 +100,7 @@ export async function POST(req: NextRequest) {
         const res = NextResponse.json({ success: true, admin: user.admin });
         const session = await getIronSession<SessionData>(req, res, sessionOptions);
 
-        session.user = {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            admin: user.admin,
-        };
+        session.user = sessionUserFrom(user);
 
         await session.save();
 

@@ -18,6 +18,36 @@ export interface AmountParts {
 export interface StructuredIngredient extends AmountParts {
     name: string;
     raw: string;
+    /** The heading it is listed under, or null. See `sectionHeading`. */
+    section?: string | null;
+}
+
+/**
+ * A row of the ingredient editor that is a heading rather than an
+ * ingredient: no amount, and a name written "## Für den Teig" — which is what
+ * the editor's "+ Section" button inserts — or "Für den Teig:", which is how
+ * recipes write it and what a paste brings in. Returns the heading, or null.
+ */
+export function sectionHeading(row: { amount: string; item: string }): string | null {
+    if (row.amount.trim() !== '') return null;
+    const item = row.item.trim();
+    const marked = /^#{1,3}\s*(.+)$/.exec(item);
+    if (marked) return marked[1].trim().replace(/:$/, '') || null;
+    const colon = /^(.{2,60}):$/.exec(item);
+    return colon ? colon[1].trim() : null;
+}
+
+/** The editor's rows again, with a heading row wherever the section changes. */
+export function withHeadingRows(rows: { amount: string; item: string; section?: string | null }[]): Ingredient[] {
+    const out: Ingredient[] = [];
+    let current: string | null = null;
+    for (const row of rows) {
+        const section = row.section ?? null;
+        if (section !== current && section) out.push({ amount: '', item: `## ${section}` });
+        current = section;
+        out.push({ amount: row.amount, item: row.item });
+    }
+    return out;
 }
 
 const NUMBER = String.raw`\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?(?:\s+\d+\s*\/\s*\d+)?`;
@@ -82,21 +112,31 @@ export function formatAmount(parts: AmountParts, factor = 1): string {
 
 /** Turns the form's {amount, item} pairs into rows ready for the database. */
 export function toStructuredIngredients(ingredients: Ingredient[]): StructuredIngredient[] {
-    return ingredients
-        .map((ingredient) => ({
+    let section: string | null = null;
+    const rows: StructuredIngredient[] = [];
+
+    for (const ingredient of ingredients) {
+        const heading = sectionHeading(ingredient);
+        if (heading !== null) {
+            section = heading;
+            continue;
+        }
+
+        const name = ingredient.item.trim();
+        // Empty, or a heading that was added and never named.
+        if (name === '' || (/^#+$/.test(name) && ingredient.amount.trim() === '')) continue;
+
+        rows.push({
             ...splitAmount(ingredient.amount),
-            name: ingredient.item.trim(),
+            name,
             raw: ingredient.amount.trim(),
-        }))
-        .filter((ingredient) => ingredient.name !== '');
+            section,
+        });
+    }
+
+    return rows;
 }
 
-/**
- * The display shape, back from the database.
- *
- * Prefers the author's own wording; the structured parts are used only when
- * amounts are scaled, where a number has to be recomputed anyway.
- */
 export function toDisplayIngredient(
     row: StructuredIngredient,
     factor = 1

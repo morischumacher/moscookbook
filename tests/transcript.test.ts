@@ -140,7 +140,7 @@ function replayNetwork(replay: Replay) {
             headers: new Headers({ 'content-type': 'text/html; charset=utf-8' }),
             text: async () => html,
             json: async () => ({}),
-            arrayBuffer: async () => new ArrayBuffer(0),
+            arrayBuffer: async () => new TextEncoder().encode(html).buffer,
         } as unknown as Response;
     }) as typeof globalThis.fetch;
 

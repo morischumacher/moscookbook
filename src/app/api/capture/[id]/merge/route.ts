@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
+import { draftFromJson } from '@/lib/captureDraft';
 
 const bodySchema = z.object({ recipeId: z.number().int().positive() });
 
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         // parser produced; either counts, and neither is guaranteed.
         const draftImage =
             capture.draft && typeof capture.draft === 'object'
-                ? (capture.draft as { imageUrl?: unknown }).imageUrl
+                ? draftFromJson(capture.draft)?.imageUrl
                 : null;
 
         const candidates = [capture.imageUrl, typeof draftImage === 'string' ? draftImage : null]

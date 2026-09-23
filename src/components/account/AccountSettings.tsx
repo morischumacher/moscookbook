@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { messageFrom } from '@/lib/apiMessage';
+import { forgetOfflineCopies } from '@/lib/offlineCopies';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { buttonPrimarySmall, buttonDanger } from '@/lib/ui';
+import { BusyLabel } from '@/components/ui/Busy';
 
 /**
  * The three things every tool of this shape lets you do to your own account,
@@ -139,6 +141,7 @@ export default function AccountSettings({
         );
 
         if (!ok) return;
+        await forgetOfflineCopies();
 
         /*
          * The same pair as LogoutButton, and for the same reason: the session
@@ -156,6 +159,21 @@ export default function AccountSettings({
          * on it, lint runs at --max-warnings 0, and the theory was wrong
          * anyway — sign-out has the identical problem and solves it here.
          */
+        router.replace('/login');
+        router.refresh();
+    };
+
+    /** Every device, this one included — the account's session version goes up. */
+    const signOutEverywhere = async () => {
+        const ok = await send(
+            '/api/auth/logout',
+            { method: 'POST', body: JSON.stringify({ everywhere: true }) },
+            t('signedOutEverywhere'),
+            t('failed')
+        );
+        if (!ok) return;
+
+        await forgetOfflineCopies();
         router.replace('/login');
         router.refresh();
     };
@@ -230,7 +248,7 @@ export default function AccountSettings({
                         </div>
 
                         <button type="submit" disabled={busy} className={buttonPrimarySmall}>
-                            {t('save')}
+                            <BusyLabel busy={busy}>{t('save')}</BusyLabel>
                         </button>
                     </form>
                 )}
@@ -290,7 +308,7 @@ export default function AccountSettings({
                         </div>
 
                         <button type="submit" disabled={busy} className={buttonPrimarySmall}>
-                            {t('save')}
+                            <BusyLabel busy={busy}>{t('save')}</BusyLabel>
                         </button>
                     </form>
                 )}
@@ -346,10 +364,24 @@ export default function AccountSettings({
                         </div>
 
                         <button type="submit" disabled={busy} className={buttonPrimarySmall}>
-                            {t('save')}
+                            <BusyLabel busy={busy}>{t('save')}</BusyLabel>
                         </button>
                     </form>
                 )}
+            </section>
+
+            {/* ─────────────────────────────────────────────── the devices */}
+            <section className="mt-8 border-t border-line pt-6">
+                <h2 className={legend}>{t('devicesTitle')}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{t('devicesExplain')}</p>
+                <button
+                    type="button"
+                    onClick={() => void signOutEverywhere()}
+                    disabled={busy}
+                    className="mt-3 text-sm underline underline-offset-4"
+                >
+                    {t('signOutEverywhere')}
+                </button>
             </section>
 
             {/* ───────────────────────────────────────────────── the exit */}
@@ -379,7 +411,7 @@ export default function AccountSettings({
                     </div>
 
                     <button type="submit" disabled={busy || password === ''} className={buttonDanger}>
-                        {t('deleteAction')}
+                        <BusyLabel busy={busy && password !== ''}>{t('deleteAction')}</BusyLabel>
                     </button>
                 </form>
             </section>

@@ -1,5 +1,6 @@
 import { unstable_cache, revalidateTag } from 'next/cache';
 import prisma from '@/lib/prisma';
+import { QUICK_MINUTES } from '@/lib/tags';
 
 /**
  * What the collection as a whole looks like: which categories and cuisines
@@ -31,6 +32,10 @@ const RECIPE_COLLECTION_TAG = 'recipe-collection';
 export interface CollectionFacets {
     categories: { value: string; count: number }[];
     cuisines: { value: string; count: number }[];
+    /** Every tag in use, busiest first — the diet tags among them. */
+    tags: { value: string; count: number }[];
+    /** How many finished recipes take half an hour or less. */
+    quick: number;
     /** Every recipe, regardless of filter — what "all recipes" counts. */
     total: number;
 }
@@ -42,13 +47,26 @@ interface Group {
 }
 
 async function readFacets(): Promise<CollectionFacets> {
-    const [categoryGroups, cuisineGroups, total]: [Group[], Group[], number] = await Promise.all([
+    const [categoryGroups, cuisineGroups, total, tagRows, quickRows] = await Promise.all([
         // Drafts are not in the list the chips filter, so counting them would
         // promise results a click cannot deliver — a category chip reading "3"
         // that opens onto two recipes.
         prisma.recipe.groupBy({ by: ['category'], where: { isDraft: false }, _count: { _all: true } }),
         prisma.recipe.groupBy({ by: ['nationality'], where: { isDraft: false }, _count: { _all: true } }),
         prisma.recipe.count({ where: { isDraft: false } }),
+        prisma.$queryRaw<{ value: string; count: bigint }[]>`
+            SELECT tag AS value, count(*)::bigint AS count
+            FROM "Recipe", unnest("tags") AS tag
+            WHERE "isDraft" = false
+            GROUP BY tag
+            ORDER BY count DESC, tag ASC
+            LIMIT 40
+        `,
+        prisma.$queryRaw<{ count: bigint }[]>`
+            SELECT count(*)::bigint AS count FROM "Recipe"
+            WHERE "isDraft" = false
+              AND COALESCE("prepMinutes", 0) + COALESCE("cookMinutes", 0) BETWEEN 1 AND ${QUICK_MINUTES}
+        `,
     ]);
 
     // Shaped here rather than at the call site, so what is kept in the cache is
@@ -62,6 +80,8 @@ async function readFacets(): Promise<CollectionFacets> {
     return {
         categories: named(categoryGroups, 'category'),
         cuisines: named(cuisineGroups, 'nationality'),
+        tags: tagRows.map((row) => ({ value: row.value, count: Number(row.count) })),
+        quick: Number(quickRows[0]?.count ?? 0),
         total,
     };
 }

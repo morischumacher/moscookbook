@@ -2,21 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { sessionOptions, SessionData } from '@/lib/session';
+import { sessionOptions, sessionUserFrom, SessionData } from '@/lib/session';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import prisma from '@/lib/prisma';
 import { failed } from '@/lib/reportServerError';
+import { DUMMY_HASH } from '@/lib/passwordHash';
 
 const loginSchema = z.object({
     email: z.string().trim().email().max(320),
     password: z.string().min(1).max(200),
 });
-
-/**
- * Compared against when no user exists, so that a wrong email and a wrong
- * password take roughly the same amount of time and cannot be told apart.
- */
-const DUMMY_HASH = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
 
 export async function POST(req: NextRequest) {
     const limit = await rateLimitShared(clientKey(req, 'login'), 10, 15 * 60 * 1000);
@@ -82,12 +77,7 @@ export async function POST(req: NextRequest) {
         const res = NextResponse.json({ success: true, admin: user.admin });
         const session = await getIronSession<SessionData>(req, res, sessionOptions);
 
-        session.user = {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            admin: user.admin,
-        };
+        session.user = sessionUserFrom(user);
 
         await session.save();
 

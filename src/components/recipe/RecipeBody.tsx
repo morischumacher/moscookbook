@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import ReactMarkdown from 'react-markdown';
-import { toDisplayIngredient, type StructuredIngredient } from '@/lib/ingredientParts';
-import { splitSteps } from '@/lib/steps';
+import { formatAmount, type StructuredIngredient } from '@/lib/ingredientParts';
 import ShareButton from '@/components/share/ShareButton';
+import AddToShopping from '@/components/shopping/AddToShopping';
+import { buttonFloating, buttonPrimarySmall } from '@/lib/ui';
+import CookMode from './CookMode';
+import { useCookTimers } from './useCookTimers';
+import { clock } from '@/lib/cookSteps';
+import { formatMeasured, hasNonMetric, tidy, toMetric, unitOf, type UnitSystem } from '@/lib/units';
 import { cookProgressKey, parseCookProgress, worthSaving } from '@/lib/cookProgress';
 
 const SERVING_STEPS = [1, 2, 3, 4, 6, 8, 10, 12];
@@ -13,7 +17,9 @@ const SERVING_STEPS = [1, 2, 3, 4, 6, 8, 10, 12];
 export default function RecipeBody({
     recipeId,
     ingredients,
-    instructions,
+    steps,
+    stepTexts,
+    canShop,
     baseServings,
     title,
     locale,
@@ -22,7 +28,19 @@ export default function RecipeBody({
     /** Which recipe's progress is being remembered. */
     recipeId: number;
     ingredients: StructuredIngredient[];
-    instructions: string;
+    /**
+     * The method, one rendered step each.
+     *
+     * Rendered on the server by RecipeArticle and handed in finished. The
+     * Markdown parser used to come to every visitor's phone with this
+     * component — a third of a recipe page's own script, to turn a dozen
+     * short paragraphs into HTML that could have been sent as HTML.
+     */
+    steps: React.ReactNode[];
+    /** The same steps as text, for what cook mode reads out of them: timers, ingredients. */
+    stepTexts: string[];
+    /** Whether "add to shopping list" is offered — people with an account. */
+    canShop: boolean;
     baseServings: number | null;
     /** For the share sheet, which offers it as the message's subject. */
     title: string;
@@ -62,9 +80,65 @@ export default function RecipeBody({
 
     const t = useTranslations('Recipe');
 
-    const steps = useMemo(() => splitSteps(instructions), [instructions]);
-
     const factor = baseServings && servings ? servings / baseServings : 1;
+
+    const { timers, now, start: startTimer, dismiss: dismissTimer } = useCookTimers();
+    const uiLocale = (locale === 'en' ? 'en' : 'de') as 'en' | 'de';
+
+    /*
+     * Grams and millilitres by default, with the recipe's own units one tap
+     * away. Remembered per device, because somebody who wants cups wants them
+     * on every recipe. Offered only where it changes anything.
+     */
+    const convertible = hasNonMetric(ingredients);
+    const [system, setSystem] = useState<UnitSystem>('metric');
+    useEffect(() => {
+        try {
+            const saved = window.localStorage.getItem('unit-system');
+            // eslint-disable-next-line react-hooks/set-state-in-effect -- read from the browser's storage after hydration
+            if (saved === 'original' || saved === 'metric') setSystem(saved);
+        } catch {
+            // Storage blocked: metric it is.
+        }
+    }, []);
+    const chooseSystem = (next: UnitSystem) => {
+        setSystem(next);
+        try {
+            window.localStorage.setItem('unit-system', next);
+        } catch {
+            // Only this page, then.
+        }
+    };
+
+    /**
+     * An amount as this cook wants to read it: scaled, in their units, tidied
+     * (1500 g → 1,5 kg). Written exactly as the recipe had it when nothing
+     * about it changed.
+     */
+    const amountOf = (row: StructuredIngredient): string => {
+        if (row.quantity === null) return row.raw || row.unit || '';
+        const scaled = {
+            quantity: row.quantity * factor,
+            quantityMax: row.quantityMax === null ? null : row.quantityMax * factor,
+            unit: row.unit,
+        };
+        const unit = unitOf(row.unit);
+        const converts = system === 'metric' && unit !== null && !unit.metric;
+        if (factor === 1 && !converts) return row.raw || formatAmount(row);
+        const shown = converts ? toMetric(scaled, row.name, uiLocale) : unit ? tidy(scaled, uiLocale) : scaled;
+        return formatMeasured(shown, uiLocale, formatAmount);
+    };
+
+    const displayed = ingredients.map((row) => ({ amount: amountOf(row), item: row.name, name: row.name, section: row.section ?? null }));
+
+    const setStep = (index: number, done?: boolean) =>
+        setCheckedSteps((set) => {
+            const next = new Set(set);
+            const on = done ?? !next.has(index);
+            if (on) next.add(index);
+            else next.delete(index);
+            return next;
+        });
 
     // Keeping the screen awake is an external system, so it lives in an effect;
     // the state flag only exists to tell the cook whether it actually worked.
@@ -186,14 +260,19 @@ export default function RecipeBody({
         // not worth saving.
     };
 
-    const textSize = cookMode ? 'text-2xl sm:text-3xl' : 'text-xl';
+    const textSize = 'text-xl';
 
     return (
-        <div className={cookMode ? 'cook-mode' : undefined}>
+        <div>
             {/* Controls */}
-            <div className="print:hidden mb-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-line py-4">
+            {/* Sans, whatever the article around it is set in: these are controls,
+                and in the serif they read as footnotes. */}
+            <div className="print:hidden mb-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-line py-4 [font-family:var(--font-sans)]">
                 {baseServings ? (
-                    <div className="flex items-center gap-3">
+                    // Wraps: the label, the stepper and four shortcuts are
+                    // wider than a phone, and a row that cannot wrap made the
+                    // whole page scroll sideways.
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <span className="text-sm font-bold uppercase tracking-widest text-muted">
                             {t('servings')}
                         </span>
@@ -242,17 +321,36 @@ export default function RecipeBody({
                     </div>
                 ) : null}
 
-                <button
-                    type="button"
-                    onClick={() => setCookMode((open) => !open)}
-                    aria-pressed={cookMode}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${cookMode
-                        ? 'bg-ink text-page'
-                        : 'border border-line hover:border-ink  '
-                        }`}
-                >
-                    {cookMode ? t('cookModeExit') : t('cookMode')}
-                </button>
+                {/* The two things done with a recipe in the kitchen, as the
+                    largest targets on the page: full width on a phone, where
+                    they are pressed with one hand. */}
+                <div className="flex w-full flex-wrap gap-3 sm:w-auto">
+                    <button
+                        type="button"
+                        onClick={() => setCookMode(true)}
+                        aria-pressed={cookMode}
+                        className={`${buttonPrimarySmall} flex-1 gap-2 sm:flex-none`}
+                    >
+                        <span aria-hidden="true">👩‍🍳</span> {t('cookModeStart')}
+                    </button>
+                    {canShop && <AddToShopping recipeId={recipeId} servings={baseServings ? servings : null} />}
+                </div>
+
+                {convertible && (
+                    <div role="group" aria-label={t('units')} className="flex rounded-full border border-line p-0.5 text-sm">
+                        {(['metric', 'original'] as const).map((which) => (
+                            <button
+                                key={which}
+                                type="button"
+                                aria-pressed={system === which}
+                                onClick={() => chooseSystem(which)}
+                                className={`rounded-full px-3 py-1.5 ${system === which ? 'bg-ink text-page' : 'text-muted'}`}
+                            >
+                                {which === 'metric' ? t('unitsMetric') : t('unitsOriginal')}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 <ShareButton
                     id={recipeId}
@@ -284,12 +382,40 @@ export default function RecipeBody({
                     </button>
                 )}
 
-                {cookMode && (
-                    <span className="text-sm text-muted">
-                        {wakeLockActive ? t('screenStaysOn') : t('tapToCheck')}
-                    </span>
-                )}
             </div>
+
+            {cookMode && (
+                <CookMode
+                    title={title}
+                    steps={steps}
+                    stepTexts={stepTexts}
+                    ingredients={displayed}
+                    checkedSteps={checkedSteps}
+                    onToggleStep={setStep}
+                    checkedIngredients={checkedIngredients}
+                    onToggleIngredient={(index) => setCheckedIngredients((set) => toggle(set, index))}
+                    timers={timers}
+                    now={now}
+                    onStartTimer={startTimer}
+                    onDismissTimer={dismissTimer}
+                    wakeLockActive={wakeLockActive}
+                    onClose={() => setCookMode(false)}
+                />
+            )}
+
+            {/* Timers keep running when cook mode is left, and say so. */}
+            {!cookMode && timers.length > 0 && (
+                <button
+                    type="button"
+                    onClick={() => setCookMode(true)}
+                    className={`${buttonFloating} print:hidden font-mono tabular-nums`}
+                >
+                    <span aria-hidden="true">⏱</span>
+                    {timers.some((timer) => timer.done)
+                        ? t('timerDone')
+                        : clock(Math.min(...timers.map((timer) => timer.endsAt - now)) / 1000)}
+                </button>
+            )}
 
             {/* Ingredients */}
             <section className="mb-16">
@@ -305,9 +431,20 @@ export default function RecipeBody({
                             const checked = checkedIngredients.has(index);
                             // Scaling happens on the stored number, not on the
                             // printed string, so "1/2 TL" x3 gives "1 1/2 TL".
-                            const ingredient = toDisplayIngredient(row, factor);
+                            const ingredient = displayed[index];
+                            // A heading where the section changes: "Für den
+                            // Teig", then what goes into it.
+                            const heading =
+                                ingredient.section && ingredient.section !== displayed[index - 1]?.section
+                                    ? ingredient.section
+                                    : null;
                             return (
                                 <li key={index} className="border-b border-line pb-4">
+                                    {heading && (
+                                        <h3 className="mb-2 mt-4 font-sans text-sm font-bold uppercase tracking-widest text-muted">
+                                            {heading}
+                                        </h3>
+                                    )}
                                     {/* The whole line is the target, with
                                         enough height that hitting it needs no
                                         aim — the box itself is only where the
@@ -378,7 +515,7 @@ export default function RecipeBody({
                                     className={`markdown-step flex-1 transition-opacity ${checked ? 'opacity-40' : ''
                                         }`}
                                 >
-                                    <ReactMarkdown>{step}</ReactMarkdown>
+                                    {step}
                                 </div>
                             </li>
                         );

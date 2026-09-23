@@ -1,14 +1,17 @@
+import { Suspense } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
+import { publicClientMessages } from '@/i18n/clientMessages';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import VerifyBanner from "@/components/auth/VerifyBanner";
 import ServiceWorker from "@/components/ServiceWorker";
+import NavigationProgress from "@/components/ui/NavigationProgress";
 import GlobalErrorReporter from "@/components/GlobalErrorReporter";
 import "../globals.css";
 
@@ -113,9 +116,9 @@ export default async function LocaleLayout({
         notFound();
     }
 
-    // Providing all messages to the client
-    // side is the easiest way to get started
-    const messages = await getMessages();
+    // Not the whole file: see i18n/clientMessages. The admin layout sends the
+    // rest to the pages that need it.
+    const messages = publicClientMessages(await getMessages());
 
     return (
         <html lang={locale}>
@@ -126,6 +129,11 @@ export default async function LocaleLayout({
                         network-first — see public/sw.js. */}
                     <ServiceWorker />
                     <GlobalErrorReporter />
+                    {/* Suspense because it reads the search params, which
+                        would otherwise hold the whole layout back. */}
+                    <Suspense fallback={null}>
+                        <NavigationProgress />
+                    </Suspense>
                     <Navbar locale={locale} />
                     <VerifyBanner />
                     <div style={{ minHeight: 'calc(100dvh - 140px)', display: 'flex', flexDirection: 'column' }}>

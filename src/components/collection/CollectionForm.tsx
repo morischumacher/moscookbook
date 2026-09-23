@@ -1,16 +1,21 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import InlineConfirm from '@/components/ui/InlineConfirm';
-import { buttonPrimary, buttonSecondary } from '@/lib/ui';
+import { buttonPrimary } from '@/lib/ui';
 import { MAX_RECIPES_PER_COLLECTION } from '@/lib/collectionSchema';
+import { BusyLabel } from '@/components/ui/Busy';
+import MarkdownEditor from '@/components/ui/MarkdownEditor';
+import PictureField from '@/components/ui/PictureField';
+import PickList, { type PickOption } from '@/components/ui/PickList';
 
 export interface CollectionDraft {
     id?: number;
     title: string;
     description: string;
+    imageUrl: string;
     recipeIds: number[];
 }
 
@@ -31,45 +36,18 @@ export default function CollectionForm({
     recipes,
 }: {
     initial: CollectionDraft;
-    /** Every recipe, by name. Small enough to filter in the browser. */
-    recipes: { id: number; title: string }[];
+    recipes: PickOption[];
 }) {
     const t = useTranslations('Collections');
     const router = useRouter();
 
     const [title, setTitle] = useState(initial.title);
     const [description, setDescription] = useState(initial.description);
+    const [imageUrl, setImageUrl] = useState(initial.imageUrl);
     const [chosen, setChosen] = useState<number[]>(initial.recipeIds);
-    const [search, setSearch] = useState('');
 
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
-
-    const byId = useMemo(
-        () => new Map(recipes.map((recipe) => [recipe.id, recipe.title])),
-        [recipes]
-    );
-
-    // What is left to add, narrowed by what has been typed. Filtered here
-    // rather than on the server: the whole list is already on the page, and a
-    // round trip per keystroke to search a list you are holding is silly.
-    const available = useMemo(() => {
-        const taken = new Set(chosen);
-        const needle = search.trim().toLowerCase();
-
-        return recipes
-            .filter((recipe) => !taken.has(recipe.id))
-            .filter((recipe) => needle === '' || recipe.title.toLowerCase().includes(needle))
-            .slice(0, 30);
-    }, [recipes, chosen, search]);
-
-    const move = (index: number, by: number) => {
-        const next = [...chosen];
-        const target = index + by;
-        if (target < 0 || target >= next.length) return;
-        [next[index], next[target]] = [next[target], next[index]];
-        setChosen(next);
-    };
 
     const save = async () => {
         setBusy(true);
@@ -84,6 +62,7 @@ export default function CollectionForm({
                     body: JSON.stringify({
                         title,
                         description: description.trim() || null,
+                        imageUrl,
                         recipeIds: chosen,
                     }),
                 }
@@ -117,7 +96,7 @@ export default function CollectionForm({
                 setError(t('saveFailed'));
                 return;
             }
-            router.push('/collections');
+            router.push('/admin/collections');
             router.refresh();
         } catch {
             setError(t('saveFailed'));
@@ -157,97 +136,36 @@ export default function CollectionForm({
                 />
             </div>
 
-            <div>
-                <label htmlFor="collection-description" className={labelClass}>
-                    {t('fieldDescription')}
-                </label>
-                <input
-                    id="collection-description"
-                    type="text"
-                    value={description}
-                    onChange={(event) => setDescription(event.target.value)}
-                    maxLength={200}
-                    className={fieldClass}
-                />
-            </div>
+            {/* As long as it needs to be, with formatting and pictures: a
+                collection is often introduced — the occasion, what to make
+                first — and "one line about it" was not room for that. */}
+            <MarkdownEditor
+                id="collection-description"
+                label={t('fieldDescription')}
+                value={description}
+                onChange={setDescription}
+                rows={6}
+            />
 
-            <div>
-                <h2 className={labelClass}>{t('pick')}</h2>
+            <PictureField
+                id="collection-image"
+                label={t('fieldImage')}
+                hint={t('imageHint')}
+                value={imageUrl}
+                onChange={setImageUrl}
+            />
 
-                {chosen.length === 0 ? (
-                    <p className="text-sm text-muted">{t('empty')}</p>
-                ) : (
-                    <ol className="divide-y divide-line">
-                        {chosen.map((id, index) => (
-                            <li key={id} className="flex items-center gap-3 py-2">
-                                <span className="w-6 shrink-0 text-sm tabular-nums text-faint">
-                                    {index + 1}
-                                </span>
+            <PickList
+                label={t('pick')}
+                hint={t('pickHint', { max: MAX_RECIPES_PER_COLLECTION })}
+                options={recipes}
+                value={chosen}
+                onChange={(ids) => setChosen(ids.slice(0, MAX_RECIPES_PER_COLLECTION))}
+            />
 
-                                <span className="min-w-0 flex-1 truncate">{byId.get(id) ?? id}</span>
-
-                                <button
-                                    type="button"
-                                    onClick={() => move(index, -1)}
-                                    disabled={index === 0}
-                                    aria-label={t('moveUp')}
-                                    className="flex h-11 w-11 items-center justify-center text-faint disabled:opacity-30"
-                                >
-                                    ↑
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => move(index, 1)}
-                                    disabled={index === chosen.length - 1}
-                                    aria-label={t('moveDown')}
-                                    className="flex h-11 w-11 items-center justify-center text-faint disabled:opacity-30"
-                                >
-                                    ↓
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setChosen(chosen.filter((entry) => entry !== id))}
-                                    aria-label={t('remove')}
-                                    className="flex h-11 w-11 items-center justify-center text-faint hover:text-danger"
-                                >
-                                    ✕
-                                </button>
-                            </li>
-                        ))}
-                    </ol>
-                )}
-            </div>
-
-            {chosen.length < MAX_RECIPES_PER_COLLECTION && (
-                <div>
-                    <label htmlFor="collection-search" className={labelClass}>{t('add')}</label>
-                    <input
-                        id="collection-search"
-                        type="text"
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                        className={fieldClass}
-                    />
-
-                    <ul className="mt-3 flex flex-wrap gap-2">
-                        {available.map((recipe) => (
-                            <li key={recipe.id}>
-                                <button
-                                    type="button"
-                                    onClick={() => setChosen([...chosen, recipe.id])}
-                                    className={buttonSecondary}
-                                >
-                                    {recipe.title}
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-
-            <div className="flex flex-wrap items-center gap-6">
+            <div className="flex flex-wrap items-center gap-6 border-t border-line pt-6">
                 <button type="submit" disabled={busy || !title.trim()} className={buttonPrimary}>
-                    {busy ? t('saving') : t('save')}
+                    <BusyLabel busy={busy} busyText={t('saving')}>{t('save')}</BusyLabel>
                 </button>
 
                 {initial.id && (

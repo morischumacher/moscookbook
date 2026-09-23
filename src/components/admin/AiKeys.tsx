@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/formatDate';
 import { messageFrom } from '@/lib/apiMessage';
 import { buttonPrimarySmall, chip } from '@/lib/ui';
 import Loading from '@/components/ui/Loading';
+import { BusyLabel } from '@/components/ui/Busy';
 
 /**
  * Where the AI keys are set.
@@ -396,7 +397,7 @@ export default function AiKeys() {
                             disabled={busy || (!keyDraft.trim() && modelDraft === null)}
                             className={buttonPrimarySmall}
                         >
-                            {busy ? t('saving') : t('save')}
+                            <BusyLabel busy={busy} busyText={t('saving')}>{t('save')}</BusyLabel>
                         </button>
 
                         <button

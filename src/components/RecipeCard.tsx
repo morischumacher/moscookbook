@@ -20,6 +20,12 @@ interface RecipeCardProps {
     nationality?: string;
     isFavorited?: boolean;
     isLoggedIn?: boolean;
+    /**
+     * For the first row of a grid: the picture is fetched straight away
+     * instead of when it scrolls into view, because it is the largest thing on
+     * the first screen and the page is judged by how soon it appears.
+     */
+    priority?: boolean;
 }
 
 /**
@@ -71,6 +77,7 @@ export default function RecipeCard({
     nationality,
     isFavorited = false,
     isLoggedIn = false,
+    priority = false,
 }: RecipeCardProps) {
     const tCategory = useTranslations('Categories');
     const tCuisine = useTranslations('Cuisines');
@@ -97,6 +104,7 @@ export default function RecipeCard({
                             alt=""
                             fill
                             sizes="(min-width: 640px) 320px, 45vw"
+                            priority={priority}
                             className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                         />
                     </span>

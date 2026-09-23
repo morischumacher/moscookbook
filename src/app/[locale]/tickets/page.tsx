@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { buttonPrimary, chip, pageContainer, pageHeading, pageTop } from '@/lib/ui';
 import { safeTicketPath } from '@/lib/ticketPath';
+import { BusyLabel } from '@/components/ui/Busy';
 
 /** idea | problem | other. Three, because a chooser with eight is a form. */
 const KINDS = ['idea', 'problem', 'other'] as const;
@@ -197,7 +198,7 @@ function TicketForm() {
                 )}
 
                 <button type="submit" disabled={busy || body.trim() === ''} className={buttonPrimary}>
-                    {busy ? t('sending') : t('send')}
+                    <BusyLabel busy={busy} busyText={t('sending')}>{t('send')}</BusyLabel>
                 </button>
             </form>
         </main>

@@ -1,7 +1,8 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
-import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '@/lib/session';
+import { getIronSession, type IronSession } from 'iron-session';
+import prisma from '@/lib/prisma';
+import { sessionOptions, sessionStillValid, SessionData } from '@/lib/session';
 import { routing } from '@/i18n/routing';
 import { pathAccess, proxyStepsAside, apiAccess, isCrossSiteWrite } from '@/lib/accessRules';
 
@@ -34,16 +35,16 @@ export default async function proxy(req: NextRequest) {
     if (proxyStepsAside(access)) return res;
 
     const session = await getIronSession<SessionData>(req, res, sessionOptions);
+
+    if (session.user && (await revoked(session))) {
+        return signedOutAt(req, pathname);
+    }
+
     const allowed = access === 'admin' ? Boolean(session.user?.admin) : Boolean(session.user);
 
     if (allowed) return res;
 
-    const locale = pathname.split('/')[1];
-    const activeLocale = routing.locales.includes(locale as 'en' | 'de')
-        ? locale
-        : routing.defaultLocale;
-
-    const login = new URL(`/${activeLocale}/login`, req.url);
+    const login = loginUrl(req, pathname);
 
     // Where they were headed, so that tapping a link to a recipe and then
     // signing in lands on the recipe rather than on the front page. Only the
@@ -54,6 +55,66 @@ export default async function proxy(req: NextRequest) {
     if (!session.user) login.searchParams.set('next', pathname + req.nextUrl.search);
 
     return NextResponse.redirect(login);
+}
+
+function loginUrl(req: NextRequest, pathname: string): URL {
+    const locale = pathname.split('/')[1];
+    const activeLocale = routing.locales.includes(locale as 'en' | 'de')
+        ? locale
+        : routing.defaultLocale;
+
+    return new URL(`/${activeLocale}/login`, req.url);
+}
+
+/**
+ * How long a cookie is believed before the database is asked again.
+ *
+ * The cookie is stateless: on its own it says who somebody was at sign-in,
+ * good for fourteen days. Pages and API routes check it against the account
+ * on every request (`getCurrentUser` in lib/auth), but the proxy guards pages
+ * that may never ask — and the App Router does not re-run a layout when you
+ * move between its pages, so the admin layout's own check is not enough
+ * either. Asking the database on every navigation would put a round trip in
+ * front of every page; asking every five minutes bounds how long a deleted,
+ * demoted or signed-out-everywhere account keeps the pages to that, and costs
+ * one lookup per person per five minutes.
+ */
+const SESSION_RECHECK_MS = 5 * 60 * 1000;
+
+/**
+ * Whether this session has been revoked. Refreshes the cookie's admin flag and
+ * check time as a side effect, on the response the proxy is about to return.
+ *
+ * A database that does not answer leaves the cookie as it is: every page
+ * checks again for itself and fails closed, so this failing open costs
+ * nothing but a redirect that happens one step later.
+ */
+async function revoked(session: IronSession<SessionData>): Promise<boolean> {
+    const user = session.user;
+    if (!user) return false;
+    if (session.checkedAt && Date.now() - session.checkedAt < SESSION_RECHECK_MS) return false;
+
+    const row = await prisma.user
+        .findUnique({ where: { id: user.id }, select: { admin: true, sessionVersion: true } })
+        .catch(() => undefined);
+
+    if (row === undefined) return false;
+    if (!sessionStillValid(user, row)) return true;
+
+    session.user = { ...user, admin: row!.admin };
+    session.checkedAt = Date.now();
+    await session.save();
+    return false;
+}
+
+/** Back to the login page, with the dead cookie removed. */
+function signedOutAt(req: NextRequest, pathname: string): NextResponse {
+    const login = loginUrl(req, pathname);
+    login.searchParams.set('next', pathname + req.nextUrl.search);
+
+    const res = NextResponse.redirect(login);
+    res.cookies.delete(sessionOptions.cookieName);
+    return res;
 }
 
 /**

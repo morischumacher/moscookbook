@@ -1,4 +1,4 @@
-import { after, NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { deleteBlobs } from '@/lib/blobCleanup';
@@ -8,12 +8,11 @@ import { tokenFromHeader, hashCaptureToken } from '@/lib/capture';
 import { captureInputFrom } from '@/lib/captureInput';
 import { storeCaptureImage, MAX_CAPTURE_IMAGE_BASE64 } from '@/lib/storeCaptureImage';
 import { findDuplicate, type ExistingRecipe } from '@/lib/duplicates';
-import { processCapture } from '@/lib/captureProcess';
-import { aiCapability, rememberModel } from '@/lib/aiConfig';
+import { readInBackground } from '@/lib/captureBackground';
+import { aiCapability } from '@/lib/aiConfig';
 import { DEFAULT_MODEL, canUseAi } from '@/lib/aiImport';
-import { mirrorImageToBlob } from '@/lib/mirrorImage';
-import { toJsonObject } from '@/lib/json';
 import { failed } from '@/lib/reportServerError';
+import { draftFromJson } from '@/lib/captureDraft';
 
 /**
  * The capture endpoint.
@@ -193,59 +192,7 @@ export async function POST(req: NextRequest) {
      * moved, since a site that will not load must never turn a capture that
      * *was* saved into a 500 saying it was not.
      */
-    after(async () => {
-        try {
-            // Read here rather than inside the pipeline: `captureProcess` must
-            // not import Prisma, because the test suite imports `captureProcess`.
-            // With the stored address put back on it.
-            //
-            // The second half of the same bug: classification happens before the
-            // upload, so `classified.imageUrl` is null for a screenshot, and
-            // handing that to the pipeline made it answer "No picture was stored"
-            // about a picture that had just been stored perfectly.
-            const result = await processCapture(
-                { ...classified, imageUrl: imageUrl ?? classified.imageUrl },
-                await aiCapability(),
-                { onModel: (provider, model) => void rememberModel(provider, model) }
-            );
-
-            // Foreign image hosts are rejected by next/image, so the picture is
-            // copied into our own store rather than kept as a link that will not
-            // render.
-            const draft =
-                result.draft && result.draft.imageUrl
-                    ? { ...result.draft, imageUrl: await mirrorImageToBlob(result.draft.imageUrl) }
-                    : result.draft;
-
-            await prisma.capture.update({
-                where: { id: capture.id },
-                data: {
-                    status: result.status,
-                    error: result.error,
-                    readBy: result.readBy,
-                    aiProvider: result.provider,
-                    // Widened before storing: see src/lib/json.ts, and
-                    // tests/prismaJsonCompat.ts for why the compiler insists.
-                    draft: draft ? toJsonObject(draft) : undefined,
-                    imageUrl: draft?.imageUrl || imageUrl || null,
-                    processedAt: new Date(),
-                },
-            });
-        } catch (error) {
-            failed('Capture was saved but could not be read:', error);
-
-            await prisma.capture
-                .updateMany({
-                    where: { id: capture.id },
-                    data: {
-                        status: 'failed',
-                        error: error instanceof Error ? error.message.slice(0, 500) : 'unknown',
-                        processedAt: new Date(),
-                    },
-                })
-                .catch(() => undefined);
-        }
-    });
+    readInBackground(capture.id, classified, imageUrl);
 
     return NextResponse.json(
         {
@@ -316,7 +263,7 @@ export async function GET() {
     const withHints = captures.map((capture) => {
         if (capture.status === 'published') return { ...capture, duplicateOf: null };
 
-        const draft = capture.draft as { title?: string } | null;
+        const draft = draftFromJson(capture.draft);
         const title = draft?.title ?? '';
 
         return {

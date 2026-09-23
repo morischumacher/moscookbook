@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { slugify } from '@/lib/recipe';
+import { linkReplacements, refusedLinks } from '@/lib/postLinks';
 import { postInputSchema, formatPostError } from '@/lib/postSchema';
 import { postSearchFields } from '@/lib/searchText';
 import { deleteBlobs } from '@/lib/blobCleanup';
@@ -26,7 +27,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         return NextResponse.json({ message: formatPostError(parsed.error) }, { status: 400 });
     }
 
-    const { title, slug, body, imageUrl, recipeId, published } = parsed.data;
+    const { title, slug, body, imageUrl, recipeIds, collectionIds, published } = parsed.data;
+
+    // The same rule as a new entry — which this route never checked, so an
+    // entry could be attached to a draft by editing it. See lib/postLinks.
+    const refusal = await refusedLinks(recipeIds, collectionIds);
+    if (refusal) return NextResponse.json({ message: refusal }, { status: 409 });
 
     try {
         const existing = await prisma.post.findUnique({
@@ -50,7 +56,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
                 body,
                 ...postSearchFields({ title, body }),
                 imageUrl,
-                recipeId: recipeId ?? null,
+                ...linkReplacements(recipeIds, collectionIds),
                 publishedAt,
             },
             select: { id: true, slug: true, publishedAt: true },

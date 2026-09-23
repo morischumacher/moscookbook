@@ -4,7 +4,7 @@ import { aiCapability } from '@/lib/aiConfig';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { slugify } from '@/lib/recipe';
-import type { ImportedRecipe } from '@/lib/recipeFromHtml';
+import { draftFromJson } from '@/lib/captureDraft';
 
 /**
  * The new-recipe form, optionally opened on a capture from the inbox.
@@ -37,7 +37,7 @@ export default async function CreateRecipePage({
             select: { draft: true },
         });
 
-        const draft = capture?.draft as unknown as ImportedRecipe | null;
+        const draft = draftFromJson(capture?.draft);
 
         if (draft) {
             initial = {

@@ -1,6 +1,6 @@
 /** splitting and rebuilding ingredient amounts */
-import { splitAmount, formatAmount, toStructuredIngredients, toDisplayIngredient } from '../src/lib/ingredientParts';
-import { suite, check } from './harness';
+import { splitAmount, formatAmount, toStructuredIngredients, toDisplayIngredient, sectionHeading, withHeadingRows } from '../src/lib/ingredientParts';
+import { suite, check, equal } from './harness';
 
 export default function run() {
     suite('splitAmount');
@@ -77,3 +77,32 @@ export default function run() {
     check('structures the amount', rows[0].quantity === 200 && rows[0].unit === 'g', rows[0]);
     check('a nameless quantity is not stored', rows.every((r) => r.name !== ''), rows);
 }
+
+export function ingredientSectionTests() {
+    suite('ingredients: sections');
+    const rows = toStructuredIngredients([
+        { amount: '', item: '## Für den Teig' },
+        { amount: '500 g', item: 'Mehl' },
+        { amount: '1', item: 'Ei' },
+        { amount: '', item: 'Für die Füllung:' },
+        { amount: '300 g', item: 'Quark' },
+        { amount: '', item: '## ' },
+    ]);
+    equal('headings are not ingredients', rows.map((row) => row.name), ['Mehl', 'Ei', 'Quark']);
+    equal('everything below a heading belongs to it', rows.map((row) => row.section), ['Für den Teig', 'Für den Teig', 'Für die Füllung']);
+    equal('a recipe without headings has none', toStructuredIngredients([{ amount: '1', item: 'Ei' }])[0].section, null);
+    check('an amount makes it an ingredient, colon or not', sectionHeading({ amount: '1', item: 'Salz:' }) === null);
+
+    equal(
+        'and back into the editor, with a heading where the section changes',
+        withHeadingRows(rows.map((row) => ({ amount: row.raw, item: row.name, section: row.section }))),
+        [
+            { amount: '', item: '## Für den Teig' },
+            { amount: '500 g', item: 'Mehl' },
+            { amount: '1', item: 'Ei' },
+            { amount: '', item: '## Für die Füllung' },
+            { amount: '300 g', item: 'Quark' },
+        ]
+    );
+}
+

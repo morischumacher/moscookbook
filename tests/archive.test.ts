@@ -4,6 +4,8 @@ import {
     parseArchive,
     cookEntriesFrom,
     archiveFilename,
+    isGuessableBackup,
+    postRecipeSlugs,
     ARCHIVE_VERSION,
     type ExportableRecipe,
 } from '../src/lib/archive';
@@ -25,9 +27,10 @@ function row(overrides: Partial<ExportableRecipe> = {}): ExportableRecipe {
         isDraft: false,
         createdAt: new Date('2026-02-01T10:00:00Z'),
         images: [{ url: 'https://example.com/a.jpg' }],
+        tags: ['vegetarian'],
         ingredients: [
-            { position: 1, quantity: 200, quantityMax: null, unit: 'g', name: 'Bergkäse', raw: '200 g' },
-            { position: 0, quantity: 400, quantityMax: null, unit: 'g', name: 'Spätzle', raw: '400 g' },
+            { position: 1, quantity: 200, quantityMax: null, unit: 'g', name: 'Bergkäse', raw: '200 g', section: null },
+            { position: 0, quantity: 400, quantityMax: null, unit: 'g', name: 'Spätzle', raw: '400 g', section: null },
         ],
         ...overrides,
     };
@@ -166,7 +169,8 @@ export default function run() {
                 imageUrl: null,
                 publishedAt: new Date('2026-09-14T00:00:00.000Z'),
                 createdAt: new Date('2026-09-13T00:00:00.000Z'),
-                recipe: { slug: 'zwetschgenkuchen' },
+                recipes: [{ recipe: { slug: 'zwetschgenkuchen' } }],
+                collections: [],
                 author: { name: 'Moritz Schumacher' },
             },
             {
@@ -176,7 +180,8 @@ export default function run() {
                 imageUrl: null,
                 publishedAt: null,
                 createdAt: new Date('2026-08-02T00:00:00.000Z'),
-                recipe: null,
+                recipes: [],
+                collections: [],
                 author: null,
             },
         ],
@@ -194,8 +199,14 @@ export default function run() {
     equal('carries both entries', withExtras.posts.length, 2);
     // By slug, not by id: an archive is restored into a database where every
     // id is new, and a slug is the one name that survives the trip.
-    equal('links an entry to its recipe by slug', withExtras.posts[0].recipeSlug, 'zwetschgenkuchen');
-    equal('keeps a standalone entry standalone', withExtras.posts[1].recipeSlug, null);
+    equal('links an entry to its recipes by slug', withExtras.posts[0].recipeSlugs, ['zwetschgenkuchen']);
+    equal('keeps a standalone entry standalone', withExtras.posts[1].recipeSlugs, []);
+    // An archive from before version 6 names one recipe, and still restores it.
+    equal(
+        'an older entry with one recipe still reads',
+        postRecipeSlugs({ ...withExtras.posts[1], recipeSlugs: [], recipeSlug: 'alt' }),
+        ['alt']
+    );
     equal('keeps a draft a draft', withExtras.posts[1].publishedAt, null);
     equal('carries the cooking', withExtras.cookEntries.length, 1);
     equal('with the recipe it belongs to', withExtras.cookEntries[0].recipeSlug, 'zwetschgenkuchen');
@@ -250,11 +261,28 @@ export function archiveCollectionsTests() {
                 title: 'Weihnachten',
                 slug: 'weihnachten',
                 description: 'Das Menü von 2026',
+                imageUrl: null,
                 createdAt: new Date('2026-09-01T10:00:00Z'),
                 recipes: [
                     { recipe: { slug: 'vorspeise' } },
                     { recipe: { slug: 'hauptgang' } },
                     { recipe: { slug: 'nachtisch' } },
+                ],
+            },
+        ],
+        [
+            {
+                title: 'Heiligabend',
+                slug: 'heiligabend',
+                occasion: 'Weihnachten',
+                date: new Date('2026-12-24T00:00:00Z'),
+                guests: 6,
+                style: 'festive',
+                intro: null,
+                createdAt: new Date('2026-09-01T10:00:00Z'),
+                items: [
+                    { course: 'Vorspeise', title: 'Kürbissuppe', description: null, recipe: { slug: 'vorspeise' } },
+                    { course: 'Vorspeise', title: 'Brot und Butter', description: null, recipe: null },
                 ],
             },
         ]
@@ -271,6 +299,13 @@ export function archiveCollectionsTests() {
         ['vorspeise', 'hauptgang', 'nachtisch']
     );
 
+    equal('the menu is carried', archive.menus[0].style, 'festive');
+    equal(
+        'its dishes by recipe slug, or by none',
+        archive.menus[0].items.map((item) => item.recipeSlug),
+        ['vorspeise', null]
+    );
+
     /* ------------------------------------------------------- reading it back */
 
     const parsed = parseArchive(JSON.parse(JSON.stringify(archive)));
@@ -282,6 +317,7 @@ export function archiveCollectionsTests() {
         parsed.archive?.collections[0].recipeSlugs,
         ['vorspeise', 'hauptgang', 'nachtisch']
     );
+    equal('and the menu, with its date', parsed.archive?.menus[0].date, '2026-12-24T00:00:00.000Z');
 
     /* -------------------------------------------------------- older archives */
 
@@ -294,6 +330,7 @@ export function archiveCollectionsTests() {
     check('an archive from before any of this still reads', older.ok, older.error);
     equal('with no cookings rather than an error', older.archive?.cookEntries, []);
     equal('and no collections', older.archive?.collections, []);
+    equal('and no menus', older.archive?.menus, []);
 
     /* ------------------------------ an archive written before the two merged */
 
@@ -363,4 +400,17 @@ export function archiveCollectionsTests() {
         cookEntriesFrom(parsed.archive!).length,
         1
     );
+}
+
+export function archiveBackupNameTests() {
+    suite('archive: backups nobody can guess');
+    // The store is public; a backup under the bare dated name could be fetched
+    // by anyone who typed last Monday's date.
+    check('the old dated name is guessable', isGuessableBackup('backups/moscookbook-2026-09-21.json', 'backups/'));
+    check(
+        'a name with the store\'s random suffix is not',
+        !isGuessableBackup('backups/moscookbook-2026-09-21-Xk3v9QmZ2bW7aPq1RtY8.json', 'backups/')
+    );
+    check('nothing outside the prefix is touched', !isGuessableBackup('moscookbook-2026-09-21.json', 'backups/'));
+    check('the file name the route writes is the guessable one, before the suffix', isGuessableBackup(`backups/${archiveFilename()}`, 'backups/'));
 }

@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import RecipeArticle, { recipeInclude, type RecipeRow } from '@/components/recipe/RecipeArticle';
 import prisma from '@/lib/prisma';
-import { getSession } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 import FinishDraft from '@/components/recipe/FinishDraft';
 import { pageContainer, pageTop } from '@/lib/ui';
 import { getTranslations } from 'next-intl/server';
@@ -54,7 +54,16 @@ export async function generateMetadata({
     return {
         title,
         description: recipe.description ?? undefined,
-        alternates: { canonical: url },
+        // Both languages name each other, as the sitemap already does, so a
+        // search engine shows German readers the German page.
+        alternates: {
+            canonical: url,
+            languages: {
+                de: `${getSiteUrl()}/de/recipe/${recipe.slug}`,
+                en: `${getSiteUrl()}/en/recipe/${recipe.slug}`,
+                'x-default': `${getSiteUrl()}/de/recipe/${recipe.slug}`,
+            },
+        },
         robots: { index: true, follow: true },
         openGraph: {
             type: 'article',
@@ -73,8 +82,9 @@ export default async function RecipePage({
 }) {
     const { slug, locale } = await params;
 
-    const recipe = await loadRecipe(slug);
-    const session = await getSession();
+    // Side by side: neither needs the other, and every round trip saved here is
+    // one the page no longer waits for before it can start streaming.
+    const [recipe, user] = await Promise.all([loadRecipe(slug), getCurrentUser()]);
 
     /*
      * The one page whose access the proxy does not decide.
@@ -90,35 +100,15 @@ export default async function RecipePage({
      * login form, carrying where they were headed, so following a link and
      * signing in still lands on the recipe.
      */
-    if (!session.user && (!recipe?.isPublic || recipe.isDraft)) {
+    if (!user && (!recipe?.isPublic || recipe.isDraft)) {
         const next = encodeURIComponent(`/${locale}/recipe/${slug}`);
         redirect(`/${locale}/login?next=${next}`);
     }
 
     if (!recipe) notFound();
 
-    const cookieStore = await cookies();
-    const hasViewed = cookieStore.has(`viewed_recipe_${recipe.id}`);
-
-    // Shown optimistically; the actual increment happens in ViewTracker so that
-    // a server component never has to write a cookie.
-    const views = !session.user?.admin && !hasViewed ? recipe.views + 1 : recipe.views;
-
-    let isFavorited = false;
-    let userRatingValue = 0;
-
-    if (session.user) {
-        const userId = session.user.id;
-        const favorite = await prisma.favorite.findUnique({
-            where: { userId_recipeId: { userId, recipeId: recipe.id } },
-        });
-        isFavorited = favorite !== null;
-        userRatingValue =
-            recipe.ratings.find((rating: { userId: number }) => rating.userId === userId)?.value ?? 0;
-    }
-
     /*
-     * Everything below this line is for people with an account.
+     * Everything below the recipe itself is for people with an account.
      *
      * A public recipe publishes the *recipe*: what is in it, how it is made,
      * what it looks like, how it was rated on average. It does not publish the
@@ -128,52 +118,74 @@ export default async function RecipePage({
      * not come back and nobody agreed to that by writing down a recipe.
      *
      * Queried conditionally rather than filtered later: the cheapest way to
-     * not leak something is not to fetch it.
+     * not leak something is not to fetch it. And queried together — these
+     * five used to run one after another, five round trips where one will do.
      */
-    const isMember = Boolean(session.user);
+    const isMember = Boolean(user);
 
-    // Oldest first: a cooking log is read as a sequence. Drafts only for an
-    // admin, same rule as the blog index.
-    const notes = isMember ? await prisma.post.findMany({
-        where: {
-            recipeId: recipe.id,
-            ...(session.user?.admin ? {} : { publishedAt: { not: null } }),
-        },
-        orderBy: [{ publishedAt: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
-        take: 50,
-        select: {
-            id: true,
-            title: true,
-            slug: true,
-            body: true,
-            publishedAt: true,
-            createdAt: true,
-            author: { select: { name: true } },
-        },
-    }) : [];
+    const [cookieStore, favorite, notes, cooked, similar] = await Promise.all([
+        cookies(),
+        user
+            ? prisma.favorite.findUnique({
+                  where: { userId_recipeId: { userId: user.id, recipeId: recipe.id } },
+                  select: { userId: true },
+              })
+            : null,
+        // Oldest first: a cooking log is read as a sequence. Drafts only for
+        // an admin, same rule as the blog index.
+        isMember
+            ? prisma.post.findMany({
+                  where: {
+                      recipes: { some: { recipeId: recipe.id } },
+                      ...(user?.admin ? {} : { publishedAt: { not: null } }),
+                  },
+                  orderBy: [{ publishedAt: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
+                  take: 50,
+                  select: {
+                      id: true,
+                      title: true,
+                      slug: true,
+                      body: true,
+                      publishedAt: true,
+                      createdAt: true,
+                      author: { select: { name: true } },
+                  },
+              })
+            : [],
+        // Newest first: the question this section answers is "when did I last
+        // make this", and the answer is then the first row. The pictures
+        // inside an entry go the other way, in the order somebody arranged
+        // them — within one evening a sequence reads forwards.
+        isMember
+            ? prisma.cookEntry.findMany({
+                  where: { recipeId: recipe.id },
+                  orderBy: { cookedAt: 'desc' },
+                  take: 30,
+                  select: {
+                      id: true,
+                      cookedAt: true,
+                      note: true,
+                      userId: true,
+                      user: { select: { name: true, avatarUrl: true } },
+                      photos: { orderBy: { position: 'asc' }, select: { id: true, url: true } },
+                  },
+              })
+            : [],
+        // Computed from the recipe's own search vector, which already exists
+        // and is already indexed. See lib/similarRecipes.
+        isMember ? similarRecipes(recipe) : [],
+    ]);
 
-    // Newest first: the question this section answers is "when did I last
-    // make this", and the answer is then the first row.
-    //
-    // The pictures inside an entry go the other way, in the order somebody
-    // arranged them — within one evening a sequence reads forwards.
-    const cooked = isMember ? await prisma.cookEntry.findMany({
-        where: { recipeId: recipe.id },
-        orderBy: { cookedAt: 'desc' },
-        take: 30,
-        select: {
-            id: true,
-            cookedAt: true,
-            note: true,
-            userId: true,
-            user: { select: { name: true, avatarUrl: true } },
-            photos: { orderBy: { position: 'asc' }, select: { id: true, url: true } },
-        },
-    }) : [];
+    const hasViewed = cookieStore.has(`viewed_recipe_${recipe.id}`);
 
-    // Computed from the recipe's own search vector, which already exists and
-    // is already indexed. See lib/similarRecipes.
-    const similar = isMember ? await similarRecipes(recipe) : [];
+    // Shown optimistically; the actual increment happens in ViewTracker so that
+    // a server component never has to write a cookie.
+    const views = !user?.admin && !hasViewed ? recipe.views + 1 : recipe.views;
+
+    const isFavorited = favorite !== null;
+    const userRatingValue = user
+        ? recipe.ratings.find((rating: { userId: number }) => rating.userId === user.id)?.value ?? 0
+        : 0;
 
     /*
      * A draft says so on its own page.
@@ -190,7 +202,7 @@ export default async function RecipePage({
         <div className={`${pageContainer} ${pageTop}`}>
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-control p-4">
                 <p className="max-w-prose font-serif text-sm text-muted">{tDrafts('banner')}</p>
-                {session.user?.admin && <FinishDraft recipeId={recipe.id} />}
+                {user?.admin && <FinishDraft recipeId={recipe.id} />}
             </div>
         </div>
     ) : null;
@@ -203,15 +215,15 @@ export default async function RecipePage({
             similar={similar}
             notes={notes}
             cooked={cooked}
-            currentUserId={session.user?.id ?? null}
+            currentUserId={user?.id ?? null}
             locale={locale}
             // A member sees the cookbook; a visitor to a public recipe sees
             // the recipe. "shared" is already exactly that shape — it is what
             // a share link renders — so there is no third mode to keep in
             // step with the other two.
             mode={isMember ? 'private' : 'shared'}
-            isLoggedIn={Boolean(session.user)}
-            isAdmin={Boolean(session.user?.admin)}
+            isLoggedIn={Boolean(user)}
+            isAdmin={Boolean(user?.admin)}
             isFavorited={isFavorited}
             userRatingValue={userRatingValue}
             views={views}

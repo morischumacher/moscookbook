@@ -4,15 +4,15 @@ import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
-import { slugify } from '@/lib/recipe';
-import { searchFields } from '@/lib/searchText';
+import { freeRecipeSlug, newRecipeData } from '@/lib/recipeRepo';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { processCapture } from '@/lib/captureProcess';
+import { siteLearning } from '@/lib/siteProfileDb';
 import { aiCapability, rememberModel } from '@/lib/aiConfig';
-import type { ImportedRecipe } from '@/lib/recipeFromHtml';
 import { toJsonObject } from '@/lib/json';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
+import { draftFromJson } from '@/lib/captureDraft';
 
 /**
  * `askAi` is the button on a draft the scoring called good.
@@ -51,20 +51,7 @@ function parseId(raw: string): number | null {
  * thing that happens — two people send you the same video — and getting
  * "-2" is a far better outcome than an error in a queue.
  */
-async function freeSlug(title: string): Promise<string> {
-    const base = slugify(title) || 'rezept';
-
-    for (let attempt = 0; attempt < 50; attempt += 1) {
-        const candidate = attempt === 0 ? base : `${base}-${attempt + 1}`;
-        const taken = await prisma.recipe.findUnique({
-            where: { slug: candidate },
-            select: { id: true },
-        });
-        if (!taken) return candidate;
-    }
-
-    return `${base}-${Date.now()}`;
-}
+const freeSlug = freeRecipeSlug;
 
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
     const auth = await requireAdmin();
@@ -94,9 +81,11 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         // scoring is a guess about whether asking would help; somebody looking
         // at the draft knows better, and the scoring exists to save them the
         // trouble rather than to overrule them.
-        const result = await processCapture(capture, await aiCapability(), {
+        const ai = await aiCapability();
+        const result = await processCapture(capture, ai, {
             force: parsed.data.action === 'askAi',
             onModel: (provider, model) => void rememberModel(provider, model),
+            ...siteLearning(ai),
         });
         const updated = await prisma.capture.update({
             where: { id: captureId },
@@ -112,7 +101,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         return NextResponse.json({ capture: updated });
     }
 
-    const draft = capture.draft as unknown as ImportedRecipe | null;
+    const draft = draftFromJson(capture.draft);
 
     // `draft` is an untyped JSON column that `retry` writes whatever the
     // processor produced into, so a title is something to check for rather
@@ -160,11 +149,9 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         );
     }
 
-    const ingredientRows = toStructuredIngredients(draft.ingredients);
-
     try {
         const recipe = await prisma.recipe.create({
-            data: {
+            data: newRecipeData({
                 isDraft: parsed.data.action === 'stage',
                 title: draft.title.trim(),
                 slug: await freeSlug(draft.title),
@@ -172,20 +159,12 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
                 category: draft.category || null,
                 nationality: draft.nationality || null,
                 instructions: draft.instructions,
-                servings: draft.servings ?? null,
-                prepMinutes: draft.prepMinutes ?? null,
-                cookMinutes: draft.cookMinutes ?? null,
-                ...searchFields({
-                    title: draft.title,
-                    description: draft.description,
-                    instructions: draft.instructions,
-                    ingredients: ingredientRows.map((row) => row.name),
-                }),
-                images: draft.imageUrl ? { create: { url: draft.imageUrl, position: 0 } } : undefined,
-                ingredients: {
-                    create: ingredientRows.map((row, index) => ({ ...row, position: index })),
-                },
-            },
+                servings: draft.servings,
+                prepMinutes: draft.prepMinutes,
+                cookMinutes: draft.cookMinutes,
+                ingredients: toStructuredIngredients(draft.ingredients),
+                imageUrls: draft.imageUrl ? [draft.imageUrl] : [],
+            }),
             select: { id: true, slug: true, title: true },
         });
 

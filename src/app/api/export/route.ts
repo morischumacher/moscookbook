@@ -8,10 +8,13 @@ import {
     toArchivePost,
     toArchiveCookEntry,
     toArchiveCollection,
+    toArchiveMenu,
+    menuArchiveSelect,
     type ExportableRecipe,
     type ExportablePost,
     type ExportableCookEntry,
     type ExportableCollection,
+    type ExportableMenu,
 } from '@/lib/archive';
 import { failed } from '@/lib/reportServerError';
 
@@ -122,6 +125,7 @@ export async function GET() {
                                 views: true,
                                 isPublic: true,
                                 isDraft: true,
+                tags: true,
                                 createdAt: true,
                                 images: { orderBy: { position: 'asc' }, select: { url: true } },
                                 ingredients: {
@@ -133,6 +137,7 @@ export async function GET() {
                                         unit: true,
                                         name: true,
                                         raw: true,
+                                        section: true,
                                     },
                                 },
                             },
@@ -160,7 +165,8 @@ export async function GET() {
                                 imageUrl: true,
                                 publishedAt: true,
                                 createdAt: true,
-                                recipe: { select: { slug: true } },
+                                recipes: { orderBy: { position: 'asc' }, select: { recipe: { select: { slug: true } } } },
+                                collections: { orderBy: { position: 'asc' }, select: { collection: { select: { slug: true } } } },
                                 author: { select: { name: true } },
                             },
                         }),
@@ -203,6 +209,7 @@ export async function GET() {
                                 title: true,
                                 slug: true,
                                 description: true,
+                                imageUrl: true,
                                 createdAt: true,
                                 recipes: {
                                     orderBy: { position: 'asc' },
@@ -211,6 +218,19 @@ export async function GET() {
                             },
                         }),
                     toArchiveCollection
+                );
+
+                write('],\n  "menus": [');
+
+                await writeAll<ExportableMenu & { id: number }, unknown>(
+                    (afterId) =>
+                        prisma.menu.findMany({
+                            where: { id: { gt: afterId } },
+                            orderBy: { id: 'asc' },
+                            take: PAGE,
+                            select: { id: true, ...menuArchiveSelect },
+                        }),
+                    toArchiveMenu
                 );
 
                 write(']\n}\n');

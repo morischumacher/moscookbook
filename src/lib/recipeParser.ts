@@ -157,7 +157,7 @@ function looksLikeIngredient(rawLine: string): boolean {
     return hasLeadingNumber || hasUnit;
 }
 
-function toMarkdownSteps(lines: string[]): string {
+export function toMarkdownSteps(lines: string[]): string {
     const steps: string[] = [];
     let current = '';
 

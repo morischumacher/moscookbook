@@ -16,6 +16,9 @@ import { failed } from '@/lib/reportServerError';
  * counter, nothing here is worth flooding.
  */
 
+/** See the POST handler: the ceiling on new client errors while old ones are open. */
+const MAX_OPEN_CLIENT_ERRORS = 200;
+
 const reportSchema = z.object({
     message: z.string().trim().min(1).max(2000),
     stack: z.string().max(20_000).optional(),
@@ -41,15 +44,33 @@ export async function POST(req: NextRequest) {
     });
 
     try {
-        await prisma.errorLog.upsert({
+        // A recurrence reopens it: something marked as dealt with that is
+        // still happening has not been dealt with.
+        const seen = await prisma.errorLog.updateMany({
             where: { fingerprint: report.fingerprint },
-            // A recurrence reopens it: something marked as dealt with that is
-            // still happening has not been dealt with.
-            update: { count: { increment: 1 }, lastSeenAt: new Date(), resolvedAt: null },
-            create: report,
+            data: { count: { increment: 1 }, lastSeenAt: new Date(), resolvedAt: null },
         });
+
+        /*
+         * A new row only while there is room for one.
+         *
+         * This endpoint needs no account — a page that crashed before anybody
+         * signed in still has to be able to say so — and the per-address limit
+         * above does nothing against somebody with many addresses. Every
+         * distinct message was a new row, so the table could be grown without
+         * end and the admin's error count inflated at will. Known errors keep
+         * counting; new ones stop being stored once this many are open, which
+         * is far more than a working site ever has.
+         */
+        if (seen.count === 0) {
+            const open = await prisma.errorLog.count({ where: { source: 'client', resolvedAt: null } });
+            if (open < MAX_OPEN_CLIENT_ERRORS) {
+                await prisma.errorLog.create({ data: report });
+            }
+        }
     } catch (error) {
-        // Reporting must never be the thing that breaks a page.
+        // Reporting must never be the thing that breaks a page. A race between
+        // two first reports of the same error lands here, and one is enough.
         failed('Could not store an error report:', error);
     }
 

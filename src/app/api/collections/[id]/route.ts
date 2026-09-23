@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { collectionInputSchema, formatCollectionError } from '@/lib/collectionSchema';
@@ -25,9 +26,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         return NextResponse.json({ message: formatCollectionError(parsed.error) }, { status: 400 });
     }
 
-    const { title, description, recipeIds } = parsed.data;
+    const { title, description, imageUrl, recipeIds } = parsed.data;
 
     try {
+        // The picture it is about to stop pointing at, read before the write.
+        const before = await prisma.collection.findUnique({ where: { id }, select: { imageUrl: true } });
+
         // Replaced wholesale rather than diffed, like a recipe's ingredients:
         // the list is short, the order is what somebody arranged, and a rewrite
         // keeps the positions contiguous. In one transaction, so a failure
@@ -35,7 +39,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         const [collection] = await prisma.$transaction([
             prisma.collection.update({
                 where: { id },
-                data: { title, description },
+                data: { title, description, imageUrl },
                 select: { id: true, slug: true, title: true },
             }),
             prisma.collectionRecipe.deleteMany({ where: { collectionId: id } }),
@@ -51,6 +55,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
                 ]
                 : []),
         ]);
+
+        // After the write, never before: a file cannot be un-deleted if the
+        // write fails. The same rule a recipe's gallery follows.
+        if (before?.imageUrl && before.imageUrl !== imageUrl) await deleteBlobs([before.imageUrl]);
 
         return NextResponse.json(collection);
     } catch (error) {
@@ -80,7 +88,12 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     try {
         // The rows in the join table go with it; the recipes do not. Deleting a
         // menu must never delete the food.
+        const doomed = await prisma.collection.findUnique({ where: { id }, select: { imageUrl: true } });
         const removed = await prisma.collection.deleteMany({ where: { id } });
+
+        // Its own picture goes with it; an orphaned file is billed for ever.
+        if (removed.count === 1 && doomed?.imageUrl) await deleteBlobs([doomed.imageUrl]);
+
         return NextResponse.json({ success: true, removed: removed.count });
     } catch (error) {
         failed('Collection could not be deleted:', error);

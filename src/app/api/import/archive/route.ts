@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
+import { menuStyle } from '@/lib/menu';
 import { requireAdmin } from '@/lib/auth';
-import { parseArchive, cookEntriesFrom, type ArchiveRecipe } from '@/lib/archive';
-import { searchFields } from '@/lib/searchText';
+import { parseArchive, cookEntriesFrom, postRecipeSlugs, type ArchivePost, type ArchiveRecipe } from '@/lib/archive';
+import { newRecipeData } from '@/lib/recipeRepo';
+import { normaliseTags } from '@/lib/tags';
 import { describeWriteFailure } from '@/lib/prismaErrors';
 import { failed as reportFailure } from '@/lib/reportServerError';
 
@@ -32,7 +34,7 @@ function safeDate(value: string | null | undefined): Date | null {
 }
 
 function recipeData(recipe: ArchiveRecipe) {
-    return {
+    return newRecipeData({
         title: recipe.title,
         slug: recipe.slug,
         description: recipe.description,
@@ -49,24 +51,10 @@ function recipeData(recipe: ArchiveRecipe) {
         isPublic: recipe.isPublic,
         isDraft: recipe.isDraft,
         createdAt: safeDate(recipe.createdAt) ?? new Date(),
-        ...searchFields({
-            title: recipe.title,
-            description: recipe.description,
-            instructions: recipe.instructions,
-            ingredients: recipe.ingredients.map((ingredient) => ingredient.name),
-        }),
-        images: { create: recipe.images.map((url, index) => ({ url, position: index })) },
-        ingredients: {
-            create: recipe.ingredients.map((ingredient, index) => ({
-                position: index,
-                quantity: ingredient.quantity,
-                quantityMax: ingredient.quantityMax,
-                unit: ingredient.unit,
-                name: ingredient.name,
-                raw: ingredient.raw,
-            })),
-        },
-    };
+        imageUrls: recipe.images,
+        ingredients: recipe.ingredients,
+        tags: normaliseTags(recipe.tags),
+    });
 }
 
 /**
@@ -169,6 +157,7 @@ export async function POST(req: NextRequest) {
         );
 
         let posts = 0;
+        const postCollections: ArchivePost[] = [];
         for (const post of result.archive.posts) {
             const taken = await prisma.post.findUnique({
                 where: { slug: post.slug },
@@ -197,7 +186,13 @@ export async function POST(req: NextRequest) {
                             imageUrl: post.imageUrl,
                             publishedAt: safeDate(post.publishedAt),
                             createdAt: safeDate(post.createdAt) ?? new Date(),
-                            recipeId: post.recipeSlug ? slugToId.get(post.recipeSlug) ?? null : null,
+                            // The recipes it is about, those the archive has.
+                            recipes: {
+                                create: postRecipeSlugs(post)
+                                    .map((slug) => slugToId.get(slug))
+                                    .filter((id): id is number => id !== undefined)
+                                    .map((recipeId, index) => ({ recipeId, position: index })),
+                            },
                             // Authorship is by name in an archive and accounts
                             // are not in one, so a restored entry has no author
                             // rather than a wrong one.
@@ -206,6 +201,7 @@ export async function POST(req: NextRequest) {
                     }),
                 ]);
                 posts += 1;
+                if (post.collectionSlugs.length > 0) postCollections.push(post);
             } catch (error) {
                 failed.push({
                     slug: post.slug,
@@ -305,6 +301,7 @@ export async function POST(req: NextRequest) {
                             title: collection.title,
                             slug: collection.slug,
                             description: collection.description,
+                            imageUrl: collection.imageUrl,
                             createdAt: safeDate(collection.createdAt) ?? new Date(),
                             recipes: {
                                 create: recipeIds.map((recipeId, index) => ({
@@ -326,6 +323,69 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        // Which collections each entry is about, now that the collections
+        // exist. Positions follow the archive's order.
+        for (const post of postCollections) {
+            const [row, found] = await Promise.all([
+                prisma.post.findUnique({ where: { slug: post.slug }, select: { id: true } }),
+                prisma.collection.findMany({
+                    where: { slug: { in: post.collectionSlugs } },
+                    select: { id: true, slug: true },
+                }),
+            ]);
+            if (!row) continue;
+
+            const idBySlug = new Map(found.map((collection) => [collection.slug, collection.id]));
+            await prisma.postCollection
+                .createMany({
+                    data: post.collectionSlugs
+                        .map((slug) => idBySlug.get(slug))
+                        .filter((id): id is number => id !== undefined)
+                        .map((collectionId, index) => ({ postId: row.id, collectionId, position: index })),
+                    skipDuplicates: true,
+                })
+                .catch((error) => reportFailure(`Archive import: collections of ${post.slug}`, error));
+        }
+
+        // Menus after the recipes, for the same reason as collections. A dish
+        // whose recipe is not here stays on the card as words.
+        let menus = 0;
+        for (const menu of result.archive.menus) {
+            try {
+                const taken = await prisma.menu.findUnique({ where: { slug: menu.slug }, select: { id: true } });
+                if (taken && !replace) continue;
+
+                await prisma.$transaction([
+                    ...(taken ? [prisma.menu.deleteMany({ where: { slug: menu.slug } })] : []),
+                    prisma.menu.create({
+                        data: {
+                            title: menu.title,
+                            slug: menu.slug,
+                            occasion: menu.occasion,
+                            date: menu.date ? safeDate(menu.date) : null,
+                            guests: menu.guests,
+                            style: menuStyle(menu.style),
+                            intro: menu.intro,
+                            createdAt: safeDate(menu.createdAt) ?? new Date(),
+                            items: {
+                                create: menu.items.map((item, index) => ({
+                                    position: index,
+                                    course: item.course,
+                                    title: item.title,
+                                    description: item.description,
+                                    recipeId: item.recipeSlug ? (slugToId.get(item.recipeSlug) ?? null) : null,
+                                })),
+                            },
+                        },
+                    }),
+                ]);
+                menus += 1;
+            } catch (error) {
+                failed.push({ slug: menu.slug, reason: describeWriteFailure(error) });
+                reportFailure(`Archive import: menu ${menu.slug} failed`, error);
+            }
+        }
+
         return NextResponse.json({
             created,
             replaced,
@@ -335,6 +395,7 @@ export async function POST(req: NextRequest) {
             entries,
             photos,
             collections,
+            menus,
             // Reported rather than thrown: the rest of the archive is in, and
             // the admin needs to know exactly what is not.
             failed,

@@ -19,6 +19,12 @@ model User {
   lastName       String     @default("")
   password       String
   admin          Boolean    @default(false)
+  /// Sealed into the session cookie at sign-in and compared on every request.
+  /// Raising it ends every session this person has: a password change or
+  /// reset, a demotion, "sign out everywhere". The cookie is stateless, so
+  /// without this a stolen or left-behind one stayed valid for its full
+  /// fourteen days whatever happened to the account.
+  sessionVersion Int        @default(0)
   /// Set once the address has been confirmed by following a mailed link.
   /// Null means unconfirmed, which is allowed — registration is by invitation,
   /// so the address is an identifier before it is a credential. It only
@@ -39,6 +45,7 @@ model User {
   avatarUrl      String?
 
   tokens         AuthToken[]
+  shoppingList   ShoppingList?
   posts          Post[]
   cookEntries    CookEntry[]
   tickets        Ticket[]
@@ -204,12 +211,12 @@ model Post {
   /// sharing: private, secret link, open web.
   isPublic    Boolean   @default(false)
 
-  /// The recipe this belongs to, when it belongs to one.
-  ///
-  /// SetNull rather than Cascade: deleting a recipe should not silently delete
-  /// something somebody wrote. The note simply becomes an entry of its own.
-  recipeId    Int?
-  recipe      Recipe?   @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  /// The recipes and collections this entry is about, in the order they
+  /// were listed. An entry used to belong to at most one recipe; writing about
+  /// a week of cooking, or introducing a collection, needed more than that.
+  /// Deleting a recipe or a collection removes the link, never the entry.
+  recipes     PostRecipe[]
+  collections PostCollection[]
 
   authorId    Int?
   author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -228,7 +235,6 @@ model Post {
 
   @@index([publishedAt])
   @@index([isPublic])
-  @@index([recipeId, publishedAt])
 }
 
 /// A photograph of the dish as somebody actually cooked it.
@@ -317,6 +323,9 @@ model Recipe {
   id           Int        @id @default(autoincrement())
   title        String
   slug         String     @unique
+  /// Free words, lower case, plus the diet tags "vegetarian" and "vegan".
+  /// See lib/tags.ts.
+  tags         String[]   @default([])
   description  String?
   instructions String     // Markdown content
   views        Int        @default(0)
@@ -385,7 +394,9 @@ model Recipe {
   favorites      Favorite[]
   ingredients    Ingredient[]
   captures       Capture[]
-  posts          Post[]
+  menuItems      MenuItem[]
+  revisions      RecipeRevision[]
+  posts          PostRecipe[]
   cookEntries    CookEntry[]
   collections    CollectionRecipe[]
 
@@ -424,6 +435,9 @@ model Ingredient {
   name        String
   /// Exactly what the author typed in the amount field
   raw         String  @default("")
+  /// The heading this ingredient is listed under ("Für den Teig"), or null
+  /// for a recipe with one list. Ingredients of one section are consecutive.
+  section     String?
 
   @@unique([recipeId, position])
 
@@ -565,8 +579,12 @@ model Collection {
   id          Int      @id @default(autoincrement())
   title       String
   slug        String   @unique
-  /// One line, shown under the title. Optional.
+  /// Shown under the title. Markdown, as long as it needs to be; the first
+  /// paragraph is what a tile shows.
   description String?
+  /// The collection's own picture, uploaded to our store. Without one, the
+  /// first recipe's picture stands in.
+  imageUrl    String?
 
   /// Whether this collection's own address answers without a session.
   /// The third stage of sharing, as on a recipe and an entry.
@@ -580,6 +598,7 @@ model Collection {
   updatedAt   DateTime @updatedAt
 
   recipes     CollectionRecipe[]
+  posts       PostCollection[]
 
   @@index([createdAt])
   @@index([isPublic])
@@ -742,3 +761,133 @@ model SiteProfile {
 
   @@index([stale, usedAt])
 }
+
+/// A recipe an entry is about. See `Post.recipes`.
+model PostRecipe {
+  postId   Int
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  recipeId Int
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  position Int
+
+  @@id([postId, recipeId])
+  @@index([recipeId])
+}
+
+/// A collection an entry is about. See `Post.collections`.
+model PostCollection {
+  postId       Int
+  post         Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  collectionId Int
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  position     Int
+
+  @@id([postId, collectionId])
+  @@index([collectionId])
+}
+
+/// One shopping list per person. Recipes and collections are added to it at
+/// the servings they were being read at; the same ingredient from several
+/// recipes becomes one line. See lib/shopping.ts.
+model ShoppingList {
+  id         Int            @id @default(autoincrement())
+  userId     Int            @unique
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// A link that lets somebody without an account see the list and tick
+  /// things off — the person who is actually in the shop. Null when not shared.
+  shareToken String?        @unique
+
+  items      ShoppingItem[]
+  updatedAt  DateTime       @updatedAt
+}
+
+model ShoppingItem {
+  id         Int          @id @default(autoincrement())
+  listId     Int
+  list       ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  /// As it is shown: "Zwiebeln".
+  name       String
+  /// What lines are merged on: the name folded to lower case and singular.
+  key        String
+  /// 'mass' (g), 'volume' (ml), 'spoon' (ml), 'count:<unit>', or null for an
+  /// ingredient with no amount ("Salz"). Lines only merge when this matches.
+  measure    String?
+  amount     Float?
+  /// Which shelf it is on, for grouping. See lib/shopping.ts.
+  aisle      String
+  /// The recipes it is for, as titles — shown under the line.
+  sources    String[]     @default([])
+  checked    Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+
+  @@index([listId, checked])
+}
+
+/// How a recipe was before an edit: every save keeps the version it
+/// replaces, so a change can be looked at and undone. The text, the numbers,
+/// the ingredients and the tags; not the pictures, whose files an edit
+/// deletes. See lib/revisions.ts.
+model RecipeRevision {
+  id        Int      @id @default(autoincrement())
+  recipeId  Int
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  snapshot  Json
+  /// Who made the edit that replaced it, by name at the time.
+  editedBy  String?
+  createdAt DateTime @default(now())
+
+  @@index([recipeId, createdAt])
+}
+
+/// A menu for an evening: courses in order, each with its dishes, printed as
+/// a card in one of three styles. Not a collection — a collection is a list
+/// of recipes, a menu is an evening. See lib/menu.ts.
+model Menu {
+  id         Int        @id @default(autoincrement())
+  title      String
+  slug       String     @unique
+  /// "Weihnachten 2026", "Annas Geburtstag". Shown on the card.
+  occasion   String?
+  date       DateTime?
+  /// What the shopping list scales every recipe to.
+  guests     Int?
+  /// 'casual', 'chic' or 'festive'. See MENU_STYLES in lib/menu.ts.
+  style      String     @default("casual")
+  /// A line or two of welcome, under the title.
+  intro      String?
+  /// A link that shows the card without an account. Null when not shared.
+  shareToken String?    @unique
+  items      MenuItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([date])
+}
+
+/// One dish on a menu. The course is its name ("Vorspeise"); dishes of one
+/// course are consecutive, in `position` order.
+model MenuItem {
+  id          Int     @id @default(autoincrement())
+  menuId      Int
+  menu        Menu    @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  position    Int
+  course      String
+  /// The recipe, when the dish is one of ours. A deleted recipe leaves the
+  /// dish on the menu under its written name.
+  recipeId    Int?
+  recipe      Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  /// As the card says it. Filled from the recipe when one is chosen.
+  title       String
+  /// One line under it: "mit geröstetem Kürbiskernöl".
+  description String?
+
+  @@index([menuId, position])
+  @@index([recipeId])
+}
+

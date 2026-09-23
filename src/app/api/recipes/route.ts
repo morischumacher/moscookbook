@@ -5,7 +5,7 @@ import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { requireAdmin } from '@/lib/auth';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
-import { searchFields } from '@/lib/searchText';
+import { newRecipeData } from '@/lib/recipeRepo';
 import { failed } from '@/lib/reportServerError';
 
 export async function POST(req: NextRequest) {
@@ -36,40 +36,23 @@ export async function POST(req: NextRequest) {
             servings, prepMinutes, cookMinutes,
         } = parsed.data;
 
-        // Order is the order they were arranged in, and `position` is what
-        // keeps it: an id-ordered read would reshuffle a gallery whenever a
-        // picture was replaced.
         const imageUrls = resolveImageUrls(parsed.data) ?? [];
 
-        const ingredientRows = toStructuredIngredients(ingredients);
-
         const recipe = await prisma.recipe.create({
-            data: {
+            data: newRecipeData({
                 title,
                 slug,
                 description,
                 category,
                 nationality,
                 instructions,
-                servings: servings ?? null,
-                prepMinutes: prepMinutes ?? null,
-                cookMinutes: cookMinutes ?? null,
-                ...searchFields({
-                    title,
-                    description,
-                    instructions,
-                    ingredients: ingredientRows.map((row) => row.name),
-                }),
-                images: {
-                    create: imageUrls.map((url, index) => ({ url, position: index })),
-                },
-                ingredients: {
-                    create: ingredientRows.map((row, index) => ({
-                        ...row,
-                        position: index,
-                    })),
-                },
-            },
+                servings,
+                prepMinutes,
+                cookMinutes,
+                ingredients: toStructuredIngredients(ingredients),
+                tags: parsed.data.tags,
+                imageUrls,
+            }),
         });
 
         // Closing the loop from the inbox. updateMany rather than update so a

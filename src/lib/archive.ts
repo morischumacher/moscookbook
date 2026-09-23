@@ -1,6 +1,28 @@
 import { z } from 'zod';
 
 /**
+ * A picture's address, as an archive may carry it: absolute http(s) only.
+ *
+ * These were bare strings, which skipped the protocol check every other way
+ * in applies — so an archive could put `javascript:…` or a relative path
+ * into an image `src`. Admin-only, and next/image refuses unknown hosts, but
+ * a restore is exactly the path nobody watches.
+ */
+const webUrl = z
+    .string()
+    .trim()
+    .min(1)
+    .max(2048)
+    .refine((value) => {
+        try {
+            const { protocol } = new URL(value);
+            return protocol === 'https:' || protocol === 'http:';
+        } catch {
+            return false;
+        }
+    }, 'Picture addresses must be absolute http(s) URLs');
+
+/**
  * The backup format.
  *
  * A cookbook that exists only inside one hosting account is one billing
@@ -13,6 +35,7 @@ import { z } from 'zod';
  */
 
 /**
+ * 7: menus. 6: pictures on collections and entries about several recipes.
  * 5: one cooking entry with its photographs, where 2-4 had a list of
  * photographs and a separate list of cookings; and whether a recipe is
  * published. 4 added collections, 3 cooking logs, 2 entries and photographs.
@@ -21,7 +44,7 @@ import { z } from 'zod';
  * every new field to the safe value — and an archive from a newer version is
  * refused with the numbers in the message rather than half-read.
  */
-export const ARCHIVE_VERSION = 5;
+export const ARCHIVE_VERSION = 7;
 
 const archiveIngredientSchema = z.object({
     position: z.number().int().min(0),
@@ -30,6 +53,8 @@ const archiveIngredientSchema = z.object({
     unit: z.string().nullable().default(null),
     name: z.string().min(1),
     raw: z.string().default(''),
+    /** Version 6. */
+    section: z.string().nullable().default(null),
 });
 
 const archiveRecipeSchema = z.object({
@@ -62,7 +87,9 @@ const archiveRecipeSchema = z.object({
     isDraft: z.boolean().default(false),
     createdAt: z.string().default(() => new Date().toISOString()),
     /** Absolute URLs at the time of export; a local backup also keeps the files. */
-    images: z.array(z.string()).default([]),
+    images: z.array(webUrl).default([]),
+    /** Version 6. */
+    tags: z.array(z.string()).default([]),
     ingredients: z.array(archiveIngredientSchema).default([]),
 });
 
@@ -82,10 +109,17 @@ const archivePostSchema = z.object({
     title: z.string().min(1),
     slug: z.string().min(1),
     body: z.string().default(''),
-    imageUrl: z.string().nullable().default(null),
+    // An empty string is how some older exports said "no picture".
+    imageUrl: z.preprocess((value) => (value === '' ? null : value), webUrl.nullable()).default(null),
     publishedAt: z.string().nullable().default(null),
     createdAt: z.string().default(() => new Date().toISOString()),
-    /** The recipe it belongs to, by slug. Null for a standalone entry. */
+    /**
+     * The recipes and collections it is about, by slug, in order. Version 6;
+     * before that an entry had at most one recipe, as `recipeSlug`, which is
+     * still read (see `postRecipeSlugs`) and no longer written.
+     */
+    recipeSlugs: z.array(z.string()).default([]),
+    collectionSlugs: z.array(z.string()).default([]),
     recipeSlug: z.string().nullable().default(null),
     /** Who wrote it, by name. Accounts are not in an archive. */
     author: z.string().nullable().default(null),
@@ -107,7 +141,7 @@ const archiveCookEntrySchema = z.object({
     note: z.string().nullable().default(null),
     author: z.string().nullable().default(null),
     /** Picture URLs, in the order they were arranged. */
-    photos: z.array(z.string().min(1)).default([]),
+    photos: z.array(webUrl).default([]),
 });
 
 /*
@@ -121,7 +155,7 @@ const archiveCookEntrySchema = z.object({
  */
 
 const legacyCookPhotoSchema = z.object({
-    url: z.string().min(1),
+    url: webUrl,
     caption: z.string().nullable().default(null),
     createdAt: z.string().default(() => new Date().toISOString()),
     recipeSlug: z.string().min(1),
@@ -149,8 +183,36 @@ const archiveCollectionSchema = z.object({
     title: z.string().min(1),
     slug: z.string().min(1),
     description: z.string().nullable().default(null),
+    /** Version 6. */
+    imageUrl: z.preprocess((value) => (value === '' ? null : value), webUrl.nullable()).default(null),
     createdAt: z.string().default(() => new Date().toISOString()),
     recipeSlugs: z.array(z.string()).default([]),
+});
+
+/**
+ * A menu: an evening in courses. Version 7. Each dish points at its recipe
+ * by slug, or at none — the bread and the cheese are on the card too. A
+ * recipe that is not in the archive leaves its dish as words.
+ */
+const archiveMenuSchema = z.object({
+    title: z.string().min(1),
+    slug: z.string().min(1),
+    occasion: z.string().nullable().default(null),
+    date: z.string().nullable().default(null),
+    guests: z.number().int().nullable().default(null),
+    style: z.string().default('casual'),
+    intro: z.string().nullable().default(null),
+    createdAt: z.string().default(() => new Date().toISOString()),
+    items: z
+        .array(
+            z.object({
+                course: z.string().min(1),
+                title: z.string().min(1),
+                description: z.string().nullable().default(null),
+                recipeSlug: z.string().nullable().default(null),
+            })
+        )
+        .default([]),
 });
 
 export const archiveSchema = z.object({
@@ -164,12 +226,14 @@ export const archiveSchema = z.object({
     cookPhotos: z.array(legacyCookPhotoSchema).default([]),
     cookLogs: z.array(legacyCookLogSchema).default([]),
     collections: z.array(archiveCollectionSchema).default([]),
+    menus: z.array(archiveMenuSchema).default([]),
 });
 
 export type ArchiveRecipe = z.infer<typeof archiveRecipeSchema>;
 export type ArchivePost = z.infer<typeof archivePostSchema>;
 export type ArchiveCookEntry = z.infer<typeof archiveCookEntrySchema>;
 export type ArchiveCollection = z.infer<typeof archiveCollectionSchema>;
+export type ArchiveMenu = z.infer<typeof archiveMenuSchema>;
 export type Archive = z.infer<typeof archiveSchema>;
 
 export interface ParseResult {
@@ -228,6 +292,7 @@ export interface ExportableRecipe {
     views: number;
     createdAt: Date;
     images: { url: string }[];
+    tags: string[];
     ingredients: {
         position: number;
         quantity: number | null;
@@ -235,6 +300,7 @@ export interface ExportableRecipe {
         unit: string | null;
         name: string;
         raw: string;
+        section: string | null;
     }[];
 }
 
@@ -245,7 +311,8 @@ export interface ExportablePost {
     imageUrl: string | null;
     publishedAt: Date | null;
     createdAt: Date;
-    recipe: { slug: string } | null;
+    recipes: { recipe: { slug: string } }[];
+    collections: { collection: { slug: string } }[];
     author: { name: string } | null;
 }
 
@@ -261,9 +328,38 @@ export interface ExportableCollection {
     title: string;
     slug: string;
     description: string | null;
+    imageUrl: string | null;
     createdAt: Date;
     recipes: { recipe: { slug: string } }[];
 }
+
+export interface ExportableMenu {
+    title: string;
+    slug: string;
+    occasion: string | null;
+    date: Date | null;
+    guests: number | null;
+    style: string;
+    intro: string | null;
+    createdAt: Date;
+    items: { course: string; title: string; description: string | null; recipe: { slug: string } | null }[];
+}
+
+/** The fields a menu query has to select for `toArchiveMenu`. */
+export const menuArchiveSelect = {
+    title: true,
+    slug: true,
+    occasion: true,
+    date: true,
+    guests: true,
+    style: true,
+    intro: true,
+    createdAt: true,
+    items: {
+        orderBy: { position: 'asc' as const },
+        select: { course: true, title: true, description: true, recipe: { select: { slug: true } } },
+    },
+};
 
 /*
  * One row, converted.
@@ -290,6 +386,7 @@ export function toArchiveRecipe(recipe: ExportableRecipe): ArchiveRecipe {
         isDraft: recipe.isDraft,
         createdAt: recipe.createdAt.toISOString(),
         images: recipe.images.map((image) => image.url),
+        tags: recipe.tags,
         ingredients: recipe.ingredients
             .slice()
             .sort((a, b) => a.position - b.position)
@@ -309,9 +406,17 @@ export function toArchivePost(post: ExportablePost): Archive['posts'][number] {
         // where every id is new, and a slug is the one name that survives the
         // trip. The author is a name for the same reason — accounts are not in
         // an archive.
-        recipeSlug: post.recipe?.slug ?? null,
+        recipeSlugs: post.recipes.map((row) => row.recipe.slug),
+        collectionSlugs: post.collections.map((row) => row.collection.slug),
+        recipeSlug: null,
         author: post.author?.name ?? null,
     };
+}
+
+/** The recipes an archived entry is about, whichever version wrote it. */
+export function postRecipeSlugs(post: ArchivePost): string[] {
+    if (post.recipeSlugs.length > 0) return post.recipeSlugs;
+    return post.recipeSlug ? [post.recipeSlug] : [];
 }
 
 export function toArchiveCookEntry(entry: ExportableCookEntry): ArchiveCookEntry {
@@ -393,9 +498,29 @@ export function toArchiveCollection(
         title: collection.title,
         slug: collection.slug,
         description: collection.description,
+        imageUrl: collection.imageUrl,
         createdAt: collection.createdAt.toISOString(),
         // Already ordered by the query; the array's own order is the order.
         recipeSlugs: collection.recipes.map((row) => row.recipe.slug),
+    };
+}
+
+export function toArchiveMenu(menu: ExportableMenu): ArchiveMenu {
+    return {
+        title: menu.title,
+        slug: menu.slug,
+        occasion: menu.occasion,
+        date: menu.date ? menu.date.toISOString() : null,
+        guests: menu.guests,
+        style: menu.style,
+        intro: menu.intro,
+        createdAt: menu.createdAt.toISOString(),
+        items: menu.items.map((item) => ({
+            course: item.course,
+            title: item.title,
+            description: item.description,
+            recipeSlug: item.recipe?.slug ?? null,
+        })),
     };
 }
 
@@ -404,7 +529,8 @@ export function buildArchive(
     now = new Date(),
     posts: ExportablePost[] = [],
     cookEntries: ExportableCookEntry[] = [],
-    collections: ExportableCollection[] = []
+    collections: ExportableCollection[] = [],
+    menus: ExportableMenu[] = []
 ): Archive {
     return {
         version: ARCHIVE_VERSION,
@@ -420,10 +546,26 @@ export function buildArchive(
         cookPhotos: [],
         cookLogs: [],
         collections: collections.map(toArchiveCollection),
+        menus: menus.map(toArchiveMenu),
     };
 }
 
 /** "moscookbook-2026-09-20.json" */
 export function archiveFilename(now = new Date()): string {
     return `moscookbook-${now.toISOString().slice(0, 10)}.json`;
+}
+
+/**
+ * A backup stored under the plain dated name, with nothing unguessable in it.
+ *
+ * The Blob store is public — it has to be, it serves every picture on the site
+ * — and its hostname is in every image URL. A backup written as
+ * `backups/moscookbook-2026-09-21.json` could therefore be fetched by anyone
+ * who tried last Monday's date, and it holds every private recipe, draft, note
+ * and name in the cookbook. Backups are now written with the store's random
+ * suffix; these are the old ones, which the next run deletes.
+ */
+export function isGuessableBackup(pathname: string, prefix: string): boolean {
+    if (!pathname.startsWith(prefix)) return false;
+    return /^moscookbook-\d{4}-\d{2}-\d{2}\.json$/.test(pathname.slice(prefix.length));
 }

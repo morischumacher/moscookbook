@@ -41,33 +41,72 @@ export function isPrivateIPv6(address: string): boolean {
     // form, and the compressed forms are what a resolver actually returns.
     const value = address.replace(/^\[|\]$/g, '').toLowerCase();
 
-    if (value === '::1' || value === '::') return true;
+    const words = ipv6Words(value);
+    // Not an address we can read is not an address we will fetch.
+    if (!words) return true;
 
-    // An IPv4 address wearing an IPv6 hat: ::ffff:10.0.0.5 reaches 10.0.0.5.
-    const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(value);
-    if (mapped) return isPrivateIPv4(mapped[1]);
+    const [w0, w1, w2, w3, w4, w5, w6, w7] = words;
+    const embedded = () => `${w6 >> 8}.${w6 & 0xff}.${w7 >> 8}.${w7 & 0xff}`;
+    const zeroUpTo = (count: number) => words.slice(0, count).every((word) => word === 0);
 
-    /*
-     * The same address, as the URL parser actually hands it over.
-     *
-     * `new URL('http://[::ffff:127.0.0.1]/').hostname` is `[::ffff:7f00:1]` —
-     * WHATWG normalises the dotted tail into two hex groups. So the regex
-     * above, which is the form a human writes and a resolver returns, never
-     * matches a hostname that came out of a URL, and the loopback address
-     * walks straight past a check that was written for it. Found by trying
-     * it, not by reading; there was nothing in the code to suggest it.
-     */
-    const mappedHex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(value);
-    if (mappedHex) {
-        const high = Number.parseInt(mappedHex[1], 16);
-        const low = Number.parseInt(mappedHex[2], 16);
-        return isPrivateIPv4(`${high >> 8}.${high & 0xff}.${low >> 8}.${low & 0xff}`);
+    // :: and ::1.
+    if (zeroUpTo(7) && w7 <= 1) return true;
+
+    // IPv4 wearing an IPv6 hat, in every form that reaches the IPv4 address:
+    // mapped (::ffff:a.b.c.d), the old "compatible" form (::a.b.c.d, which the
+    // URL parser writes as [::7f00:1]), and NAT64 (64:ff9b::a.b.c.d).
+    if (zeroUpTo(5) && w5 === 0xffff) return isPrivateIPv4(embedded());
+    if (zeroUpTo(6)) return isPrivateIPv4(embedded());
+    if (w0 === 0x64 && w1 === 0xff9b && w2 === 0 && w3 === 0 && w4 === 0 && w5 === 0) {
+        return isPrivateIPv4(embedded());
+    }
+    if (w0 === 0x64 && w1 === 0xff9b && w2 === 1) return true;  // local-use NAT64
+
+    // 6to4 carries its IPv4 address in the second and third words.
+    if (w0 === 0x2002) {
+        return isPrivateIPv4(`${w1 >> 8}.${w1 & 0xff}.${w2 >> 8}.${w2 & 0xff}`);
     }
 
-    if (value.startsWith('fe80')) return true;  // link-local
-    if (/^f[cd]/.test(value)) return true;      // unique local
+    if (w0 === 0x2001 && w1 === 0) return true;             // Teredo
+    if (w0 === 0x2001 && w1 === 0xdb8) return true;         // documentation
+    if ((w0 & 0xffc0) === 0xfe80) return true;              // link-local
+    if ((w0 & 0xffc0) === 0xfec0) return true;              // old site-local
+    if ((w0 & 0xfe00) === 0xfc00) return true;              // unique local
+    if ((w0 & 0xff00) === 0xff00) return true;              // multicast
 
     return false;
+}
+
+/**
+ * The eight 16-bit words of an IPv6 address, or null for anything that is not
+ * one. Handles `::` and a dotted IPv4 tail; a zone (`%eth0`) is not an
+ * address a public page can send us to, so it is refused.
+ */
+function ipv6Words(value: string): number[] | null {
+    if (value.includes('%')) return null;
+
+    let text = value;
+    const tail = /(\d{1,3}(?:\.\d{1,3}){3})$/.exec(text);
+    if (tail) {
+        const parts = tail[1].split('.').map(Number);
+        if (parts.some((n) => n > 255)) return null;
+        text = `${text.slice(0, -tail[1].length)}${((parts[0] << 8) | parts[1]).toString(16)}:${((parts[2] << 8) | parts[3]).toString(16)}`;
+    }
+
+    const halves = text.split('::');
+    if (halves.length > 2) return null;
+
+    const read = (half: string) => (half === '' ? [] : half.split(':'));
+    const head = read(halves[0]);
+    const rest = halves.length === 2 ? read(halves[1]) : [];
+    const missing = 8 - head.length - rest.length;
+
+    if (halves.length === 1 ? missing !== 0 : missing < 1) return null;
+
+    const all = [...head, ...Array<string>(halves.length === 2 ? missing : 0).fill('0'), ...rest];
+    if (!all.every((word) => /^[0-9a-f]{1,4}$/.test(word))) return null;
+
+    return all.map((word) => Number.parseInt(word, 16));
 }
 
 export function isPrivateAddress(address: string, family?: number): boolean {

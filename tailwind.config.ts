@@ -88,6 +88,10 @@ export default {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    // The shared button and page shapes live in lib/ui.ts. Without this line
+    // a class used only there was never generated — `px-6` on the primary
+    // button survived only because some component happened to use it too.
+    './src/lib/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {

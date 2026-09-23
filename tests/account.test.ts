@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { suite, check, equal } from './harness';
 import { fullName } from '../src/lib/personName';
 import { pathAccess, apiAccess } from '../src/lib/accessRules';
+import { sessionStillValid, sessionUserFrom } from '../src/lib/session';
 
 /**
  * Read from the source rather than executed.
@@ -157,3 +158,33 @@ export default function accountTests() {
     equal('copes with one', fullName({ firstName: 'Mo', lastName: '' }), 'Mo');
     equal('trims what it is given', fullName({ firstName: '  Mo  ', lastName: ' S ' }), 'Mo S');
 }
+
+/**
+ * Sessions that can be ended.
+ *
+ * The cookie is stateless and was good for fourteen days whatever happened to
+ * the account behind it. The version number is what makes a revocation stick.
+ */
+export function sessionVersionTests() {
+    suite('account: a session can be ended');
+
+    const row = { id: 7, email: 'a@b.c', name: 'Ann', admin: false, sessionVersion: 3 };
+    const cookie = sessionUserFrom(row);
+
+    equal('the version is sealed into the cookie', cookie.v, 3);
+    check('a matching version is still valid', sessionStillValid(cookie, { sessionVersion: 3 }));
+    check('a raised version is not', !sessionStillValid(cookie, { sessionVersion: 4 }));
+    check('a deleted account is not', !sessionStillValid(cookie, null));
+    check(
+        'a cookie from before versions existed counts as version 0',
+        sessionStillValid({ id: 7, email: 'a@b.c', name: 'Ann', admin: false }, { sessionVersion: 0 })
+    );
+
+    for (const route of ['auth/login', 'auth/register', 'auth/reset', 'account/password']) {
+        check(`${route} writes the session through sessionUserFrom`, source(`app/api/${route}/route.ts`).includes('sessionUserFrom('));
+    }
+    check('a reset signs every other device out', /sessionVersion: \{ increment: 1 \}/.test(source('app/api/auth/reset/route.ts')));
+    check('a password change signs every other device out', /sessionVersion: \{ increment: 1 \}/.test(source('app/api/account/password/route.ts')));
+    check('nothing outside lib/auth reads the raw cookie for who somebody is', !/session\.user\b/.test(source('app/[locale]/recipe/[slug]/page.tsx')));
+}
+

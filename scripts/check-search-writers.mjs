@@ -33,9 +33,10 @@ const SUBJECTS = [
     {
         what: 'recipe',
         writes: /prisma\.recipe\.(create|update|updateMany|upsert|createMany)\s*\(/,
-        // searchFields, but not postSearchFields — the recipe helper by name.
-        uses: /(?<!post)searchFields\s*\(/i,
-        helper: 'searchFields({ title, description, instructions, ingredients })',
+        // searchFields, but not postSearchFields — the recipe helper by name —
+        // or one of the lib/recipeRepo builders, which call it for you.
+        uses: /(?<!post)searchFields\s*\(|newRecipeData\s*\(|recipeColumns\s*\(/i,
+        helper: 'newRecipeData(…) or recipeColumns(…) from lib/recipeRepo',
     },
     {
         what: 'post',

@@ -95,8 +95,11 @@ export default function AdminDevicesPage() {
         }
     };
 
-    const endpoint =
-        typeof window === 'undefined' ? '/api/capture' : `${window.location.origin}/api/capture`;
+    // Read after hydration: on the server there is no address to read, and
+    // a different first render in the browser is a hydration error.
+    const [origin, setOrigin] = useState('');
+    useEffect(() => setOrigin(window.location.origin), []);
+    const endpoint = `${origin}/api/capture`;
 
     return (
         <main className={`${pageContainer} pb-32`}>

@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { getIronSession } from 'iron-session';
 import { NextResponse } from 'next/server';
 import prisma from './prisma';
-import { sessionOptions, SessionData, SessionUser } from './session';
+import { sessionOptions, sessionStillValid, SessionData, SessionUser } from './session';
 
 /**
  * Reads the session from the incoming request cookies.
@@ -14,9 +14,43 @@ export async function getSession() {
     return getIronSession<SessionData>(cookieStore, sessionOptions);
 }
 
+/**
+ * The session's user, checked against the database.
+ *
+ * `session.user` is a snapshot sealed into the cookie at sign-in, and nothing
+ * could change it afterwards: a deleted account, a demotion or a password
+ * reset left the cookie exactly as it was, good for fourteen days. Guards were
+ * checked; pages were not, so a removed member went on reading every private
+ * recipe until the cookie ran out.
+ *
+ * So every read asks the database, once per request thanks to `cache()`: the
+ * row must still exist and its `sessionVersion` must match the cookie's. The
+ * same lookup brings the current name and picture, which the header used to
+ * fetch with a query of its own — so this costs nothing it did not already.
+ *
+ * Fails closed. A database that will not answer means no one is anyone.
+ */
+const verifiedSession = cache(
+    async (): Promise<{ user: SessionUser; avatarUrl: string | null } | null> => {
+        const session = await getSession();
+        const cookie = session.user;
+        if (!cookie) return null;
+
+        const row = await prisma.user
+            .findUnique({
+                where: { id: cookie.id },
+                select: { admin: true, name: true, avatarUrl: true, sessionVersion: true },
+            })
+            .catch(() => null);
+
+        if (!row || !sessionStillValid(cookie, row)) return null;
+
+        return { user: { ...cookie, admin: row.admin, name: row.name }, avatarUrl: row.avatarUrl };
+    }
+);
+
 export async function getCurrentUser(): Promise<SessionUser | null> {
-    const session = await getSession();
-    return session.user ?? null;
+    return (await verifiedSession())?.user ?? null;
 }
 
 /**
@@ -55,66 +89,11 @@ export async function requireUser(): Promise<
     return { user };
 }
 
-/**
- * The session's user, checked against the database.
- *
- * `session.user.admin` is a snapshot taken at sign-in and sealed into the
- * cookie. Nothing could change it afterwards: demoting somebody on the
- * people page, or deleting their account, changed a row and left their
- * cookie exactly as it was — good for fourteen days, with whatever it said
- * on the day it was issued. A demoted admin kept the admin API for two
- * weeks. So did a deleted one.
- *
- * So the guards ask the database. One indexed lookup by primary key per
- * guarded request, which is the price of a revocation that actually revokes.
- * `cache()` makes it once per request however many guards run.
- *
- * Fails closed. A database that will not answer means no one is anyone,
- * which on a route that is about to write to that database is not much of a
- * loss.
- *
- * The rendering helpers above are left alone on purpose: `getCurrentUser` is
- * called from fifty places to decide what to *show*, and a stale cookie
- * showing a button that the API then refuses is a cosmetic problem. The
- * admin layout does its own verified check for the same reason this does.
- */
-export const currentUserVerified = cache(async (): Promise<SessionUser | null> => {
-    const user = await getCurrentUser();
-    if (!user) return null;
+/** The same check as `getCurrentUser`; kept as a name the guards read well with. */
+export const currentUserVerified = getCurrentUser;
 
-    // Annotated: without a generated client the result is loosely typed.
-    const row: { admin: boolean } | null = await prisma.user
-        .findUnique({ where: { id: user.id }, select: { admin: true } })
-        .catch(() => null);
-
-    if (!row) return null;
-
-    return { ...user, admin: row.admin };
-});
-
-/**
- * The picture and the name as they are *now*, for the header's profile menu.
- *
- * Separate from `currentUserVerified` rather than folded into it: that one is
- * a permission check run on every admin page and in every guarded route, and
- * widening its `select` would make every one of those carry two columns
- * nothing in them reads. This is asked for once per page render, by the
- * navigation, and cached for the request like its neighbour — which is the
- * lesson VerifyBanner taught, where one uncached lookup became one query per
- * page per signed-in person.
- *
- * Falls back to the cookie's own name if the row cannot be read: a header
- * without a picture is a small loss, and a header that throws is the page.
- */
-export const currentProfile = cache(
-    async (): Promise<{ name: string; avatarUrl: string | null } | null> => {
-        const user = await getCurrentUser();
-        if (!user) return null;
-
-        const row: { name: string; avatarUrl: string | null } | null = await prisma.user
-            .findUnique({ where: { id: user.id }, select: { name: true, avatarUrl: true } })
-            .catch(() => null);
-
-        return row ?? { name: user.name, avatarUrl: null };
-    }
-);
+/** The picture and the name as they are *now*, for the header's profile menu. */
+export async function currentProfile(): Promise<{ name: string; avatarUrl: string | null } | null> {
+    const verified = await verifiedSession();
+    return verified ? { name: verified.user.name, avatarUrl: verified.avatarUrl } : null;
+}

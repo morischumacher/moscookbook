@@ -284,6 +284,20 @@ body {
   padding-left: 1.5rem;
 }
 
+/* The markers themselves. `list-style: revert` on the items was not enough:
+   an item inherits its marker from the list, and the reset had already set
+   the list to none — so every list in an entry was a column of loose lines. */
+.post-body ul,
+.markdown-step ul { list-style: disc; }
+.post-body ol,
+.markdown-step ol { list-style: decimal; }
+
+/* A link in running text has to look like one. */
+.post-body a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .post-body li {
   margin-bottom: 0.4rem;
   list-style: revert;
@@ -383,4 +397,45 @@ body {
   a[href]::after {
     content: '';
   }
+}
+
+/*
+ * The navigation line (components/ui/NavigationProgress). It runs fast at
+ * first and slows as it goes, so it is always moving and never arrives before
+ * the page does: an honest "still coming" rather than a fake percentage.
+ */
+.nav-progress-run {
+  width: 85%;
+  animation: nav-progress 8s cubic-bezier(0.1, 0.8, 0.2, 1) both;
+}
+
+@keyframes nav-progress {
+  from { width: 0; }
+  to { width: 85%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress-run { animation: none; width: 60%; }
+}
+
+/*
+ * iPhone.
+ *
+ * Safari zooms the whole page into any field whose text is smaller than 16px
+ * the moment it is tapped, and leaves it zoomed — every search box, ingredient
+ * row and note field set in text-sm did that. On a phone, fields are 16px.
+ * The grey flash iOS paints over anything tapped is turned off too: every
+ * control here draws its own pressed state.
+ */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
 }

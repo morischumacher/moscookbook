@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { collectionByToken } from '@/lib/collectionQuery';
+import CollectionIntro from '@/components/collection/CollectionIntro';
 import CollectionGrid from '@/components/collection/CollectionGrid';
 import Logo from '@/components/brand/Logo';
 import { getSiteUrl } from '@/lib/siteUrl';
@@ -65,19 +66,12 @@ export default async function SharedCollectionPage({
     return (
         <main className={`${pageContainer} pb-32`}>
             <div className={pageTop}>
-                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-                    {collection.title}
-                </h1>
-
-                {collection.description && (
-                    <p className="mt-3 font-serif text-lg leading-relaxed text-muted">
-                        {collection.description}
-                    </p>
-                )}
-
-                <p className="mt-3 text-xs uppercase tracking-widest text-faint">
-                    {t('recipeCount', { count: collection.recipes.length })}
-                </p>
+                <CollectionIntro
+                    title={collection.title}
+                    description={collection.description}
+                    imageUrl={collection.imageUrl ?? collection.recipes[0]?.imageUrl ?? null}
+                    meta={t('recipeCount', { count: collection.recipes.length })}
+                />
             </div>
 
             <div className="mt-8">
