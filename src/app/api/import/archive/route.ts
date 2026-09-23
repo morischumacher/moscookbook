@@ -139,16 +139,30 @@ export async function POST(req: NextRequest) {
             }
 
             try {
-                await prisma.$transaction([
-                    // deleteMany rather than delete: a row that is already gone
-                    // is the outcome this wanted anyway, and `delete` would
-                    // throw P2025 and take the whole transaction with it.
-                    // Cascades carry the old images and ingredients away.
-                    ...(exists
-                        ? [prisma.recipe.deleteMany({ where: { slug: recipe.slug } })]
-                        : []),
-                    prisma.recipe.create({ data: recipeData(recipe) }),
-                ]);
+                if (exists) {
+                    /*
+                     * In place, keeping the row and its id. Deleting and
+                     * creating it again cascaded everything that points at a
+                     * recipe: ratings, favourites, every cook entry since the
+                     * backup with its photographs, its revisions, its place in
+                     * collections and posts the archive does not carry, and
+                     * the link from a menu's dish. Only what the archive
+                     * describes is replaced — the text, pictures, ingredients
+                     * and translation.
+                     */
+                    const data = recipeData(recipe);
+                    await prisma.recipe.update({
+                        where: { slug: recipe.slug },
+                        data: {
+                            ...data,
+                            images: { deleteMany: {}, ...data.images },
+                            ingredients: { deleteMany: {}, ...data.ingredients },
+                            translations: { deleteMany: {}, ...('translations' in data ? data.translations : {}) },
+                        },
+                    });
+                } else {
+                    await prisma.recipe.create({ data: recipeData(recipe) });
+                }
 
                 if (exists) replaced += 1;
                 else created += 1;

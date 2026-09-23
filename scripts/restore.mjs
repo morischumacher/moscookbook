@@ -1,150 +1,85 @@
 #!/usr/bin/env node
 /**
- * Puts a backup folder back into the database.
+ * Makes a backup folder restorable when its pictures' original store is gone.
  *
  *   npm run restore -- backup/2026-09-20
- *   npm run restore -- backup/2026-09-20 --replace
  *
- * Images are re-uploaded from the folder, so this works even when the original
- * Blob store is gone — which is the case a backup exists for.
+ * Every picture in the folder is uploaded to this deployment's Blob store,
+ * and the archive is written again with the new addresses in place of the
+ * old ones — in the recipes' galleries, on posts and collections, on cook
+ * entries, and inside the text of a post, wherever the old address appears.
+ * The result, `recipes.restorable.json` in the same folder, is then imported
+ * where every other archive is: Verwaltung → Sicherung → "Aus Datei
+ * wiederherstellen", which knows every version and every kind of row.
  *
- * Existing recipes are kept unless --replace is given: a restore that silently
- * overwrites what you have been editing is a second disaster, not a recovery.
+ * It used to write recipes into the database itself. That copy of the import
+ * understood only version 1 of the archive — it refused every backup
+ * `npm run backup` has written since — and knew nothing of posts, cook
+ * entries, collections, menus or translations. One importer, the one the
+ * site uses and the tests cover, is the only kind that stays right.
  */
-import { PrismaClient } from '@prisma/client';
 import { put } from '@vercel/blob';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
 import 'dotenv/config';
-
-const prisma = new PrismaClient();
 
 const CONTENT_TYPES = {
     jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
-    webp: 'image/webp', avif: 'image/avif', gif: 'image/gif',
+    webp: 'image/webp', avif: 'image/avif', gif: 'image/gif', heic: 'image/heic',
 };
 
 async function main() {
     const directory = process.argv[2];
-    const replace = process.argv.includes('--replace');
 
     if (!directory || directory.startsWith('--')) {
-        throw new Error('Usage: npm run restore -- <backup folder> [--replace]');
+        throw new Error('Usage: npm run restore -- <backup folder>');
+    }
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+        throw new Error('BLOB_READ_WRITE_TOKEN is not set: there is nowhere to put the pictures.');
     }
 
-    const archive = JSON.parse(await readFile(path.join(directory, 'recipes.json'), 'utf8'));
-
-    if (archive.version > 1) {
-        throw new Error(`Archive version ${archive.version} is newer than this script understands.`);
-    }
+    let text = await readFile(path.join(directory, 'recipes.json'), 'utf8');
+    const archive = JSON.parse(text);
+    console.log(`Archive version ${archive.version}, ${archive.recipes?.length ?? 0} recipes.`);
 
     let imageMap = {};
     try {
         imageMap = JSON.parse(await readFile(path.join(directory, 'images.json'), 'utf8'));
     } catch {
-        console.warn('No images.json found — image URLs will be kept as they are.');
+        console.warn('No images.json found — nothing to upload; the addresses stay as they are.');
     }
 
-    // Upload each file once, even when several recipes share it.
-    const uploaded = new Map();
+    let uploaded = 0;
+    let failed = 0;
 
-    async function urlFor(originalUrl) {
-        if (uploaded.has(originalUrl)) return uploaded.get(originalUrl);
-
-        const filename = imageMap[originalUrl];
-        if (!filename) return originalUrl;
-
+    for (const [originalUrl, filename] of Object.entries(imageMap)) {
+        // Only what the archive still mentions.
+        if (!text.includes(originalUrl)) continue;
         try {
             const buffer = await readFile(path.join(directory, 'images', filename));
             const extension = filename.split('.').pop().toLowerCase();
-            const blob = await put(`restored_${Date.now()}_${filename}`, buffer, {
+            const blob = await put(`restored/${Date.now()}_${filename}`, buffer, {
                 access: 'public',
                 contentType: CONTENT_TYPES[extension] ?? 'application/octet-stream',
             });
-            uploaded.set(originalUrl, blob.url);
-            return blob.url;
+            text = text.split(originalUrl).join(blob.url);
+            uploaded += 1;
         } catch (error) {
-            console.warn(`  could not re-upload ${filename}: ${error.message}`);
-            uploaded.set(originalUrl, originalUrl);
-            return originalUrl;
+            // The old address stays: if that store still answers, it still works.
+            failed += 1;
+            console.warn(`  could not upload ${filename}: ${error.message}`);
         }
     }
 
-    const existing = await prisma.recipe.findMany({ select: { slug: true } });
-    const existingSlugs = new Set(existing.map((recipe) => recipe.slug));
+    const out = path.join(directory, 'recipes.restorable.json');
+    await writeFile(out, text);
 
-    let created = 0;
-    let replaced = 0;
-    let skipped = 0;
-
-    for (const recipe of archive.recipes) {
-        if (existingSlugs.has(recipe.slug)) {
-            if (!replace) {
-                skipped += 1;
-                continue;
-            }
-            await prisma.recipe.delete({ where: { slug: recipe.slug } });
-            replaced += 1;
-        } else {
-            created += 1;
-        }
-
-        const images = [];
-        for (const original of recipe.images ?? []) images.push(await urlFor(original));
-
-        await prisma.recipe.create({
-            data: {
-                title: recipe.title,
-                slug: recipe.slug,
-                description: recipe.description ?? null,
-                instructions: recipe.instructions ?? '',
-                category: recipe.category ?? null,
-                nationality: recipe.nationality ?? null,
-                servings: recipe.servings ?? null,
-                prepMinutes: recipe.prepMinutes ?? null,
-                cookMinutes: recipe.cookMinutes ?? null,
-                createdAt: new Date(recipe.createdAt ?? Date.now()),
-                images: { create: images.map((url, index) => ({ url, position: index })) },
-                ingredients: {
-                    create: (recipe.ingredients ?? []).map((ingredient, index) => ({
-                        position: index,
-                        quantity: ingredient.quantity ?? null,
-                        quantityMax: ingredient.quantityMax ?? null,
-                        unit: ingredient.unit ?? null,
-                        name: ingredient.name,
-                        raw: ingredient.raw ?? '',
-                    })),
-                },
-            },
-        });
-    }
-
-    console.log(`\ncreated ${created}, replaced ${replaced}, skipped ${skipped} of ${archive.recipes.length}`);
-    if (skipped > 0 && !replace) console.log('Run again with --replace to overwrite the recipes that already exist.');
-
-    // The search columns are built by searchFields() in TypeScript, which this
-    // ESM script cannot import without dragging a build step into a recovery
-    // tool. Rather than keeping a second copy of the rules — the one thing
-    // guaranteed to drift — the restore hands off to the reindex script, which
-    // uses the same single source of truth. Without this, restored recipes
-    // save correctly and then never appear in a search.
-    if (created + replaced > 0) {
-        console.log('\nRebuilding the search index…');
-        await prisma.$disconnect();
-        execFileSync(
-            'npx',
-            ['ts-node', '--transpile-only', '--project', 'tests/tsconfig.json', 'scripts/reindex-search.ts'],
-            { stdio: 'inherit' }
-        );
-    }
+    console.log(`\n${uploaded} pictures uploaded${failed ? `, ${failed} failed` : ''}.`);
+    console.log(`Written: ${out}`);
+    console.log('Import it in the cookbook: Verwaltung → Sicherung → "Aus Datei wiederherstellen".');
 }
 
-main()
-    .catch((error) => {
-        console.error(error.message || error);
-        process.exitCode = 1;
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+main().catch((error) => {
+    console.error(error.message || error);
+    process.exitCode = 1;
+});
