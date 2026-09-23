@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import prisma from '@/lib/prisma';
+import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireUser } from '@/lib/auth';
 import { getSession } from '@/lib/auth';
 import { passwordMatches } from '@/lib/accountGuard';
@@ -89,7 +90,9 @@ export async function DELETE(req: NextRequest) {
         }
     }
 
-    await prisma.user.delete({ where: { id: auth.user.id } });
+    // The avatar is a file of its own, which the row going does not take.
+    const gone = await prisma.user.delete({ where: { id: auth.user.id }, select: { avatarUrl: true } });
+    await deleteBlobs([gone.avatarUrl]);
 
     // The cookie outlives the row by a fortnight otherwise, and every page it
     // opens would be a lookup for a person who is not there.

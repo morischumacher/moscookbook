@@ -24,19 +24,23 @@ import { buttonPrimarySmall } from '@/lib/ui';
 
 type Mode = { kind: 'own'; shareToken: string | null } | { kind: 'shared'; token: string };
 
-const PENDING_KEY = 'shopping-pending';
+/*
+ * One store per list: ticks queued on your own list are not sent to somebody
+ * else's shared one (where each was a 404, and then thrown away).
+ */
+const pendingKey = (base: string) => `shopping-pending:${base}`;
 
-function readPending(): Record<number, boolean> {
+function readPending(base: string): Record<number, boolean> {
     try {
-        return JSON.parse(localStorage.getItem(PENDING_KEY) ?? '{}') as Record<number, boolean>;
+        return JSON.parse(localStorage.getItem(pendingKey(base)) ?? '{}') as Record<number, boolean>;
     } catch {
         return {};
     }
 }
 
-function writePending(pending: Record<number, boolean>) {
+function writePending(base: string, pending: Record<number, boolean>) {
     try {
-        localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+        localStorage.setItem(pendingKey(base), JSON.stringify(pending));
     } catch {
         // A full or blocked store: the tick is still on screen and in memory.
     }
@@ -82,12 +86,12 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
 
     /** Whatever was ticked without signal, sent now. */
     const flush = useCallback(async () => {
-        const pending = readPending();
+        const pending = readPending(base);
         for (const [id, checked] of Object.entries(pending)) {
             if (await sendTick(Number(id), checked)) delete pending[Number(id)];
         }
-        writePending(pending);
-    }, [sendTick]);
+        writePending(base, pending);
+    }, [base, sendTick]);
 
     const refresh = useCallback(async () => {
         await flush();
@@ -95,7 +99,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             const res = await fetch(base);
             if (!res.ok) return;
             const data: { items: ShoppingItemRow[] } = await res.json();
-            const pending = readPending();
+            const pending = readPending(base);
             setItems(data.items.map((item) => (item.id in pending ? { ...item, checked: pending[item.id] } : item)));
         } catch {
             // Offline: what is on screen is the best there is.
@@ -106,7 +110,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     // ticked meanwhile: on arrival, when the phone comes back online, and when
     // the page is looked at again.
     useEffect(() => {
-        const pending = readPending();
+        const pending = readPending(base);
         if (Object.keys(pending).length > 0) {
             setItems((current) => current.map((item) => (item.id in pending ? { ...item, checked: pending[item.id] } : item)));
         }
@@ -118,12 +122,20 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             window.removeEventListener('online', refresh);
             document.removeEventListener('visibilitychange', onFocus);
         };
-    }, [refresh]);
+    }, [base, refresh]);
 
     const toggle = async (id: number, checked: boolean) => {
         setItems((current) => current.map((item) => (item.id === id ? { ...item, checked } : item)));
-        if (!(await sendTick(id, checked))) {
-            writePending({ ...readPending(), [id]: checked });
+        const pending = readPending(base);
+        if (await sendTick(id, checked)) {
+            // A newer tick that got through replaces one still queued from
+            // offline, which would otherwise be sent later and undo it.
+            if (id in pending) {
+                delete pending[id];
+                writePending(base, pending);
+            }
+        } else {
+            writePending(base, { ...pending, [id]: checked });
             setNote(t('offlineNote'));
         }
     };

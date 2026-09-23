@@ -64,10 +64,10 @@ const GRAMS_PER_CUP: Array<[RegExp, number]> = [
     [/brown sugar|brauner zucker|rohrzucker/i, 220],
     [/sugar|zucker/i, 200],
     [/flour|mehl/i, 125],
-    [/butter/i, 227],
+    [/butter(?!milch|milk)/i, 227],
     [/cocoa|kakao/i, 85],
     [/oats|haferflocken/i, 90],
-    [/rice|reis/i, 185],
+    [/\brice\b(?!\s*(vinegar|wine))|reis(?!essig|wein|mehl|elbeer)/i, 185],
     [/honey|honig|syrup|sirup/i, 340],
     [/cheese|käse|parmesan/i, 100],
     [/almonds|mandeln|walnuts|walnüsse|nuts|nüsse|pecans/i, 120],
@@ -159,12 +159,40 @@ export interface Measured {
     amount: number;
 }
 
+/**
+ * Named units in both numbers, so "1 Zehe" and "2 Zehen" are one line on the
+ * shopping list: the key holds the singular, and `fromBase` writes whichever
+ * the amount asks for.
+ */
+const COUNT_UNITS: Array<[singular: string, plural: string]> = [
+    ['zehe', 'zehen'], ['dose', 'dosen'], ['scheibe', 'scheiben'], ['packung', 'packungen'],
+    ['stange', 'stangen'], ['tasse', 'tassen'], ['flasche', 'flaschen'], ['knolle', 'knollen'],
+    ['prise', 'prisen'], ['becher', 'becher'], ['glas', 'gläser'], ['stück', 'stück'], ['bund', 'bund'], ['handvoll', 'handvoll'], ['zweig', 'zweige'], ['blatt', 'blätter'],
+    ['clove', 'cloves'], ['can', 'cans'], ['slice', 'slices'], ['pinch', 'pinches'], ['bunch', 'bunches'],
+];
+const ENGLISH_COUNT_UNITS = new Set(['clove', 'can', 'slice', 'pinch', 'bunch']);
+const COUNT_ALIASES: Record<string, string> = { stk: 'stück', 'stk.': 'stück', pck: 'packung', 'pck.': 'packung', päckchen: 'packung' };
+
+function countUnitKey(unit: string): string {
+    const lower = unit.trim().toLowerCase();
+    const aliased = COUNT_ALIASES[lower] ?? lower;
+    return COUNT_UNITS.find(([one, many]) => aliased === one || aliased === many)?.[0] ?? aliased;
+}
+
+function countUnitFor(key: string, amount: number): string {
+    const pair = COUNT_UNITS.find(([one]) => one === key);
+    if (!pair) return key;
+    const word = amount > 1 ? pair[1] : pair[0];
+    // German nouns are capitalised; the English ones are not.
+    return ENGLISH_COUNT_UNITS.has(key) ? word : word[0].toUpperCase() + word.slice(1);
+}
+
 export function toBase(parts: AmountParts, ingredient: string): Measured | null {
     if (parts.quantity === null) return null;
     const value = parts.quantityMax ?? parts.quantity;
     const unit = unitOf(parts.unit);
 
-    if (!unit) return { key: `count:${(parts.unit ?? '').trim().toLowerCase()}`, amount: value };
+    if (!unit) return { key: `count:${countUnitKey(parts.unit ?? '')}`, amount: value };
 
     const metric = toMetric({ quantity: value, quantityMax: null, unit: parts.unit }, ingredient, 'en');
     const metricUnit = unitOf(metric.unit);
@@ -194,7 +222,7 @@ export function fromBase(measured: Measured, locale: Locale = 'de'): AmountParts
     }
 
     const unit = measured.key.slice('count:'.length);
-    return { quantity: measured.amount, quantityMax: null, unit: unit || null };
+    return { quantity: measured.amount, quantityMax: null, unit: unit ? countUnitFor(unit, measured.amount) : null };
 }
 
 /** Whether a recipe has anything `toMetric` would change — so the switch is only offered where it matters. */

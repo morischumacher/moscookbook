@@ -27,7 +27,7 @@ export const GET = route<'public', undefined, Params>({ access: 'public', label:
     return NextResponse.json({ items: await itemsOf(list.id) });
 });
 
-const patchBody = z.object({ itemId: z.number().int().positive(), checked: z.boolean() });
+const patchBody = z.object({ itemId: z.number().int().positive().max(2_147_483_647), checked: z.boolean() });
 
 export const PATCH = route<'public', typeof patchBody, Params>(
     { access: 'public', body: patchBody, label: 'Ticking a shared shopping item' },

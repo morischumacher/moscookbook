@@ -1,4 +1,5 @@
 import prisma from './prisma';
+import { isPrismaError } from './prismaErrors';
 import { slugify } from './recipe';
 import { itemsFromCourses, type MenuInput } from './menu';
 import { linesFor, type PlannedLine } from './shopping';
@@ -37,17 +38,29 @@ function columns(input: MenuInput) {
     };
 }
 
+/** Once more when the slug was taken between finding it and writing it. */
+async function slugRetry<T>(write: () => Promise<T>): Promise<T> {
+    try {
+        return await write();
+    } catch (error) {
+        if (isPrismaError(error, 'P2002')) return write();
+        throw error;
+    }
+}
+
 export async function createMenu(input: MenuInput) {
     const items = await itemsFor(input);
-    return prisma.menu.create({
-        data: { ...columns(input), slug: await freeMenuSlug(input.title), items: { create: items } },
-        select: { id: true, slug: true },
-    });
+    return slugRetry(async () =>
+        prisma.menu.create({
+            data: { ...columns(input), slug: await freeMenuSlug(input.title), items: { create: items } },
+            select: { id: true, slug: true },
+        })
+    );
 }
 
 export async function updateMenu(id: number, input: MenuInput) {
     const items = await itemsFor(input);
-    const [menu] = await prisma.$transaction([
+    const [menu] = await slugRetry(async () => prisma.$transaction([
         prisma.menu.update({
             where: { id },
             data: { ...columns(input), slug: await freeMenuSlug(input.title, id) },
@@ -55,7 +68,7 @@ export async function updateMenu(id: number, input: MenuInput) {
         }),
         prisma.menuItem.deleteMany({ where: { menuId: id } }),
         prisma.menuItem.createMany({ data: items.map((item) => ({ ...item, menuId: id })) }),
-    ]);
+    ]));
     return menu;
 }
 

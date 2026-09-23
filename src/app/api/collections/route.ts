@@ -57,8 +57,10 @@ export async function POST(req: NextRequest) {
 
     const { title, description, imageUrl, recipeIds } = parsed.data;
 
-    try {
-        const collection = await prisma.collection.create({
+    // Two saves of the same title at once both find the same free slug; the
+    // second then trips the unique index. Once more, and it finds the next.
+    const create = async () =>
+        prisma.collection.create({
             data: {
                 title,
                 description,
@@ -71,6 +73,12 @@ export async function POST(req: NextRequest) {
                 },
             },
             select: { id: true, slug: true, title: true },
+        });
+
+    try {
+        const collection = await create().catch((error) => {
+            if (isPrismaError(error, 'P2002')) return create();
+            throw error;
         });
 
         return NextResponse.json(collection, { status: 201 });

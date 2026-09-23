@@ -37,7 +37,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     try {
         const existing = await prisma.post.findUnique({
             where: { id },
-            select: { publishedAt: true, slug: true },
+            select: { publishedAt: true, slug: true, imageUrl: true },
         });
 
         if (!existing) return NextResponse.json({ message: 'Post not found' }, { status: 404 });
@@ -61,6 +61,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             },
             select: { id: true, slug: true, publishedAt: true },
         });
+
+        // The picture it had, when it now has another or none — the way the
+        // delete below and a collection's edit already do.
+        if (existing.imageUrl && existing.imageUrl !== imageUrl) await deleteBlobs([existing.imageUrl]);
 
         return NextResponse.json(post);
     } catch (error) {

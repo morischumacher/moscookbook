@@ -41,7 +41,7 @@ export const collectionInputSchema = z.object({
         .optional()
         .transform((value) => value || null),
     recipeIds: z
-        .array(z.number().int().positive())
+        .array(z.number().int().positive().max(2_147_483_647))
         .max(MAX_RECIPES_PER_COLLECTION)
         .default([])
         .transform((ids) => [...new Set(ids)]),

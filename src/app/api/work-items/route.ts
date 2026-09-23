@@ -37,7 +37,7 @@ export const GET = route({ access: 'admin', label: 'Work list' }, async () => {
 
 const body = z.object({
     kind: z.enum(WORK_KINDS),
-    id: z.number().int().positive(),
+    id: z.number().int().positive().max(2_147_483_647),
     note: z.string().trim().max(1000).optional().transform((value) => value || null),
     /** Publish the item's screenshots with it. */
     withPhotos: z.boolean().default(false),

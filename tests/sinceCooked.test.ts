@@ -11,10 +11,12 @@ import { sinceCooked } from '../src/lib/sinceCooked';
 export default function sinceCookedTests() {
     suite('how long ago');
 
-    // A Tuesday afternoon.
-    const now = new Date(2026, 8, 22, 15, 0, 0);
+    // Wall-clock times in Berlin (summer time, UTC+2), which is whose
+    // midnight counts — whatever time zone the tests run in.
     const at = (year: number, month: number, day: number, hour = 12) =>
-        new Date(year, month, day, hour);
+        new Date(Date.UTC(year, month, day, hour - 2));
+    // A Tuesday afternoon.
+    const now = at(2026, 8, 22, 15);
 
     equal('this morning', sinceCooked(at(2026, 8, 22, 8), now), { key: 'today', count: 0 });
 

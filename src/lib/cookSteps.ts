@@ -19,7 +19,7 @@ export interface StepTimer {
 }
 
 // Mixed numbers and fractions first, so "1 1/2 Stunden" is not read as "2 Stunden".
-const NUMBER = String.raw`\d+\s+\d+\s*\/\s*\d+|\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?|½|eine[nm]?|ein|one|an?|half an|einer halben|eine halbe`;
+const NUMBER = String.raw`\d+\s*½|\d+\s+\d+\s*\/\s*\d+|\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?|½|eine[nm]?|ein|one|an?|half an|einer halben|eine halbe`;
 const UNIT = String.raw`sekunden|sekunde|sek\.?|seconds?|secs?|minuten|minutes?|min\.?|mins?|stunden|stunde|std\.?|hours?|hrs?|h`;
 const TIMER = new RegExp(
     String.raw`(?<![\w\/-])(${NUMBER})(?:\s*(?:-|–|—|bis|to)\s*(\d+(?:[.,]\d+)?))?\s*(${UNIT})(?![\p{L}])`,
@@ -30,6 +30,8 @@ function amountOf(word: string): number | null {
     const lower = word.toLowerCase();
     if (/^(eine[nm]?|ein|one|an?)$/.test(lower)) return 1;
     if (/^(½|half an|einer halben|eine halbe)$/.test(lower)) return 0.5;
+    const mixed = /^(\d+)\s*½$/.exec(lower);
+    if (mixed) return Number(mixed[1]) + 0.5;
     return parseQuantity(lower);
 }
 

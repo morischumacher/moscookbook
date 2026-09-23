@@ -67,7 +67,8 @@ const VULGAR: Record<string, string> = {
 function normalise(text: string): string {
     let result = text;
     for (const [glyph, ascii] of Object.entries(VULGAR)) {
-        result = result.replaceAll(glyph, ascii);
+        // "1½" is one and a half, not "11/2": a space goes between.
+        result = result.replace(new RegExp(`(\\d)?${glyph}`, 'g'), (_, digit) => (digit ? `${digit} ${ascii}` : ascii));
     }
     return result.trim();
 }

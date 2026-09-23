@@ -5,9 +5,9 @@ import { collectionLines, itemsOf, listOf, recipeLines, removeLines } from '@/li
 import { menuLines } from '@/lib/menuDb';
 
 const body = z.union([
-    z.object({ recipeId: z.number().int().positive(), servings: z.number().int().min(1).max(100).nullable().optional(), locale: z.enum(['de', 'en']).optional() }),
-    z.object({ collectionId: z.number().int().positive(), locale: z.enum(['de', 'en']).optional() }),
-    z.object({ menuId: z.number().int().positive() }),
+    z.object({ recipeId: z.number().int().positive().max(2_147_483_647), servings: z.number().int().min(1).max(100).nullable().optional(), locale: z.enum(['de', 'en']).optional() }),
+    z.object({ collectionId: z.number().int().positive().max(2_147_483_647), locale: z.enum(['de', 'en']).optional() }),
+    z.object({ menuId: z.number().int().positive().max(2_147_483_647) }),
 ]);
 
 /**

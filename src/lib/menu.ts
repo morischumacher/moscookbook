@@ -51,7 +51,7 @@ export const menuInputSchema = z.object({
                 dishes: z
                     .array(
                         z.object({
-                            recipeId: z.number().int().positive().nullable().default(null),
+                            recipeId: z.number().int().positive().max(2_147_483_647).nullable().default(null),
                             title: z.string().trim().max(160).default(''),
                             description: z.string().trim().max(240).optional().transform((value) => value || null),
                         })

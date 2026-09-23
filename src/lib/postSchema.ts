@@ -41,8 +41,8 @@ export const postInputSchema = z.object({
 
     // What the entry is about, in the order they were listed. Both optional:
     // an entry never needs a recipe.
-    recipeIds: z.array(z.number().int().positive()).max(30).default([]),
-    collectionIds: z.array(z.number().int().positive()).max(10).default([]),
+    recipeIds: z.array(z.number().int().positive().max(2_147_483_647)).max(30).default([]),
+    collectionIds: z.array(z.number().int().positive().max(2_147_483_647)).max(10).default([]),
 
     // Not a date: the moment is the server's to decide, and a client that can
     // set it could publish something into the past or the future.

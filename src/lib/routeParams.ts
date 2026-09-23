@@ -14,8 +14,13 @@
  * `/^\d+$/` before `Number` is the part `parseInt` cannot do.
  */
 export function positiveIntId(raw: string | null | undefined): number | null {
-    if (typeof raw !== 'string' || !/^\d{1,15}$/.test(raw)) return null;
+    if (typeof raw !== 'string' || !/^\d{1,10}$/.test(raw)) return null;
 
     const value = Number(raw);
-    return value > 0 ? value : null;
+    // Every id column is a Postgres INT4. A larger number is no row at all —
+    // and handed to Prisma it was a 500 and an error report, from anybody.
+    return value > 0 && value <= MAX_ID ? value : null;
 }
+
+/** The largest id an INT4 column holds. */
+export const MAX_ID = 2_147_483_647;
