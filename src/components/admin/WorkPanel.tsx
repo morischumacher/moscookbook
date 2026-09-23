@@ -12,6 +12,9 @@ interface Item {
     title: string;
     createdAt: string;
     closedAt: string | null;
+    closedReason: string | null;
+    auto: boolean;
+    dismissed: boolean;
 }
 
 /**
@@ -76,28 +79,45 @@ export default function WorkPanel() {
             ) : (
                 <ul className="mt-6 divide-y divide-line">
                     {items.map((item) => (
-                        <li key={item.id} className={`py-4 ${item.closedAt ? 'opacity-60' : ''}`}>
+                        <li key={item.id} className={`py-4 ${item.closedAt || item.dismissed ? 'opacity-60' : ''}`}>
                             <p className="text-xs uppercase tracking-widest text-faint">
                                 #{item.id} · {t(`kind.${item.kind}`)} · {formatDate(new Date(item.createdAt), locale, 'short')}
-                                {item.closedAt && <> · {t('closed')}</>}
+                                {item.auto && <> · {t('auto')}</>}
+                                {item.dismissed ? (
+                                    <> · {t('withdrawn')}</>
+                                ) : (
+                                    item.closedAt && <> · {t(`closedAs.${item.closedReason ?? 'done'}`)}</>
+                                )}
                             </p>
                             <p className="mt-1 break-words font-medium">{item.title}</p>
                             {item.note && <p className="mt-1 text-sm text-muted">„{item.note}“</p>}
                             <div className="mt-2 flex gap-4 text-sm">
-                                <button
-                                    type="button"
-                                    onClick={() => void act(item.id, { method: 'PATCH', body: JSON.stringify({ closed: !item.closedAt }) })}
-                                    className="underline underline-offset-4"
-                                >
-                                    {item.closedAt ? t('reopen') : t('close')}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => void act(item.id, { method: 'DELETE' })}
-                                    className="text-muted underline underline-offset-4 hover:text-danger"
-                                >
-                                    {t('remove')}
-                                </button>
+                                {item.dismissed ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => void act(item.id, { method: 'PATCH', body: JSON.stringify({ dismissed: false }) })}
+                                        className="underline underline-offset-4"
+                                    >
+                                        {t('restore')}
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => void act(item.id, { method: 'PATCH', body: JSON.stringify({ closed: !item.closedAt }) })}
+                                            className="underline underline-offset-4"
+                                        >
+                                            {item.closedAt ? t('reopen') : t('close')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => void act(item.id, { method: 'DELETE' })}
+                                            className="text-muted underline underline-offset-4 hover:text-danger"
+                                        >
+                                            {t('withdraw')}
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </li>
                     ))}

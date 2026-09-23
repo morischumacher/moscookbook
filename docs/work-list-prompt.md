@@ -100,10 +100,27 @@ The answer looks like this:
 
 - Work only on `open`. `recentlyClosed` shows what was already done in the
   last 30 days, so you do not redo it.
+- `auto: true` means the site added the item itself because it is an obvious
+  failure (a server error, an error that happened more than once, a page
+  that could not be read or was only half read). `auto: false` means the
+  admin chose it — those come first.
+- `data.appVersion` is the build that was running when the data was taken;
+  `currentVersion` at the top is the build running now. An error whose
+  `lastSeenAt` is older than the current build may already be fixed.
 - `note` is the admin's own words about what is wrong. It is the most
   important field. Read it first.
 - Everything was anonymized when it was shared: `[Person]`, `[E-Mail]` and
   `[token]` are placeholders. Never try to recover what they replaced.
+
+### How items open and close (you do not close them)
+
+Items close **by themselves** when their source is dealt with: an error is
+marked resolved, a capture is read correctly or taken into the cookbook, a
+ticket is marked done, or the source is deleted (`closedReason` says which).
+The admin can also close one by hand. **An error that happens again reopens
+its item**, which is how a fix that did not hold becomes visible. There is
+no way for you to close an item, and you should not try: your part is the
+pull request, the owner's part is merging it and marking things done.
 
 ## 2. The three kinds of item
 
@@ -113,9 +130,12 @@ site, a note) that should have become a recipe draft.
 
 `data` holds: `source`, `sourceUrl`, `status` (`ready` / `needsWork` /
 `failed`), `reason` (a code like `reason:pagePartial`; see
-`src/lib/captureReasons.ts`), `readBy` (`rules`, `profile`, `rules+ai`, …),
-`sharedText`, `hadScreenshot`, and the `draft` that came out (title,
-ingredient lines, instructions).
+`src/lib/captureReasons.ts`) and `reasonText` (the same in English),
+`readBy` (`rules`, `profile`, `rules+ai`, …), `aiProvider`, `aiMode` (whether
+the AI was allowed to help at all), `siteProfile` (whether the site's layout
+had been learned, and how often that failed), `sharedText`, `hadScreenshot`,
+and the `draft` that came out (title, ingredient lines, instructions,
+servings, times, category).
 
 Where the code is:
 - `src/lib/captureProcess.ts`: the pipeline, one path per source
@@ -190,5 +210,5 @@ name, the commit message(s) and the pull request text, each ready to copy.
    - **fixed**: what changed, and the test that proves it;
    - **not fixed**: why (not reproducible, needs a decision, needs data you
      do not have, is actually fine), and what the owner should decide.
-4. Do not merge. The owner reviews, merges, and closes the items on the work
-   list (Verwaltung → Meldungen → Arbeitsliste).
+4. Do not merge. The owner reviews and merges; the items then close as
+   described in section 1.

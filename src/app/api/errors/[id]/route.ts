@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
+import { syncWorkItem } from '@/lib/workItemsDb';
 
 /**
  * Marks an error as dealt with.
@@ -25,6 +26,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         where: { id: errorId },
         data: { resolvedAt: new Date() },
     });
+    // Dealt with here is dealt with on the work list too.
+    await syncWorkItem('error', errorId);
 
     return NextResponse.json({ ok: true });
 }
@@ -41,5 +44,6 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     }
 
     await prisma.errorLog.deleteMany({ where: { id: errorId } });
+    await syncWorkItem('error', errorId);
     return NextResponse.json({ ok: true });
 }

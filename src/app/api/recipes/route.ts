@@ -7,6 +7,7 @@ import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
 import { newRecipeData } from '@/lib/recipeRepo';
 import { failed } from '@/lib/reportServerError';
+import { syncWorkItem } from '@/lib/workItemsDb';
 
 export async function POST(req: NextRequest) {
     const auth = await requireAdmin();
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
                 where: { id: captureId },
                 data: { status: 'published', recipeId: recipe.id, error: null },
             });
+            await syncWorkItem('capture', captureId);
         }
 
         // A new recipe can bring a category nobody has used before, and the

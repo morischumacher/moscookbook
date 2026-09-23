@@ -940,6 +940,13 @@ model WorkItem {
   data      Json
   createdAt DateTime  @default(now())
   closedAt  DateTime?
+  /// Why it closed: done | resolved | published | ready | removed.
+  closedReason String?
+  /// Added by the application (an obvious failure), not by the admin.
+  auto      Boolean   @default(false)
+  /// Taken off the list by the admin. Kept rather than deleted, so an
+  /// automatic item that was not wanted does not come straight back.
+  dismissedAt DateTime?
 
   @@unique([kind, refId])
   @@index([closedAt, createdAt])

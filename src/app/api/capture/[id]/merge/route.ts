@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
 import { draftFromJson } from '@/lib/captureDraft';
+import { syncWorkItem } from '@/lib/workItemsDb';
 
 const bodySchema = z.object({ recipeId: z.number().int().positive() });
 
@@ -113,6 +114,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
                 processedAt: new Date(),
             },
         });
+        await syncWorkItem('capture', capture.id);
 
         return NextResponse.json({ success: true, imagesAdded: fresh.length });
     } catch (error) {
