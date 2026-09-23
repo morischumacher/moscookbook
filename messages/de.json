@@ -427,7 +427,17 @@
     "statePublicCollection": "Wer diesen Link hat, kann die Sammlung sehen.",
     "revokeConfirmCollection": "Diesen Link zurückziehen? Wer ihn schon bekommen hat, kann die Sammlung dann nicht mehr öffnen.",
     "copyFailed": "Kopieren hat nicht geklappt \u2014 der Link steht im Feld darüber.",
-    "linkFailed": "Der Link konnte nicht erstellt werden \u2014 es wurde nichts geteilt."
+    "linkFailed": "Der Link konnte nicht erstellt werden \u2014 es wurde nichts geteilt.",
+    "whoCanSee": "Wer das sehen kann",
+    "stageHousehold": "Nur der Haushalt",
+    "stageHouseholdBody": "Alle mit einem Konto hier. Ein schon herausgegebener Link hört auf zu funktionieren.",
+    "stageLink": "Wer den Link hat",
+    "stageLinkBody": "Eine geheime Adresse ohne Konto. Du kannst sie später zurückziehen — einen verschickten Link bekommst du aber nicht zurück.",
+    "stageWeb": "Im offenen Web",
+    "stageWebBody": "Die eigene Adresse antwortet jedem, und eine Suchmaschine darf eine Kopie behalten. Bewerten und Fotos brauchen weiterhin ein Konto.",
+    "stageWebBodyOther": "Die eigene Adresse antwortet jedem, und eine Suchmaschine darf eine Kopie behalten. Gezeigt werden nur die Rezepte, die selbst öffentlich sind.",
+    "done": "Fertig",
+    "failed": "Das hat nicht geklappt."
   },
   "Errors": {
     "title": "Fehler",
@@ -561,7 +571,8 @@
     "confirmDelete": "Diese Sammlung löschen? Die Rezepte selbst bleiben.",
     "newTitle": "Neue Sammlung",
     "editTitle": "Sammlung bearbeiten",
-    "sharedBy": "Eine Sammlung aus Mo’sCookbook"
+    "sharedBy": "Eine Sammlung aus Mo’sCookbook",
+    "hiddenCount": "{count, plural, one {# weiteres, privat} other {# weitere, privat}}"
   },
   "Visibility": {
     "heading": "Sichtbarkeit",

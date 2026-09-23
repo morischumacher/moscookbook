@@ -11,24 +11,37 @@ export default function accessTests() {
     // stops being true is a quiet one.
     equal('the front page needs an account', pathAccess('/en/'), 'account');
     equal('a bare locale needs an account', pathAccess('/de'), 'account');
-    // One recipe is the single path whose answer lives in the database: it is
-    // open when the recipe is public and needs an account when it is not, and
-    // only the page can tell. Everything about this rule is about keeping that
-    // exception as small as it can be.
-    equal('one recipe is decided by the recipe', pathAccess('/de/recipe/kaesespaetzle'), 'recipe');
-    equal('a trailing slash is the same page', pathAccess('/de/recipe/kaesespaetzle/'), 'recipe');
-    equal('and in the other locale', pathAccess('/en/recipe/plum-cake'), 'recipe');
+    // Three paths carry the answer in the database: one recipe, one blog
+    // entry, one collection. Each is open when its row says public and needs
+    // an account when it does not, and only the page can tell. Everything
+    // about this rule is about keeping that exception as small as it can be.
+    equal('one recipe is decided by the recipe', pathAccess('/de/recipe/kaesespaetzle'), 'decides');
+    equal('a trailing slash is the same page', pathAccess('/de/recipe/kaesespaetzle/'), 'decides');
+    equal('and in the other locale', pathAccess('/en/recipe/plum-cake'), 'decides');
+    equal('one entry is decided by the entry', pathAccess('/de/blog/kuchenabend'), 'decides');
+    equal('one collection by the collection', pathAccess('/en/collections/sunday'), 'decides');
+
+    /*
+     * And the indexes are not. `/de/blog` and `/de/collections` list
+     * everything the household has, which is a different thing from the one
+     * entry somebody chose to publish — publishing one item must never open
+     * the drawer it came out of.
+     */
+    equal('the blog index still needs an account', pathAccess('/de/blog'), 'account');
+    equal('so does the collections index', pathAccess('/en/collections'), 'account');
 
     // The narrowness is the point. Anything deeper than one segment is a
     // different page that nobody has decided about, so it stays private.
     equal('a page under a recipe is not covered', pathAccess('/de/recipe/x/edit'), 'account');
     equal('nor two segments of anything', pathAccess('/de/recipe/x/photos/3'), 'account');
+    equal('nor under an entry', pathAccess('/de/blog/x/edit'), 'account');
+    equal('nor under a collection', pathAccess('/de/collections/x/edit'), 'account');
     equal('the recipe list itself still needs an account', pathAccess('/de/recipe'), 'account');
     equal('and so does the front page', pathAccess('/de'), 'account');
 
     // A slug cannot climb into the admin area or out of the recipe rule by
     // being named after something else.
-    equal('a slug that looks like admin is still a recipe', pathAccess('/de/recipe/admin'), 'recipe');
+    equal('a slug that looks like admin is still a recipe', pathAccess('/de/recipe/admin'), 'decides');
     equal('and /admin is still admin', pathAccess('/de/admin/recipe/x'), 'admin');
     equal('the admin area needs an admin', pathAccess('/en/admin'), 'admin');
     equal('everything under admin needs an admin', pathAccess('/de/admin/inbox'), 'admin');
@@ -140,7 +153,7 @@ export default function accessTests() {
 
     check('an open page needs no session at the proxy', proxyStepsAside('open'));
     check('an unmatched path is left alone', proxyStepsAside('unmatched'));
-    check('one recipe is left to the page, which checks isPublic itself', proxyStepsAside('recipe'));
+    check('a page that decides for itself is left to it', proxyStepsAside('decides'));
     check('an account page is not', !proxyStepsAside('account'));
     check('an admin page is not', !proxyStepsAside('admin'));
 

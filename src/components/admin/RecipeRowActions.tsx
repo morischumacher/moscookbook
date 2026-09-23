@@ -1,155 +1,62 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from '@/i18n/routing';
-import InlineConfirm from '@/components/ui/InlineConfirm';
+import ShareButton from '@/components/share/ShareButton';
+import { stageOf } from '@/lib/shareStage';
 
 /**
- * Publish, unpublish and share, from the list.
+ * Who can see this one, from the list.
  *
- * These lived only on the recipe's own page, which meant that changing the
- * visibility of four recipes was four page loads, four scrolls past the
- * ingredients and four journeys back. The list is where somebody thinks about
- * recipes in the plural, so it is where the actions that apply to them in the
- * plural belong.
+ * This used to be three words — Share, Publish, Make private — doing the same
+ * job as the recipe page in a shorter form, and it carried the same fault: a
+ * private recipe with no link, shared, quietly minted a permanent public link
+ * and copied it. In a list, where a mis-tap is likeliest because the rows are
+ * close together and the labels are short.
  *
- * Three words rather than a panel. The row already carries a title, a
- * category, a count and two other actions; a bordered box per row would turn
- * a list into a stack of forms. What each word does is the same as on the
- * recipe page, and the recipe page is still where the consequences are
- * explained in sentences — this is the shortcut, not the explanation.
- *
- * **Share** does the one obvious thing for whichever state the recipe is in: a
- * published recipe copies its own address, a private one copies its secret
- * link, and a private one that has no link yet makes one and copies that. The
- * distinction matters to the person deciding; it does not matter to the person
- * who just wants to send it to their mother.
+ * One word now, and it opens the same control the recipe page opens, which is
+ * the whole point: the answer to "who can see this" should not depend on which
+ * screen you asked from. Beside it, where the recipe currently stands, so the
+ * list can still be read at a glance without opening anything — which is what
+ * the three words were really for.
  */
 export default function RecipeRowActions({
     recipeId,
+    title,
+    locale,
     isPublic,
     url,
     shareUrl,
 }: {
     recipeId: number;
+    title: string;
+    locale: string;
     isPublic: boolean;
     /** The recipe's own address. */
     url: string;
     /** The secret link, when one already exists. */
     shareUrl: string | null;
 }) {
-    const t = useTranslations('Visibility');
-    const router = useRouter();
+    const t = useTranslations('Share');
 
-    const [busy, setBusy] = useState(false);
-    const [copied, setCopied] = useState(false);
-    const [error, setError] = useState('');
-
-    const toClipboard = async (text: string) => {
-        try {
-            await navigator.clipboard.writeText(text);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 2000);
-        } catch {
-            // Clipboard access can be refused. Saying so is more use than a
-            // silent no-op, because there is no visible field to copy from
-            // here the way there is on the recipe page.
-            setError(t('copyFailed'));
-        }
-    };
-
-    const share = async () => {
-        setError('');
-
-        if (isPublic) {
-            await toClipboard(url);
-            return;
-        }
-
-        if (shareUrl) {
-            await toClipboard(shareUrl);
-            return;
-        }
-
-        setBusy(true);
-
-        try {
-            const res = await fetch(`/api/recipes/${recipeId}/share`, { method: 'POST' });
-            const data = await res.json().catch(() => null);
-
-            if (!res.ok || !data?.url) {
-                setError(data?.message || t('failed'));
-                return;
-            }
-
-            await toClipboard(data.url);
-            router.refresh();
-        } catch {
-            setError(t('failed'));
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    const setPublic = async (next: boolean) => {
-        setBusy(true);
-        setError('');
-
-        try {
-            const res = await fetch(`/api/recipes/${recipeId}/visibility`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isPublic: next }),
-            });
-
-            if (!res.ok) {
-                const data = await res.json().catch(() => null);
-                setError(data?.message || t('failed'));
-                return;
-            }
-
-            router.refresh();
-        } catch {
-            setError(t('failed'));
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    const link = 'underline underline-offset-4 hover:text-muted disabled:opacity-50';
+    const stage = stageOf({ isPublic, linkUrl: shareUrl });
+    const label =
+        stage === 'web' ? t('stageWeb') : stage === 'link' ? t('stageLink') : t('stageHousehold');
 
     return (
         <span className="flex flex-wrap items-center gap-3">
-            {error && <span className="text-danger">{error}</span>}
+            <span className="text-xs uppercase tracking-widest text-faint">{label}</span>
 
-            <button type="button" onClick={() => void share()} disabled={busy} className={link}>
-                {copied ? t('copied') : t('share')}
-            </button>
-
-            {isPublic ? (
-                <button
-                    type="button"
-                    onClick={() => void setPublic(false)}
-                    disabled={busy}
-                    className={link}
-                >
-                    {t('makePrivate')}
-                </button>
-            ) : (
-                // Asks first, here as on the recipe page. The list is exactly
-                // where a mis-tap is most likely — the rows are close together
-                // and the labels are short — and this is the one action that
-                // cannot be fully undone.
-                <InlineConfirm
-                    label={t('makePublic')}
-                    question={t('sureQuestion')}
-                    confirmLabel={t('makePublic')}
-                    disabled={busy}
-                    onConfirm={() => setPublic(true)}
-                    className={link}
-                />
-            )}
+            <ShareButton
+                id={recipeId}
+                kind="recipe"
+                title={title}
+                locale={locale}
+                isPublic={isPublic}
+                linkUrl={shareUrl}
+                ownUrl={url}
+                mayChange
+                className="underline underline-offset-4 hover:text-muted"
+            />
         </span>
     );
 }

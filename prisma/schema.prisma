@@ -197,6 +197,13 @@ model Post {
   /// area and nowhere else.
   publishedAt DateTime?
 
+  /// Whether this entry's own address answers without a session.
+  ///
+  /// A different question from `publishedAt`, which says whether the entry is
+  /// finished and shows in the blog at all. This one is the third stage of
+  /// sharing: private, secret link, open web.
+  isPublic    Boolean   @default(false)
+
   /// The recipe this belongs to, when it belongs to one.
   ///
   /// SetNull rather than Cascade: deleting a recipe should not silently delete
@@ -220,6 +227,7 @@ model Post {
   updatedAt   DateTime  @updatedAt
 
   @@index([publishedAt])
+  @@index([isPublic])
   @@index([recipeId, publishedAt])
 }
 
@@ -560,6 +568,10 @@ model Collection {
   /// One line, shown under the title. Optional.
   description String?
 
+  /// Whether this collection's own address answers without a session.
+  /// The third stage of sharing, as on a recipe and an entry.
+  isPublic    Boolean  @default(false)
+
   /// The public link, or null. Same mechanism as a recipe's, deliberately:
   /// one way of making something public is one way of taking it back.
   shareToken  String?  @unique
@@ -570,6 +582,7 @@ model Collection {
   recipes     CollectionRecipe[]
 
   @@index([createdAt])
+  @@index([isPublic])
 }
 
 /// One recipe in one collection, in the order somebody arranged.

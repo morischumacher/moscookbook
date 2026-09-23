@@ -20,30 +20,42 @@ export type Access =
     /** Admin only. */
     | 'admin'
     /**
-     * One recipe, which may or may not be public — only the row knows.
+     * One thing that may or may not be public — only the row knows.
      *
      * The proxy cannot answer this: it runs at the network edge, in front of
      * the application, and giving it a database connection to consult on every
      * request is the wrong shape for both. So it steps aside and the page
-     * decides, which is the *one* place in this file where the decision is
-     * made somewhere else.
+     * decides, which is the *one* kind of path in this file where the decision
+     * is made somewhere else.
+     *
+     * Three of them now — a recipe, a blog entry, a collection — because all
+     * three can be on the open web since the share control started offering
+     * the same three stages for everything it shares. It was one when only
+     * recipes had a public address.
      *
      * That is a real weakening — the central rule stops being the whole
-     * answer — so the pattern below is deliberately narrow: exactly one
-     * segment after `/recipe/`, nothing deeper. A page added at
+     * answer — so the patterns below stay deliberately narrow: exactly one
+     * segment after the section, nothing deeper. A page added at
      * `/recipe/<slug>/edit` tomorrow falls back to needing an account, rather
      * than inheriting a door somebody opened for a different purpose.
      *
-     * src/app/[locale]/recipe/[slug]/page.tsx is the page that must enforce
-     * it, and check:design refuses to let it stop.
+     * Each of the three pages must enforce it, and check:design refuses to
+     * let the recipe one stop.
      */
-    | 'recipe';
+    | 'decides';
 
 const LOCALISED = /^\/(?:en|de)(?:\/|$)/;
 const ADMIN_PATH = /^\/(?:en|de)\/admin(?:\/|$)/;
 
-/** `/de/recipe/kaesespaetzle`, and nothing with a further segment on it. */
-const RECIPE_PATH = /^\/(?:en|de)\/recipe\/[^/]+\/?$/;
+/**
+ * `/de/recipe/kaesespaetzle`, `/en/blog/some-entry`, `/de/collections/menue`
+ * — and nothing with a further segment on any of them.
+ *
+ * The section lists are *not* here. `/de/blog` and `/de/collections` are
+ * indexes of everything the household has, which is a different thing from
+ * one entry somebody chose to publish, and they keep needing an account.
+ */
+const DECIDES_PATH = /^\/(?:en|de)\/(?:recipe|blog|collections)\/[^/]+\/?$/;
 
 /**
  * The pages that have to work without an account, and why each one does: the
@@ -62,10 +74,10 @@ const OPEN_PATH = /^\/(?:en|de)\/(?:login|register|forgot|reset|verify|r|p|c|imp
 /**
  * Whether the proxy lets a request through without looking at the session.
  *
- * Three of the five values. `open` and `unmatched` always did. `recipe` was
+ * Three of the five values. `open` and `unmatched` always did. `decides` was
  * *defined* above as "the proxy steps aside and the page decides" and
  * *tested* to be returned for a recipe path — and the proxy's own line
- * listed only the other two, so `recipe` fell through to the account check.
+ * listed only the other two, so it fell through to the account check.
  * A public recipe was not reachable at its own address without an account,
  * only through a share link, and the page's public branch and the JSON-LD
  * it emits for search engines were unreachable code. The feature that
@@ -76,7 +88,7 @@ const OPEN_PATH = /^\/(?:en|de)\/(?:login|register|forgot|reset|verify|r|p|c|imp
  * here now so that a test can hold all five values against it.
  */
 export function proxyStepsAside(access: Access): boolean {
-    return access === 'unmatched' || access === 'open' || access === 'recipe';
+    return access === 'unmatched' || access === 'open' || access === 'decides';
 }
 
 export function pathAccess(pathname: string): Access {
@@ -85,7 +97,7 @@ export function pathAccess(pathname: string): Access {
     if (OPEN_PATH.test(pathname)) return 'open';
     // After the open list and after admin, so that neither can be widened by
     // a slug that happens to look like one of them.
-    if (RECIPE_PATH.test(pathname)) return 'recipe';
+    if (DECIDES_PATH.test(pathname)) return 'decides';
     return 'account';
 }
 

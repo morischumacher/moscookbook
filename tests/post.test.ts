@@ -137,10 +137,20 @@ export default function postTests() {
         'open'
     );
 
-    // The blog itself is not open. Reading the entries needs an account; only
-    // an individual entry can be let out, and only through a token.
+    /*
+     * The blog itself is not open: reading the entries needs an account.
+     *
+     * One entry is now a page that decides for itself, the way a recipe
+     * already did — an entry can be put on the open web, and then its own
+     * address answers without a session. That changed when the share control
+     * started offering the same three stages for everything it shares; before
+     * it, the only way out for an entry was a `/p/` token.
+     *
+     * The index stays shut either way. Publishing one entry must not open the
+     * list of everything the household has written.
+     */
     equal('the blog index needs an account', pathAccess('/de/blog'), 'account');
-    equal('an entry at its normal address needs an account', pathAccess('/de/blog/zwetschgen'), 'account');
+    equal('an entry is decided by the entry', pathAccess('/de/blog/zwetschgen'), 'decides');
     equal('writing them needs an admin', pathAccess('/de/admin/posts'), 'admin');
     // One letter apart from the open share route, and it must not be swallowed
     // by it.

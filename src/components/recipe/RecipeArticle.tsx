@@ -8,7 +8,6 @@ import RecipeBody from '@/components/recipe/RecipeBody';
 import Gallery from '@/components/recipe/Gallery';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import Cooked, { type CookedEntry } from '@/components/recipe/Cooked';
-import Visibility from '@/components/recipe/Visibility';
 import SimilarRecipes from '@/components/recipe/SimilarRecipes';
 import type { SimilarRecipe } from '@/lib/similarRecipes';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
@@ -204,7 +203,6 @@ export default async function RecipeArticle({
                 <Gallery
                     images={recipe.images.map((image) => image.url)}
                     title={recipe.title}
-                    variant="hero"
                 />
             </div>
 
@@ -297,20 +295,17 @@ export default async function RecipeArticle({
                     </div>
                 )}
 
-                {/* One panel, not two. Publishing and the secret link are
-                    two answers to one question — who can see this — and they
-                    were briefly two stacked boxes saying it twice. */}
-                {mode === 'private' && isAdmin && (
-                    <div className="print:hidden mt-6">
-                        <Visibility
-                            recipeId={recipe.id}
-                            isPublic={recipe.isPublic}
-                            url={url}
-                            shareUrl={publicUrl}
-                            locale={locale}
-                        />
-                    </div>
-                )}
+                {/*
+                    The visibility panel that stood here is gone.
+                    
+                    It answered "who can see this" with two of the three
+                    stages and a box, while the Share button further down
+                    answered it a third way by minting a link without saying
+                    so. One control now — the button opens it — and the one
+                    thing the panel had that the button did not, a state you
+                    could read without pressing anything, is the line beside
+                    the button in the admin list.
+                */}
 
                 {/* On paper the pills and the picture are gone, so the facts
                     come back as a plain line. */}
@@ -333,22 +328,20 @@ export default async function RecipeArticle({
                     instructions={recipe.instructions}
                     baseServings={recipe.servings}
                     title={recipe.title}
-                    // What the share sheet hands over: the public link, so
-                    // that it reaches someone without an account. When there is
-                    // none yet and this person may publish, the button makes
-                    // one in the same tap rather than quietly sharing an
-                    // address that ends at a sign-in form.
-                    // A public recipe shares its own address; a private one
-                    // shares the secret link, or offers to make one, because
-                    // its own address ends at a sign-in form.
-                    shareUrl={
-                        mode === 'shared' || recipe.isPublic ? url : publicUrl ?? undefined
-                    }
-                    shareCreateUrl={
-                        mode === 'private' && isAdmin && !recipe.isPublic && !publicUrl
-                            ? `/api/recipes/${recipe.id}/share?locale=${locale}`
-                            : undefined
-                    }
+                    locale={locale}
+                    /*
+                     * Where this recipe stands, and whether this person may
+                     * move it. The button opens the dialog for an admin and
+                     * hands the address over directly for anybody else —
+                     * somebody holding a shared link has no stages to choose
+                     * between, so a dialog would only be three refusals.
+                     */
+                    share={{
+                        isPublic: recipe.isPublic,
+                        linkUrl: publicUrl,
+                        ownUrl: url,
+                        mayChange: mode === 'private' && isAdmin,
+                    }}
                 />
 
                 {mode === 'private' && (

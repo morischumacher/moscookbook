@@ -427,7 +427,17 @@
     "statePublicCollection": "Anyone with this link can see this collection.",
     "revokeConfirmCollection": "Withdraw this link? Anyone you have already sent it to will no longer be able to open the collection.",
     "copyFailed": "Could not copy \u2014 the link is in the field above.",
-    "linkFailed": "The link could not be made \u2014 nothing was shared."
+    "linkFailed": "The link could not be made \u2014 nothing was shared.",
+    "whoCanSee": "Who can see this",
+    "stageHousehold": "Only the household",
+    "stageHouseholdBody": "Anybody with an account here. Any link you handed out stops working.",
+    "stageLink": "Anyone with the link",
+    "stageLinkBody": "A secret address that needs no account. You can withdraw it later — but a link you have already sent cannot be unsent.",
+    "stageWeb": "On the open web",
+    "stageWebBody": "Its own address answers to anybody, and a search engine may keep a copy. Rating and photographs still need an account.",
+    "stageWebBodyOther": "Its own address answers to anybody, and a search engine may keep a copy. Only the recipes that are public in their own right are shown.",
+    "done": "Done",
+    "failed": "That did not work."
   },
   "Errors": {
     "title": "Errors",
@@ -561,7 +571,8 @@
     "confirmDelete": "Delete this collection? The recipes themselves stay.",
     "newTitle": "New collection",
     "editTitle": "Edit collection",
-    "sharedBy": "A collection from Mo’sCookbook"
+    "sharedBy": "A collection from Mo’sCookbook",
+    "hiddenCount": "{count, plural, one {# more, private} other {# more, private}}"
   },
   "Visibility": {
     "heading": "Visibility",

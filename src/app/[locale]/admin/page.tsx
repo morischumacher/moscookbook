@@ -112,6 +112,8 @@ export default async function AdminDashboard({
                             <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                                 <RecipeRowActions
                                     recipeId={recipe.id}
+                                    title={recipe.title}
+                                    locale={locale}
                                     isPublic={recipe.isPublic}
                                     url={`${getSiteUrl()}/${locale}/recipe/${recipe.slug}`}
                                     shareUrl={

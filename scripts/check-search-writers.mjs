@@ -70,6 +70,13 @@ const ALLOWED = new Map([
         },
     ],
     [
+        'post src/app/api/posts/[id]/visibility/route.ts',
+        {
+            why: 'only ever sets the one boolean that decides whether the open web may read it; the entry\'s text is untouched',
+            marker: /data:\s*\{\s*isPublic:\s*parsed\.data\.isPublic\s*\}/,
+        },
+    ],
+    [
         'post src/app/api/posts/[id]/share/route.ts',
         {
             why: 'only ever sets or clears the share token',
