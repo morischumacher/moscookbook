@@ -245,6 +245,19 @@ export default function AdminDevicesPage() {
                             <li>{t('sc2Step5')}</li>
                         </ol>
                         <p className="mt-4 text-sm text-muted">{t('sc2Note')}</p>
+
+                        <h3 className="mt-6 text-sm font-bold">{t('sc2LinkTitle')}</h3>
+                        <ol className="mt-3 flex list-decimal flex-col gap-3 pl-5 text-sm leading-relaxed marker:text-faint">
+                            <li>{t('sc2Link1')}</li>
+                            <li>{t('sc2Link2')}</li>
+                            <li>
+                                {t('sc2Link3')}
+                                <pre className="mt-2 overflow-x-auto rounded border border-line p-3 font-mono text-xs">
+{`{ "url": <Clipboard>, "image": { "base64": <Base64 Encoded>, "mediaType": "image/jpeg" } }`}
+                                </pre>
+                            </li>
+                        </ol>
+                        <p className="mt-4 text-sm text-muted">{t('sc2LinkNote')}</p>
                     </Disclosure>
 
                     <Disclosure title={t('sc3Title')} subtitle={t('sc3Intro')}>

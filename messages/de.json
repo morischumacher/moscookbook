@@ -355,10 +355,10 @@
   },
   "Inbox": {
     "title": "Eingang",
-    "explanation": "Alles, was du vom Handy teilst, landet zuerst hier. Ins Kochbuch, als Entwurf, oder erst bearbeiten.",
+    "explanation": "Alles, was du vom Handy teilst oder hier einfügst, landet zuerst hier. Ins Kochbuch, als Entwurf, oder erst bearbeiten.",
     "loading": "Eingang wird geladen…",
     "rereading": "Wird noch einmal mit den Regeln gelesen…",
-    "empty": "Nichts da. Teile etwas von deinem Handy.",
+    "empty": "Nichts da. Teile etwas vom Handy oder füge oben einen Link ein.",
     "untitled": "Ohne Titel",
     "accept": "Ins Kochbuch",
     "finish": "Erst bearbeiten",
@@ -400,7 +400,51 @@
     "legendFinish": "Erst bearbeiten — öffnet das Rezeptformular mit allem ausgefüllt, um es vor dem Speichern zu korrigieren.",
     "legendRetry": "Mehr → Neu einlesen — liest den Link noch einmal mit den Regeln; die KI nur, wenn die Regeln nicht reichen. Kostenlos, solange keine KI nötig ist.",
     "legendAskAi": "Mehr → Mit KI lesen — lässt die KI lesen, auch wenn die Regeln meinen, sie hätten es geschafft. Kostet einen Aufruf.",
-    "legendRest": "Mehr → Quelle öffnen, Problem melden (ein Ticket, das diese Zeile schon beschreibt), Löschen."
+    "legendRest": "Mehr → Quelle öffnen, Problem melden (ein Ticket, das diese Zeile schon beschreibt), Löschen.",
+    "pasteLabel": "Link oder Rezept einfügen",
+    "pastePlaceholder": "https://… oder den Text eines Rezepts",
+    "pasteAdd": "Hinzufügen",
+    "pasteFailed": "Das konnte nicht hinzugefügt werden. Ist es ein Link oder Text?",
+    "searchPlaceholder": "Suchen",
+    "sortLabel": "Reihenfolge",
+    "sort": {
+      "newest": "Neueste zuerst",
+      "oldest": "Älteste zuerst",
+      "complete": "Vollständigste zuerst"
+    },
+    "filterSource": "Quelle",
+    "filterStatus": "Zustand",
+    "filterAll": "Alle",
+    "noMatches": "Nichts gefunden.",
+    "clearFilters": "Alles zeigen",
+    "reason": {
+      "notYoutube": "Das ist kein Link zu einem YouTube-Video.",
+      "youtubeUnreadable": "YouTube konnte nicht gelesen werden ({detail}).",
+      "pageUnreadable": "Die Seite konnte nicht gelesen werden ({detail}).",
+      "sharedTextUsed": "Die Seite selbst war nicht lesbar – dafür der mitgeschickte Text.",
+      "noPicture": "Es wurde kein Bild gespeichert.",
+      "pictureNeedsAi": "Das Bild ist gespeichert. Zum Auslesen braucht es die KI – oder du tippst es ab.",
+      "pictureUnreadable": "Das Bild ist gespeichert, ließ sich aber nicht wieder laden ({detail}).",
+      "picturePartial": "Auf dem Bild war nur ein Teil des Rezepts lesbar.",
+      "pictureFailed": "Das Bild ist gespeichert, das Auslesen hat aber nicht geklappt. Versuch es später mit „Neu einlesen“.",
+      "nothingSent": "Es ist nichts angekommen.",
+      "textPartial": "Nur ein Teil eines Rezepts wurde erkannt.",
+      "noLink": "Kein Link zum Öffnen.",
+      "somethingWrong": "Beim Lesen ist etwas schiefgegangen. Versuch es mit „Neu einlesen“.",
+      "noRecipe": "Hier war kein Rezept – nur ein Hinweis auf eines. Wahrscheinlich kannst du es löschen.",
+      "pagePartial": "Die Seite enthielt nur einen Teil des Rezepts.",
+      "videoPartial": "In der Videobeschreibung stand nur ein Teil des Rezepts.",
+      "videoSpoken": "Das Rezept steht nicht in der Beschreibung – es wird wohl nur im Video gesprochen. Anschauen und abtippen, oder einen Screenshot schicken.",
+      "videoSpokenNeedsAi": "Das Rezept wird nur im Video gesprochen. Die Untertitel sind da – „Mit KI lesen“ macht daraus ein Rezept."
+    },
+    "fetchFailure": {
+      "timeout": "Zeitüberschreitung",
+      "http-error": "die Seite hat abgelehnt",
+      "network": "keine Verbindung",
+      "unsafe-url": "unsichere Adresse",
+      "not-a-page": "keine Webseite",
+      "not-an-image": "kein Bild"
+    }
   },
   "Devices": {
     "title": "Geräte",
@@ -462,7 +506,12 @@
     "trouble413A": "Das Bild ist über 10 MB. Weniger Screenshots kombinieren oder bei „Convert Image“ die Qualität senken.",
     "troubleSilentQ": "Es passiert gar nichts",
     "troubleSilentA": "Meistens die Reihenfolge der Aktionen: kodiert werden muss vor dem Senden, nicht danach.",
-    "queuedNote": "Die Antwort sagt jetzt nur noch, dass etwas angekommen ist — gelesen wird es danach. Vorher wartete der Kurzbefehl, bis die Seite geholt, gelesen und gegebenenfalls ein Modell gefragt war; bei einer Rezeptseite waren das gemessene fünfzehn Sekunden mit dem Handy in der Hand."
+    "queuedNote": "Die Antwort sagt jetzt nur noch, dass etwas angekommen ist — gelesen wird es danach. Vorher wartete der Kurzbefehl, bis die Seite geholt, gelesen und gegebenenfalls ein Modell gefragt war; bei einer Rezeptseite waren das gemessene fünfzehn Sekunden mit dem Handy in der Hand.",
+    "sc2LinkTitle": "Mit Link dazu (empfohlen für Instagram)",
+    "sc2Link1": "In Instagram beim Beitrag auf Teilen → „Link kopieren“ tippen, dann den Screenshot machen.",
+    "sc2Link2": "Im Screenshot-Kurzbefehl vor „Get Contents of URL“ die Aktion „Get Clipboard“ einfügen.",
+    "sc2Link3": "Im Wörterbuch des Anfrage-Inhalts ein Textfeld „url“ hinzufügen und als Wert die blaue Variable „Clipboard“ wählen:",
+    "sc2LinkNote": "Dann kommen Link und Screenshot zusammen an: Erst wird der Beitrag gelesen – Beschreibung, und ein Rezept-Link darin wird verfolgt –, der Screenshot ist das Bild und der Rückfall, wenn das nicht reicht. Steht in der Zwischenablage gerade kein Link, wird sie ignoriert."
   },
   "Share": {
     "share": "Teilen",

@@ -1,6 +1,7 @@
 import { suite, equal, check } from './harness';
 import { classifyCapture } from '../src/lib/capture';
 import { processCapture } from '../src/lib/captureProcess';
+import { readReason } from '../src/lib/captureReasons';
 import type { AiCapability, AiKey } from '../src/lib/aiImport';
 
 /**
@@ -90,7 +91,7 @@ export default async function captureProcessTests() {
     equal('and its ingredients', instagram.draft?.ingredients.length, 3);
     check(
         'while saying the page itself could not be read',
-        (instagram.error ?? '').includes('could not be read'),
+        readReason(instagram.error)?.code === 'sharedTextUsed',
         instagram.error
     );
 

@@ -58,6 +58,8 @@ import offline from './offline.test';
 import revisions from './revisions.test';
 import foreignImport from './foreignImport.test';
 import menu from './menu.test';
+import inboxFilter from './inboxFilter.test';
+import socialImport from './socialImport.test';
 import siteLearn, { siteLearnWiringTests } from './siteLearn.test';
 import drafts from './drafts.test';
 import routeParams from './routeParams.test';
@@ -141,6 +143,8 @@ const suites: [string, () => void | Promise<void>][] = [
     ['revisions', revisions],
     ['foreignImport', foreignImport],
     ['menu', menu],
+    ['inboxFilter', inboxFilter],
+    ['socialImport', socialImport],
     ['siteLearn', siteLearn],
     ['siteLearnWiringTests', siteLearnWiringTests],
     ['drafts', drafts],

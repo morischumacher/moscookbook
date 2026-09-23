@@ -14,6 +14,10 @@ import type { AiTrace, ProcessableCapture, ProcessedCapture, ProcessOptions } fr
 import { completeness, damageOf, draftFromProfile, emptyDraft, mergeDrafts } from './captureDraft';
 import { aiInput, fillGapsWithAi, NOT_ASKED, outcome, reasonFor } from './captureAi';
 import { captionDraft } from './captionDraft';
+import { reason } from './captureReasons';
+import { recipeLinksIn } from './recipeLinks';
+import { instagramEmbedUrl, instagramShortcode, readInstagramEmbed } from './instagram';
+import { bestCaptionTrack, captionText, captionTracksFrom } from './youtubeCaptions';
 
 // The public shapes, re-exported: routes and tests import them from here.
 export type { ProcessableCapture, ProcessedCapture, ProcessOptions } from './captureTypes';
@@ -71,6 +75,35 @@ function mayAskAboutText(ai: AiCapability, options: ProcessOptions): boolean {
 /* One path per kind of thing                                                  */
 /* -------------------------------------------------------------------------- */
 
+/** No model, whatever the configuration: the rules' attempt, before anything is paid for. */
+const RULES_ONLY: AiCapability = { mode: 'off', keys: [] };
+
+/**
+ * "Full recipe on my blog", followed.
+ *
+ * A description or caption that points at the recipe instead of holding it.
+ * The link is read like any shared page — rules, what we know about the site,
+ * a model if the rules fall short and a model is allowed — and used only if
+ * it comes back complete. At most two links, the likeliest first; the author's
+ * other channels and shops are never followed (see `recipeLinksIn`).
+ */
+async function fromLinkedRecipe(
+    text: string,
+    sharedUrl: string,
+    ai: AiCapability,
+    options: ProcessOptions
+): Promise<ProcessedCapture | null> {
+    for (const link of recipeLinksIn(text)) {
+        const result = await processWebPage(link, null, ai, options);
+        if (result.status === 'ready' && result.draft) {
+            // Filed under what was shared: the video or post is what the
+            // inbox and the duplicate check know it by.
+            return { ...result, draft: { ...result.draft, sourceUrl: sharedUrl } };
+        }
+    }
+    return null;
+}
+
 async function processYoutube(
     url: string,
     rawText: string | null,
@@ -79,12 +112,12 @@ async function processYoutube(
 ): Promise<ProcessedCapture> {
     const videoId = youtubeVideoId(url);
     if (!videoId) {
-        return outcome('failed', null, 'Not a YouTube video link.');
+        return outcome('failed', null, reason('notYoutube'));
     }
 
     const page = await fetchPage(url);
     if (!page.ok) {
-        return outcome('failed', null, `YouTube could not be read (${page.failure}).`);
+        return outcome('failed', null, reason('youtubeUnreadable', page.failure));
     }
 
     const video = extractYoutubePage(page.html, videoId);
@@ -114,6 +147,18 @@ async function processYoutube(
     let merged = fromShare ? mergeDrafts(draft, fromShare) : draft;
 
     /*
+     * "Das ganze Rezept findet ihr auf meinem Blog: https://…" — the raw
+     * description, since the cleaned one has had its bare links removed.
+     * The page's picture is kept when the blog has none.
+     */
+    if (shouldAsk(merged, options)) {
+        const linked = await fromLinkedRecipe([video.description, rawText ?? ''].join('\n'), url, ai, options);
+        if (linked?.draft) {
+            return { ...linked, draft: mergeDrafts(linked.draft, { imageUrl: video.imageUrl }) };
+        }
+    }
+
+    /*
      * A description the rules could not read is the case this is for, and it
      * is common: half of cooking YouTube writes its ingredients as prose, in
      * among three paragraphs of links, and the parser needs a list.
@@ -121,13 +166,22 @@ async function processYoutube(
      * The title goes in with it. Without it a model reading a bare description
      * has nothing to name the dish after and invents something plausible from
      * the ingredients — "Nudelauflauf" for a video called "Mamas Auflauf".
+     *
+     * And what is said in the video, when YouTube hands out its subtitles: a
+     * recipe that is only spoken is a page of text once it is written down.
+     * Only fetched when a model is going to read it — the rules cannot do
+     * anything with a transcript.
      */
     let trace: AiTrace = NOT_ASKED;
+    const tracks = captionTracksFrom(page.html);
 
     if (shouldAsk(merged, options) && mayAskAboutText(ai, options)) {
+        const spoken = await spokenText(tracks);
         const helped = await fillGapsWithAi(
             merged,
-            [video.title, description, shared].filter(Boolean).join('\n\n'),
+            [video.title, description, shared, spoken ? `Gesprochen im Video / spoken in the video:\n${spoken}` : '']
+                .filter(Boolean)
+                .join('\n\n'),
             ai,
             options
         );
@@ -136,8 +190,63 @@ async function processYoutube(
     }
 
     const status = completeness(merged);
+    // No ingredients is no recipe: a line of "So gut!" is not a method.
+    const empty = merged.ingredients.length === 0;
 
-    return outcome(status, merged, reasonFor(status, merged, trace, 'video'), trace);
+    // Said precisely, because each wants something different from whoever
+    // reads the inbox: subtitles a model could read, or a video to watch.
+    const why =
+        status === 'ready'
+            ? null
+            : !trace.asked && tracks.length > 0 && empty
+              ? reason('videoSpokenNeedsAi')
+              : empty && !trace.asked
+                ? reason('videoSpoken')
+                : reasonFor(status, merged, trace, 'video');
+
+    return outcome(status, merged, why, trace);
+}
+
+/** The subtitles as text, capped: a long video is not worth a whole book to a model. */
+async function spokenText(tracks: ReturnType<typeof captionTracksFrom>): Promise<string> {
+    const track = bestCaptionTrack(tracks);
+    if (!track) return '';
+    const fetched = await fetchPage(track.baseUrl);
+    return fetched.ok ? captionText(fetched.html).slice(0, 24_000) : '';
+}
+
+/**
+ * Instagram and TikTok: the post itself is behind a login, what it carries is
+ * a caption, and the caption either is the recipe, points at it, or neither.
+ *
+ * Instagram's embed page gives the whole caption and the picture without an
+ * account. The caption is then read by the rules; a link in it is followed;
+ * and only then, if both fell short, may a model read it.
+ */
+async function processSocial(
+    url: string,
+    rawText: string | null,
+    ai: AiCapability,
+    options: ProcessOptions
+): Promise<ProcessedCapture> {
+    const code = instagramShortcode(url);
+    const embed = code ? await fetchPage(instagramEmbedUrl(code)) : null;
+    const post = embed?.ok ? readInstagramEmbed(embed.html) : null;
+
+    const text = [rawText ?? '', post?.caption ?? ''].filter((part) => part.trim()).join('\n\n') || null;
+    const withPicture = (result: ProcessedCapture): ProcessedCapture =>
+        result.draft && post?.imageUrl ? { ...result, draft: mergeDrafts(result.draft, { imageUrl: post.imageUrl }) } : result;
+
+    // The rules alone first, so that a link in the caption is tried before
+    // anything is paid for.
+    const byRules = await processWebPage(url, text, RULES_ONLY, { ...options, learnWith: undefined });
+    if (byRules.status === 'ready' && !options.force) return withPicture(byRules);
+
+    const linked = await fromLinkedRecipe(text ?? '', url, ai, options);
+    if (linked?.draft) return withPicture(linked);
+
+    if (!canUseAi(ai)) return withPicture(byRules);
+    return withPicture(await processWebPage(url, text, ai, options));
 }
 
 async function processWebPage(
@@ -167,11 +276,11 @@ async function processWebPage(
             return outcome(
                 completeness(draft),
                 draft,
-                'The page could not be read; the shared text was used instead.',
+                reason('sharedTextUsed'),
                 trace
             );
         }
-        return outcome('failed', null, `The page could not be read (${page.failure}).`);
+        return outcome('failed', null, reason('pageUnreadable', page.failure));
     }
 
     const extracted = extractRecipeFromHtml(page.html, page.finalUrl);
@@ -320,7 +429,7 @@ async function processImage(
     options: ProcessOptions
 ): Promise<ProcessedCapture> {
     if (!imageUrl) {
-        return outcome('failed', null, 'No picture was stored.');
+        return outcome('failed', null, reason('noPicture'));
     }
 
     const withPicture = { ...emptyDraft(''), imageUrl };
@@ -329,7 +438,7 @@ async function processImage(
         return outcome(
             'needsWork',
             withPicture,
-            'The picture is saved. Reading it needs the AI import, or typing it in.'
+            reason('pictureNeedsAi')
         );
     }
 
@@ -339,7 +448,7 @@ async function processImage(
         return outcome(
             'needsWork',
             withPicture,
-            `The picture is saved, but could not be read back (${image.failure}).`
+            reason('pictureUnreadable', image.failure)
         );
     }
 
@@ -361,7 +470,7 @@ async function processImage(
         return outcome(
             status,
             draft,
-            status === 'ready' ? null : 'Only part of a recipe was legible in the picture.',
+            status === 'ready' ? null : reason('picturePartial'),
             { provider: ai.keys[0]?.provider ?? null, asked: true, failed: false },
             'ai'
         );
@@ -372,7 +481,7 @@ async function processImage(
         return outcome(
             'needsWork',
             withPicture,
-            'The picture is saved, but reading it did not work. Try again from the inbox.',
+            reason('pictureFailed'),
             { provider: ai.keys[0]?.provider ?? null, asked: true, failed: true },
             'rules+ai-failed'
         );
@@ -395,7 +504,7 @@ export async function processCapture(
         if (capture.kind === 'text') {
             const text = withoutBareUrls(capture.rawText ?? '');
             if (text.trim() === '') {
-                return outcome('failed', null, 'Nothing was sent.');
+                return outcome('failed', null, reason('nothingSent'));
             }
             let draft = {
                 ...emptyDraft(''),
@@ -425,21 +534,23 @@ export async function processCapture(
             return outcome(
                 completeness(draft),
                 draft,
-                completeness(draft) === 'ready' ? null : 'Only part of a recipe was recognised.',
+                completeness(draft) === 'ready' ? null : reason('textPartial'),
                 trace
             );
         }
 
         const url = capture.sourceUrl;
         if (!url) {
-            return outcome('failed', null, 'No link to follow.');
+            return outcome('failed', null, reason('noLink'));
         }
 
         const source = capture.source as CaptureSource;
         const result =
             source === 'youtube'
                 ? await processYoutube(url, capture.rawText, ai, options)
-                : await processWebPage(url, capture.rawText, ai, options);
+                : source === 'instagram' || source === 'tiktok'
+                  ? await processSocial(url, capture.rawText, ai, options)
+                  : await processWebPage(url, capture.rawText, ai, options);
 
         // The Instagram screenshot case, from the other side: the link could
         // not be read and the caption was not the recipe, but a picture came
@@ -454,7 +565,7 @@ export async function processCapture(
         // The raw capture is still in the database, so this is recoverable:
         // the inbox offers a retry once the cause is fixed.
         console.error('Capture processing error:', error);
-        return outcome('failed', null, 'Something went wrong while reading this.');
+        return outcome('failed', null, reason('somethingWrong'));
     }
 }
 
