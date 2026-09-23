@@ -288,7 +288,8 @@
     "field_servings": "servings",
     "field_ingredients": "ingredients",
     "field_instructions": "method",
-    "field_tags": "tags"
+    "field_tags": "tags",
+    "needIngredient": "A recipe needs at least one ingredient."
   },
   "QuickImport": {
     "heading": "Fill in quickly",
@@ -1084,7 +1085,10 @@
       "other": "Other",
       "basics": "Probably at home"
     },
-    "addMenuGuests": "Shopping list for {count, plural, one {# guest} other {# guests}}"
+    "addMenuGuests": "Shopping list for {count, plural, one {# guest} other {# guests}}",
+    "undoAdd": "Take it off again",
+    "nothingToAdd": "This recipe has no ingredients – nothing went onto the list.",
+    "removedAgain": "Taken off the list again."
   },
   "Tags": {
     "vegetarian": "Vegetarian",

@@ -288,7 +288,8 @@
     "field_servings": "Portionen",
     "field_ingredients": "Zutaten",
     "field_instructions": "Zubereitung",
-    "field_tags": "Tags"
+    "field_tags": "Tags",
+    "needIngredient": "Ein Rezept braucht mindestens eine Zutat."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
@@ -1084,7 +1085,10 @@
       "other": "Sonstiges",
       "basics": "Wahrscheinlich zu Hause"
     },
-    "addMenuGuests": "Einkaufsliste für {count, plural, one {# Gast} other {# Gäste}}"
+    "addMenuGuests": "Einkaufsliste für {count, plural, one {# Gast} other {# Gäste}}",
+    "undoAdd": "Wieder entfernen",
+    "nothingToAdd": "Dieses Rezept hat keine Zutaten – es kam nichts auf die Liste.",
+    "removedAgain": "Wieder von der Liste genommen."
   },
   "Tags": {
     "vegetarian": "Vegetarisch",

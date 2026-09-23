@@ -16,7 +16,14 @@ export default function AddToShopping(
     props: { recipeId: number; servings: number | null } | { collectionId: number } | { menuId: number; guests: number | null }
 ) {
     const t = useTranslations('Shopping');
-    const [state, setState] = useState<'idle' | 'busy' | 'done' | 'failed'>('idle');
+    const [state, setState] = useState<'idle' | 'busy' | 'done' | 'empty' | 'undoing' | 'removed' | 'failed'>('idle');
+
+    const what =
+        'recipeId' in props
+            ? { recipeId: props.recipeId, servings: props.servings }
+            : 'menuId' in props
+              ? { menuId: props.menuId }
+              : { collectionId: props.collectionId };
 
     const add = async () => {
         setState('busy');
@@ -24,15 +31,31 @@ export default function AddToShopping(
             const res = await fetch('/api/shopping', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(
-                    'recipeId' in props
-                        ? { recipeId: props.recipeId, servings: props.servings }
-                        : 'menuId' in props
-                          ? { menuId: props.menuId }
-                          : { collectionId: props.collectionId }
-                ),
+                body: JSON.stringify(what),
             });
-            setState(res.ok ? 'done' : 'failed');
+            if (!res.ok) {
+                setState('failed');
+                return;
+            }
+            // "It is on the list" was said about a recipe with no
+            // ingredients, whose list then stayed empty.
+            const data: { added?: number } = await res.json().catch(() => ({}));
+            setState(data.added === 0 ? 'empty' : 'done');
+        } catch {
+            setState('failed');
+        }
+    };
+
+    /** Takes back exactly what was just added. */
+    const undo = async () => {
+        setState('undoing');
+        try {
+            const res = await fetch('/api/shopping/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(what),
+            });
+            setState(res.ok ? 'removed' : 'failed');
         } catch {
             setState('failed');
         }
@@ -55,20 +78,23 @@ export default function AddToShopping(
                 disabled={state === 'busy'}
                 className={`${buttonSecondary} w-full sm:w-auto`}
             >
-                <BusyLabel busy={state === 'busy'}>
-                    <span aria-hidden="true">🛒 </span>
-                    {label}
-                </BusyLabel>
+                <BusyLabel busy={state === 'busy'}>{label}</BusyLabel>
             </button>
             <span role="status" className="text-muted">
-                {state === 'done' && (
+                {(state === 'done' || state === 'undoing') && (
                     <>
                         {t('addedRecipe')}{' '}
                         <Link href="/shopping" className="font-medium text-ink underline underline-offset-4">
                             {t('openList')}
                         </Link>
+                        {' · '}
+                        <button type="button" onClick={() => void undo()} disabled={state === 'undoing'} className="underline underline-offset-4 hover:text-danger">
+                            <BusyLabel busy={state === 'undoing'}>{t('undoAdd')}</BusyLabel>
+                        </button>
                     </>
                 )}
+                {state === 'empty' && t('nothingToAdd')}
+                {state === 'removed' && t('removedAgain')}
                 {state === 'failed' && <span className="text-danger">{t('failed')}</span>}
             </span>
         </span>

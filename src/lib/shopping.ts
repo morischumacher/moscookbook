@@ -209,6 +209,46 @@ export function mergeInto(existing: ExistingLine[], planned: PlannedLine[]): Mer
     return { creates: [...created.values()], updates: [...touched.values()] };
 }
 
+export interface RemovalPlan {
+    updates: { id: number; amount: number | null; sources: string[] }[];
+    deletes: number[];
+}
+
+/**
+ * Taking back what `mergeInto` added: the same lines subtracted again.
+ *
+ * "Wieder entfernen" beside the button that just added a recipe. A line that
+ * was on the list before keeps what it had — only the recipe's share comes
+ * off, and the recipe's name leaves its sources — and a line that only this
+ * recipe put there goes. Ticked lines are left alone: those are bought.
+ */
+export function removeFrom(existing: ExistingLine[], planned: PlannedLine[]): RemovalPlan {
+    const open = new Map<string, { id: number; amount: number | null; sources: string[] }>();
+    for (const line of existing) {
+        if (!line.checked) open.set(`${line.key}\u0000${line.measure ?? ''}`, { id: line.id, amount: line.amount, sources: [...line.sources] });
+    }
+
+    const touched = new Map<number, { id: number; amount: number | null; sources: string[] }>();
+    for (const line of planned) {
+        const target = open.get(`${line.key}\u0000${line.measure ?? ''}`);
+        if (!target) continue;
+        if (target.amount !== null && line.amount !== null) {
+            target.amount = Math.round((target.amount - line.amount) * 1000) / 1000;
+        }
+        if (line.source) target.sources = target.sources.filter((source) => source !== line.source);
+        touched.set(target.id, target);
+    }
+
+    const updates: RemovalPlan['updates'] = [];
+    const deletes: number[] = [];
+    for (const line of touched.values()) {
+        const nothingLeft = line.amount === null ? line.sources.length === 0 : line.amount <= 0.0001;
+        if (nothingLeft) deletes.push(line.id);
+        else updates.push(line);
+    }
+    return { updates, deletes };
+}
+
 /** "700 g", "2 EL", "3 Zehen", "3", or "" for a line with no amount. */
 export function amountLabel(measure: string | null, amount: number | null, locale: 'en' | 'de'): string {
     if (measure === null || amount === null) return '';

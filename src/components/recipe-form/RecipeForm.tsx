@@ -230,6 +230,14 @@ export default function RecipeForm({
             return;
         }
 
+        // Said here, in the form's language, rather than by the server in
+        // English: a recipe needs at least one ingredient to be shopped for,
+        // scaled or cooked from.
+        if (cleanedIngredients.length === 0) {
+            failWith(t('needIngredient'));
+            return;
+        }
+
         setSaving(true);
         try {
             const endpoint = mode === 'create' ? '/api/recipes' : `/api/recipes/${initial?.id}`;

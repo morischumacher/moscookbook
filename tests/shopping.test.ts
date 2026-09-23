@@ -1,7 +1,7 @@
 /** The shopping list: same things become one line, sorted by where they are in a shop */
 import { suite, check, equal } from './harness';
 import { apiAccess, pathAccess } from '../src/lib/accessRules';
-import { aisleOf, amountLabel, lineFromText, linesFor, listAsText, mergeInto, shoppingKey } from '../src/lib/shopping';
+import { aisleOf, amountLabel, lineFromText, linesFor, listAsText, mergeInto, removeFrom, shoppingKey } from '../src/lib/shopping';
 
 const row = (name: string, quantity: number | null, unit: string | null, quantityMax: number | null = null) => ({
     name,
@@ -55,6 +55,22 @@ export default function shoppingTests() {
     const twice = mergeInto([], [...linesFor([row('Eier', 2, null)], 1, 'A'), ...linesFor([row('Eier', 3, null)], 1, 'B')]);
     equal('within one addition, too', twice.creates.length, 1);
     equal('six... five eggs', twice.creates[0].amount, 5);
+
+    suite('shopping: taking a recipe off again');
+    // The list after both recipes: spätzle's lines, with the curry added in.
+    const both = existing.map((line) => {
+        const update = second.updates.find((candidate) => candidate.id === line.id);
+        return update ? { ...line, amount: update.amount, sources: update.sources } : line;
+    });
+    const undone = removeFrom(both, curry);
+    equal('what was there before keeps its own amount', undone.updates.find((line) => line.id === 3)?.amount, 3);
+    equal('and loses the recipe that is taken off', undone.updates.find((line) => line.id === 3)?.sources, ['Käsespätzle']);
+    equal('cheese back to the spätzle\'s 300 g', undone.updates.find((line) => line.id === 2)?.amount, 300);
+    const eggs = linesFor([row('Eier', 2, null)], 1, 'A');
+    const alone = removeFrom([{ id: 9, key: eggs[0].key, measure: eggs[0].measure, amount: 2, sources: ['A'], checked: false }], eggs);
+    equal('a line only this recipe put there goes', alone.deletes, [9]);
+    const boughtAlready = removeFrom([{ id: 9, key: eggs[0].key, measure: eggs[0].measure, amount: 2, sources: ['A'], checked: true }], eggs);
+    equal('what was bought is left alone', boughtAlready, { updates: [], deletes: [] });
 
     suite('shopping: typed by hand');
     equal('"500 g Mehl"', lineFromText('500 g Mehl'), { name: 'Mehl', key: 'mehl', measure: 'mass', amount: 500, aisle: 'pantry', source: null });
