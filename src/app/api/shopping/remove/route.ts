@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { refuse, route } from '@/lib/route';
-import { collectionLines, itemsOf, listOf, recipeLines, removeLines } from '@/lib/shoppingDb';
+import { collectionLines, itemsOf, listFor, recipeLines, removeLines } from '@/lib/shoppingDb';
 import { menuLines } from '@/lib/menuDb';
 
 const body = z.union([
@@ -14,7 +14,7 @@ const body = z.union([
  * "Wieder entfernen": what the add button just put on the list, taken off
  * again — the same lines, subtracted. See `removeFrom` in lib/shopping.
  */
-export const POST = route({ access: 'user', body, label: 'Taking lines off the shopping list' }, async ({ user, body }) => {
+export const POST = route({ access: 'user', body, label: 'Taking lines off the shopping list' }, async ({ req, user, body }) => {
     const lines =
         'recipeId' in body
             ? await recipeLines(body.recipeId, body.servings ?? null, body.locale, user)
@@ -23,7 +23,8 @@ export const POST = route({ access: 'user', body, label: 'Taking lines off the s
               : await menuLines(body.menuId);
     if (lines === null) refuse(404, 'That is no longer there.');
 
-    const list = await listOf(user.id);
+    const list = await listFor(user.id, new URL(req.url).searchParams.get('list'));
+    if (!list) refuse(404, 'This list is not shared with you.');
     const changed = await removeLines(list.id, lines);
     return NextResponse.json({ changed, items: await itemsOf(list.id) });
 });

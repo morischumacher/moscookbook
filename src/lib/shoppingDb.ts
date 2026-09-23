@@ -38,6 +38,44 @@ export async function listOf(userId: number) {
     });
 }
 
+export interface ListAccess {
+    id: number;
+    /** The owner can share it and empty it; a member adds, ticks and removes lines. */
+    owner: boolean;
+}
+
+/**
+ * The list a request is about: the person's own, or — with `?list=<id>` — one
+ * somebody shared with them. Null for any other list, so a guessed number
+ * reads as "not there" rather than "not yours".
+ */
+export async function listFor(userId: number, requested: string | null): Promise<ListAccess | null> {
+    const own = await listOf(userId);
+    if (!requested || requested === String(own.id)) return { id: own.id, owner: true };
+    if (!/^\d{1,9}$/.test(requested)) return null;
+
+    const shared = await prisma.shoppingList.findFirst({
+        where: { id: Number(requested), members: { some: { userId } } },
+        select: { id: true },
+    });
+    return shared ? { id: shared.id, owner: false } : null;
+}
+
+/** Lists this person may write to: their own and every one shared with them. */
+export function reachableBy(userId: number) {
+    return { OR: [{ userId }, { members: { some: { userId } } }] };
+}
+
+/** The lists other people shared with this person, with whose they are. */
+export async function listsSharedWith(userId: number) {
+    const rows = await prisma.shoppingListMember.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { list: { select: { id: true, user: { select: { firstName: true, name: true } } } } },
+    });
+    return rows.map((row) => ({ id: row.list.id, owner: row.list.user.firstName || row.list.user.name }));
+}
+
 export async function itemsOf(listId: number): Promise<ShoppingItemRow[]> {
     return prisma.shoppingItem.findMany({
         where: { listId },

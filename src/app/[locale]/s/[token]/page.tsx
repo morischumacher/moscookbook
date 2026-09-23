@@ -10,7 +10,8 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
  * A shopping list somebody was sent. No account needed: the link is the
- * permission, it opens this one list, and it can tick and add but not delete.
+ * permission, it opens this one list, and it can tick — and add, if the
+ * owner allows it — but not delete.
  */
 export default async function SharedShoppingPage({ params }: { params: Promise<{ token: string }> }) {
     const { token } = await params;
@@ -18,7 +19,7 @@ export default async function SharedShoppingPage({ params }: { params: Promise<{
 
     const list = await prisma.shoppingList.findUnique({
         where: { shareToken: token },
-        select: { id: true, user: { select: { firstName: true, name: true } } },
+        select: { id: true, shareCanAdd: true, user: { select: { firstName: true, name: true } } },
     });
     if (!list) notFound();
 
@@ -28,7 +29,7 @@ export default async function SharedShoppingPage({ params }: { params: Promise<{
         <main className={`${pageContainer} pb-32`}>
             <h1 className={`${pageTop} ${pageHeading} mb-2`}>{t('title')}</h1>
             <p className="mb-6 text-sm text-muted">{t('sharedBy', { name: list.user.firstName || list.user.name })}</p>
-            <ShoppingListView initial={items} mode={{ kind: 'shared', token }} />
+            <ShoppingListView initial={items} mode={{ kind: 'shared', token, canAdd: list.shareCanAdd }} />
         </main>
     );
 }

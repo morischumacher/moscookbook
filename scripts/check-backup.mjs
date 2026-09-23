@@ -65,6 +65,7 @@ const NOT_BACKED_UP = new Map([
     ['PostCollection', "carried inside each entry as collectionSlugs, in order, rather than as its own list"],
     ['ShoppingList', 'a week of groceries, tied to an account, and accounts are not in an archive'],
     ['ShoppingItem', 'the lines of a shopping list — see ShoppingList'],
+    ['ShoppingListMember', 'who a shopping list is shared with — accounts again, see ShoppingList'],
     ['RecipeRevision', "earlier versions of recipes that are themselves in every backup; a restore starts a new history"],
     ['ReportPhoto', 'screenshots with tickets and errors, which are not backed up either'],
     ['WorkItem', 'a to-do list about this installation; every snapshot can be made again from its source'],

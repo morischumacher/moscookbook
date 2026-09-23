@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { BusyLabel } from '@/components/ui/Busy';
@@ -11,6 +11,8 @@ import { buttonSecondary } from '@/lib/ui';
  * at, or every recipe in a collection. Stays on the page and says it worked,
  * with the way to the list beside it, because the next thing is usually a
  * second recipe rather than the list.
+ *
+ * Somebody with lists shared with them also chooses which list it goes on.
  */
 export default function AddToShopping(
     props: { recipeId: number; servings: number | null } | { collectionId: number } | { menuId: number; guests: number | null }
@@ -29,12 +31,30 @@ export default function AddToShopping(
     // What was actually sent. Undo takes back exactly that — not what the
     // servings stepper says by the time somebody presses it.
     const sentBody = useRef<string | null>(null);
+    // Which list it went on, for undo and for the way to the list.
+    const [sentTo, setSentTo] = useState('');
+
+    // The lists others shared with this person. Mostly none, and then there
+    // is nothing to choose.
+    const [lists, setLists] = useState<{ id: number; owner: string }[]>([]);
+    const [target, setTarget] = useState('');
+    useEffect(() => {
+        let alive = true;
+        fetch('/api/shopping/lists')
+            .then((res) => (res.ok ? (res.json() as Promise<{ shared: { id: number; owner: string }[] }>) : null))
+            .then((data) => alive && data && setLists(data.shared))
+            .catch(() => undefined);
+        return () => {
+            alive = false;
+        };
+    }, []);
+    const query = target ? `?list=${target}` : '';
 
     const add = async () => {
         setState('busy');
         const body = JSON.stringify({ ...what, locale });
         try {
-            const res = await fetch('/api/shopping', {
+            const res = await fetch(`/api/shopping${query}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body,
@@ -47,6 +67,7 @@ export default function AddToShopping(
             // ingredients, whose list then stayed empty.
             const data: { added?: number } = await res.json().catch(() => ({}));
             sentBody.current = body;
+            setSentTo(query);
             setState(data.added === 0 ? 'empty' : 'done');
         } catch {
             setState('failed');
@@ -58,7 +79,7 @@ export default function AddToShopping(
         if (!sentBody.current) return;
         setState('undoing');
         try {
-            const res = await fetch('/api/shopping/remove', {
+            const res = await fetch(`/api/shopping/remove${sentTo}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: sentBody.current,
@@ -88,11 +109,26 @@ export default function AddToShopping(
             >
                 <BusyLabel busy={state === 'busy'}>{label}</BusyLabel>
             </button>
+            {lists.length > 0 && (
+                <select
+                    value={target}
+                    onChange={(event) => setTarget(event.target.value)}
+                    aria-label={t('addTo')}
+                    className="w-full rounded-full border border-control bg-transparent px-3 py-2 text-sm sm:w-auto"
+                >
+                    <option value="">{t('myList')}</option>
+                    {lists.map((list) => (
+                        <option key={list.id} value={String(list.id)}>
+                            {t('sharedBy', { name: list.owner })}
+                        </option>
+                    ))}
+                </select>
+            )}
             <span role="status" className="text-muted">
                 {(state === 'done' || state === 'undoing') && (
                     <>
                         {t('addedRecipe')}{' '}
-                        <Link href="/shopping" className="font-medium text-ink underline underline-offset-4">
+                        <Link href={`/shopping${sentTo}`} className="font-medium text-ink underline underline-offset-4">
                             {t('openList')}
                         </Link>
                         {' · '}

@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { AISLES, amountLabel, listAsText, type Aisle } from '@/lib/shopping';
 import type { ShoppingItemRow } from '@/lib/shoppingDb';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
 import { buttonPrimarySmall } from '@/lib/ui';
+import ShoppingSharing from './ShoppingSharing';
 
 /**
  * The list, in the shop.
@@ -18,11 +19,16 @@ import { buttonPrimarySmall } from '@/lib/ui';
  * the phone and sent when the signal comes back, so the list never argues
  * with the person holding it.
  *
- * The same component serves the owner (at /shopping) and whoever was sent the
- * link (at /s/<token>), who can tick and add but not delete or share.
+ * The same component serves the owner (at /shopping), the people the owner
+ * shared it with (at /shopping?list=<id>), who can add, tick and remove but
+ * not empty or share it, and whoever was sent the link (at /s/<token>), who
+ * can tick — and add, if the owner allows it.
  */
 
-type Mode = { kind: 'own'; shareToken: string | null } | { kind: 'shared'; token: string };
+type Mode =
+    | { kind: 'own'; shareToken: string | null; canAdd: boolean }
+    | { kind: 'member'; listId: number; ownerName: string }
+    | { kind: 'shared'; token: string; canAdd: boolean };
 
 /*
  * One store per list: ticks queued on your own list are not sent to somebody
@@ -54,17 +60,22 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     const [items, setItems] = useState(initial);
     const [text, setText] = useState('');
     const [adding, setAdding] = useState(false);
-    const [shareToken, setShareToken] = useState(mode.kind === 'own' ? mode.shareToken : null);
     const [note, setNote] = useState('');
+    const router = useRouter();
+    // Whether the link may add. It can change while somebody has it open.
+    const [linkCanAdd, setLinkCanAdd] = useState(mode.kind === 'shared' ? mode.canAdd : true);
+    const canAdd = mode.kind !== 'shared' || linkCanAdd;
 
-    const base = mode.kind === 'own' ? '/api/shopping' : `/api/shopping/shared/${mode.token}`;
+    const listQuery = mode.kind === 'member' ? `list=${mode.listId}` : '';
+    const base =
+        mode.kind === 'shared' ? `/api/shopping/shared/${mode.token}` : mode.kind === 'member' ? `/api/shopping?${listQuery}` : '/api/shopping';
 
     /** Sends one tick. Returns false when it could not be sent. */
     const sendTick = useCallback(
         async (id: number, checked: boolean) => {
             try {
                 const res =
-                    mode.kind === 'own'
+                    mode.kind !== 'shared'
                         ? await fetch(`/api/shopping/${id}`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },
@@ -81,7 +92,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                 return false;
             }
         },
-        [base, mode.kind]
+        [base, mode.kind],
     );
 
     /** Whatever was ticked without signal, sent now. */
@@ -98,7 +109,8 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         try {
             const res = await fetch(base);
             if (!res.ok) return;
-            const data: { items: ShoppingItemRow[] } = await res.json();
+            const data: { items: ShoppingItemRow[]; canAdd?: boolean } = await res.json();
+            if (typeof data.canAdd === 'boolean') setLinkCanAdd(data.canAdd);
             const pending = readPending(base);
             setItems(data.items.map((item) => (item.id in pending ? { ...item, checked: pending[item.id] } : item)));
         } catch {
@@ -153,6 +165,9 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                 const data: { items: ShoppingItemRow[] } = await res.json();
                 setItems(data.items);
                 setText('');
+            } else if (res.status === 403 && mode.kind === 'shared') {
+                setLinkCanAdd(false);
+                setNote(t('linkTickOnly'));
             } else {
                 setNote(t('failed'));
             }
@@ -169,20 +184,42 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     };
 
     const clear = async (which: 'checked' | 'all') => {
-        if (which === 'all' && !(await ask({ title: t('clearAllQuestion'), confirmLabel: t('clearAll'), destructive: true }))) return;
-        const res = await fetch(`/api/shopping?which=${which}`, { method: 'DELETE' }).catch(() => null);
+        if (
+            which === 'all' &&
+            !(await ask({
+                title: t('clearAllQuestion'),
+                confirmLabel: t('clearAll'),
+                destructive: true,
+            }))
+        )
+            return;
+        const res = await fetch(`/api/shopping?which=${which}${listQuery ? `&${listQuery}` : ''}`, { method: 'DELETE' }).catch(() => null);
         if (res?.ok) setItems(((await res.json()) as { items: ShoppingItemRow[] }).items);
     };
 
     // The address is only known in the browser. Read after hydration, so the
     // server's HTML and the first client render agree.
+    const [shareToken, setShareToken] = useState(mode.kind === 'own' ? mode.shareToken : null);
     const [origin, setOrigin] = useState('');
     useEffect(() => setOrigin(window.location.origin), []);
     const shareLink = shareToken && origin ? `${origin}/${locale}/s/${shareToken}` : null;
 
-    const toggleShare = async () => {
-        const res = await fetch('/api/shopping/share', { method: shareToken ? 'DELETE' : 'POST' }).catch(() => null);
-        if (res?.ok) setShareToken(((await res.json()) as { shareToken: string | null }).shareToken);
+    const leave = async () => {
+        if (mode.kind !== 'member') return;
+        if (
+            !(await ask({
+                title: t('leaveQuestion', { name: mode.ownerName }),
+                confirmLabel: t('leave'),
+            }))
+        )
+            return;
+        const res = await fetch(`/api/shopping/members?${listQuery}`, {
+            method: 'DELETE',
+        }).catch(() => null);
+        if (res?.ok) {
+            router.replace('/shopping');
+            router.refresh();
+        } else setNote(t('failed'));
     };
 
     const aisleName = useCallback((aisle: Aisle) => t(`aisle.${aisle}`), [t]);
@@ -229,7 +266,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                         <p className="mt-0.5 text-xs text-faint">{t('for', { recipes: item.sources.join(', ') })}</p>
                     )}
                 </div>
-                {mode.kind === 'own' && (
+                {mode.kind !== 'shared' && (
                     <button
                         type="button"
                         onClick={() => void remove(item.id)}
@@ -247,25 +284,31 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         <div>
             {dialog}
 
-            <form
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    void add();
-                }}
-                className="flex gap-2"
-            >
-                <label htmlFor="shopping-add" className="sr-only">{t('addLabel')}</label>
-                <input
-                    id="shopping-add"
-                    value={text}
-                    onChange={(event) => setText(event.target.value)}
-                    placeholder={t('addPlaceholder')}
-                    className="min-w-0 flex-1 rounded-full border border-control bg-transparent px-4 py-2 outline-none focus:border-ink"
-                />
-                <button type="submit" disabled={adding || !text.trim()} className={buttonPrimarySmall}>
-                    <BusyLabel busy={adding}>{t('add')}</BusyLabel>
-                </button>
-            </form>
+            {!canAdd && <p className="text-sm text-muted">{t('linkTickOnly')}</p>}
+
+            {canAdd && (
+                <form
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        void add();
+                    }}
+                    className="flex gap-2"
+                >
+                    <label htmlFor="shopping-add" className="sr-only">
+                        {t('addLabel')}
+                    </label>
+                    <input
+                        id="shopping-add"
+                        value={text}
+                        onChange={(event) => setText(event.target.value)}
+                        placeholder={t('addPlaceholder')}
+                        className="min-w-0 flex-1 rounded-full border border-control bg-transparent px-4 py-2 outline-none focus:border-ink"
+                    />
+                    <button type="submit" disabled={adding || !text.trim()} className={buttonPrimarySmall}>
+                        <BusyLabel busy={adding}>{t('add')}</BusyLabel>
+                    </button>
+                </form>
+            )}
 
             {/* Always there, empty until something is said: a status region
                 that appears together with its text is often not read out. */}
@@ -276,7 +319,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             {items.length === 0 ? (
                 <div className="py-16 text-center text-muted">
                     <p>{t('empty')}</p>
-                    {mode.kind === 'own' && (
+                    {mode.kind !== 'shared' && (
                         <p className="mt-2 text-sm">
                             {t('emptyHint')}{' '}
                             <Link href="/" className="underline underline-offset-4">
@@ -303,11 +346,13 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                     {done.length > 0 && (
                         <section className="mt-10 border-t border-line pt-4">
                             <div className="flex items-baseline justify-between gap-4">
-                                <h2 className="text-xs font-bold uppercase tracking-widest text-faint">
-                                    {t('inTrolley', { count: done.length })}
-                                </h2>
-                                {mode.kind === 'own' && (
-                                    <button type="button" onClick={() => void clear('checked')} className="text-sm text-muted underline underline-offset-4">
+                                <h2 className="text-xs font-bold uppercase tracking-widest text-faint">{t('inTrolley', { count: done.length })}</h2>
+                                {mode.kind !== 'shared' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => void clear('checked')}
+                                        className="text-sm text-muted underline underline-offset-4"
+                                    >
                                         {t('clearChecked')}
                                     </button>
                                 )}
@@ -325,45 +370,23 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                     </button>
                 )}
 
-                {mode.kind === 'own' && (
+                {mode.kind === 'own' && <ShoppingSharing shareLink={shareLink} onShareToken={setShareToken} canAdd={mode.canAdd} onNote={setNote} />}
+
+                {mode.kind === 'member' && (
                     <div className="rounded-xl border border-line p-4">
-                        <p className="font-medium">{t('shareTitle')}</p>
-                        <p className="mt-1 text-muted">{t('shareExplain')}</p>
-                        {shareLink && (
-                            // A tap copies it: selecting a long address on a
-                            // phone is the fiddly part.
-                            <button
-                                type="button"
-                                onClick={() => void navigator.clipboard.writeText(shareLink).then(() => setNote(t('copied')), () => undefined)}
-                                aria-label={t('copyLink')}
-                                className="mt-3 block w-full break-all rounded-lg bg-surface px-3 py-2 text-left font-mono text-xs hover:bg-line"
-                            >
-                                {shareLink}
-                                <span className="mt-1 block font-sans text-faint">{t('tapToCopy')}</span>
-                            </button>
-                        )}
-                        <div className="mt-3 flex flex-wrap gap-4">
-                            {shareLink && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (navigator.share) void navigator.share({ title: t('title'), url: shareLink }).catch(() => undefined);
-                                        else void navigator.clipboard.writeText(shareLink).then(() => setNote(t('copied')));
-                                    }}
-                                    className="font-medium underline underline-offset-4"
-                                >
-                                    {t('sendLink')}
-                                </button>
-                            )}
-                            <button type="button" onClick={() => void toggleShare()} className="text-muted underline underline-offset-4">
-                                {shareLink ? t('unshare') : t('share')}
-                            </button>
-                        </div>
+                        <p className="text-muted">{t('memberExplain', { name: mode.ownerName })}</p>
+                        <button type="button" onClick={() => void leave()} className="mt-3 text-muted underline underline-offset-4 hover:text-danger">
+                            {t('leave')}
+                        </button>
                     </div>
                 )}
 
                 {mode.kind === 'own' && items.length > 0 && (
-                    <button type="button" onClick={() => void clear('all')} className="self-start text-faint underline underline-offset-4 hover:text-danger">
+                    <button
+                        type="button"
+                        onClick={() => void clear('all')}
+                        className="self-start text-faint underline underline-offset-4 hover:text-danger"
+                    >
                         {t('clearAll')}
                     </button>
                 )}
