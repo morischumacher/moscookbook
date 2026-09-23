@@ -10,6 +10,8 @@ import { normaliseTags } from '@/lib/tags';
 import { describeWriteFailure } from '@/lib/prismaErrors';
 import { postSearchFields } from '@/lib/searchText';
 import { failed as reportFailure } from '@/lib/reportServerError';
+import { keepRevisionOf } from '@/lib/revisionsDb';
+import { snapshotOf } from '@/lib/revisions';
 
 const MAX_BODY_BYTES = 20 * 1024 * 1024;
 
@@ -151,6 +153,18 @@ export async function POST(req: NextRequest) {
                      * and translation.
                      */
                     const data = recipeData(recipe);
+                    // What is about to be replaced goes into the history
+                    // first, as an edit would: a restore over newer work was
+                    // otherwise the one change with no way back.
+                    const current = await prisma.recipe.findUnique({
+                        where: { slug: recipe.slug },
+                        select: {
+                            id: true, title: true, slug: true, description: true, category: true, nationality: true,
+                            instructions: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true,
+                            ingredients: { orderBy: { position: 'asc' }, select: { raw: true, name: true, section: true } },
+                        },
+                    });
+                    if (current) await keepRevisionOf(current.id, snapshotOf(current), auth.user.name);
                     await prisma.recipe.update({
                         where: { slug: recipe.slug },
                         data: {

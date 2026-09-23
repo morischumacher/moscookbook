@@ -11,6 +11,7 @@ import { changedFields, snapshotOf } from '@/lib/revisions';
 import { keepRevisionOf } from '@/lib/revisionsDb';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
+import { versionOf } from '@/lib/recipeVersion';
 
 function parseRecipeId(raw: string): number | null {
     return positiveIntId(raw);
@@ -31,7 +32,11 @@ export async function PUT(
             return NextResponse.json({ message: 'Invalid recipe ID' }, { status: 400 });
         }
 
-        const parsed = recipeInputSchema.safeParse(await req.json().catch(() => null));
+        const body = await req.json().catch(() => null);
+        const parsed = recipeInputSchema.safeParse(body);
+        // Outside the schema, like captureId on create: not part of a recipe.
+        const rawVersion = (body as { baseVersion?: unknown } | null)?.baseVersion;
+        const baseVersion = typeof rawVersion === 'string' ? rawVersion : null;
 
         if (!parsed.success) {
             return NextResponse.json(
@@ -91,6 +96,16 @@ export async function PUT(
             },
         });
         const previous = before ? snapshotOf(before) : null;
+
+        // Opened on another version than this one: somebody saved (or
+        // restored an older version) in the meantime. Writing now would undo
+        // that without anybody seeing it.
+        if (baseVersion && previous) {
+            const pictures = await prisma.image.findMany({ where: { recipeId }, orderBy: { position: 'asc' }, select: { url: true } });
+            if (versionOf(previous, pictures.map((picture) => picture.url)) !== baseVersion) {
+                return NextResponse.json({ message: 'This recipe was changed elsewhere since you opened it.', conflict: true }, { status: 409 });
+            }
+        }
         const next = snapshotOf({
             title, slug, description, category, nationality, instructions,
             servings: servings ?? null, prepMinutes: prepMinutes ?? null, cookMinutes: cookMinutes ?? null,

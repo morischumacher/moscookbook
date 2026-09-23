@@ -265,7 +265,7 @@
   "RecipeForm": {
     "newRecipe": "New recipe",
     "editRecipe": "Edit: {title}",
-    "draftFound": "There is an unsaved draft.",
+    "draftFound": "There are unsaved changes from an earlier visit.",
     "restoreDraft": "Restore",
     "discardDraft": "Discard",
     "title": "Title",
@@ -375,7 +375,9 @@
     "saveInvalid": "The recipe cannot be saved like this – please check the fields.",
     "rowUp": "Move ingredient {number} up",
     "rowDown": "Move ingredient {number} down",
-    "rowRemove": "Remove ingredient {number}"
+    "rowRemove": "Remove ingredient {number}",
+    "draftFoundStale": "There are unsaved changes from an earlier visit — but the recipe has been saved since. Restoring overwrites that.",
+    "saveConflict": "The recipe was saved elsewhere in the meantime. Reload the page — your changes will be offered to restore."
   },
   "QuickImport": {
     "heading": "Fill in quickly",
