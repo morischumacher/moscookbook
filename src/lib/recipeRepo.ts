@@ -1,4 +1,5 @@
 import prisma from './prisma';
+import { isPrismaError } from './prismaErrors';
 import { slugify } from './recipe';
 import { searchFields } from './searchText';
 import type { StructuredIngredient } from './ingredientParts';
@@ -178,4 +179,18 @@ export async function freeRecipeSlug(title: string): Promise<string> {
     }
 
     return `${base}-${Date.now()}`;
+}
+
+/**
+ * A write that takes a free slug, tried once more when another request took
+ * the same one in between: `freeRecipeSlug` looks, then the insert happens,
+ * and two imports of "Pfannkuchen" at once both saw "pfannkuchen" free.
+ */
+export async function withFreeSlug<T>(title: string, write: (slug: string) => Promise<T>): Promise<T> {
+    try {
+        return await write(await freeRecipeSlug(title));
+    } catch (error) {
+        if (!isPrismaError(error, 'P2002')) throw error;
+        return write(await freeRecipeSlug(title));
+    }
 }

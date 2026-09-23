@@ -8,6 +8,7 @@ import { canUseAi } from '@/lib/aiProviders';
 import { aiCapability } from '@/lib/aiConfig';
 import { collectionFacets } from '@/lib/collectionFacets';
 import { asLanguage, storedRows } from '@/lib/recipeTranslation';
+import { positiveIntId } from '@/lib/routeParams';
 
 interface EditableRecipe {
     tags: string[];
@@ -37,9 +38,10 @@ export default async function EditRecipePage({
     params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
-    const recipeId = Number.parseInt(id, 10);
+    // "12abc" was recipe 12, and a number past INT4 a 500.
+    const recipeId = positiveIntId(id);
 
-    if (Number.isNaN(recipeId)) notFound();
+    if (recipeId === null) notFound();
 
     const recipe: EditableRecipe | null = await prisma.recipe.findUnique({
         where: { id: recipeId },

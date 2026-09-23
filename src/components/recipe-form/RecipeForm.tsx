@@ -122,6 +122,11 @@ export default function RecipeForm({
      */
     const errorBox = useRef<HTMLDivElement>(null);
     const [draftFound, setDraftFound] = useState(false);
+    // The recipe has been saved elsewhere since this draft was begun.
+    const [draftStale, setDraftStale] = useState(false);
+    // The copy the form opened with, kept with a draft to tell whether the
+    // recipe changed underneath it.
+    const baseline = useMemo(() => JSON.stringify(initial ?? null), [initial]);
 
     // A form opened from the inbox has a draft of its own: it must not replace
     // an unrelated new recipe that was being typed.
@@ -136,11 +141,16 @@ export default function RecipeForm({
     // Restore an interrupted draft rather than silently overwriting it.
     useEffect(() => {
         try {
-            if (window.localStorage.getItem(draftKey)) setDraftFound(true);
+            const raw = window.localStorage.getItem(draftKey);
+            if (raw) {
+                setDraftFound(true);
+                const base = (JSON.parse(raw) as { _base?: string })._base;
+                setDraftStale(mode === 'edit' && base !== undefined && base !== baseline);
+            }
         } catch {
             // Private mode or blocked storage — drafts are a convenience, not a requirement.
         }
-    }, [draftKey]);
+    }, [draftKey, mode, baseline]);
 
     const values = useMemo(
         () => ({
@@ -155,22 +165,30 @@ export default function RecipeForm({
         ]
     );
 
+    // The form as it opened. A draft is only worth keeping once it differs:
+    // saved on every visit, an untouched copy lingered and was offered later
+    // over a recipe that had changed since — and restoring it put back old
+    // pictures whose files were already deleted.
+    const opened = useRef<string | null>(null);
+
     useEffect(() => {
+        const now = JSON.stringify(values);
+        if (opened.current === null) opened.current = now;
         const isEmpty = !title && !instructions && ingredients.every((row) => !row.item);
         // Not while an interrupted draft is waiting to be restored or thrown
         // away: saving now would overwrite it with the page as it loaded.
-        if (isEmpty || draftFound) return;
+        if (isEmpty || draftFound || now === opened.current) return;
 
         const timer = setTimeout(() => {
             try {
-                window.localStorage.setItem(draftKey, JSON.stringify(values));
+                window.localStorage.setItem(draftKey, JSON.stringify({ ...values, _base: baseline }));
             } catch {
                 /* ignore */
             }
         }, 800);
 
         return () => clearTimeout(timer);
-    }, [values, draftKey, title, instructions, ingredients, draftFound]);
+    }, [values, draftKey, title, instructions, ingredients, draftFound, baseline]);
 
     const clearDraft = () => {
         try {
@@ -342,7 +360,7 @@ export default function RecipeForm({
 
             {draftFound && (
                 <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-black/[0.03] p-3 text-sm dark:bg-white/[0.05]">
-                    <span>{t('draftFound')}</span>
+                    <span>{t(draftStale ? 'draftFoundStale' : 'draftFound')}</span>
                     <button type="button" onClick={restoreDraft} className="underline underline-offset-4">
                         {t('restoreDraft')}
                     </button>

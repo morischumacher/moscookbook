@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { route } from '@/lib/route';
-import { freeRecipeSlug, newRecipeData } from '@/lib/recipeRepo';
+import { newRecipeData, withFreeSlug } from '@/lib/recipeRepo';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { normaliseTags } from '@/lib/tags';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
@@ -76,24 +76,26 @@ export const POST = route({ access: 'admin', body, label: 'Importing recipes' },
 
         const source = recipe.sourceUrl ? `\n\n[${recipe.sourceUrl}](${recipe.sourceUrl})` : '';
 
-        await prisma.recipe.create({
-            data: newRecipeData({
-                isDraft: true,
-                title: recipe.title,
-                slug: await freeRecipeSlug(recipe.title),
-                description: recipe.description || null,
-                category: recipe.category || null,
-                nationality: null,
-                instructions: (recipe.instructions || '—') + source,
-                servings: recipe.servings,
-                prepMinutes: recipe.prepMinutes,
-                cookMinutes: recipe.cookMinutes,
-                ingredients: toStructuredIngredients(recipe.ingredients),
-                tags: normaliseTags(recipe.tags),
-                imageUrls: recipe.imageUrl ? [recipe.imageUrl] : [],
-            }),
-            select: { id: true },
-        });
+        await withFreeSlug(recipe.title, (slug) =>
+            prisma.recipe.create({
+                data: newRecipeData({
+                    isDraft: true,
+                    title: recipe.title,
+                    slug,
+                    description: recipe.description || null,
+                    category: recipe.category || null,
+                    nationality: null,
+                    instructions: (recipe.instructions || '—') + source,
+                    servings: recipe.servings,
+                    prepMinutes: recipe.prepMinutes,
+                    cookMinutes: recipe.cookMinutes,
+                    ingredients: toStructuredIngredients(recipe.ingredients),
+                    tags: normaliseTags(recipe.tags),
+                    imageUrls: recipe.imageUrl ? [recipe.imageUrl] : [],
+                }),
+                select: { id: true },
+            })
+        );
         created += 1;
     }
 

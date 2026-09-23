@@ -7,6 +7,7 @@ import { slugify } from '@/lib/recipe';
 import { draftFromJson } from '@/lib/captureDraft';
 import { collectionFacets } from '@/lib/collectionFacets';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
+import { positiveIntId } from '@/lib/routeParams';
 
 /**
  * The new-recipe form, optionally opened on a capture from the inbox.
@@ -23,8 +24,7 @@ export default async function CreateRecipePage({
 }) {
     const { capture: captureParam } = await searchParams;
 
-    const requestedId = Number.parseInt(typeof captureParam === 'string' ? captureParam : '', 10);
-    const captureId = Number.isInteger(requestedId) ? requestedId : null;
+    const captureId = positiveIntId(typeof captureParam === 'string' ? captureParam : null);
 
     let initial: Record<string, unknown> | undefined;
 

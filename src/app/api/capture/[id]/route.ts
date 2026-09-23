@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
-import { freeRecipeSlug, newRecipeData } from '@/lib/recipeRepo';
+import { newRecipeData, withFreeSlug } from '@/lib/recipeRepo';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { processCapture, readWithAiOnly } from '@/lib/captureProcess';
 import { canUseAi } from '@/lib/aiImport';
@@ -56,7 +56,6 @@ function parseId(raw: string): number | null {
  * thing that happens — two people send you the same video — and getting
  * "-2" is a far better outcome than an error in a queue.
  */
-const freeSlug = freeRecipeSlug;
 
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
     const auth = await requireAdmin();
@@ -176,7 +175,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
      * The guard used to be the read above — `capture.status === 'published'` —
      * and the write that closed it came after the recipe was created. Two
      * requests could both pass it and both create a recipe, and because
-     * `freeSlug` deliberately never collides, the result was two recipes,
+     * `freeRecipeSlug` deliberately never collides, the result was two recipes,
      * "Zwetschgendatschi" and "zwetschgendatschi-2", with the capture pointing
      * at whichever finished last. The inbox disables its own row while it
      * works, which covers one tab and not a retried request after a gateway
@@ -202,23 +201,25 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         // A retry or a model can leave a foreign picture in the draft, and
         // next/image only shows our own store. Ours stays as it is.
         const picture = draft.imageUrl ? await mirrorImageToBlob(draft.imageUrl) : '';
-        const recipe = await prisma.recipe.create({
-            data: newRecipeData({
-                isDraft: parsed.data.action === 'stage',
-                title: draft.title.trim(),
-                slug: await freeSlug(draft.title),
-                description: draft.description || null,
-                category: draft.category || null,
-                nationality: draft.nationality || null,
-                instructions: draft.instructions,
-                servings: draft.servings,
-                prepMinutes: draft.prepMinutes,
-                cookMinutes: draft.cookMinutes,
-                ingredients: toStructuredIngredients(draft.ingredients),
-                imageUrls: picture ? [picture] : [],
-            }),
-            select: { id: true, slug: true, title: true },
-        });
+        const recipe = await withFreeSlug(draft.title, (slug) =>
+            prisma.recipe.create({
+                data: newRecipeData({
+                    isDraft: parsed.data.action === 'stage',
+                    title: draft.title.trim(),
+                    slug,
+                    description: draft.description || null,
+                    category: draft.category || null,
+                    nationality: draft.nationality || null,
+                    instructions: draft.instructions,
+                    servings: draft.servings,
+                    prepMinutes: draft.prepMinutes,
+                    cookMinutes: draft.cookMinutes,
+                    ingredients: toStructuredIngredients(draft.ingredients),
+                    imageUrls: picture ? [picture] : [],
+                }),
+                select: { id: true, slug: true, title: true },
+            })
+        );
         await releaseCaptureScreenshots(captureId, picture ? [picture] : []).catch(() => undefined);
 
         await prisma.capture.update({

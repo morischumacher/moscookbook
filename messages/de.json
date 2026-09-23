@@ -265,7 +265,7 @@
   "RecipeForm": {
     "newRecipe": "Neues Rezept",
     "editRecipe": "Bearbeiten: {title}",
-    "draftFound": "Es gibt einen nicht gespeicherten Entwurf.",
+    "draftFound": "Es gibt ungespeicherte Änderungen von einem früheren Besuch.",
     "restoreDraft": "Wiederherstellen",
     "discardDraft": "Verwerfen",
     "title": "Titel",
@@ -371,11 +371,12 @@
     "translateFailed": "Die Übersetzung hat nicht geklappt. Versuch es gleich noch einmal.",
     "translateUnusable": "Die KI hat Zutaten ausgelassen oder zusammengelegt, deshalb wurde die Übersetzung verworfen. Versuch es noch einmal.",
     "tooManyPictures": "Höchstens {max} Bilder pro Rezept – die übrigen wurden nicht hochgeladen.",
-    "slugTaken": "Es gibt schon ein Rezept mit dieser Adresse. Ändere die Adresse (Slug) oder den Titel.",
+    "slugTaken": "Es gibt schon ein Rezept mit dieser Link-Adresse. Ändere die Link-Adresse oder den Titel.",
     "saveInvalid": "So kann das Rezept nicht gespeichert werden – bitte die Felder prüfen.",
     "rowUp": "Zutat {number} nach oben",
     "rowDown": "Zutat {number} nach unten",
-    "rowRemove": "Zutat {number} entfernen"
+    "rowRemove": "Zutat {number} entfernen",
+    "draftFoundStale": "Es gibt ungespeicherte Änderungen von einem früheren Besuch – das Rezept wurde seitdem aber gespeichert. Wiederherstellen überschreibt das."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
