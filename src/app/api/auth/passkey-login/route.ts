@@ -53,11 +53,13 @@ export async function POST(req: NextRequest) {
                 counter: passkey.counter,
                 transports: passkey.transports,
             },
-            requireUserVerification: false,
+            // A passkey is the only factor here: a borrowed security key without
+            // a PIN, or a phone handed over unlocked, must not be enough.
+            requireUserVerification: true,
         });
         if (!verification.verified) {
             await session.save();
-            return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
+            return NextResponse.json({ message: 'That passkey could not be checked.' }, { status: 401 });
         }
 
         await prisma.passkey.update({
@@ -71,6 +73,6 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         failed('Passkey sign-in failed:', error);
         await session.save();
-        return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
+        return NextResponse.json({ message: 'That passkey could not be checked.' }, { status: 401 });
     }
 }

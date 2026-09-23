@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { rpID } = relyingParty(req.headers.get('origin'));
-    const options = await generateAuthenticationOptions({ rpID, userVerification: 'preferred' });
+    const options = await generateAuthenticationOptions({ rpID, userVerification: 'required' });
 
     const session = await getSession();
     session.passkey = { challenge: options.challenge, purpose: 'login', at: Date.now() };

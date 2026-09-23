@@ -92,6 +92,7 @@ export default function ResetForm({ token }: { token: string }) {
                     onChange={(event) => setPassword(event.target.value)}
                     required
                     minLength={8}
+                    maxLength={200}
                     className={fieldClass}
                 />
                 <p className="mt-2 text-sm text-muted">{t('passwordHint')}</p>
@@ -107,6 +108,7 @@ export default function ResetForm({ token }: { token: string }) {
                     onChange={(event) => setConfirmation(event.target.value)}
                     required
                     minLength={8}
+                    maxLength={200}
                     className={fieldClass}
                 />
             </div>
