@@ -6,6 +6,8 @@ import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
 import { draftFromJson } from '@/lib/captureDraft';
 import { syncWorkItem } from '@/lib/workItemsDb';
+import { mirrorImageToBlob } from '@/lib/mirrorImage';
+import { releaseCaptureScreenshots } from '@/lib/captureCleanup';
 
 const bodySchema = z.object({ recipeId: z.number().int().positive() });
 
@@ -86,8 +88,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
                 ? draftFromJson(capture.draft)?.imageUrl
                 : null;
 
-        const candidates = [capture.imageUrl, typeof draftImage === 'string' ? draftImage : null]
-            .filter((url): url is string => Boolean(url));
+        /*
+         * Claimed before anything is written, like publishing: a merge and a
+         * publish at the same moment both attached the picture to a recipe,
+         * and deleting either recipe then deleted the other one's picture.
+         */
+        const claimed = await prisma.capture.updateMany({
+            where: { id: capture.id, status: { not: 'published' } },
+            data: { status: 'published', recipeId: recipe.id, error: null, processedAt: new Date() },
+        });
+        if (claimed.count !== 1) {
+            return NextResponse.json({ message: 'That capture has already been dealt with.' }, { status: 409 });
+        }
+
+        // A foreign picture left in the draft by a retry is copied into our
+        // store first; next/image shows nothing else.
+        const candidates = (
+            await Promise.all(
+                [capture.imageUrl, typeof draftImage === 'string' ? draftImage : null]
+                    .filter((url): url is string => Boolean(url))
+                    .map((url) => mirrorImageToBlob(url))
+            )
+        ).filter(Boolean);
 
         const known = new Set(recipe.images.map((image) => image.url));
         const fresh = [...new Set(candidates)].filter((url) => !known.has(url));
@@ -105,15 +127,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             });
         }
 
-        await prisma.capture.update({
-            where: { id: capture.id },
-            data: {
-                status: 'published',
-                recipeId: recipe.id,
-                error: null,
-                processedAt: new Date(),
-            },
-        });
+        // Its other screenshots (the comments, the bio) are not kept by the
+        // recipe, and a published capture's files are never deleted with it.
+        await releaseCaptureScreenshots(capture.id, [...known, ...fresh]).catch(() => undefined);
         await syncWorkItem('capture', capture.id);
 
         return NextResponse.json({ success: true, imagesAdded: fresh.length });

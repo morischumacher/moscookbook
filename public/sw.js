@@ -145,6 +145,12 @@ function isCacheable(request, url) {
 
 async function keep(request, response) {
     try {
+        // A page streams, so a not-found, a redirect to the login form or an
+        // error thrown half-way still arrives as a 200. Kept, it would replace
+        // the good copy of the recipe the kitchen needs offline.
+        const text = await response.clone().text();
+        if (/NEXT_HTTP_ERROR_FALLBACK|NEXT_REDIRECT|NEXT_NOT_FOUND|data-dgst=/.test(text)) return;
+
         const cache = await caches.open(CACHE);
         await cache.put(request, response);
         await trim(cache);
@@ -176,6 +182,10 @@ self.addEventListener('fetch', (event) => {
                 // already rendering the original as it streams in.
                 if (response.ok && response.status === 200 && !response.redirected) {
                     event.waitUntil(keep(request, response.clone()));
+                } else if (response.status === 404 || response.status === 410) {
+                    // Gone (a revoked shopping-list link, a deleted recipe):
+                    // not to be read offline any more either.
+                    event.waitUntil(caches.open(CACHE).then((cache) => cache.delete(request)).catch(() => undefined));
                 }
 
                 return response;

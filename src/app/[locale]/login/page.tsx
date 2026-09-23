@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
@@ -8,6 +8,7 @@ import { destinationFrom } from '@/lib/loginDestination';
 import { goAfterAuth } from '@/lib/afterAuth';
 import { buttonPrimary } from '@/lib/ui';
 import PasskeyLogin from '@/components/auth/PasskeyLogin';
+import { forgetOfflineCopies } from '@/lib/offlineCopies';
 
 const fieldClass =
     'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
@@ -129,6 +130,13 @@ function LoginForm() {
 
 export default function LoginPage() {
     const t = useTranslations('Auth');
+
+    // Whoever arrives here is not signed in — a session that expired or was
+    // ended on another device included — so the pages kept for reading
+    // offline go: on a shared tablet they are the last person's.
+    useEffect(() => {
+        void forgetOfflineCopies();
+    }, []);
 
     return (
         <main className="container mx-auto max-w-sm px-4 pb-32 pt-16 sm:pt-24">

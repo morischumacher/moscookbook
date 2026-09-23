@@ -982,7 +982,10 @@
     "passkeyCancelled": "Cancelled – no passkey was created.",
     "passkeySynced": "synced",
     "passkeyUsed": "Last used {date}",
-    "passkeyAddedOn": "Added {date}"
+    "passkeyAddedOn": "Added {date}",
+    "wrongPassword": "That password is not right.",
+    "addressTaken": "That address already belongs to another account.",
+    "tooMany": "Too many attempts. Please wait a few minutes."
   },
   "Ai": {
     "nav": "AI",

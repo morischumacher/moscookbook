@@ -86,10 +86,19 @@ async function referencedUrls() {
     for (const row of collections) if (row.imageUrl) urls.add(row.imageUrl);
     for (const row of reportPhotos) if (row.url) urls.add(row.url);
 
+    // A picture written into a recipe's method is also in its translation
+    // and in the versions kept of it, and restoring one would show it again.
+    const [translations, revisions] = await Promise.all([
+        prisma.recipeTranslation.findMany({ select: { instructions: true } }),
+        prisma.recipeRevision.findMany({ select: { snapshot: true } }),
+    ]);
+
     for (const text of [
         ...posts.map((row) => row.body),
         ...collections.map((row) => row.description ?? ''),
         ...recipeTexts.map((row) => row.instructions),
+        ...translations.map((row) => row.instructions),
+        ...revisions.map((row) => JSON.stringify(row.snapshot ?? '')),
     ]) {
         for (const url of picturesIn(text)) urls.add(url);
     }
