@@ -74,6 +74,12 @@ function sorted(body: CaptureBody): CaptureBody {
     const stray = body.url.trim();
     if (stray === '') return { ...body, url: undefined };
 
+    // A screenshot with the clipboard in the url field — the screenshot
+    // shortcut sends whatever was last copied, in case it is the post's link.
+    // When it is not a link it is whatever else was copied, and that is not
+    // part of this recipe.
+    if (body.image || body.imageUrl) return { ...body, url: undefined };
+
     return {
         ...body,
         url: undefined,

@@ -17,6 +17,7 @@ import { extractRecipeWithAi } from './aiImport';
 import { titleProblem } from './draftQuality';
 import type { AiTrace, ProcessedCapture, ProcessOptions } from './captureTypes';
 import { mergeDrafts } from './captureDraft';
+import { reason } from './captureReasons';
 
 /** The trace of a path that never asked. */
 export const NOT_ASKED: AiTrace = { provider: null, asked: false, failed: false };
@@ -197,10 +198,8 @@ export function reasonFor(
      * failed to parse, it is an advertisement for one.
      */
     if (empty && ((trace.asked && !trace.failed) || trace.tooThin === true)) {
-        return 'There was no recipe on this page — only a mention of one.';
+        return reason('noRecipe');
     }
 
-    return kind === 'video'
-        ? 'The description did not hold a full recipe — it may only be spoken in the video.'
-        : 'The page held only part of a recipe.';
+    return kind === 'video' ? reason('videoPartial') : reason('pagePartial');
 }

@@ -355,10 +355,10 @@
   },
   "Inbox": {
     "title": "Inbox",
-    "explanation": "Everything shared from your phone lands here first. Add it to the cookbook, save it as a draft, or edit it first.",
+    "explanation": "Everything you share from your phone or paste here lands in the inbox first. Add it to the cookbook, save it as a draft, or edit it first.",
     "loading": "Loading the inbox…",
     "rereading": "Reading it again with the rules…",
-    "empty": "Nothing waiting. Share something from your phone.",
+    "empty": "Nothing waiting. Share something from your phone, or paste a link above.",
     "untitled": "Untitled",
     "accept": "Add to cookbook",
     "finish": "Edit first",
@@ -400,7 +400,51 @@
     "legendFinish": "Edit first — opens the recipe form with everything filled in, to correct it before saving.",
     "legendRetry": "More → Read again — reads the link once more with the rules; the AI only if the rules fall short. Free unless the AI is needed.",
     "legendAskAi": "More → Read with AI — has the AI read it even if the rules think they managed. Costs one call.",
-    "legendRest": "More → Open the source, Report a problem (a ticket already describing this row), Delete."
+    "legendRest": "More → Open the source, Report a problem (a ticket already describing this row), Delete.",
+    "pasteLabel": "Paste a link or a recipe",
+    "pastePlaceholder": "https://… or the text of a recipe",
+    "pasteAdd": "Add",
+    "pasteFailed": "That could not be added. Is it a link or some text?",
+    "searchPlaceholder": "Search",
+    "sortLabel": "Order",
+    "sort": {
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "complete": "Most complete first"
+    },
+    "filterSource": "Source",
+    "filterStatus": "State",
+    "filterAll": "All",
+    "noMatches": "Nothing matches.",
+    "clearFilters": "Show everything",
+    "reason": {
+      "notYoutube": "That is not a link to a YouTube video.",
+      "youtubeUnreadable": "YouTube could not be read ({detail}).",
+      "pageUnreadable": "The page could not be read ({detail}).",
+      "sharedTextUsed": "The page itself could not be read – the text shared with it was used instead.",
+      "noPicture": "No picture was stored.",
+      "pictureNeedsAi": "The picture is saved. Reading it needs the AI – or typing it in.",
+      "pictureUnreadable": "The picture is saved, but could not be loaded again ({detail}).",
+      "picturePartial": "Only part of a recipe was legible in the picture.",
+      "pictureFailed": "The picture is saved, but reading it did not work. Try “Read again” later.",
+      "nothingSent": "Nothing arrived.",
+      "textPartial": "Only part of a recipe was recognised.",
+      "noLink": "No link to follow.",
+      "somethingWrong": "Something went wrong while reading this. Try “Read again”.",
+      "noRecipe": "There was no recipe here – only a mention of one. You can probably delete it.",
+      "pagePartial": "The page held only part of a recipe.",
+      "videoPartial": "The video description held only part of a recipe.",
+      "videoSpoken": "The recipe is not in the description – it is probably only spoken in the video. Watch and type it in, or send a screenshot.",
+      "videoSpokenNeedsAi": "The recipe is only spoken in the video. The subtitles are there – “Read with AI” turns them into a recipe."
+    },
+    "fetchFailure": {
+      "timeout": "it took too long",
+      "http-error": "the site refused",
+      "network": "no connection",
+      "unsafe-url": "unsafe address",
+      "not-a-page": "not a web page",
+      "not-an-image": "not a picture"
+    }
   },
   "Devices": {
     "title": "Devices",
@@ -462,7 +506,12 @@
     "trouble413A": "The picture is over 10 MB. Combine fewer screenshots, or lower the quality in “Convert Image”.",
     "troubleSilentQ": "Nothing happens at all",
     "troubleSilentA": "Usually the order of the actions: encoding has to happen before sending, not after.",
-    "queuedNote": "The reply now only says that something arrived; the reading happens afterwards. The shortcut used to wait for the page to be fetched, parsed and — since the AI — read by a model, which on one recipe page was a measured fifteen seconds with the phone in your hand."
+    "queuedNote": "The reply now only says that something arrived; the reading happens afterwards. The shortcut used to wait for the page to be fetched, parsed and — since the AI — read by a model, which on one recipe page was a measured fifteen seconds with the phone in your hand.",
+    "sc2LinkTitle": "With the link (recommended for Instagram)",
+    "sc2Link1": "In Instagram, tap Share → “Copy link” on the post, then take the screenshot.",
+    "sc2Link2": "In the screenshot shortcut, add the action “Get Clipboard” before “Get Contents of URL”.",
+    "sc2Link3": "In the request body's dictionary, add a text field “url” and choose the blue variable “Clipboard” as its value:",
+    "sc2LinkNote": "The link and the screenshot then arrive together: the post is read first – its caption, and a recipe link in it is followed – and the screenshot is the picture, and the fallback if that is not enough. If the clipboard does not hold a link, it is ignored."
   },
   "Share": {
     "share": "Share",

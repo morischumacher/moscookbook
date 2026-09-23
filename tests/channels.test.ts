@@ -378,7 +378,7 @@ Gesendet von meinem iPhone`,
     equal('and the picture is still there', noKey.result?.draft?.imageUrl, PICTURE);
     check(
         'the message says what it needs rather than what went wrong',
-        (noKey.result?.error ?? '').includes('saved'),
+        noKey.result?.error === 'reason:pictureNeedsAi',
         noKey.result?.error
     );
     restore();
@@ -946,7 +946,7 @@ Gesendet von meinem iPhone`,
     equal(
         'and the row says there was nothing to find',
         teaser.error,
-        'There was no recipe on this page — only a mention of one.'
+        'reason:noRecipe'
     );
 
     // The platform's wrapper comes off even when nothing else can be rescued.
@@ -972,7 +972,7 @@ Gesendet von meinem iPhone`,
         { mode: 'off', keys: [] }
     );
 
-    equal('half a recipe is still half a recipe', half.error, 'The page held only part of a recipe.');
+    equal('half a recipe is still half a recipe', half.error, 'reason:pagePartial');
     restore();
 
 }

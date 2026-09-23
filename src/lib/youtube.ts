@@ -53,7 +53,7 @@ export function youtubeVideoId(url: string): string | null {
  * honouring backslash escapes, then handed to JSON.parse so that `\n`, `ä`
  * and friends come out as the characters a German recipe is made of.
  */
-function jsonStringAfter(html: string, key: string, from = 0): string | null {
+export function jsonStringAfter(html: string, key: string, from = 0): string | null {
     const needle = `"${key}":"`;
     const start = html.indexOf(needle, from);
     if (start === -1) return null;

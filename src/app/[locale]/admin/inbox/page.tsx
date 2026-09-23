@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { captureLabel } from '@/lib/capture';
@@ -11,6 +11,10 @@ import Loading from '@/components/ui/Loading';
 import PageHeader from '@/components/admin/PageHeader';
 import Disclosure from '@/components/ui/Disclosure';
 import { BusyLabel } from '@/components/ui/Busy';
+import InboxPaste from '@/components/admin/InboxPaste';
+import InboxFilters from '@/components/admin/InboxFilters';
+import { countBy, filterInbox, NO_FILTER, type InboxQuery } from '@/lib/inboxFilter';
+import { readReason } from '@/lib/captureReasons';
 
 interface DraftSummary {
     title?: string;
@@ -101,6 +105,22 @@ export default function AdminInboxPage() {
     useEffect(() => {
         load();
     }, [load]);
+
+    const [query, setQuery] = useState<InboxQuery>(NO_FILTER);
+
+    /*
+     * A pasted link is read in the background and arrives as "not read yet".
+     * Asked again every few seconds while anything is in that state, so it
+     * turns into a recipe on screen rather than after a reload — and not
+     * forever: a row stuck unread stops the asking after a minute.
+     */
+    const [pollUntil, setPollUntil] = useState(0);
+    const waiting = captures.some((capture) => capture.status === 'new');
+    useEffect(() => {
+        if (!waiting || Date.now() > pollUntil) return;
+        const timer = setTimeout(() => void load(), 2500);
+        return () => clearTimeout(timer);
+    }, [waiting, pollUntil, captures, load]);
 
     const act = async (id: number, action: 'retry' | 'askAi' | 'publish' | 'stage') => {
         setBusyId(id);
@@ -199,8 +219,13 @@ export default function AdminInboxPage() {
         }
     };
 
-    const open = captures.filter((capture) => capture.status !== 'published');
-    const done = captures.filter((capture) => capture.status === 'published');
+    const allOpen = useMemo(() => captures.filter((capture) => capture.status !== 'published'), [captures]);
+    const open = useMemo(() => filterInbox(allOpen, query), [allOpen, query]);
+    const done = useMemo(
+        () => filterInbox(captures.filter((capture) => capture.status === 'published'), { ...query, state: '', source: query.source }),
+        [captures, query]
+    );
+    const filtered = query.search !== '' || query.source !== '' || query.state !== '';
 
     return (
         <main className={`${pageContainer} pb-32`}>
@@ -221,6 +246,25 @@ export default function AdminInboxPage() {
                 </Disclosure>
             </div>
 
+            <div className="mt-6">
+                <InboxPaste
+                    onAdded={() => {
+                        setPollUntil(Date.now() + 60_000);
+                        void load();
+                    }}
+                />
+            </div>
+
+            {allOpen.length > 3 && (
+                <InboxFilters
+                    query={query}
+                    onChange={setQuery}
+                    sources={countBy(allOpen, (capture) => capture.source)}
+                    states={countBy(allOpen, (capture) => capture.status)}
+                    total={allOpen.length}
+                />
+            )}
+
             {error && (
                 <p className="mb-6 rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
                     {error}
@@ -230,7 +274,18 @@ export default function AdminInboxPage() {
             {loading ? (
                 <Loading label={t('loading')} />
             ) : open.length === 0 ? (
-                <p className="border-t border-line py-16 text-center text-muted">{t('empty')}</p>
+                <p className="border-t border-line py-16 text-center text-muted">
+                    {filtered ? (
+                        <>
+                            {t('noMatches')}{' '}
+                            <button type="button" onClick={() => setQuery(NO_FILTER)} className="underline underline-offset-4">
+                                {t('clearFilters')}
+                            </button>
+                        </>
+                    ) : (
+                        t('empty')
+                    )}
+                </p>
             ) : (
                 <ul className="flex flex-col divide-y divide-line">
                     {open.map((capture) => (
@@ -350,13 +405,22 @@ function CaptureRow({
      */
     const alreadyAsked = (capture.readBy ?? '').includes('ai') && capture.status === 'ready';
 
+    // Why it is not ready, in the reader's language. A row from before the
+    // pipeline stored codes still has its English sentence, shown as it is.
+    const why = (() => {
+        const coded = readReason(capture.error);
+        if (!coded) return capture.error;
+        const detail = coded.detail && t.has(`fetchFailure.${coded.detail}`) ? t(`fetchFailure.${coded.detail}`) : (coded.detail ?? '');
+        return t(`reason.${coded.code}`, { detail });
+    })();
+
     /** The ticket, already written. See the report link below. */
     const reportText = [
         `${t('report')}: ${label}`,
         `${t('reportStatus')}: ${capture.status}${capture.readBy ? ` (${capture.readBy})` : ''}`,
         capture.aiProvider ? `${tAi('nav')}: ${providerLabel(capture.aiProvider)}` : null,
         capture.sourceUrl ? capture.sourceUrl : null,
-        capture.error ? capture.error : null,
+        why ? why : null,
         '',
         '',
     ]
@@ -460,7 +524,7 @@ function CaptureRow({
                 </p>
             )}
 
-            {capture.error && <p className="mt-1 text-sm text-muted">{capture.error}</p>}
+            {why && <p className="mt-1 text-sm text-muted">{why}</p>}
 
             {/*
                 The row is working, and this says on whose time.
