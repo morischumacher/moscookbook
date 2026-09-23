@@ -43,6 +43,8 @@ export interface RecipeFormValues {
     language?: RecipeLanguage | null;
     /** The recipe in its other language, if it has been translated. */
     translation?: RecipeTranslationInput | null;
+    /** Only the admins see it. See lib/recipeVisibility. */
+    onlyMe?: boolean;
 }
 
 /** A list from the lists if there are any, else from the single field. */
@@ -101,6 +103,7 @@ export default function RecipeForm({
 
     // Chosen, or guessed from the text until somebody chooses; fixed as soon
     // as there is a translation, so typing cannot flip it under one.
+    const [onlyMe, setOnlyMe] = useState(initial?.onlyMe ?? false);
     const [chosenLanguage, setChosenLanguage] = useState<RecipeLanguage | null>(initial?.language ?? null);
     const [translation, setTranslation] = useState<RecipeTranslationInput | null>(initial?.translation ?? null);
     const language: RecipeLanguage =
@@ -298,6 +301,7 @@ export default function RecipeForm({
                     prepMinutes: toOptionalNumber(prepMinutes),
                     cookMinutes: toOptionalNumber(cookMinutes),
                     language,
+                    onlyMe,
                     translation: translation && translation.locale !== language ? translation : null,
                     ...(mode === 'create' && captureId ? { captureId } : {}),
                 }),
@@ -550,6 +554,21 @@ export default function RecipeForm({
                     }}
                     available={aiEnabled}
                 />
+
+                {/* Who may see it, beyond the three stages the share button
+                    offers: a finished recipe that is nobody else's business. */}
+                <label className="flex items-start gap-3 rounded-xl border border-line p-4">
+                    <input
+                        type="checkbox"
+                        checked={onlyMe}
+                        onChange={(event) => setOnlyMe(event.target.checked)}
+                        className="mt-1 h-4 w-4 shrink-0"
+                    />
+                    <span>
+                        <span className="block font-bold">{t('onlyMe')}</span>
+                        <span className="block text-sm text-muted">{t('onlyMeHint')}</span>
+                    </span>
+                </label>
 
                 <div className="flex flex-wrap items-center gap-4">
                     <button

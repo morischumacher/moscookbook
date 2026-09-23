@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { getLocale, getTranslations } from 'next-intl/server';
+import { visibleTo } from '@/lib/recipeVisibility';
 import { Link } from '@/i18n/routing';
 import FilterChips from '@/components/home/FilterChips';
 import OfflineFavorites from '@/components/home/OfflineFavorites';
@@ -48,6 +49,8 @@ interface RecipeWhere {
      * the draft state exists to prevent. They live at /drafts instead.
      */
     isDraft: false;
+    /** Absent for an admin; see lib/recipeVisibility. */
+    onlyMe?: false;
     categories?: { has: string };
     cuisines?: { has: string };
     spiciness?: { gte: number };
@@ -85,11 +88,12 @@ const SEARCH_MATCH_CAP = 600;
  * assignment, and the annotation still holds when the generated client is
  * absent.
  */
-function rankedSearch(tsquery: string): Promise<{ id: number }[]> {
+function rankedSearch(tsquery: string, admin: boolean): Promise<{ id: number }[]> {
     return prisma.$queryRaw<{ id: number }[]>`
         SELECT "id"
         FROM "Recipe"
         WHERE "isDraft" = false
+          AND ("onlyMe" = false OR ${admin})
           AND "searchVector" @@ to_tsquery('german', ${tsquery})
         ORDER BY ts_rank("searchVector", to_tsquery('german', ${tsquery})) DESC,
                  "createdAt" DESC
@@ -116,10 +120,11 @@ async function postsMatching(tsquery: string): Promise<number> {
 }
 
 /** Recipes that take half an hour or less, prep and cooking together. */
-async function quickRecipeIds(): Promise<number[]> {
+async function quickRecipeIds(admin: boolean): Promise<number[]> {
     const rows = await prisma.$queryRaw<{ id: number }[]>`
         SELECT "id" FROM "Recipe"
         WHERE "isDraft" = false
+          AND ("onlyMe" = false OR ${admin})
           AND COALESCE("prepMinutes", 0) + COALESCE("cookMinutes", 0) BETWEEN 1 AND ${QUICK_MINUTES}
     `;
     return rows.map((row) => row.id);
@@ -179,11 +184,14 @@ export default async function HomePage({
      */
     const tsquery = search ? buildTsQuery(search) : null;
 
-    const [user, ranked, matchingPosts, quickIds] = await Promise.all([
-        getCurrentUser(),
-        tsquery !== null ? rankedSearch(tsquery) : null,
+    // First, because what the lists may contain depends on who asks: an
+    // admin's "only me" recipes are theirs alone (lib/recipeVisibility).
+    const user = await getCurrentUser();
+    const admin = Boolean(user?.admin);
+    const [ranked, matchingPosts, quickIds] = await Promise.all([
+        tsquery !== null ? rankedSearch(tsquery, admin) : null,
         tsquery !== null ? postsMatching(tsquery) : 0,
-        quick ? quickRecipeIds() : null,
+        quick ? quickRecipeIds(admin) : null,
     ]);
     const isLoggedIn = user !== null;
 
@@ -194,7 +202,7 @@ export default async function HomePage({
     // Needed before the list only when the list *is* the favourites.
     const earlyFavorites = showFavorites && isLoggedIn ? await favoritesQuery : null;
 
-    const where: RecipeWhere = { isDraft: false };
+    const where: RecipeWhere = { isDraft: false, ...visibleTo(user) };
     if (category) where.categories = { has: category };
     if (nationality) where.cuisines = { has: nationality };
     if (spicy) where.spiciness = { gte: 1 };
@@ -323,7 +331,7 @@ export default async function HomePage({
             // built with it. This is the last query before the tiles are drawn,
             // and it is the one that would be forgotten by whoever adds the
             // seventh way of sorting.
-            where: { id: { in: pageIds }, isDraft: false },
+            where: { id: { in: pageIds }, isDraft: false, ...visibleTo(user) },
             select: tile,
         });
 

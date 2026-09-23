@@ -56,15 +56,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
          * should have stopped it going in.
          */
         const updated: { count: number } = await prisma.recipe.updateMany({
-            where: { id: recipeId, ...(parsed.data.isPublic ? { isDraft: false } : {}) },
+            // Nor an "only me" recipe: that is the opposite of public.
+            where: { id: recipeId, ...(parsed.data.isPublic ? { isDraft: false, onlyMe: false } : {}) },
             data: { isPublic: parsed.data.isPublic },
         });
 
         if (updated.count !== 1) {
-            const exists: { isDraft: boolean } | null = await prisma.recipe.findUnique({
+            const exists: { isDraft: boolean; onlyMe: boolean } | null = await prisma.recipe.findUnique({
                 where: { id: recipeId },
-                select: { isDraft: true },
+                select: { isDraft: true, onlyMe: true },
             });
+
+            if (exists?.onlyMe) {
+                return NextResponse.json({ message: 'onlyMe', onlyMe: true }, { status: 409 });
+            }
 
             if (exists?.isDraft) {
                 return NextResponse.json(

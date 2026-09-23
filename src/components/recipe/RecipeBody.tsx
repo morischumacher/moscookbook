@@ -56,6 +56,8 @@ export default function RecipeBody({
         linkUrl: string | null;
         ownUrl: string;
         mayChange: boolean;
+        /** No button at all: an "only me" recipe. */
+        hidden?: boolean;
     };
 }) {
     const [servings, setServings] = useState(baseServings ?? 0);
@@ -358,17 +360,19 @@ export default function RecipeBody({
                     </div>
                 )}
 
-                <ShareButton
-                    id={recipeId}
-                    kind="recipe"
-                    title={title}
-                    locale={locale}
-                    isPublic={share.isPublic}
-                    linkUrl={share.linkUrl}
-                    ownUrl={share.ownUrl}
-                    mayChange={share.mayChange}
-                    className="text-sm text-muted underline underline-offset-4 hover:text-ink"
-                />
+                {!share.hidden && (
+                    <ShareButton
+                        id={recipeId}
+                        kind="recipe"
+                        title={title}
+                        locale={locale}
+                        isPublic={share.isPublic}
+                        linkUrl={share.linkUrl}
+                        ownUrl={share.ownUrl}
+                        mayChange={share.mayChange}
+                        className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+                    />
+                )}
 
                 <button
                     type="button"

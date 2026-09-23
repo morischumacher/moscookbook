@@ -51,6 +51,7 @@ function recipeData(recipe: ArchiveRecipe) {
         // field existed defaults to false, which is the safe direction.
         isPublic: recipe.isPublic,
         isDraft: recipe.isDraft,
+        onlyMe: recipe.onlyMe,
         createdAt: safeDate(recipe.createdAt) ?? new Date(),
         imageUrls: recipe.images,
         ingredients: recipe.ingredients,

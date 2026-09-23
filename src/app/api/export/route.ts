@@ -126,6 +126,7 @@ export async function GET() {
                                 views: true,
                                 isPublic: true,
                                 isDraft: true,
+                                onlyMe: true,
                 tags: true,
                 categories: true,
                 cuisines: true,

@@ -35,7 +35,8 @@ const loadShared = cache(async (token: string): Promise<RecipeRow | null> => {
      * unreachable" is not a property worth betting a private recipe on.
      */
     return prisma.recipe.findFirst({
-        where: { shareToken: token, isDraft: false },
+        // Nor an "only me" recipe, which never has a link (see recipeColumns).
+        where: { shareToken: token, isDraft: false, onlyMe: false },
         include: recipeInclude,
     });
 });

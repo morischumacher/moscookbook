@@ -32,6 +32,7 @@ interface AdminRecipeRow {
     views: number;
     isPublic: boolean;
     shareToken: string | null;
+    onlyMe: boolean;
     images: { url: string }[];
 }
 
@@ -91,6 +92,7 @@ export default async function AdminDashboard({
             views: true,
             isPublic: true,
             shareToken: true,
+            onlyMe: true,
             images: { orderBy: { position: 'asc' }, take: 1, select: { url: true } },
         },
     });
@@ -209,6 +211,7 @@ export default async function AdminDashboard({
                                         three lines long) — and only when it is
                                         not the household, which most are. */}
                                     {(() => {
+                                        if (recipe.onlyMe) return <span className="text-accent-text">{' · '}{t('onlyMeLabel')}</span>;
                                         const stage = stageOf({ isPublic: recipe.isPublic, linkUrl: recipe.shareToken });
                                         if (stage === 'household') return null;
                                         return (
@@ -225,7 +228,7 @@ export default async function AdminDashboard({
                                 squeezing five actions into a row that is
                                 already carrying a thumbnail. */}
                             <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 pl-16 text-sm sm:w-auto sm:pl-0">
-                                <RecipeRowActions
+                                {!recipe.onlyMe && <RecipeRowActions
                                     showStage={false}
                                     recipeId={recipe.id}
                                     title={recipe.title}
@@ -237,7 +240,7 @@ export default async function AdminDashboard({
                                             ? shareUrl(getSiteUrl(), locale, recipe.shareToken)
                                             : null
                                     }
-                                />
+                                />}
                                 <Link
                                     href={`/admin/edit/${recipe.id}`}
                                     className="underline underline-offset-4 hover:text-muted"

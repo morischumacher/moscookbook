@@ -1,6 +1,7 @@
 import prisma from './prisma';
 import { linesFor, mergeInto, removeFrom, type PlannedLine } from './shopping';
 import { inLanguage } from './recipeTranslation';
+import { visibleTo } from './recipeVisibility';
 
 /**
  * The shopping list's storage. The thinking is in lib/shopping.ts; this only
@@ -102,9 +103,15 @@ export async function removeLines(listId: number, planned: PlannedLine[]): Promi
  * the stepper on the recipe page showed; the recipe's own number is what its
  * amounts are written for.
  */
-export async function recipeLines(recipeId: number, servings: number | null, locale?: string): Promise<PlannedLine[] | null> {
-    const recipe = await prisma.recipe.findUnique({
-        where: { id: recipeId },
+export async function recipeLines(
+    recipeId: number,
+    servings: number | null,
+    locale?: string,
+    viewer?: { admin: boolean } | null
+): Promise<PlannedLine[] | null> {
+    const recipe = await prisma.recipe.findFirst({
+        // An "only me" recipe is not there for anybody else (lib/recipeVisibility).
+        where: { id: recipeId, ...visibleTo(viewer) },
         select: recipeForList,
     });
     if (!recipe) return null;
@@ -138,7 +145,7 @@ export async function collectionLines(collectionId: number, locale?: string): Pr
         where: { id: collectionId },
         select: {
             recipes: {
-                where: { recipe: { isDraft: false } },
+                where: { recipe: { isDraft: false, onlyMe: false } },
                 orderBy: { position: 'asc' },
                 select: { recipe: { select: recipeForList } },
             },

@@ -20,6 +20,7 @@ interface EditableRecipe {
     categories: string[];
     cuisines: string[];
     spiciness: number;
+    onlyMe: boolean;
     language: string | null;
     translations: { locale: string; title: string; description: string; instructions: string; ingredients: unknown; source: string }[];
     instructions: string;
@@ -100,6 +101,7 @@ export default async function EditRecipePage({
                 cuisines: recipe.cuisines,
                 spiciness: recipe.spiciness,
                 language: asLanguage(recipe.language),
+                onlyMe: recipe.onlyMe,
                 translation: translationOf(recipe.translations[0]),
             }}
         />

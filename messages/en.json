@@ -246,7 +246,8 @@
       "all": "All",
       "web": "Public",
       "link": "With link",
-      "household": "Household only"
+      "household": "Household only",
+      "onlyMe": "Only me"
     },
     "listSort": {
       "new": "Newest",
@@ -261,7 +262,8 @@
     "listPages": "Pages",
     "listPrevious": "← Previous",
     "listNext": "Next →",
-    "listPage": "Page {page} of {pages}"
+    "listPage": "Page {page} of {pages}",
+    "onlyMeLabel": "Only for me"
   },
   "RecipeForm": {
     "newRecipe": "New recipe",
@@ -374,7 +376,9 @@
     "translateUnusable": "The AI left out or merged ingredients, so the translation was discarded. Try again.",
     "tooManyPictures": "At most {max} pictures per recipe – the rest were not uploaded.",
     "slugTaken": "There is already a recipe at this address. Change the address (slug) or the title.",
-    "saveInvalid": "The recipe cannot be saved like this – please check the fields."
+    "saveInvalid": "The recipe cannot be saved like this – please check the fields.",
+    "onlyMe": "Only for me",
+    "onlyMeHint": "Nobody but the admins sees it – not even signed-in members of the household. No share link, not public, not in collections, posts or menu links."
   },
   "QuickImport": {
     "heading": "Fill in quickly",

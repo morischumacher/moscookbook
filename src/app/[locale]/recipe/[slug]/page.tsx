@@ -12,6 +12,7 @@ import { getSiteUrl } from '@/lib/siteUrl';
 import { shareUrl } from '@/lib/shareToken';
 import { similarRecipes } from '@/lib/similarRecipes';
 import { inLanguage } from '@/lib/recipeTranslation';
+import { maysee } from '@/lib/recipeVisibility';
 
 // generateMetadata and the page itself both need the recipe; cache() makes
 // that a single database round trip per request instead of two.
@@ -44,6 +45,8 @@ export async function generateMetadata({
     const t = await getTranslations({ locale, namespace: 'Recipe' });
 
     if (!recipe) return { title: t('notFound') };
+    // Not even its title in the tab for somebody it is hidden from.
+    if (recipe.onlyMe && !(await getCurrentUser())?.admin) return { title: t('notFound') };
 
     const title = `${recipe.title} — mo'scookbook`;
 
@@ -108,7 +111,8 @@ export default async function RecipePage({
         redirect(`/${locale}/login?next=${next}`);
     }
 
-    if (!recipe) notFound();
+    // "Only me": to anybody but an admin it does not exist (lib/recipeVisibility).
+    if (!recipe || !maysee(recipe, user)) notFound();
 
     /*
      * Everything below the recipe itself is for people with an account.

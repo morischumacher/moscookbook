@@ -29,7 +29,7 @@ const addBody = z.union([
 export const POST = route({ access: 'user', body: addBody, label: 'Adding to the shopping list' }, async ({ user, body }) => {
     const lines =
         'recipeId' in body
-            ? await recipeLines(body.recipeId, body.servings ?? null, body.locale)
+            ? await recipeLines(body.recipeId, body.servings ?? null, body.locale, user)
             : 'collectionId' in body
               ? await collectionLines(body.collectionId, body.locale)
               : 'menuId' in body

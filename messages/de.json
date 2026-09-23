@@ -246,7 +246,8 @@
       "all": "Alle",
       "web": "Öffentlich",
       "link": "Mit Link",
-      "household": "Nur Haushalt"
+      "household": "Nur Haushalt",
+      "onlyMe": "Nur ich"
     },
     "listSort": {
       "new": "Neueste",
@@ -261,7 +262,8 @@
     "listPages": "Seiten",
     "listPrevious": "← Zurück",
     "listNext": "Weiter →",
-    "listPage": "Seite {page} von {pages}"
+    "listPage": "Seite {page} von {pages}",
+    "onlyMeLabel": "Nur für mich"
   },
   "RecipeForm": {
     "newRecipe": "Neues Rezept",
@@ -374,7 +376,9 @@
     "translateUnusable": "Die KI hat Zutaten ausgelassen oder zusammengelegt, deshalb wurde die Übersetzung verworfen. Versuch es noch einmal.",
     "tooManyPictures": "Höchstens {max} Bilder pro Rezept – die übrigen wurden nicht hochgeladen.",
     "slugTaken": "Es gibt schon ein Rezept mit dieser Adresse. Ändere die Adresse (Slug) oder den Titel.",
-    "saveInvalid": "So kann das Rezept nicht gespeichert werden – bitte die Felder prüfen."
+    "saveInvalid": "So kann das Rezept nicht gespeichert werden – bitte die Felder prüfen.",
+    "onlyMe": "Nur für mich",
+    "onlyMeHint": "Außer Admins sieht es niemand – auch nicht, wer im Haushalt angemeldet ist. Kein Teilen-Link, nicht öffentlich, nicht in Sammlungen, Beiträgen oder Menü-Links."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",

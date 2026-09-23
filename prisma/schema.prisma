@@ -387,6 +387,11 @@ model Recipe {
   /// asked for. Making one again from the source is the honest alternative.
   isDraft      Boolean    @default(false)
 
+  /// A finished recipe only the admins see — not the household, no share
+  /// link, never public. Set in the recipe form; see lib/recipeVisibility.ts
+  /// for every place it is filtered out.
+  onlyMe       Boolean    @default(false)
+
   /// The public link, or null when the recipe is only for people who are
   /// logged in. Unguessable rather than a flag on the normal address: a secret
   /// URL can be handed to one person and withdrawn again without renaming the

@@ -86,6 +86,7 @@ export async function GET(req: NextRequest) {
                 views: true,
                 isPublic: true,
                 isDraft: true,
+                onlyMe: true,
                 tags: true,
                 categories: true,
                 cuisines: true,

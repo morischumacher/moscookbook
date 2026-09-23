@@ -127,6 +127,7 @@ export async function PUT(
                     spiciness: parsed.data.spiciness,
                     language,
                     translation,
+                    onlyMe: parsed.data.onlyMe,
                 }),
             }),
             ...(sentTranslation !== undefined ? [prisma.recipeTranslation.deleteMany({ where: { recipeId } })] : []),

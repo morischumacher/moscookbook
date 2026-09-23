@@ -15,6 +15,7 @@ export default function adminRecipeListTests() {
     suite('admin list: filters and order');
     equal('public', showWhere('web'), { isPublic: true });
     equal('with a link', showWhere('link'), { isPublic: false, shareToken: { not: null } });
-    equal('household only', showWhere('household'), { isPublic: false, shareToken: null });
+    equal('household only', showWhere('household'), { isPublic: false, shareToken: null, onlyMe: false });
+    equal('only me', showWhere('onlyMe'), { onlyMe: true });
     equal('most viewed, newest breaking ties', sortOrder('views'), [{ views: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }]);
 }

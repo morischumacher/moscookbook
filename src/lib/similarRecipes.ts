@@ -64,6 +64,8 @@ export async function similarRecipes(recipe: {
               -- Suggesting a draft would be the cookbook recommending something
               -- nobody here has cooked yet, under a heading that says otherwise.
               AND r."isDraft" = false
+              -- Nor one only the admins see: this list is shown to the household.
+              AND r."onlyMe" = false
               AND r."searchVector" @@ to_tsquery('german', ${query})
               AND ts_rank(r."searchVector", to_tsquery('german', ${query})) > ${MINIMUM_RANK}
             ORDER BY ts_rank(r."searchVector", to_tsquery('german', ${query}))

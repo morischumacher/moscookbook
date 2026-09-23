@@ -36,6 +36,7 @@ const webUrl = z
  */
 
 /**
+ * 10: whether a recipe is only the admins'.
  * 9: the language a recipe is written in, and its translation.
  * 8: several categories and cuisines per recipe, and how hot it is.
  * 7: menus. 6: pictures on collections and entries about several recipes.
@@ -47,7 +48,7 @@ const webUrl = z
  * every new field to the safe value — and an archive from a newer version is
  * refused with the numbers in the message rather than half-read.
  */
-export const ARCHIVE_VERSION = 9;
+export const ARCHIVE_VERSION = 10;
 
 /** A recipe in its other language, as the form's rows. Version 9. */
 const archiveTranslationSchema = z.object({
@@ -98,6 +99,11 @@ const archiveRecipeSchema = z.object({
      * did.
      */
     isDraft: z.boolean().default(false),
+    /**
+     * Version 10. Lost on a restore, an "only me" recipe would come back
+     * visible to the whole household — so it travels with the recipe.
+     */
+    onlyMe: z.boolean().default(false),
     createdAt: z.string().default(() => new Date().toISOString()),
     /** Absolute URLs at the time of export; a local backup also keeps the files. */
     images: z.array(webUrl).default([]),
@@ -300,6 +306,7 @@ export function parseArchive(input: unknown): ParseResult {
 export interface ExportableRecipe {
     isPublic: boolean;
     isDraft: boolean;
+    onlyMe?: boolean;
     title: string;
     slug: string;
     description: string | null;
@@ -422,6 +429,7 @@ export function toArchiveRecipe(recipe: ExportableRecipe): ArchiveRecipe {
         views: recipe.views,
         isPublic: recipe.isPublic,
         isDraft: recipe.isDraft,
+        onlyMe: recipe.onlyMe ?? false,
         createdAt: recipe.createdAt.toISOString(),
         images: recipe.images.map((image) => image.url),
         tags: recipe.tags,
