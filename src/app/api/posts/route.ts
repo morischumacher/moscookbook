@@ -69,6 +69,11 @@ export async function POST(req: NextRequest) {
         if (isPrismaError(error, 'P2003')) {
             return NextResponse.json({ message: 'That recipe no longer exists.' }, { status: 400 });
         }
+        // Two entries with the same title saved at once: the free address
+        // was free for both. Saving again picks the next one.
+        if (isPrismaError(error, 'P2002')) {
+            return NextResponse.json({ message: 'Another entry already has that address.' }, { status: 409 });
+        }
 
         failed('Post creation failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

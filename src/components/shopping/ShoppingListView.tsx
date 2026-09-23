@@ -227,9 +227,11 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     const asText = useMemo(() => listAsText(items, aisleName, locale), [items, aisleName, locale]);
 
     const sendText = async () => {
-        const body = `${t('title')}\n\n${asText}${shareLink ? `\n\n${shareLink}` : ''}`;
+        // A named list goes out under its name: "Grillparty", not "Einkaufsliste".
+        const heading = (mode.kind === 'account' && mode.name) || t('title');
+        const body = `${heading}\n\n${asText}${shareLink ? `\n\n${shareLink}` : ''}`;
         try {
-            if (navigator.share) await navigator.share({ title: t('title'), text: body });
+            if (navigator.share) await navigator.share({ title: heading, text: body });
             else {
                 await navigator.clipboard.writeText(body);
                 setNote(t('copied'));

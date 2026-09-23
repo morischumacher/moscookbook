@@ -1205,7 +1205,8 @@
     "deleteList": "Delete list",
     "deleteListQuestion": "Delete the list “{name}” and everything on it?",
     "addTo": "Which list",
-    "invitedToList": "{name} wants to share the list “{list}” with you"
+    "invitedToList": "{name} wants to share the list “{list}” with you",
+    "invitationCount": "{count, plural, one {# invitation} other {# invitations}}"
   },
   "Tags": {
     "vegetarian": "Vegetarian",
@@ -1296,7 +1297,8 @@
     "save": "Save",
     "saveFailed": "The menu could not be saved.",
     "delete": "Delete",
-    "confirmDelete": "Delete this menu?"
+    "confirmDelete": "Delete this menu?",
+    "shareFailed": "That did not work. Please try again."
   },
   "Work": {
     "tab": "Tasks",

@@ -58,17 +58,21 @@ export async function createMenu(input: MenuInput) {
     );
 }
 
+/**
+ * The address stays what it was: renaming "Weihnachten" to "Weihnachten
+ * 2026" used to move the menu to a new one and break every link to the old.
+ */
 export async function updateMenu(id: number, input: MenuInput) {
     const items = await itemsFor(input);
-    const [menu] = await slugRetry(async () => prisma.$transaction([
+    const [menu] = await prisma.$transaction([
         prisma.menu.update({
             where: { id },
-            data: { ...columns(input), slug: await freeMenuSlug(input.title, id) },
+            data: columns(input),
             select: { id: true, slug: true },
         }),
         prisma.menuItem.deleteMany({ where: { menuId: id } }),
         prisma.menuItem.createMany({ data: items.map((item) => ({ ...item, menuId: id })) }),
-    ]));
+    ]);
     return menu;
 }
 
@@ -84,8 +88,9 @@ export async function menuLines(menuId: number): Promise<PlannedLine[] | null> {
             guests: true,
             items: {
                 // Not an "only me" recipe: the list is somebody's, and a menu's
-                // guests are not the admin.
-                where: { recipeId: { not: null }, recipe: { onlyMe: false } },
+                // guests are not the admin. Nor a draft, which the menu page
+                // does not show either.
+                where: { recipeId: { not: null }, recipe: { onlyMe: false, isDraft: false } },
                 orderBy: { position: 'asc' },
                 select: {
                     recipe: {

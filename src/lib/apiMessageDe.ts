@@ -55,6 +55,8 @@ const EXACT: Record<string, string> = {
     'That collection is gone.': 'Diese Sammlung gibt es nicht mehr.',
     'That collection no longer exists.': 'Diese Sammlung gibt es nicht mehr.',
     'That menu is gone.': 'Dieses Menü gibt es nicht mehr.',
+    'A post cannot be written about a recipe only you can see.': 'Ein Beitrag kann nicht über ein Rezept gehen, das nur du sehen kannst.',
+    'A post cannot be written about a draft. Finish the recipe first.': 'Ein Beitrag kann nicht über einen Entwurf gehen. Stell das Rezept zuerst fertig.',
     'That item is gone.': 'Diesen Eintrag gibt es nicht mehr.',
     'That row no longer exists.': 'Diese Zeile gibt es nicht mehr.',
     'That error is not there any more.': 'Diesen Fehler gibt es nicht mehr.',
