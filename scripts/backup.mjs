@@ -26,7 +26,7 @@ const prisma = new PrismaClient();
 // Kept in step with src/lib/archive.ts by hand, and checked by
 // scripts/check-backup.mjs — this file had quietly stayed at 1 while the
 // application moved to 2, which is exactly the drift that guard is for.
-const ARCHIVE_VERSION = 10;
+const ARCHIVE_VERSION = 11;
 
 function outputDir() {
     const flag = process.argv.indexOf('--out');
@@ -88,7 +88,7 @@ async function main() {
         orderBy: { createdAt: 'asc' },
         select: {
             title: true, slug: true, body: true, imageUrl: true,
-            publishedAt: true, createdAt: true,
+            publishedAt: true, isPublic: true, createdAt: true,
             recipes: { orderBy: { position: 'asc' }, select: { recipe: { select: { slug: true } } } },
             collections: { orderBy: { position: 'asc' }, select: { collection: { select: { slug: true } } } },
             author: { select: { name: true } },
@@ -113,7 +113,7 @@ async function main() {
     const collections = await prisma.collection.findMany({
         orderBy: { createdAt: 'asc' },
         select: {
-            title: true, slug: true, description: true, imageUrl: true, createdAt: true,
+            title: true, slug: true, description: true, imageUrl: true, isPublic: true, createdAt: true,
             recipes: {
                 orderBy: { position: 'asc' },
                 select: { recipe: { select: { slug: true } } },
@@ -151,6 +151,7 @@ async function main() {
             body: post.body,
             imageUrl: post.imageUrl,
             publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+            isPublic: post.isPublic,
             createdAt: post.createdAt.toISOString(),
             recipeSlugs: post.recipes.map((row) => row.recipe.slug),
             collectionSlugs: post.collections.map((row) => row.collection.slug),
@@ -173,6 +174,7 @@ async function main() {
             slug: collection.slug,
             description: collection.description,
             imageUrl: collection.imageUrl,
+            isPublic: collection.isPublic,
             createdAt: collection.createdAt.toISOString(),
             recipeSlugs: collection.recipes.map((row) => row.recipe.slug),
         })),

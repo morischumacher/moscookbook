@@ -92,8 +92,9 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         const usage = usageRecorder('aiOnly', { captureId, source: capture.source });
         const result = await readWithAiOnly(capture, ai, { onModel: usage.report });
         await usage.flush();
-        const updated = await prisma.capture.update({
-            where: { id: captureId },
+        // Not over one that was taken into the cookbook meanwhile (a stale tab).
+        const written = await prisma.capture.updateMany({
+            where: { id: captureId, status: { not: 'published' } },
             // Nothing came back: the row keeps its draft and how it was read,
             // and only says why this attempt failed.
             data: result.draft
@@ -107,6 +108,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
                 }
                 : { error: result.error },
         });
+        if (written.count === 0) return NextResponse.json({ message: 'That capture has already been dealt with.' }, { status: 409 });
+        const updated = await prisma.capture.findUnique({ where: { id: captureId } });
         await syncWorkItem('capture', captureId);
         return NextResponse.json({ capture: updated });
     }
@@ -129,8 +132,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
             ...siteLearning(ai),
         });
         await Promise.all([usage.flush(), learning.flush()]);
-        const updated = await prisma.capture.update({
-            where: { id: captureId },
+        const written = await prisma.capture.updateMany({
+            where: { id: captureId, status: { not: 'published' } },
             data: {
                 status: result.status,
                 error: result.error,
@@ -140,6 +143,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
                 processedAt: new Date(),
             },
         });
+        if (written.count === 0) return NextResponse.json({ message: 'That capture has already been dealt with.' }, { status: 409 });
+        const updated = await prisma.capture.findUnique({ where: { id: captureId } });
         // Read better this time → closed on the work list; worse → added.
         await syncWorkItem('capture', captureId);
         return NextResponse.json({ capture: updated });

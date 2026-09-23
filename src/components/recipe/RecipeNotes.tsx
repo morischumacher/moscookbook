@@ -77,7 +77,7 @@ export default async function RecipeNotes({
     return (
         <section className="print:hidden mt-16 border-t border-line pt-8">
             <div className="mb-6 flex flex-wrap items-baseline justify-between gap-4">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
+                <h2 className="font-sans text-xs font-bold uppercase tracking-widest text-muted">
                     {t('notesTitle')}
                 </h2>
 

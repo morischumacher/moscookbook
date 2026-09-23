@@ -47,10 +47,15 @@ export default function PickList({
         return found.slice(0, 8);
     }, [options, value, query]);
 
+    // `index` counts the shown rows; `value` may also hold ids with no row
+    // (a draft in a collection), so the move swaps with the next shown one.
     const move = (index: number, by: number) => {
+        const from = value.indexOf(chosen[index].id);
+        const neighbour = chosen[index + by];
+        if (from < 0 || !neighbour) return;
+        const to = value.indexOf(neighbour.id);
         const next = [...value];
-        const [moved] = next.splice(index, 1);
-        next.splice(index + by, 0, moved);
+        [next[from], next[to]] = [next[to], next[from]];
         onChange(next);
     };
 

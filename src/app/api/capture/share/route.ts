@@ -20,6 +20,9 @@ const body = z.object({
     url: z.string().max(2048).optional(),
 });
 
+/** The reading runs after the response (after()), within this. */
+export const maxDuration = 60;
+
 export const POST = route({ access: 'admin', body, label: 'Shared capture' }, async ({ body: { title, text, url } }) => {
     // Apps put the link in either field, and often the title in front of it.
     const classified = classifyCapture({

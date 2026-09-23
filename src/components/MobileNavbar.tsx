@@ -248,7 +248,8 @@ export default function MobileNavbar({ user, profile, otherLocale }: MobileNavba
                             onClick={close}
                             className={`${row} mt-3 w-full border-t border-line pt-3 text-muted`}
                         >
-                            {t('language')}: {otherLocale.toUpperCase()}
+                            {/* "Sprache: EN" read as "the language is EN"; this says what pressing does. */}
+                            {t('switchLanguage')}
                         </Link>
                     </div>
                 </>

@@ -171,6 +171,7 @@ export async function GET() {
                                 body: true,
                                 imageUrl: true,
                                 publishedAt: true,
+                                isPublic: true,
                                 createdAt: true,
                                 recipes: { orderBy: { position: 'asc' }, select: { recipe: { select: { slug: true } } } },
                                 collections: { orderBy: { position: 'asc' }, select: { collection: { select: { slug: true } } } },
@@ -217,6 +218,7 @@ export async function GET() {
                                 slug: true,
                                 description: true,
                                 imageUrl: true,
+                                isPublic: true,
                                 createdAt: true,
                                 recipes: {
                                     orderBy: { position: 'asc' },

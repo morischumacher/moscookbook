@@ -79,6 +79,9 @@ const captureSchema = z.object({
 // is comfortably under five megabytes; ten leaves room for both.
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 
+/** The reading runs after the response (after()), within this. */
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
     const length = Number(req.headers.get('content-length') ?? '0');
     if (length > MAX_BODY_BYTES) {
@@ -252,6 +255,17 @@ interface CaptureRow {
 export async function GET() {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
+
+    /*
+     * A reading the platform cut off (the function's time limit) left its
+     * row "new" for ever: nothing retried it, and the inbox showed it as
+     * being read. Ten minutes is far beyond any reading; after that it is
+     * failed, and "Read again" is offered like for any other failure.
+     */
+    await prisma.capture.updateMany({
+        where: { status: 'new', createdAt: { lt: new Date(Date.now() - 10 * 60 * 1000) } },
+        data: { status: 'failed', error: 'Reading timed out.', processedAt: new Date() },
+    });
 
     // Annotated rather than inferred: without a generated Prisma client these
     // come back as `any`, and an inbox row silently losing its type is how a

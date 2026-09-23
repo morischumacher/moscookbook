@@ -207,7 +207,7 @@ export default function InvitationList() {
                 <ul className="divide-y divide-line">
                     {invites.map((invite) => (
                         <li key={invite.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-4">
-                            <div className="min-w-0 flex-1">
+                            <div className="min-w-0 flex-1 basis-full sm:basis-0">
                                 <p className="truncate font-medium">
                                     {invite.note || t('title')}
                                 </p>

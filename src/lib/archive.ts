@@ -37,6 +37,8 @@ const webUrl = z
 
 /**
  * 10: whether a recipe is only the admins'.
+ * 11: whether an entry and a collection are on the open web (they came back
+ * private, and every link handed out stopped working).
  * 9: the language a recipe is written in, and its translation.
  * 8: several categories and cuisines per recipe, and how hot it is.
  * 7: menus. 6: pictures on collections and entries about several recipes.
@@ -48,7 +50,7 @@ const webUrl = z
  * every new field to the safe value — and an archive from a newer version is
  * refused with the numbers in the message rather than half-read.
  */
-export const ARCHIVE_VERSION = 10;
+export const ARCHIVE_VERSION = 11;
 
 /** A recipe in its other language, as the form's rows. Version 9. */
 const archiveTranslationSchema = z.object({
@@ -138,6 +140,8 @@ const archivePostSchema = z.object({
     // An empty string is how some older exports said "no picture".
     imageUrl: z.preprocess((value) => (value === '' ? null : value), webUrl.nullable()).default(null),
     publishedAt: z.string().nullable().default(null),
+    /** Version 11: on the open web. */
+    isPublic: z.boolean().default(false),
     createdAt: z.string().default(() => new Date().toISOString()),
     /**
      * The recipes and collections it is about, by slug, in order. Version 6;
@@ -211,6 +215,8 @@ const archiveCollectionSchema = z.object({
     description: z.string().nullable().default(null),
     /** Version 6. */
     imageUrl: z.preprocess((value) => (value === '' ? null : value), webUrl.nullable()).default(null),
+    /** Version 11: on the open web. */
+    isPublic: z.boolean().default(false),
     createdAt: z.string().default(() => new Date().toISOString()),
     recipeSlugs: z.array(z.string()).default([]),
 });
@@ -355,6 +361,7 @@ export interface ExportablePost {
     body: string;
     imageUrl: string | null;
     publishedAt: Date | null;
+    isPublic?: boolean;
     createdAt: Date;
     recipes: { recipe: { slug: string } }[];
     collections: { collection: { slug: string } }[];
@@ -374,6 +381,7 @@ export interface ExportableCollection {
     slug: string;
     description: string | null;
     imageUrl: string | null;
+    isPublic?: boolean;
     createdAt: Date;
     recipes: { recipe: { slug: string } }[];
 }
@@ -455,6 +463,7 @@ export function toArchivePost(post: ExportablePost): Archive['posts'][number] {
         body: post.body,
         imageUrl: post.imageUrl,
         publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+        isPublic: post.isPublic ?? false,
         createdAt: post.createdAt.toISOString(),
         // By slug rather than by id: an archive is restored into a database
         // where every id is new, and a slug is the one name that survives the
@@ -553,6 +562,7 @@ export function toArchiveCollection(
         slug: collection.slug,
         description: collection.description,
         imageUrl: collection.imageUrl,
+        isPublic: collection.isPublic ?? false,
         createdAt: collection.createdAt.toISOString(),
         // Already ordered by the query; the array's own order is the order.
         recipeSlugs: collection.recipes.map((row) => row.recipe.slug),
