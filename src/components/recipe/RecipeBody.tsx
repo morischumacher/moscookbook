@@ -344,7 +344,9 @@ export default function RecipeBody({
                 {/* The two things done with a recipe in the kitchen, as the
                     largest targets on the page: full width on a phone, where
                     they are pressed with one hand. */}
-                <div className="flex w-full flex-wrap gap-3 sm:w-auto">
+                {/* items-start: the "on the list" line under the shopping button
+                    made the row taller, and the cook button stretched with it. */}
+                <div className="flex w-full flex-wrap items-start gap-3 sm:w-auto">
                     <button
                         type="button"
                         onClick={() => setCookMode(true)}
