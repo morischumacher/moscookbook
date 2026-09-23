@@ -147,7 +147,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | PATCH | `/api/users/[id]/role` | admin | zod | — | `admin/UserList` |
 | DELETE | `/api/users/[id]` | admin | — | — | `admin/UserList` |
 | GET | `/api/users` | admin | — | — | `admin/UserList` |
-| GET | `/api/work` | none (open by design) | — | — | `admin/WorkPanel` |
+| GET | `/api/work` | none (open by design) | — | yes | `admin/WorkPanel` |
 
 Calls the map could not match to an endpoint (a URL built elsewhere, or a path the regex misread):
 

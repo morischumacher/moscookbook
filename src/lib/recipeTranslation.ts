@@ -75,7 +75,9 @@ export function sourceKey(recipe: TranslatableRecipe): string {
         recipe.title.trim(),
         recipe.description.trim(),
         recipe.instructions.trim(),
-        filled(recipe.ingredients).map((row) => [row.amount, row.item]),
+        // As stored, not as typed: "Für den Teig:" comes back from the
+        // database as "## Für den Teig", and that is not a change.
+        toStructuredIngredients(recipe.ingredients).map((row) => [row.section ?? '', row.raw, row.name]),
     ]);
 
     let hash = 0x811c9dc5;

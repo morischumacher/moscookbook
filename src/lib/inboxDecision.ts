@@ -37,7 +37,7 @@ export interface Decision {
  */
 export function aiStage(readBy: string | null | undefined): 'none' | 'failed' | 'helped' | 'alone' {
     if (readBy === 'rules+ai-failed') return 'failed';
-    if (readBy === 'rules+ai') return 'helped';
+    if (readBy === 'rules+ai' || readBy === 'profile+ai') return 'helped';
     if (readBy === 'ai') return 'alone';
     return 'none';
 }

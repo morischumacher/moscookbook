@@ -8,7 +8,8 @@ import { sessionOptions, sessionUserFrom, SessionData } from '@/lib/session';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import prisma from '@/lib/prisma';
 import { fullName } from '@/lib/personName';
-import { registeredName } from '@/lib/inviteName';
+import { checkName, registeredName } from '@/lib/inviteName';
+import { takenNames } from '@/lib/inviteNameDb';
 import { issueToken } from '@/lib/issueToken';
 import { failed } from '@/lib/reportServerError';
 
@@ -69,11 +70,6 @@ export async function POST(req: NextRequest) {
      */
     let accountExists = false;
 
-    // The name the invitation was made for wins over what was typed: the
-    // form shows it fixed, and this is where that is true. See lib/inviteName.
-    const promised = await prisma.invite.findUnique({ where: { code: invite }, select: { firstName: true, lastName: true } });
-    const { firstName, lastName } = registeredName(parsed.data, promised ?? { firstName: null, lastName: null });
-
     const releaseInvite = async () => {
         if (accountExists) return;
 
@@ -83,6 +79,22 @@ export async function POST(req: NextRequest) {
     };
 
     try {
+        // The name the invitation was made for wins over what was typed: the
+        // form shows it fixed, and this is where that is true. Inside the try,
+        // so a failed read gives the invitation back. See lib/inviteName.
+        const promised = await prisma.invite.findUnique({ where: { code: invite }, select: { firstName: true, lastName: true } });
+        const { firstName, lastName } = registeredName(parsed.data, promised ?? { firstName: null, lastName: null });
+
+        // An invitation from before names were given: the typed name is
+        // checked like one an admin would have chosen.
+        if (!promised?.firstName && checkName({ firstName, lastName }, await takenNames()).state !== 'free') {
+            await releaseInvite();
+            return NextResponse.json(
+                { message: 'Somebody here already has that name. Please add or change your last name.' },
+                { status: 409 }
+            );
+        }
+
         const existingUser = await prisma.user.findFirst({
             where: { email: { equals: email, mode: 'insensitive' } },
         });

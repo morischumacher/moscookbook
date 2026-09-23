@@ -75,6 +75,9 @@ const SMALL_ALTERNATIVE: Record<string, string> = {
 };
 
 const tokensOf = (row: { input: number; output: number }) => row.input + row.output;
+
+/** The calendar day in the cookbook's own time zone: a call at 00:30 in Berlin is that day's, not yesterday's. */
+const dayOf = (date: Date) => date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
 const sum = (rows: UsageRow[]) => rows.reduce((total, row) => total + tokensOf(row), 0);
 
 function groupBy<T>(items: T[], key: (item: T) => string): Map<string, T[]> {
@@ -111,12 +114,12 @@ export function analyse(
 
     const days: Analytics['days'] = [];
     for (let offset = context.days - 1; offset >= 0; offset -= 1) {
-        const day = new Date(context.now.getTime() - offset * 86_400_000).toISOString().slice(0, 10);
+        const day = dayOf(new Date(context.now.getTime() - offset * 86_400_000));
         days.push({ date: day, tokens: 0 });
     }
     const dayIndex = new Map(days.map((day, index) => [day.date, index]));
     for (const row of recent) {
-        const index = dayIndex.get(row.createdAt.toISOString().slice(0, 10));
+        const index = dayIndex.get(dayOf(row.createdAt));
         if (index !== undefined) days[index].tokens += tokensOf(row);
     }
 

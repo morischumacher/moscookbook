@@ -14,26 +14,15 @@ import { CONTENT_TYPE_OF, imageTypeOf } from './uploadImage';
  * would be the one unforgivable failure in this whole pipeline.
  */
 
-const EXTENSIONS: Record<string, string> = {
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp',
-    'image/gif': 'gif',
-};
-
-const CAPTURE_IMAGE_TYPES = new Set(Object.keys(EXTENSIONS));
-
 /** Roughly 5 MB of binary once decoded — well beyond any phone screenshot. */
 export const MAX_CAPTURE_IMAGE_BASE64 = 7 * 1024 * 1024;
 
 export type StoredImage = { ok: true; url: string } | { ok: false; reason: string };
 
 export async function storeCaptureImage(base64: string, mediaType: string): Promise<StoredImage> {
-    const type = mediaType.split(';')[0].trim().toLowerCase();
-
-    if (!CAPTURE_IMAGE_TYPES.has(type)) {
-        return { ok: false, reason: 'unsupported-type' };
-    }
+    // The declared type is not checked: the bytes decide (below). A HEIC
+    // photo or a Shortcut that said png for a JPEG is not a reason to refuse.
+    void mediaType;
 
     let buffer: Buffer;
     try {

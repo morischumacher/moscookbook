@@ -612,7 +612,7 @@
     "trouble400Q": "400 Send a url, some text, or both",
     "trouble400A": "The “url” field holds typed text instead of the blue “Shortcut Input” variable.",
     "trouble413Q": "413 That is too large to capture",
-    "trouble413A": "The picture is over 10 MB. Combine fewer screenshots, or lower the quality in “Convert Image”.",
+    "trouble413A": "The request is over 4 MB, more than the server accepts. Resize the screenshots before sending (“Resize Image” to 1200 px, JPEG) or send fewer.",
     "troubleSilentQ": "Nothing happens at all",
     "troubleSilentA": "Usually the order of the actions: encoding has to happen before sending, not after.",
     "queuedNote": "The reply now only says that something arrived; the reading happens afterwards. The shortcut used to wait for the page to be fetched, parsed and — since the AI — read by a model, which on one recipe page was a measured fifteen seconds with the phone in your hand.",
@@ -1208,7 +1208,8 @@
     "done": "It is in the inbox and being read.",
     "openInbox": "Open the inbox",
     "failed": "That did not work. Please share it again.",
-    "adminOnly": "Only the cookbook's admin can add recipes this way."
+    "adminOnly": "Only the cookbook's admin can add recipes this way.",
+    "nothing": "Nothing arrived here. Share a link or some text from the share menu and it lands in the inbox."
   },
   "ForeignImport": {
     "title": "Import from another app",

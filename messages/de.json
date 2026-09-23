@@ -612,7 +612,7 @@
     "trouble400Q": "400 Send a url, some text, or both",
     "trouble400A": "Beim Feld „url“ steht getippter Text statt der blauen Variable „Shortcut Input“.",
     "trouble413Q": "413 That is too large to capture",
-    "trouble413A": "Das Bild ist über 10 MB. Weniger Screenshots kombinieren oder bei „Convert Image“ die Qualität senken.",
+    "trouble413A": "Die Anfrage ist über 4 MB – so viel nimmt der Server nicht an. Screenshots vor dem Senden verkleinern („Resize Image“ auf 1200 px, JPEG) oder weniger mitschicken.",
     "troubleSilentQ": "Es passiert gar nichts",
     "troubleSilentA": "Meistens die Reihenfolge der Aktionen: kodiert werden muss vor dem Senden, nicht danach.",
     "queuedNote": "Die Antwort sagt jetzt nur noch, dass etwas angekommen ist — gelesen wird es danach. Vorher wartete der Kurzbefehl, bis die Seite geholt, gelesen und gegebenenfalls ein Modell gefragt war; bei einer Rezeptseite waren das gemessene fünfzehn Sekunden mit dem Handy in der Hand.",
@@ -1208,7 +1208,8 @@
     "done": "Ist im Eingang und wird gelesen.",
     "openInbox": "Eingang öffnen",
     "failed": "Das hat nicht geklappt. Bitte noch einmal teilen.",
-    "adminOnly": "Nur die Verwaltung des Kochbuchs kann so Rezepte hinzufügen."
+    "adminOnly": "Nur die Verwaltung des Kochbuchs kann so Rezepte hinzufügen.",
+    "nothing": "Hier ist nichts angekommen. Teile einen Link oder Text über das Teilen-Menü, dann landet er im Eingang."
   },
   "ForeignImport": {
     "title": "Aus einer anderen App importieren",

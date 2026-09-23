@@ -8,6 +8,7 @@ import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recip
 import { newRecipeData } from '@/lib/recipeRepo';
 import { failed } from '@/lib/reportServerError';
 import { syncWorkItem } from '@/lib/workItemsDb';
+import { releaseCaptureScreenshots } from '@/lib/captureCleanup';
 
 export async function POST(req: NextRequest) {
     const auth = await requireAdmin();
@@ -70,6 +71,8 @@ export async function POST(req: NextRequest) {
                 data: { status: 'published', recipeId: recipe.id, error: null },
             });
             await syncWorkItem('capture', captureId);
+            // Its screenshots the recipe did not take go.
+            await releaseCaptureScreenshots(captureId, imageUrls).catch(() => undefined);
         }
 
         // A new recipe can bring a category nobody has used before, and the

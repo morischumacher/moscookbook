@@ -16,6 +16,8 @@ import { failed } from '@/lib/reportServerError';
 import { draftFromJson } from '@/lib/captureDraft';
 import { syncWorkItem } from '@/lib/workItemsDb';
 import { usageRecorder } from '@/lib/tokenUsageDb';
+import { mirrorImageToBlob } from '@/lib/mirrorImage';
+import { releaseCaptureScreenshots } from '@/lib/captureCleanup';
 
 /**
  * `askAi` is the button on a draft the scoring called good.
@@ -92,14 +94,18 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         await usage.flush();
         const updated = await prisma.capture.update({
             where: { id: captureId },
-            data: {
-                status: result.draft ? result.status : capture.status,
-                error: result.error,
-                readBy: result.readBy,
-                aiProvider: result.provider,
-                draft: result.draft ? toJsonObject(result.draft) : undefined,
-                processedAt: new Date(),
-            },
+            // Nothing came back: the row keeps its draft and how it was read,
+            // and only says why this attempt failed.
+            data: result.draft
+                ? {
+                    status: result.status,
+                    error: result.error,
+                    readBy: result.readBy,
+                    aiProvider: result.provider,
+                    draft: toJsonObject(result.draft),
+                    processedAt: new Date(),
+                }
+                : { error: result.error },
         });
         await syncWorkItem('capture', captureId);
         return NextResponse.json({ capture: updated });
@@ -188,6 +194,9 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     }
 
     try {
+        // A retry or a model can leave a foreign picture in the draft, and
+        // next/image only shows our own store. Ours stays as it is.
+        const picture = draft.imageUrl ? await mirrorImageToBlob(draft.imageUrl) : '';
         const recipe = await prisma.recipe.create({
             data: newRecipeData({
                 isDraft: parsed.data.action === 'stage',
@@ -201,10 +210,11 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
                 prepMinutes: draft.prepMinutes,
                 cookMinutes: draft.cookMinutes,
                 ingredients: toStructuredIngredients(draft.ingredients),
-                imageUrls: draft.imageUrl ? [draft.imageUrl] : [],
+                imageUrls: picture ? [picture] : [],
             }),
             select: { id: true, slug: true, title: true },
         });
+        await releaseCaptureScreenshots(captureId, picture ? [picture] : []).catch(() => undefined);
 
         await prisma.capture.update({
             where: { id: captureId },

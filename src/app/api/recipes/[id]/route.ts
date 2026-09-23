@@ -6,8 +6,7 @@ import { requireAdmin } from '@/lib/auth';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
-import { ingredientRows as positioned, recipeColumns, translationRow } from '@/lib/recipeRepo';
-import { storedRows } from '@/lib/recipeTranslation';
+import { ingredientRows as positioned, keptTranslation, recipeColumns, translationRow } from '@/lib/recipeRepo';
 import { changedFields, snapshotOf } from '@/lib/revisions';
 import { keepRevisionOf } from '@/lib/revisionsDb';
 import { positiveIntId } from '@/lib/routeParams';
@@ -105,14 +104,7 @@ export async function PUT(
         // rewritten below go on finding the recipe in both languages.
         const sentTranslation = parsed.data.translation;
         const language = parsed.data.language;
-        const kept = sentTranslation === undefined
-            ? await prisma.recipeTranslation.findFirst({ where: { recipeId } })
-            : null;
-        const translation = sentTranslation !== undefined
-            ? sentTranslation
-            : kept
-                ? { ...kept, locale: kept.locale as 'de' | 'en', ingredients: storedRows(kept.ingredients) }
-                : null;
+        const translation = sentTranslation !== undefined ? sentTranslation : await keptTranslation(recipeId);
         const newTranslation = sentTranslation !== undefined ? translationRow(sentTranslation, language) : null;
 
         const [updatedRecipe] = await prisma.$transaction([

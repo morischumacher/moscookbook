@@ -20,8 +20,8 @@ export const GET = route({ access: 'user', label: 'Shopping list' }, async ({ us
 });
 
 const addBody = z.union([
-    z.object({ recipeId: z.number().int().positive(), servings: z.number().int().min(1).max(100).nullable().optional() }),
-    z.object({ collectionId: z.number().int().positive() }),
+    z.object({ recipeId: z.number().int().positive(), servings: z.number().int().min(1).max(100).nullable().optional(), locale: z.enum(['de', 'en']).optional() }),
+    z.object({ collectionId: z.number().int().positive(), locale: z.enum(['de', 'en']).optional() }),
     z.object({ menuId: z.number().int().positive() }),
     z.object({ text: z.string().trim().min(1).max(200) }),
 ]);
@@ -29,9 +29,9 @@ const addBody = z.union([
 export const POST = route({ access: 'user', body: addBody, label: 'Adding to the shopping list' }, async ({ user, body }) => {
     const lines =
         'recipeId' in body
-            ? await recipeLines(body.recipeId, body.servings ?? null)
+            ? await recipeLines(body.recipeId, body.servings ?? null, body.locale)
             : 'collectionId' in body
-              ? await collectionLines(body.collectionId)
+              ? await collectionLines(body.collectionId, body.locale)
               : 'menuId' in body
                 ? await menuLines(body.menuId)
                 : [lineFromText(body.text)].filter((line) => line !== null);

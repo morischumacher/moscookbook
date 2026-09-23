@@ -65,14 +65,21 @@ export default function InvitationList() {
      */
     useEffect(() => {
         if (firstName.trim() === '') return;
+        // An answer to an earlier keystroke that arrives late is dropped.
+        let current = true;
         const timer = setTimeout(() => {
             const query = new URLSearchParams({ first: firstName, last: lastName });
             fetch(`/api/invites/name?${query}`)
                 .then((res) => (res.ok ? res.json() : { state: 'free' }))
-                .then((answer: NameCheck) => setCheck(answer))
+                .then((answer: NameCheck) => {
+                    if (current) setCheck(answer);
+                })
                 .catch(() => undefined);
         }, 300);
-        return () => clearTimeout(timer);
+        return () => {
+            current = false;
+            clearTimeout(timer);
+        };
     }, [firstName, lastName]);
 
     const clash = firstName.trim() !== '' && check.state !== 'free';

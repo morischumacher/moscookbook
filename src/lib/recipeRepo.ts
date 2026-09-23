@@ -2,7 +2,7 @@ import prisma from './prisma';
 import { slugify } from './recipe';
 import { searchFields } from './searchText';
 import type { StructuredIngredient } from './ingredientParts';
-import { searchableTranslation, type RecipeTranslationInput } from './recipeTranslation';
+import { asLanguage, searchableTranslation, storedRows, type RecipeTranslationInput } from './recipeTranslation';
 
 /**
  * How a recipe is written, in one place.
@@ -101,6 +101,18 @@ export function translationRow(translation: RecipeTranslationInput | null | unde
         ingredients: translation.ingredients,
         source: translation.source,
     };
+}
+
+/**
+ * The translation a recipe already has, in the shape `recipeColumns` reads —
+ * for a write that does not touch it but rewrites the search columns, which
+ * would otherwise forget the recipe's other language.
+ */
+export async function keptTranslation(recipeId: number): Promise<RecipeTranslationInput | null> {
+    const row = await prisma.recipeTranslation.findFirst({ where: { recipeId } });
+    const locale = asLanguage(row?.locale);
+    if (!row || !locale) return null;
+    return { ...row, locale, ingredients: storedRows(row.ingredients) };
 }
 
 /** Ingredient rows for one recipe, positioned in the order given. */

@@ -192,7 +192,7 @@ export default function RecipeBody({
     useEffect(() => {
         try {
             const saved = parseCookProgress(
-                window.localStorage.getItem(cookProgressKey(recipeId))
+                window.localStorage.getItem(cookProgressKey(recipeId, locale))
             );
 
             if (saved) {
@@ -219,12 +219,12 @@ export default function RecipeBody({
         }
 
         restored.current = true;
-    }, [recipeId]);
+    }, [recipeId, locale]);
 
     useEffect(() => {
         if (!restored.current) return;
 
-        const key = cookProgressKey(recipeId);
+        const key = cookProgressKey(recipeId, locale);
         const progress = {
             ingredients: [...checkedIngredients],
             steps: [...checkedSteps],
@@ -243,7 +243,7 @@ export default function RecipeBody({
         } catch {
             // Storage is a convenience here, never a requirement.
         }
-    }, [recipeId, checkedIngredients, checkedSteps, servings, baseServings]);
+    }, [recipeId, locale, checkedIngredients, checkedSteps, servings, baseServings]);
 
     const toggle = (set: Set<number>, index: number) => {
         const next = new Set(set);

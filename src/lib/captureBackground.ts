@@ -61,7 +61,10 @@ export function readInBackground(captureId: number, classified: ClassifiedCaptur
                     // Widened before storing: see src/lib/json.ts, and
                     // tests/prismaJsonCompat.ts for why the compiler insists.
                     draft: draft ? toJsonObject(draft) : undefined,
-                    imageUrl: draft?.imageUrl || imageUrl || null,
+                    // The screenshot that was sent, not the page's photo: the
+                    // column is what the pipeline reads again on a retry, and
+                    // the page's photo is kept inside the draft.
+                    imageUrl: imageUrl ?? classified.imageUrl ?? null,
                     processedAt: new Date(),
                 },
             });
