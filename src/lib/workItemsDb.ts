@@ -128,15 +128,37 @@ export async function withdrawWorkItem(kind: WorkKind, refId: number) {
  * itself is dealt with too — one decision, not two places to make it. A
  * recurring error reopens both (see syncWorkItem).
  */
-export async function closeWorkItem(id: number) {
-    const item = await prisma.workItem.update({ where: { id }, data: { closedAt: new Date(), closedReason: 'done' } });
+export async function closeWorkItem(id: number, reason: 'done' | 'confirmed' = 'done') {
+    const item = await prisma.workItem.update({ where: { id }, data: { closedAt: new Date(), closedReason: reason } });
     if (item.kind === 'error') await prisma.errorLog.updateMany({ where: { id: item.refId, resolvedAt: null }, data: { resolvedAt: new Date() } });
     if (item.kind === 'ticket') await prisma.ticket.updateMany({ where: { id: item.refId, resolvedAt: null }, data: { resolvedAt: new Date() } });
+    return item;
 }
 
 export async function reopenWorkItem(id: number) {
-    const item = await prisma.workItem.update({ where: { id }, data: { closedAt: null, closedReason: null } });
+    const item = await prisma.workItem.update({ where: { id }, data: { closedAt: null, closedReason: null, doneAt: null, doneNote: null, doneRef: null } });
     if (item.kind === 'ticket') await prisma.ticket.updateMany({ where: { id: item.refId }, data: { resolvedAt: null } });
+}
+
+/**
+ * "Done", from whoever worked on it (lib/workToken). Only an open task, and
+ * it closes nothing: the admin confirms it in the app (confirmWorkItem) or
+ * sends it back (rejectWorkDone). Returns false when there is no such open task.
+ */
+export async function reportWorkDone(id: number, note: string, ref: string | null): Promise<boolean> {
+    const updated = await prisma.workItem.updateMany({
+        where: { id, closedAt: null, dismissedAt: null },
+        data: { doneAt: new Date(), doneNote: note, doneRef: ref },
+    });
+    return updated.count === 1;
+}
+
+/** "Not done": back on the list, with why, for the next attempt. */
+export async function rejectWorkDone(id: number, why: string | null) {
+    const item = await prisma.workItem.findUnique({ where: { id }, select: { note: true } });
+    if (!item) return;
+    const note = why ? [item.note, `Nicht erledigt: ${why}`].filter(Boolean).join('\n') : item.note;
+    await prisma.workItem.update({ where: { id }, data: { doneAt: null, doneNote: null, doneRef: null, note } });
 }
 
 /**
@@ -157,13 +179,17 @@ export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void>
         let obvious = false;
         let closeAs: string | null = null;
 
+        // An error seen again after it was reported fixed: the fix was not one.
+        let recurred = false;
+
         if (kind === 'error') {
-            const row = await prisma.errorLog.findUnique({ where: { id: refId }, select: { source: true, count: true, resolvedAt: true } });
+            const row = await prisma.errorLog.findUnique({ where: { id: refId }, select: { resolvedAt: true, lastSeenAt: true } });
             if (!row) closeAs = 'removed';
             else if (row.resolvedAt) closeAs = 'resolved';
             else {
                 problem = true;
-                obvious = errorIsObvious(row.source, row.count);
+                obvious = errorIsObvious();
+                recurred = Boolean(item?.doneAt && row.lastSeenAt > item.doneAt);
             }
         } else if (kind === 'ticket') {
             const row = await prisma.ticket.findUnique({ where: { id: refId }, select: { resolvedAt: true } });
@@ -189,11 +215,18 @@ export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void>
         }
 
         if (item) {
-            if (problem && item.closedAt && !item.dismissedAt) {
+            if (problem && (item.closedAt || recurred) && !item.dismissedAt) {
                 const data = await snapshotOf(kind, refId, item.withPhotos);
                 await prisma.workItem.update({
                     where: { id: item.id },
-                    data: { closedAt: null, closedReason: null, ...(data ? { data: data as object } : {}) },
+                    data: {
+                        closedAt: null,
+                        closedReason: null,
+                        doneAt: null,
+                        doneNote: null,
+                        doneRef: null,
+                        ...(data ? { data: data as object } : {}),
+                    },
                 });
             }
             return;
@@ -219,6 +252,8 @@ export interface WorkState {
     id: number;
     auto: boolean;
     closed: boolean;
+    /** Reported done, waiting for the admin. */
+    done: boolean;
 }
 
 /**
@@ -229,9 +264,9 @@ export async function workStates(kind: WorkKind, refIds: number[]): Promise<Map<
     if (refIds.length === 0) return new Map();
     const items = await prisma.workItem.findMany({
         where: { kind, refId: { in: refIds }, dismissedAt: null },
-        select: { id: true, refId: true, auto: true, closedAt: true },
+        select: { id: true, refId: true, auto: true, closedAt: true, doneAt: true },
     });
-    return new Map(items.map((item) => [item.refId, { id: item.id, auto: item.auto, closed: item.closedAt !== null }]));
+    return new Map(items.map((item) => [item.refId, { id: item.id, auto: item.auto, closed: item.closedAt !== null, done: item.doneAt !== null }]));
 }
 
 /**

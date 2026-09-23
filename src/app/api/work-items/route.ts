@@ -31,6 +31,9 @@ export const GET = route({ access: 'admin', label: 'Work list' }, async () => {
             closedReason: item.closedReason,
             auto: item.auto,
             dismissed: item.dismissedAt !== null,
+            doneAt: item.doneAt?.toISOString() ?? null,
+            doneNote: item.doneNote,
+            doneRef: item.doneRef,
         })),
     });
 });

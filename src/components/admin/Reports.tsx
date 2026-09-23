@@ -25,14 +25,17 @@ type Side = 'errors' | 'tickets' | 'work';
 export default function Reports({
     openErrors,
     openTickets,
+    toConfirm = 0,
 }: {
     openErrors: number;
     openTickets: number;
+    /** Tasks reported done, waiting for a confirmation. */
+    toConfirm?: number;
 }) {
     const t = useTranslations('Reports');
     const tWork = useTranslations('Work');
     const tAdmin = useTranslations('Admin');
-    const [side, setSide] = useState<Side>(openTickets > 0 ? 'tickets' : 'errors');
+    const [side, setSide] = useState<Side>(toConfirm > 0 ? 'work' : openTickets > 0 ? 'tickets' : 'errors');
 
     const tab = (value: Side, label: string, count: number) => {
         const here = side === value;
@@ -68,7 +71,7 @@ export default function Reports({
             <div className="mb-8 -mt-2 flex gap-6 border-b border-line">
                 {tab('errors', t('errors'), openErrors)}
                 {tab('tickets', t('tickets'), openTickets)}
-                {tab('work', tWork('tab'), 0)}
+                {tab('work', tWork('tab'), toConfirm)}
             </div>
 
             {/*

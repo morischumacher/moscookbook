@@ -27,4 +27,15 @@ export default function securityHuntTests() {
     check('cook photos respect admins-only recipes', source('app/api/recipes/[id]/cooked/photos/route.ts').includes('hiddenFrom(recipeId, user)'));
     check('the share page asks first when another site sent us there', source('app/[locale]/share/page.tsx').includes("sec-fetch-site"));
     check('an address change withdraws older links before answering', /\$transaction\(\[\s*prisma\.authToken\.updateMany/.test(source('app/api/account/email/route.ts')));
+
+    suite('task list: reporting done');
+    const done = source('app/api/work/[id]/done/route.ts');
+    check('reporting done needs the task key', done.includes('workTokenValid(req.headers.get(\'authorization\'))'));
+    check('and closes nothing by itself', !done.includes('closeWorkItem'));
+    const db = source('lib/workItemsDb.ts');
+    check('only an open task can be reported done', /where: \{ id, closedAt: null, dismissedAt: null \}/.test(db));
+    check('an error seen again after the report reopens it', db.includes('row.lastSeenAt > item.doneAt'));
+    const pub = source('app/api/work/route.ts');
+    check('reported tasks leave the open list', pub.includes('awaitingConfirmation'));
+    check('the key is kept only as a hash', source('lib/workToken.ts').includes('hashToken(token)'));
 }
