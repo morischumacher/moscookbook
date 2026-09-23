@@ -270,7 +270,22 @@
     "addSection": "+ Abschnitt",
     "sectionPlaceholder": "Abschnitt, z. B. Für den Teig",
     "sectionLabel": "Abschnittsüberschrift",
-    "removeSection": "Überschrift entfernen"
+    "removeSection": "Überschrift entfernen",
+    "historyTitle": "Frühere Fassungen",
+    "historyExplain": "Jedes Speichern hebt die Fassung auf, die es ersetzt. Öffne eine, um zu sehen, was darin stand, und stelle sie wieder her, wenn die Änderung ein Fehler war — Bilder und Adresse bleiben, wie sie jetzt sind.",
+    "editedBy": "geändert von {name}",
+    "changedAfter": "danach geändert: {fields}",
+    "restore": "Diese Fassung wiederherstellen",
+    "restoreQuestion": "Die Fassung vom {when} wiederherstellen? Was jetzt da steht, wird ebenfalls als Fassung aufgehoben.",
+    "restoreFailed": "Das hat nicht geklappt. Bitte noch einmal.",
+    "field_title": "Titel",
+    "field_description": "Beschreibung",
+    "field_category": "Kategorie",
+    "field_times": "Zeiten",
+    "field_servings": "Portionen",
+    "field_ingredients": "Zutaten",
+    "field_instructions": "Zubereitung",
+    "field_tags": "Tags"
   },
   "QuickImport": {
     "heading": "Schnell befüllen",

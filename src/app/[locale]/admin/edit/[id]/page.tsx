@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { withHeadingRows } from '@/lib/ingredientParts';
+import { changedFields, KEEP_REVISIONS, readSnapshot, snapshotOf } from '@/lib/revisions';
+import RecipeHistory, { type HistoryEntry } from '@/components/recipe-form/RecipeHistory';
 import RecipeForm from '@/components/recipe-form/RecipeForm';
 import { canUseAi } from '@/lib/aiProviders';
 import { aiCapability } from '@/lib/aiConfig';
@@ -41,7 +43,29 @@ export default async function EditRecipePage({
 
     if (!recipe) notFound();
 
+    // Newest first, each told what the edit after it changed: comparing a
+    // version with the one that replaced it, or with today's for the newest.
+    const revisions = await prisma.recipeRevision.findMany({
+        where: { recipeId },
+        orderBy: { createdAt: 'desc' },
+        take: KEEP_REVISIONS,
+        select: { id: true, createdAt: true, editedBy: true, snapshot: true },
+    });
+    const now = snapshotOf(recipe);
+    const readable = revisions.flatMap((revision) => {
+        const snapshot = readSnapshot(revision.snapshot);
+        return snapshot ? [{ ...revision, snapshot }] : [];
+    });
+    const history: HistoryEntry[] = readable.map((revision, index) => ({
+        id: revision.id,
+        createdAt: revision.createdAt.toISOString(),
+        editedBy: revision.editedBy,
+        snapshot: revision.snapshot,
+        changed: changedFields(revision.snapshot, index === 0 ? now : readable[index - 1].snapshot),
+    }));
+
     return (
+        <>
         <RecipeForm
             mode="edit"
             aiEnabled={canUseAi(await aiCapability())}
@@ -65,5 +89,9 @@ export default async function EditRecipePage({
                 tags: recipe.tags,
             }}
         />
+        <div className="container mx-auto max-w-3xl px-4 pb-24 md:px-8">
+            <RecipeHistory recipeId={recipe.id} entries={history} />
+        </div>
+        </>
     );
 }

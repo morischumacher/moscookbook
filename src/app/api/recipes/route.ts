@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
                 prepMinutes,
                 cookMinutes,
                 ingredients: toStructuredIngredients(ingredients),
+                tags: parsed.data.tags,
                 imageUrls,
             }),
         });

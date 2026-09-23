@@ -17,7 +17,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/create` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url` | `/[locale]/admin` |
 | `/[locale]/admin/devices` | admin | requires admin | `* /api/capture`<br>`DELETE /api/capture-tokens/[id]`<br>`GET /api/capture-tokens`<br>`POST /api/capture-tokens` | — |
 | `/[locale]/admin/drafts` | admin | requires admin | `POST /api/recipes/[id]/draft` | `/[locale]/recipe/[id]` |
-| `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url` | `/[locale]/admin` |
+| `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/recipes/[id]/revisions/[id]` | `/[locale]/admin` |
 | `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`GET /api/capture`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge` | `/[locale]/admin/create`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
 | `/[locale]/admin/invites` | admin | requires admin | — | `/[locale]/admin/users` |
@@ -144,6 +144,7 @@ Calls the map could not match to an endpoint (a URL built elsewhere, or a path t
 - `POST /api/capture/share  (from admin/ShareIntoInbox)`
 - `POST /api/examples  (from admin/ExampleButton)`
 - `POST /api/recipes/[id]/cooked  (from recipe/Cooked)`
+- `POST /api/recipes/[id]/revisions/[id]  (from recipe-form/RecipeHistory)`
 - `POST /api/shopping  (from shopping/AddToShopping)`
 
 ## Always present

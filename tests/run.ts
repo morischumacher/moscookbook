@@ -48,13 +48,14 @@ import secretBox from './secretBox.test';
 import readableText from './readableText.test';
 import siteProfile from './siteProfile.test';
 import clientMessages from './clientMessages.test';
-import recipeRepo, { storedDraftTests } from './recipeRepo.test';
+import recipeRepo, { recipeRoutesPassTags, storedDraftTests } from './recipeRepo.test';
 import examples from './examples.test';
 import units from './units.test';
 import shopping from './shopping.test';
 import cookSteps from './cookSteps.test';
 import tags from './tags.test';
 import offline from './offline.test';
+import revisions from './revisions.test';
 import siteLearn, { siteLearnWiringTests } from './siteLearn.test';
 import drafts from './drafts.test';
 import routeParams from './routeParams.test';
@@ -128,12 +129,14 @@ const suites: [string, () => void | Promise<void>][] = [
     ['clientMessages', clientMessages],
     ['recipeRepo', recipeRepo],
     ['storedDraftTests', storedDraftTests],
+    ['recipeRoutesPassTags', recipeRoutesPassTags],
     ['examples', examples],
     ['units', units],
     ['shopping', shopping],
     ['cookSteps', cookSteps],
     ['tags', tags],
     ['offline', offline],
+    ['revisions', revisions],
     ['siteLearn', siteLearn],
     ['siteLearnWiringTests', siteLearnWiringTests],
     ['drafts', drafts],

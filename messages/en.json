@@ -270,7 +270,22 @@
     "addSection": "+ Section",
     "sectionPlaceholder": "Section, e.g. For the dough",
     "sectionLabel": "Section heading",
-    "removeSection": "Remove heading"
+    "removeSection": "Remove heading",
+    "historyTitle": "Earlier versions",
+    "historyExplain": "Every save keeps the version it replaces. Open one to see what it said, and restore it if the change was a mistake — pictures and the address stay as they are now.",
+    "editedBy": "changed by {name}",
+    "changedAfter": "then changed: {fields}",
+    "restore": "Restore this version",
+    "restoreQuestion": "Restore the version from {when}? What is there now is kept as a version too.",
+    "restoreFailed": "That did not work. Please try again.",
+    "field_title": "title",
+    "field_description": "description",
+    "field_category": "category",
+    "field_times": "times",
+    "field_servings": "servings",
+    "field_ingredients": "ingredients",
+    "field_instructions": "method",
+    "field_tags": "tags"
   },
   "QuickImport": {
     "heading": "Fill in quickly",

@@ -394,6 +394,7 @@ model Recipe {
   favorites      Favorite[]
   ingredients    Ingredient[]
   captures       Capture[]
+  revisions      RecipeRevision[]
   posts          PostRecipe[]
   cookEntries    CookEntry[]
   collections    CollectionRecipe[]
@@ -825,5 +826,21 @@ model ShoppingItem {
   createdAt  DateTime     @default(now())
 
   @@index([listId, checked])
+}
+
+/// How a recipe was before an edit: every save keeps the version it
+/// replaces, so a change can be looked at and undone. The text, the numbers,
+/// the ingredients and the tags; not the pictures, whose files an edit
+/// deletes. See lib/revisions.ts.
+model RecipeRevision {
+  id        Int      @id @default(autoincrement())
+  recipeId  Int
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  snapshot  Json
+  /// Who made the edit that replaced it, by name at the time.
+  editedBy  String?
+  createdAt DateTime @default(now())
+
+  @@index([recipeId, createdAt])
 }
 

@@ -1,4 +1,5 @@
 /** One way to write a recipe */
+import { readFileSync } from 'node:fs';
 import { suite, check, equal } from './harness';
 import { newRecipeData, recipeColumns } from '../src/lib/recipeRepo';
 import { draftFromJson } from '../src/lib/captureDraft';
@@ -45,5 +46,13 @@ export function storedDraftTests() {
     check('a stored null is no draft', draftFromJson(null) === null);
     check('neither is a list', draftFromJson([1, 2]) === null);
     equal('wrongly typed fields fall back', draftFromJson({ title: 5, servings: 'four' })?.servings, null);
+}
+
+/** The form sends tags; both routes have to pass them on, or they are dropped without a word. */
+export function recipeRoutesPassTags() {
+    suite('recipe routes: what the form sends is written');
+    for (const path of ['src/app/api/recipes/route.ts', 'src/app/api/recipes/[id]/route.ts']) {
+        check(`${path} writes the tags`, /tags: parsed\.data\.tags/.test(readFileSync(path, 'utf8')));
+    }
 }
 
