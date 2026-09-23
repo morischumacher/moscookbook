@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { useDialogFocus } from '@/components/ui/useDialogFocus';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { messageFrom } from '@/lib/apiMessage';
@@ -81,16 +82,8 @@ export default function ShareDialog({
     // the household's — there is nothing to hand over then.
     const shareable = stage === 'web' ? ownUrl : stage === 'link' ? state.linkUrl : null;
 
-    useEffect(() => {
-        firstRow.current?.focus();
-
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') onClose();
-        };
-
-        document.addEventListener('keydown', onKeyDown);
-        return () => document.removeEventListener('keydown', onKeyDown);
-    }, [onClose]);
+    // In, trapped, Escape out, and back to the Share button afterwards.
+    useDialogFocus(card, onClose, firstRow);
 
     /** The endpoints, per kind. Spelled out so each is greppable. */
     const endpoints = {

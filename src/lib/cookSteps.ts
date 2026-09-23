@@ -19,7 +19,7 @@ export interface StepTimer {
 }
 
 // Mixed numbers and fractions first, so "1 1/2 Stunden" is not read as "2 Stunden".
-const NUMBER = String.raw`\d+\s*½|\d+\s+\d+\s*\/\s*\d+|\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?|½|eine[nm]?|ein|one|an?|half an|einer halben|eine halbe`;
+const NUMBER = String.raw`\d+\s*½|\d+\s+\d+\s*\/\s*\d+|\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?|½|einer halben|eine halbe|half an|anderthalb|einer|eine[nm]?|ein|one|an?`;
 const UNIT = String.raw`sekunden|sekunde|sek\.?|seconds?|secs?|minuten|minutes?|min\.?|mins?|stunden|stunde|std\.?|hours?|hrs?|h`;
 const TIMER = new RegExp(
     String.raw`(?<![\w\/-])(${NUMBER})(?:\s*(?:-|–|—|bis|to)\s*(\d+(?:[.,]\d+)?))?\s*(${UNIT})(?![\p{L}])`,
@@ -28,7 +28,8 @@ const TIMER = new RegExp(
 
 function amountOf(word: string): number | null {
     const lower = word.toLowerCase();
-    if (/^(eine[nm]?|ein|one|an?)$/.test(lower)) return 1;
+    if (/^(eine[nm]?|einer|ein|one|an?)$/.test(lower)) return 1;
+    if (lower === 'anderthalb') return 1.5;
     if (/^(½|half an|einer halben|eine halbe)$/.test(lower)) return 0.5;
     const mixed = /^(\d+)\s*½$/.exec(lower);
     if (mixed) return Number(mixed[1]) + 0.5;
@@ -44,10 +45,25 @@ function secondsPer(unit: string): number {
 
 export function timersIn(text: string): StepTimer[] {
     const found: StepTimer[] = [];
+    // Where the last timer ended, and whether it was in hours: "1 h 30 min"
+    // is one timer of an hour and a half, not one of an hour and one of 30.
+    let last: { end: number; hours: boolean } | null = null;
     for (const match of text.matchAll(TIMER)) {
         const amount = amountOf(match[1]);
         if (amount === null || amount <= 0) continue;
-        const seconds = Math.round(amount * secondsPer(match[3]));
+        const per = secondsPer(match[3]);
+        const between = last ? text.slice(last.end, match.index) : null;
+        if (last?.hours && per === 60 && between !== null && /^\s*(?:und|and|,)?\s*$/i.test(between) && found.length > 0) {
+            const previous = found[found.length - 1];
+            found[found.length - 1] = {
+                label: text.slice(match.index - between.length - previous.label.length, match.index + match[0].length).trim(),
+                seconds: previous.seconds + Math.round(amount * 60),
+            };
+            last = null;
+            continue;
+        }
+        last = { end: (match.index ?? 0) + match[0].length, hours: per === 3600 };
+        const seconds = Math.round(amount * per);
         // A "1 min" that is really a line of an ingredient list, or a
         // twenty-hour dough, is not a kitchen timer.
         if (seconds < 10 || seconds > 12 * 3600) continue;

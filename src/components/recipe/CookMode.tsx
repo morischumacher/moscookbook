@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { clock, ingredientsInStep, timersIn } from '@/lib/cookSteps';
 import type { RunningTimer } from './useCookTimers';
 import { buttonPrimaryLarge } from '@/lib/ui';
+import { useDialogFocus } from '@/components/ui/useDialogFocus';
 
 /**
  * Cooking from the recipe, on a screen that stays on.
@@ -84,10 +85,10 @@ export default function CookMode({
         else if (current < steps.length - 1) go(current + 1);
     };
 
+    useDialogFocus(dialog, onClose);
+
     useEffect(() => {
-        dialog.current?.focus();
         const onKey = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') onClose();
             if (view !== 'step') return;
             if (event.key === 'ArrowRight') setCurrent((index) => Math.min(steps.length - 1, index + 1));
             if (event.key === 'ArrowLeft') setCurrent((index) => Math.max(0, index - 1));
@@ -99,7 +100,7 @@ export default function CookMode({
             document.removeEventListener('keydown', onKey);
             document.body.style.overflow = overflow;
         };
-    }, [onClose, steps.length, view]);
+    }, [steps.length, view]);
 
     const tab = (which: typeof view, label: string) => (
         <button

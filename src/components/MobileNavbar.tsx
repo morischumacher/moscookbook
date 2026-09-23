@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
+import { Link, usePathname as usePagePath } from '@/i18n/routing';
 import Logo from './brand/Logo';
 import LogoutButton from './LogoutButton';
 import ProfileMenu from './ProfileMenu';
@@ -41,6 +41,7 @@ interface MobileNavbarProps {
  * centred among left-aligned ones for no reason anybody could see.
  */
 export default function MobileNavbar({ user, profile, otherLocale }: MobileNavbarProps) {
+    const pagePath = usePagePath();
     const t = useTranslations('Navigation');
     const tBlog = useTranslations('Blog');
     const tCollections = useTranslations('Collections');
@@ -151,8 +152,11 @@ export default function MobileNavbar({ user, profile, otherLocale }: MobileNavba
                         there is no profile menu to put it in. */}
                     {!user && (
                         <Link
-                            href="/"
+                            // The same page in the other language, not the home page: from a
+                            // recipe, "In English lesen" means this recipe.
+                            href={pagePath}
                             locale={otherLocale}
+                            lang={otherLocale}
                             className="text-sm font-medium text-muted transition-colors hover:text-ink"
                         >
                             {otherLocale.toUpperCase()}
@@ -245,8 +249,11 @@ export default function MobileNavbar({ user, profile, otherLocale }: MobileNavba
                         </div>
 
                         <Link
-                            href="/"
+                            // The same page in the other language, not the home page: from a
+                            // recipe, "In English lesen" means this recipe.
+                            href={pagePath}
                             locale={otherLocale}
+                            lang={otherLocale}
                             onClick={close}
                             className={`${row} mt-3 w-full border-t border-line pt-3 text-muted`}
                         >

@@ -269,6 +269,10 @@ export default function Cooked({
                     const file = event.target.files?.[0];
                     if (file) void upload(file, target);
                 }}
+                // Opened by the "Foto hinzufügen" buttons; not a tab stop of
+                // its own, and named for a screen reader that finds it anyway.
+                tabIndex={-1}
+                aria-label={t('add')}
                 className="sr-only"
             />
 
