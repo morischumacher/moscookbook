@@ -2,6 +2,7 @@ import prisma from './prisma';
 import { slugify } from './recipe';
 import { searchFields } from './searchText';
 import type { StructuredIngredient } from './ingredientParts';
+import { searchableTranslation, type RecipeTranslationInput } from './recipeTranslation';
 
 /**
  * How a recipe is written, in one place.
@@ -39,6 +40,14 @@ export interface RecipeFields {
     cuisines?: string[];
     /** 0–3 chillies. Left as it is when not given. */
     spiciness?: number;
+    /** "de" or "en". Left as it is when not given. */
+    language?: string | null;
+    /**
+     * The recipe in its other language. Only read here for the search
+     * columns — one search finds a recipe in either language; the row itself
+     * is written by `translationRow`.
+     */
+    translation?: RecipeTranslationInput | null;
 }
 
 /** Every column a recipe's own text decides — the search columns included. */
@@ -61,12 +70,36 @@ export function recipeColumns(fields: RecipeFields) {
         prepMinutes: fields.prepMinutes ?? null,
         cookMinutes: fields.cookMinutes ?? null,
         ...(fields.tags !== undefined ? { tags: fields.tags } : {}),
-        ...searchFields({
-            title: fields.title,
-            description: fields.description,
-            instructions: fields.instructions,
-            ingredients: fields.ingredients.map((row) => row.name),
-        }),
+        ...(fields.language !== undefined ? { language: fields.language } : {}),
+        ...searchFields(withTranslation(fields)),
+    };
+}
+
+function withTranslation(fields: RecipeFields) {
+    const other = searchableTranslation(fields.translation);
+    return {
+        title: other ? `${fields.title} ${other.title}` : fields.title,
+        description: fields.description,
+        instructions: other ? `${fields.instructions} ${other.text}` : fields.instructions,
+        ingredients: fields.ingredients.map((row) => row.name),
+    };
+}
+
+/**
+ * The translation's row, or null when there is none — or when it claims to
+ * be in the language the recipe is written in, which would be a translation
+ * of a recipe into itself.
+ */
+export function translationRow(translation: RecipeTranslationInput | null | undefined, language?: string | null) {
+    if (!translation) return null;
+    if (language && translation.locale === language) return null;
+    return {
+        locale: translation.locale,
+        title: translation.title,
+        description: translation.description,
+        instructions: translation.instructions,
+        ingredients: translation.ingredients,
+        source: translation.source,
     };
 }
 
@@ -104,6 +137,9 @@ export function newRecipeData(
         ...(fields.createdAt !== undefined ? { createdAt: fields.createdAt } : {}),
         images: { create: fields.imageUrls.map((url, index) => ({ url, position: index })) },
         ingredients: { create: ingredientRows(fields.ingredients) },
+        ...(translationRow(fields.translation, fields.language)
+            ? { translations: { create: [translationRow(fields.translation, fields.language)!] } }
+            : {}),
     };
 }
 

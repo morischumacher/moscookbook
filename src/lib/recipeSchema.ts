@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { normaliseTags } from './tags';
 import { slugify } from './recipe';
+import { RECIPE_LANGUAGES, translationSchema } from './recipeTranslation';
 
 const ingredientSchema = z.object({
     amount: z.string().trim().max(120).default(''),
@@ -67,6 +68,13 @@ export const recipeInputSchema = z.object({
      * breaking change to an endpoint costs more than four lines of kindness.
      */
     imageUrl: imageUrlSchema.optional(),
+    /** The language it is written in. Left as it is when not given. */
+    language: z.enum(RECIPE_LANGUAGES).optional(),
+    /**
+     * The recipe in its other language (lib/recipeTranslation.ts). Left as it
+     * is when not given; null removes it.
+     */
+    translation: translationSchema.nullable().optional(),
 });
 
 /**

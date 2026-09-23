@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import {
     ARCHIVE_VERSION,
+    translationArchiveSelect,
     archiveFilename,
     toArchiveRecipe,
     toArchivePost,
@@ -143,6 +144,8 @@ export async function GET() {
                                         section: true,
                                     },
                                 },
+                                language: true,
+                                translations: translationArchiveSelect,
                             },
                         }),
                     toArchiveRecipe

@@ -133,7 +133,8 @@
     "resumeBanner": "You are cooking this: {done} of {total} steps done.",
     "cookViewList": "Tick off",
     "cookViewSteps": "Step by step",
-    "cookFinish": "Done cooking"
+    "cookFinish": "Done cooking",
+    "translatedFrom": "Translated from {language, select, de {German} other {English}}"
   },
   "Rating": {
     "rate": "Rate",
@@ -322,7 +323,28 @@
     "dietSuggested": "Going by the ingredients: {diet}",
     "spicinessLabel": "Heat",
     "spicinessLevel": "{level, plural, =0 {Not hot} one {Mild} =2 {Hot} other {Very hot}}",
-    "notSpicy": "Not hot"
+    "notSpicy": "Not hot",
+    "translationHeading": "Second language",
+    "writtenIn": "This recipe is in",
+    "language": {
+      "de": "German",
+      "en": "English"
+    },
+    "translateTo": {
+      "de": "Translate into German",
+      "en": "Translate into English"
+    },
+    "translationOf": {
+      "de": "German version — saved with the recipe. You can still adjust it here.",
+      "en": "English version — saved with the recipe. You can still adjust it here."
+    },
+    "translating": "Translating …",
+    "translateHint": "With AI, amounts and units included (e.g. EL → tbsp, cups → g/ml). The recipe is then available in both languages; everyone sees it in theirs.",
+    "translateAgain": "Translate again",
+    "translationStale": "The recipe has changed since it was translated.",
+    "translationRemove": "Remove translation",
+    "translateFailed": "The translation did not work. Try again in a moment.",
+    "translateUnusable": "The AI left out or merged ingredients, so the translation was discarded. Try again."
   },
   "QuickImport": {
     "heading": "Fill in quickly",

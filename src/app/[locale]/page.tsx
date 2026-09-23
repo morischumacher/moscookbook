@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import FilterChips from '@/components/home/FilterChips';
 import OfflineFavorites from '@/components/home/OfflineFavorites';
@@ -25,6 +25,8 @@ interface RecipeListRow {
     createdAt: Date;
     images: { url: string }[];
     ratings: { value: number }[];
+    /** Only the reader's language: a tile shows its title and description. */
+    translations: { title: string; description: string }[];
 }
 
 /** One "this recipe has an ingredient like X" clause. */
@@ -135,6 +137,7 @@ export default async function HomePage({
     params: Promise<{ locale: string }>;
 }) {
     const t = await getTranslations('Home');
+    const locale = await getLocale();
     const tSite = await getTranslations('Site');
     const tBlog = await getTranslations('Blog');
 
@@ -288,6 +291,9 @@ export default async function HomePage({
         createdAt: true,
         images: { orderBy: { position: 'asc' as const }, take: 1, select: { url: true } },
         ratings: { select: { value: true } },
+        // A recipe written in the other language, in this one when it has
+        // been translated. See lib/recipeTranslation.
+        translations: { where: { locale }, select: { title: true, description: true } },
     };
 
     // The chips describe the whole collection rather than the current result,
@@ -449,10 +455,10 @@ export default async function HomePage({
     // client component, and a spread sent every rating row along with it.
     const formattedRecipes = recipes.map((recipe) => ({
         id: recipe.id,
-        title: recipe.title,
+        title: recipe.translations[0]?.title || recipe.title,
         slug: recipe.slug,
         createdAt: recipe.createdAt,
-        description: recipe.description ?? '',
+        description: (recipe.translations[0] ? recipe.translations[0].description : recipe.description) ?? '',
         category: recipe.category ?? '',
         nationality: recipe.nationality ?? '',
         // Diet, meat or fish and chillies, as their icons: read at a glance

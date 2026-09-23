@@ -35,6 +35,15 @@ function row(overrides: Partial<ExportableRecipe> = {}): ExportableRecipe {
             { position: 1, quantity: 200, quantityMax: null, unit: 'g', name: 'Bergkäse', raw: '200 g', section: null },
             { position: 0, quantity: 400, quantityMax: null, unit: 'g', name: 'Spätzle', raw: '400 g', section: null },
         ],
+        language: 'de',
+        translations: [{
+            locale: 'en',
+            title: 'Cheese spaetzle',
+            description: 'Creamy.',
+            instructions: '1. Cook.',
+            ingredients: [{ amount: '200 g', item: 'mountain cheese' }, { amount: '400 g', item: 'spaetzle' }],
+            source: 'abc',
+        }],
         ...overrides,
     };
 }
@@ -57,6 +66,9 @@ export default function run() {
 
     const back = parseArchive(JSON.parse(JSON.stringify(archive)));
     check('reads back what it wrote', back.ok, back.error);
+    check('keeps the language and the translation',
+        back.archive?.recipes[0].language === 'de' && back.archive?.recipes[0].translations[0]?.title === 'Cheese spaetzle',
+        back.archive?.recipes[0]);
 
     // Keys sorted before comparing: what has to survive a round trip is the
     // content, and an object that comes back with its keys in a different

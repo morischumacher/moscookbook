@@ -20,6 +20,7 @@ import type { StructuredIngredient } from '@/lib/ingredientParts';
 import { formatMinutes } from '@/lib/amount';
 import { buildRecipeJsonLd } from '@/lib/recipeJsonLd';
 import { formatDate } from '@/lib/formatDate';
+import { inLanguage, type StoredTranslation } from '@/lib/recipeTranslation';
 
 export interface RecipeRow {
     id: number;
@@ -69,6 +70,9 @@ export interface RecipeRow {
      * builds its own row) should not have to invent an empty array.
      */
     captures?: { sourceUrl: string | null }[];
+    /** The language it was written in, and its translation. See lib/recipeTranslation. */
+    language?: string | null;
+    translations?: StoredTranslation[];
 }
 
 /** What the page needs from the database, in one place so both routes agree. */
@@ -85,6 +89,8 @@ export const recipeInclude = {
      * material the recipe replaced.
      */
     captures: { orderBy: { id: 'asc' }, take: 1, select: { sourceUrl: true } },
+    // Both, at most two rows; the page picks the reader's (lib/recipeTranslation).
+    translations: { select: { locale: true, title: true, description: true, instructions: true, ingredients: true } },
 } as const;
 
 export interface RecipeArticleProps {
@@ -130,7 +136,7 @@ export interface RecipeArticleProps {
 }
 
 export default async function RecipeArticle({
-    recipe,
+    recipe: written,
     locale,
     mode,
     isLoggedIn,
@@ -145,6 +151,8 @@ export default async function RecipeArticle({
     currentUserId,
     similar,
 }: RecipeArticleProps) {
+    // In the reader's language when it has been translated into it.
+    const recipe = inLanguage(written, locale);
     const t = await getTranslations('Recipe');
     const tTags = await getTranslations('Tags');
     const tagLabel = (tag: string) => (KNOWN_TAGS.includes(tag) ? tTags(tag as 'vegan') : `#${tag}`);
@@ -241,6 +249,12 @@ export default async function RecipeArticle({
                 <h1 className="mt-2 text-3xl font-extrabold leading-[1.12] tracking-tight text-ink sm:text-4xl">
                     {recipe.title}
                 </h1>
+
+                {recipe.translated && written.language && (
+                    <p lang={locale} className="mt-1 text-xs text-faint">
+                        {t('translatedFrom', { language: written.language })}
+                    </p>
+                )}
 
                 {recipe.description && (
                     <p className="mt-3 font-serif text-lg italic leading-relaxed text-muted sm:text-xl">

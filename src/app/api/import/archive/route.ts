@@ -1,3 +1,4 @@
+import { asLanguage } from '@/lib/recipeTranslation';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
@@ -58,6 +59,9 @@ function recipeData(recipe: ArchiveRecipe) {
         categories: recipe.categories.length > 0 ? recipe.categories.slice(0, 5) : recipe.category ? [recipe.category] : [],
         cuisines: recipe.cuisines.length > 0 ? recipe.cuisines.slice(0, 5) : recipe.nationality ? [recipe.nationality] : [],
         spiciness: recipe.spiciness,
+        language: asLanguage(recipe.language),
+        // One per recipe is what the form makes; the other language's.
+        translation: recipe.translations.find((row) => row.locale !== recipe.language) ?? null,
     });
 }
 

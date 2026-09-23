@@ -6,6 +6,8 @@ import { useRouter } from '@/i18n/routing';
 import ReactMarkdown from 'react-markdown';
 import { slugify, type Ingredient } from '@/lib/recipe';
 import PolishPanel from './PolishPanel';
+import TranslationPanel from './TranslationPanel';
+import { guessLanguage, type RecipeLanguage, type RecipeTranslationInput } from '@/lib/recipeTranslation';
 import GalleryField from './GalleryField';
 import TagField from './TagField';
 import IngredientEditor, { EMPTY_ROW } from './IngredientEditor';
@@ -37,6 +39,10 @@ export interface RecipeFormValues {
     categories?: string[];
     cuisines?: string[];
     spiciness?: number;
+    /** The language it is written in, when known. */
+    language?: RecipeLanguage | null;
+    /** The recipe in its other language, if it has been translated. */
+    translation?: RecipeTranslationInput | null;
 }
 
 /** A list from the lists if there are any, else from the single field. */
@@ -92,6 +98,14 @@ export default function RecipeForm({
     const [cookMinutes, setCookMinutes] = useState<string>(
         initial?.cookMinutes != null ? String(initial.cookMinutes) : ''
     );
+
+    // Chosen, or guessed from the text until somebody chooses; fixed as soon
+    // as there is a translation, so typing cannot flip it under one.
+    const [chosenLanguage, setChosenLanguage] = useState<RecipeLanguage | null>(initial?.language ?? null);
+    const [translation, setTranslation] = useState<RecipeTranslationInput | null>(initial?.translation ?? null);
+    const language: RecipeLanguage =
+        chosenLanguage ??
+        guessLanguage([title, description, instructions, ...ingredients.map((row) => row.item)].join(' '));
 
     const [preview, setPreview] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -273,6 +287,8 @@ export default function RecipeForm({
                     servings: toOptionalNumber(servings),
                     prepMinutes: toOptionalNumber(prepMinutes),
                     cookMinutes: toOptionalNumber(cookMinutes),
+                    language,
+                    translation: translation && translation.locale !== language ? translation : null,
                     ...(mode === 'create' && captureId ? { captureId } : {}),
                 }),
             });
@@ -502,6 +518,18 @@ export default function RecipeForm({
                         available={aiEnabled}
                     />
                 </div>
+
+                <TranslationPanel
+                    original={{ title, description, instructions, ingredients }}
+                    language={language}
+                    onLanguage={setChosenLanguage}
+                    translation={translation}
+                    onTranslation={(next) => {
+                        if (next) setChosenLanguage(language);
+                        setTranslation(next);
+                    }}
+                    available={aiEnabled}
+                />
 
                 <div className="flex flex-wrap items-center gap-4">
                     <button

@@ -1,3 +1,4 @@
+import { asLanguage, storedRows } from './recipeTranslation';
 import { z } from 'zod';
 
 /**
@@ -35,6 +36,7 @@ const webUrl = z
  */
 
 /**
+ * 9: the language a recipe is written in, and its translation.
  * 8: several categories and cuisines per recipe, and how hot it is.
  * 7: menus. 6: pictures on collections and entries about several recipes.
  * 5: one cooking entry with its photographs, where 2-4 had a list of
@@ -45,7 +47,17 @@ const webUrl = z
  * every new field to the safe value — and an archive from a newer version is
  * refused with the numbers in the message rather than half-read.
  */
-export const ARCHIVE_VERSION = 8;
+export const ARCHIVE_VERSION = 9;
+
+/** A recipe in its other language, as the form's rows. Version 9. */
+const archiveTranslationSchema = z.object({
+    locale: z.enum(['de', 'en']),
+    title: z.string().min(1),
+    description: z.string().default(''),
+    instructions: z.string().default(''),
+    ingredients: z.array(z.object({ amount: z.string().default(''), item: z.string().default('') })).default([]),
+    source: z.string().default(''),
+});
 
 const archiveIngredientSchema = z.object({
     position: z.number().int().min(0),
@@ -96,6 +108,9 @@ const archiveRecipeSchema = z.object({
     cuisines: z.array(z.string()).default([]),
     spiciness: z.number().int().min(0).max(3).default(0),
     ingredients: z.array(archiveIngredientSchema).default([]),
+    /** Version 9: "de" or "en", and the recipe in its other language. */
+    language: z.string().nullable().default(null),
+    translations: z.array(archiveTranslationSchema).default([]),
 });
 
 /**
@@ -310,7 +325,22 @@ export interface ExportableRecipe {
         raw: string;
         section: string | null;
     }[];
+    language: string | null;
+    translations: {
+        locale: string;
+        title: string;
+        description: string;
+        instructions: string;
+        ingredients: unknown;
+        source: string;
+    }[];
 }
+
+/** What an export selects for `translations`. */
+export const translationArchiveSelect = {
+    orderBy: { locale: 'asc' as const },
+    select: { locale: true, title: true, description: true, instructions: true, ingredients: true, source: true },
+};
 
 export interface ExportablePost {
     title: string;
@@ -402,6 +432,11 @@ export function toArchiveRecipe(recipe: ExportableRecipe): ArchiveRecipe {
             .slice()
             .sort((a, b) => a.position - b.position)
             .map((ingredient, index) => ({ ...ingredient, position: index })),
+        language: recipe.language,
+        translations: recipe.translations.flatMap((row) => {
+            const locale = asLanguage(row.locale);
+            return locale ? [{ ...row, locale, ingredients: storedRows(row.ingredients) }] : [];
+        }),
     };
 }
 

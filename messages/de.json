@@ -133,7 +133,8 @@
     "resumeBanner": "Du kochst das gerade: {done} von {total} Schritten erledigt.",
     "cookViewList": "Abhaken",
     "cookViewSteps": "Schritt für Schritt",
-    "cookFinish": "Fertig gekocht"
+    "cookFinish": "Fertig gekocht",
+    "translatedFrom": "Übersetzt aus dem {language, select, en {Englischen} other {Deutschen}}"
   },
   "Rating": {
     "rate": "Bewerten",
@@ -322,7 +323,28 @@
     "dietSuggested": "Nach den Zutaten wohl: {diet}",
     "spicinessLabel": "Schärfe",
     "spicinessLevel": "{level, plural, =0 {Nicht scharf} one {Leicht scharf} =2 {Scharf} other {Sehr scharf}}",
-    "notSpicy": "Nicht scharf"
+    "notSpicy": "Nicht scharf",
+    "translationHeading": "Zweite Sprache",
+    "writtenIn": "Das Rezept ist auf",
+    "language": {
+      "de": "Deutsch",
+      "en": "Englisch"
+    },
+    "translateTo": {
+      "de": "Ins Deutsche übersetzen",
+      "en": "Ins Englische übersetzen"
+    },
+    "translationOf": {
+      "de": "Deutsche Fassung — wird mit dem Rezept gespeichert. Du kannst sie hier noch anpassen.",
+      "en": "Englische Fassung — wird mit dem Rezept gespeichert. Du kannst sie hier noch anpassen."
+    },
+    "translating": "Wird übersetzt …",
+    "translateHint": "Mit KI, inklusive Mengen und Einheiten (z. B. tbsp → EL, cups → g/ml). Danach liegt das Rezept in beiden Sprachen vor; jeder sieht es in seiner Sprache.",
+    "translateAgain": "Neu übersetzen",
+    "translationStale": "Das Rezept wurde seit der Übersetzung geändert.",
+    "translationRemove": "Übersetzung entfernen",
+    "translateFailed": "Die Übersetzung hat nicht geklappt. Versuch es gleich noch einmal.",
+    "translateUnusable": "Die KI hat Zutaten ausgelassen oder zusammengelegt, deshalb wurde die Übersetzung verworfen. Versuch es noch einmal."
   },
   "QuickImport": {
     "heading": "Schnell befüllen",

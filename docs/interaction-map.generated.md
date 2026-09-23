@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-45 screens · 85 endpoints · 80 link edges · 87 call edges
+45 screens · 86 endpoints · 80 link edges · 88 call edges
 
 ## Screens
 
@@ -14,10 +14,10 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/collections/[id]` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/admin/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections/new` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/admin/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections` | admin | requires admin | `POST /api/examples` | `/[locale]/admin/collections/[id]`<br>`/[locale]/admin/collections/new`<br>`/[locale]/collections/[id]` |
-| `/[locale]/admin/create` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url` | `/[locale]/admin` |
+| `/[locale]/admin/create` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/ai/translate`<br>`POST /api/import/ai`<br>`POST /api/import/url` | `/[locale]/admin` |
 | `/[locale]/admin/devices` | admin | requires admin | `DELETE /api/capture-tokens/[id]`<br>`GET /api/capture-tokens`<br>`POST /api/capture-tokens` | — |
 | `/[locale]/admin/drafts` | admin | requires admin | `POST /api/recipes/[id]/draft` | `/[locale]/recipe/[id]` |
-| `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/recipes/[id]/revisions/[id]` | `/[locale]/admin` |
+| `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/ai/translate`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/recipes/[id]/revisions/[id]` | `/[locale]/admin` |
 | `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`DELETE /api/work-items/[id]`<br>`GET /api/capture`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge`<br>`POST /api/capture/share`<br>`POST /api/work-items` | `/[locale]/admin/create`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
 | `/[locale]/admin/invites` | admin | requires admin | — | `/[locale]/admin/users` |
@@ -77,6 +77,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/ai-keys` | admin | zod | — | `admin/AiKeys` |
 | PATCH | `/api/ai-keys` | admin | zod | — | `admin/AiKeys` |
 | POST | `/api/ai/polish` | admin | zod | yes | `recipe-form/PolishPanel` |
+| POST | `/api/ai/translate` | admin | zod | yes | `recipe-form/TranslationPanel` |
 | POST | `/api/auth/forgot` | none (open by design) | zod | yes | `src/app/[locale]/forgot/page.tsx` |
 | POST | `/api/auth/login` | none (open by design) | zod | yes | `src/app/[locale]/login/page.tsx` |
 | POST | `/api/auth/logout` | none (open by design) | — | — | `LogoutButton`<br>`account/AccountSettings` |
@@ -371,6 +372,9 @@ flowchart LR
   ePOST_api_ai_polish(["POST /api/ai/polish"])
   crecipe_form_PolishPanel["recipe-form/PolishPanel"]
   crecipe_form_PolishPanel --> ePOST_api_ai_polish
+  ePOST_api_ai_translate(["POST /api/ai/translate"])
+  crecipe_form_TranslationPanel["recipe-form/TranslationPanel"]
+  crecipe_form_TranslationPanel --> ePOST_api_ai_translate
   ePOST_api_auth_forgot(["POST /api/auth/forgot"])
   csrc_app__locale__forgot_page_tsx["src/app/[locale]/forgot/page.tsx"]
   csrc_app__locale__forgot_page_tsx --> ePOST_api_auth_forgot

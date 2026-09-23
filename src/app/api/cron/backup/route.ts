@@ -15,6 +15,7 @@ import {
     type ExportableCollection,
     type ExportableMenu,
     menuArchiveSelect,
+    translationArchiveSelect,
 } from '@/lib/archive';
 import { failed } from '@/lib/reportServerError';
 import { recordBackupRun } from '@/lib/backupStatus';
@@ -103,6 +104,8 @@ export async function GET(req: NextRequest) {
                         section: true,
                     },
                 },
+                language: true,
+                translations: translationArchiveSelect,
             },
         });
 
