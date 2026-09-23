@@ -806,5 +806,11 @@
     "banner": "This is a draft. It is not in your list, cannot be found by searching, and cannot be made public or shared.",
     "stage": "Keep as draft",
     "stageHint": "Takes the recipe in, but not yet into your list."
+  },
+  "Loading": {
+    "page": "Loading…",
+    "recipes": "Loading the recipes…",
+    "entries": "Loading the entries…",
+    "collections": "Loading the collections…"
   }
 }

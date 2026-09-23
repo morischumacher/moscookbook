@@ -7,6 +7,7 @@ import Disclosure from '@/components/ui/Disclosure';
 import { formatDate } from '@/lib/formatDate';
 import { messageFrom } from '@/lib/apiMessage';
 import { buttonPrimarySmall } from '@/lib/ui';
+import { BusyLabel } from '@/components/ui/Busy';
 
 /**
  * The sites the cookbook has worked out how to read.
@@ -170,7 +171,7 @@ export default function SiteProfiles() {
                     />
                 </label>
                 <button type="submit" className={buttonPrimarySmall} disabled={busy || url.trim() === ''}>
-                    {busy ? t('learning') : t('learn')}
+                    <BusyLabel busy={busy} busyText={t('learning')}>{t('learn')}</BusyLabel>
                 </button>
             </form>
 

@@ -69,6 +69,44 @@ const PAGE_SIZE = 24;
  */
 const SEARCH_MATCH_CAP = 600;
 
+/**
+ * The recipes a search matches, best first, as ids.
+ *
+ * Annotated as well as parameterised: $queryRaw takes its type argument
+ * explicitly, so unlike groupBy nothing is inferred backwards from the
+ * assignment, and the annotation still holds when the generated client is
+ * absent.
+ */
+function rankedSearch(tsquery: string): Promise<{ id: number }[]> {
+    return prisma.$queryRaw<{ id: number }[]>`
+        SELECT "id"
+        FROM "Recipe"
+        WHERE "isDraft" = false
+          AND "searchVector" @@ to_tsquery('german', ${tsquery})
+        ORDER BY ts_rank("searchVector", to_tsquery('german', ${tsquery})) DESC,
+                 "createdAt" DESC
+        LIMIT ${SEARCH_MATCH_CAP}
+    `;
+}
+
+/**
+ * How many published blog entries a search also matches.
+ *
+ * Entries are not mixed into the grid — a blog post is not a recipe and a
+ * tile is not what it looks like. But somebody who searched here should not
+ * have to know that the answer might be one page over, so a search that also
+ * matches writing says so.
+ */
+async function postsMatching(tsquery: string): Promise<number> {
+    const hits = await prisma.$queryRaw<{ count: bigint }[]>`
+        SELECT count(*)::bigint AS count
+        FROM "Post"
+        WHERE "publishedAt" IS NOT NULL
+          AND "searchVector" @@ to_tsquery('german', ${tsquery})
+    `;
+    return Number(hits[0]?.count ?? 0);
+}
+
 function averageRating(ratings: { value: number }[]): number {
     if (ratings.length === 0) return 0;
     return ratings.reduce((sum, rating) => sum + rating.value, 0) / ratings.length;
@@ -101,28 +139,37 @@ export default async function HomePage({
     const have = typeof haveParam === 'string' ? haveParam : '';
     const showFavorites = favorites === 'true';
 
-    const user = await getCurrentUser();
+    /*
+     * Everything that does not depend on anything else, at once.
+     *
+     * This page used to wait for the user, then their favourites, then the
+     * search ranking, then the count and the chips, then the tiles, then the
+     * blog-post count: six round trips in a row before a single tile could be
+     * drawn. Now it waits twice — once for the user and the two searches,
+     * once for the list, its count, the chips and the favourites.
+     */
+    const tsquery = search ? buildTsQuery(search) : null;
+
+    const [user, ranked, matchingPosts] = await Promise.all([
+        getCurrentUser(),
+        tsquery !== null ? rankedSearch(tsquery) : null,
+        tsquery !== null ? postsMatching(tsquery) : 0,
+    ]);
     const isLoggedIn = user !== null;
 
-    // One lookup of the viewer's favourites powers both the "favourites only"
-    // filter and the filled-in heart on each card.
-    const favoriteRecipeIds = user
-        ? new Set<number>(
-            (
-                await prisma.favorite.findMany({
-                    where: { userId: user.id },
-                    select: { recipeId: true },
-                })
-            ).map((favorite: { recipeId: number }) => favorite.recipeId)
-        )
-        : new Set<number>();
+    const favoritesQuery: Promise<{ recipeId: number }[]> = user
+        ? prisma.favorite.findMany({ where: { userId: user.id }, select: { recipeId: true } })
+        : Promise.resolve([]);
+
+    // Needed before the list only when the list *is* the favourites.
+    const earlyFavorites = showFavorites && isLoggedIn ? await favoritesQuery : null;
 
     const where: RecipeWhere = { isDraft: false };
     if (category) where.category = category;
     if (nationality) where.nationality = nationality;
 
-    if (showFavorites && isLoggedIn) {
-        where.id = { in: [...favoriteRecipeIds] };
+    if (earlyFavorites) {
+        where.id = { in: earlyFavorites.map((favorite) => favorite.recipeId) };
     }
 
     /**
@@ -163,33 +210,15 @@ export default async function HomePage({
 
     let rankById: Map<number, number> | null = null;
 
-    if (search) {
-        const tsquery = buildTsQuery(search);
+    if (ranked) {
+        const matchedIds = ranked.map((row) => row.id);
+        rankById = new Map(matchedIds.map((id, index) => [id, index]));
 
-        if (tsquery !== null) {
-            // Annotated as well as parameterised: $queryRaw takes its type
-            // argument explicitly, so unlike groupBy nothing is inferred
-            // backwards from the assignment, and the annotation still holds
-            // when the generated client is absent.
-            const ranked: { id: number }[] = await prisma.$queryRaw<{ id: number }[]>`
-                SELECT "id"
-                FROM "Recipe"
-                WHERE "isDraft" = false
-                  AND "searchVector" @@ to_tsquery('german', ${tsquery})
-                ORDER BY ts_rank("searchVector", to_tsquery('german', ${tsquery})) DESC,
-                         "createdAt" DESC
-                LIMIT ${SEARCH_MATCH_CAP}
-            `;
-
-            const matchedIds = ranked.map((row) => row.id);
-            rankById = new Map(matchedIds.map((id, index) => [id, index]));
-
-            // Favourites may already have narrowed this; a search on top of it
-            // narrows further rather than replacing it.
-            where.id = where.id
-                ? { in: where.id.in.filter((id) => rankById?.has(id)) }
-                : { in: matchedIds };
-        }
+        // Favourites may already have narrowed this; a search on top of it
+        // narrows further rather than replacing it.
+        where.id = where.id
+            ? { in: where.id.in.filter((id) => rankById?.has(id)) }
+            : { in: matchedIds };
     }
 
     // A search sorts by relevance unless the visitor picked a different order
@@ -214,7 +243,15 @@ export default async function HomePage({
      * render twenty-four squares. The admin list next door already got this
      * right; the front page, the busiest page on the site, did not.
      */
-    const include = {
+    const tile = {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        category: true,
+        nationality: true,
+        views: true,
+        createdAt: true,
         images: { orderBy: { position: 'asc' as const }, take: 1, select: { url: true } },
         ratings: { select: { value: true } },
     };
@@ -224,11 +261,6 @@ export default async function HomePage({
     // because that makes the answer the same for everybody, which is what lets
     // it be computed once instead of on every visit. The two groupBys behind it
     // read the entire table and no index can change that; see lib/collectionFacets.
-    const [total, facets] = await Promise.all([
-        prisma.recipe.count({ where }),
-        collectionFacets(),
-    ]);
-
     /**
      * Reads one page of recipes in an order the database cannot produce itself.
      *
@@ -246,7 +278,7 @@ export default async function HomePage({
             // and it is the one that would be forgotten by whoever adds the
             // seventh way of sorting.
             where: { id: { in: pageIds }, isDraft: false },
-            include,
+            select: tile,
         });
 
         return pageIds
@@ -254,119 +286,111 @@ export default async function HomePage({
             .filter((recipe): recipe is RecipeListRow => recipe !== undefined);
     }
 
-    let recipes: RecipeListRow[];
+    /** The page of tiles, in whichever order was asked for. */
+    async function listRecipes(): Promise<RecipeListRow[]> {
 
-    if (sortByRelevance && rankById) {
-        // The filters may have removed some hits, so the ids are re-read
-        // through `where` and then put back into the ranking's order.
-        const matching: { id: number }[] = await prisma.recipe.findMany({
-            where,
-            select: { id: true },
-        });
-
-        recipes = await pageOf(
-            matching
-                .map((row) => row.id)
-                .sort((a, b) => (rankById.get(a) ?? 0) - (rankById.get(b) ?? 0))
-        );
-    } else if (sort === 'rating') {
-        // Prisma cannot order by an average across a relation. Rather than
-        // loading every recipe and sorting in memory, fetch only the ids that
-        // match, rank them against a single aggregate query, then read the one
-        // page that is actually shown.
-        const matching: { id: number }[] = await prisma.recipe.findMany({
-            where,
-            select: { id: true },
-        });
-        const matchingIds = matching.map((row) => row.id);
-
-        // Deliberately not annotated: Prisma infers groupBy's argument type
-        // from the expected result, so an explicit annotation here breaks the
-        // inference rather than documenting it.
-        const averageById = new Map<number, number>();
-
-        if (matchingIds.length > 0) {
-            const averages = await prisma.rating.groupBy({
-                by: ['recipeId'],
-                where: { recipeId: { in: matchingIds } },
-                _avg: { value: true },
+        if (sortByRelevance && rankById) {
+            // The filters may have removed some hits, so the ids are re-read
+            // through `where` and then put back into the ranking's order.
+            const matching: { id: number }[] = await prisma.recipe.findMany({
+                where,
+                select: { id: true },
             });
 
-            for (const entry of averages) {
-                averageById.set(entry.recipeId, entry._avg.value ?? 0);
-            }
-        }
-
-        recipes = await pageOf(
-            matchingIds.sort(
-                (a, b) => (averageById.get(b) ?? 0) - (averageById.get(a) ?? 0) || b - a
-            )
-        );
-    } else if (sort === 'forgotten') {
-        /*
-         * "Not made in a while", which is the question a cookbook is actually
-         * for once it has more recipes than anybody can hold in their head.
-         *
-         * Same shape as the rating sort, and for the same reason: Prisma cannot
-         * order by an aggregate across a relation, so the matching ids are
-         * ranked against one grouped query and only the page shown is read.
-         *
-         * A recipe nobody has ever cooked sorts first, because it is the most
-         * forgotten thing there is — and that is the difference between this
-         * and "oldest": a recipe added in 2023 and made last week is not
-         * waiting for anybody.
-         */
-        const matching: { id: number }[] = await prisma.recipe.findMany({
-            where,
-            select: { id: true },
-        });
-        const matchingIds = matching.map((row) => row.id);
-
-        const lastCookedById = new Map<number, number>();
-
-        if (matchingIds.length > 0) {
-            const lastCooked = await prisma.cookEntry.groupBy({
-                by: ['recipeId'],
-                where: { recipeId: { in: matchingIds } },
-                _max: { cookedAt: true },
+            return pageOf(
+                matching
+                    .map((row) => row.id)
+                    .sort((a, b) => (rankById.get(a) ?? 0) - (rankById.get(b) ?? 0))
+            );
+        } else if (sort === 'rating') {
+            // Prisma cannot order by an average across a relation. Rather than
+            // loading every recipe and sorting in memory, fetch only the ids that
+            // match, rank them against a single aggregate query, then read the one
+            // page that is actually shown.
+            const matching: { id: number }[] = await prisma.recipe.findMany({
+                where,
+                select: { id: true },
             });
+            const matchingIds = matching.map((row) => row.id);
 
-            for (const entry of lastCooked) {
-                const at = entry._max.cookedAt;
-                if (at) lastCookedById.set(entry.recipeId, new Date(at).getTime());
+            // Deliberately not annotated: Prisma infers groupBy's argument type
+            // from the expected result, so an explicit annotation here breaks the
+            // inference rather than documenting it.
+            const averageById = new Map<number, number>();
+
+            if (matchingIds.length > 0) {
+                const averages = await prisma.rating.groupBy({
+                    by: ['recipeId'],
+                    where: { recipeId: { in: matchingIds } },
+                    _avg: { value: true },
+                });
+
+                for (const entry of averages) {
+                    averageById.set(entry.recipeId, entry._avg.value ?? 0);
+                }
             }
-        }
 
-        recipes = await pageOf(
-            matchingIds.sort(
-                (a, b) =>
-                    // Never cooked is 0, which sorts before every real date.
-                    (lastCookedById.get(a) ?? 0) - (lastCookedById.get(b) ?? 0) || a - b
-            )
-        );
-    } else {
-        recipes = await prisma.recipe.findMany({ where, orderBy, skip, take: PAGE_SIZE, include });
+            return pageOf(
+                matchingIds.sort(
+                    (a, b) => (averageById.get(b) ?? 0) - (averageById.get(a) ?? 0) || b - a
+                )
+            );
+        } else if (sort === 'forgotten') {
+            /*
+             * "Not made in a while", which is the question a cookbook is actually
+             * for once it has more recipes than anybody can hold in their head.
+             *
+             * Same shape as the rating sort, and for the same reason: Prisma cannot
+             * order by an aggregate across a relation, so the matching ids are
+             * ranked against one grouped query and only the page shown is read.
+             *
+             * A recipe nobody has ever cooked sorts first, because it is the most
+             * forgotten thing there is — and that is the difference between this
+             * and "oldest": a recipe added in 2023 and made last week is not
+             * waiting for anybody.
+             */
+            const matching: { id: number }[] = await prisma.recipe.findMany({
+                where,
+                select: { id: true },
+            });
+            const matchingIds = matching.map((row) => row.id);
+
+            const lastCookedById = new Map<number, number>();
+
+            if (matchingIds.length > 0) {
+                const lastCooked = await prisma.cookEntry.groupBy({
+                    by: ['recipeId'],
+                    where: { recipeId: { in: matchingIds } },
+                    _max: { cookedAt: true },
+                });
+
+                for (const entry of lastCooked) {
+                    const at = entry._max.cookedAt;
+                    if (at) lastCookedById.set(entry.recipeId, new Date(at).getTime());
+                }
+            }
+
+            return pageOf(
+                matchingIds.sort(
+                    (a, b) =>
+                        // Never cooked is 0, which sorts before every real date.
+                        (lastCookedById.get(a) ?? 0) - (lastCookedById.get(b) ?? 0) || a - b
+                )
+            );
+        } else {
+            return prisma.recipe.findMany({ where, orderBy, skip, take: PAGE_SIZE, select: tile });
+        }
     }
 
-    // Entries are not mixed into the grid — a blog post is not a recipe and a
-    // tile is not what it looks like. But somebody who searched here should not
-    // have to know that the answer might be one page over, so a search that
-    // also matches writing says so.
-    let matchingPosts = 0;
-
-    if (search) {
-        const tsquery = buildTsQuery(search);
-
-        if (tsquery !== null) {
-            const hits: { count: bigint }[] = await prisma.$queryRaw<{ count: bigint }[]>`
-                SELECT count(*)::bigint AS count
-                FROM "Post"
-                WHERE "publishedAt" IS NOT NULL
-                  AND "searchVector" @@ to_tsquery('german', ${tsquery})
-            `;
-            matchingPosts = Number(hits[0]?.count ?? 0);
-        }
-    }
+    const [total, facets, recipes, myFavorites] = await Promise.all([
+        prisma.recipe.count({ where }),
+        collectionFacets(),
+        listRecipes(),
+        earlyFavorites ?? favoritesQuery,
+    ]);
+    // One lookup of the viewer's favourites powers both the "favourites only"
+    // filter and the filled-in heart on each card.
+    const favoriteRecipeIds = new Set(myFavorites.map((favorite) => favorite.recipeId));
 
     const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -384,8 +408,13 @@ export default async function HomePage({
         return query ? `/?${query}` : '/';
     };
 
+    // Only what a card draws: this object is serialised into the page for the
+    // client component, and a spread sent every rating row along with it.
     const formattedRecipes = recipes.map((recipe) => ({
-        ...recipe,
+        id: recipe.id,
+        title: recipe.title,
+        slug: recipe.slug,
+        createdAt: recipe.createdAt,
         description: recipe.description ?? '',
         category: recipe.category ?? '',
         nationality: recipe.nationality ?? '',
@@ -444,8 +473,8 @@ export default async function HomePage({
                         becomes a swatch.
                     */}
                     <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-                        {formattedRecipes.map((recipe) => (
-                            <RecipeCard key={recipe.id} {...recipe} />
+                        {formattedRecipes.map((recipe, index) => (
+                            <RecipeCard key={recipe.id} {...recipe} priority={index < 3} />
                         ))}
                     </div>
 

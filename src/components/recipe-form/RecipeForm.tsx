@@ -11,6 +11,7 @@ import { compressImage, looksLikeImage, UPLOAD_LIMIT_BYTES } from '@/lib/imageCo
 import PolishPanel from './PolishPanel';
 import QuickImport, { type ImportedDraft } from './QuickImport';
 import { buttonPrimary } from '@/lib/ui';
+import { BusyLabel } from '@/components/ui/Busy';
 
 export interface RecipeFormValues {
     id?: number;
@@ -880,7 +881,9 @@ export default function RecipeForm({
                         disabled={saving}
                         className={buttonPrimary}
                     >
-                        {saving ? t('saving') : mode === 'create' ? t('create') : t('save')}
+                        <BusyLabel busy={saving} busyText={t('saving')}>
+                            {mode === 'create' ? t('create') : t('save')}
+                        </BusyLabel>
                     </button>
                     <button
                         type="button"

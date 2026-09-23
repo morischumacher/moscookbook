@@ -7,6 +7,7 @@ import { messageFrom } from '@/lib/apiMessage';
 import { forgetOfflineCopies } from '@/lib/offlineCopies';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { buttonPrimarySmall, buttonDanger } from '@/lib/ui';
+import { BusyLabel } from '@/components/ui/Busy';
 
 /**
  * The three things every tool of this shape lets you do to your own account,
@@ -247,7 +248,7 @@ export default function AccountSettings({
                         </div>
 
                         <button type="submit" disabled={busy} className={buttonPrimarySmall}>
-                            {t('save')}
+                            <BusyLabel busy={busy}>{t('save')}</BusyLabel>
                         </button>
                     </form>
                 )}
@@ -307,7 +308,7 @@ export default function AccountSettings({
                         </div>
 
                         <button type="submit" disabled={busy} className={buttonPrimarySmall}>
-                            {t('save')}
+                            <BusyLabel busy={busy}>{t('save')}</BusyLabel>
                         </button>
                     </form>
                 )}
@@ -363,7 +364,7 @@ export default function AccountSettings({
                         </div>
 
                         <button type="submit" disabled={busy} className={buttonPrimarySmall}>
-                            {t('save')}
+                            <BusyLabel busy={busy}>{t('save')}</BusyLabel>
                         </button>
                     </form>
                 )}
@@ -410,7 +411,7 @@ export default function AccountSettings({
                     </div>
 
                     <button type="submit" disabled={busy || password === ''} className={buttonDanger}>
-                        {t('deleteAction')}
+                        <BusyLabel busy={busy && password !== ''}>{t('deleteAction')}</BusyLabel>
                     </button>
                 </form>
             </section>

@@ -73,8 +73,9 @@ export default async function RecipePage({
 }) {
     const { slug, locale } = await params;
 
-    const recipe = await loadRecipe(slug);
-    const user = await getCurrentUser();
+    // Side by side: neither needs the other, and every round trip saved here is
+    // one the page no longer waits for before it can start streaming.
+    const [recipe, user] = await Promise.all([loadRecipe(slug), getCurrentUser()]);
 
     /*
      * The one page whose access the proxy does not decide.
@@ -97,28 +98,8 @@ export default async function RecipePage({
 
     if (!recipe) notFound();
 
-    const cookieStore = await cookies();
-    const hasViewed = cookieStore.has(`viewed_recipe_${recipe.id}`);
-
-    // Shown optimistically; the actual increment happens in ViewTracker so that
-    // a server component never has to write a cookie.
-    const views = !user?.admin && !hasViewed ? recipe.views + 1 : recipe.views;
-
-    let isFavorited = false;
-    let userRatingValue = 0;
-
-    if (user) {
-        const userId = user.id;
-        const favorite = await prisma.favorite.findUnique({
-            where: { userId_recipeId: { userId, recipeId: recipe.id } },
-        });
-        isFavorited = favorite !== null;
-        userRatingValue =
-            recipe.ratings.find((rating: { userId: number }) => rating.userId === userId)?.value ?? 0;
-    }
-
     /*
-     * Everything below this line is for people with an account.
+     * Everything below the recipe itself is for people with an account.
      *
      * A public recipe publishes the *recipe*: what is in it, how it is made,
      * what it looks like, how it was rated on average. It does not publish the
@@ -128,52 +109,74 @@ export default async function RecipePage({
      * not come back and nobody agreed to that by writing down a recipe.
      *
      * Queried conditionally rather than filtered later: the cheapest way to
-     * not leak something is not to fetch it.
+     * not leak something is not to fetch it. And queried together — these
+     * five used to run one after another, five round trips where one will do.
      */
     const isMember = Boolean(user);
 
-    // Oldest first: a cooking log is read as a sequence. Drafts only for an
-    // admin, same rule as the blog index.
-    const notes = isMember ? await prisma.post.findMany({
-        where: {
-            recipeId: recipe.id,
-            ...(user?.admin ? {} : { publishedAt: { not: null } }),
-        },
-        orderBy: [{ publishedAt: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
-        take: 50,
-        select: {
-            id: true,
-            title: true,
-            slug: true,
-            body: true,
-            publishedAt: true,
-            createdAt: true,
-            author: { select: { name: true } },
-        },
-    }) : [];
+    const [cookieStore, favorite, notes, cooked, similar] = await Promise.all([
+        cookies(),
+        user
+            ? prisma.favorite.findUnique({
+                  where: { userId_recipeId: { userId: user.id, recipeId: recipe.id } },
+                  select: { userId: true },
+              })
+            : null,
+        // Oldest first: a cooking log is read as a sequence. Drafts only for
+        // an admin, same rule as the blog index.
+        isMember
+            ? prisma.post.findMany({
+                  where: {
+                      recipeId: recipe.id,
+                      ...(user?.admin ? {} : { publishedAt: { not: null } }),
+                  },
+                  orderBy: [{ publishedAt: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
+                  take: 50,
+                  select: {
+                      id: true,
+                      title: true,
+                      slug: true,
+                      body: true,
+                      publishedAt: true,
+                      createdAt: true,
+                      author: { select: { name: true } },
+                  },
+              })
+            : [],
+        // Newest first: the question this section answers is "when did I last
+        // make this", and the answer is then the first row. The pictures
+        // inside an entry go the other way, in the order somebody arranged
+        // them — within one evening a sequence reads forwards.
+        isMember
+            ? prisma.cookEntry.findMany({
+                  where: { recipeId: recipe.id },
+                  orderBy: { cookedAt: 'desc' },
+                  take: 30,
+                  select: {
+                      id: true,
+                      cookedAt: true,
+                      note: true,
+                      userId: true,
+                      user: { select: { name: true, avatarUrl: true } },
+                      photos: { orderBy: { position: 'asc' }, select: { id: true, url: true } },
+                  },
+              })
+            : [],
+        // Computed from the recipe's own search vector, which already exists
+        // and is already indexed. See lib/similarRecipes.
+        isMember ? similarRecipes(recipe) : [],
+    ]);
 
-    // Newest first: the question this section answers is "when did I last
-    // make this", and the answer is then the first row.
-    //
-    // The pictures inside an entry go the other way, in the order somebody
-    // arranged them — within one evening a sequence reads forwards.
-    const cooked = isMember ? await prisma.cookEntry.findMany({
-        where: { recipeId: recipe.id },
-        orderBy: { cookedAt: 'desc' },
-        take: 30,
-        select: {
-            id: true,
-            cookedAt: true,
-            note: true,
-            userId: true,
-            user: { select: { name: true, avatarUrl: true } },
-            photos: { orderBy: { position: 'asc' }, select: { id: true, url: true } },
-        },
-    }) : [];
+    const hasViewed = cookieStore.has(`viewed_recipe_${recipe.id}`);
 
-    // Computed from the recipe's own search vector, which already exists and
-    // is already indexed. See lib/similarRecipes.
-    const similar = isMember ? await similarRecipes(recipe) : [];
+    // Shown optimistically; the actual increment happens in ViewTracker so that
+    // a server component never has to write a cookie.
+    const views = !user?.admin && !hasViewed ? recipe.views + 1 : recipe.views;
+
+    const isFavorited = favorite !== null;
+    const userRatingValue = user
+        ? recipe.ratings.find((rating: { userId: number }) => rating.userId === user.id)?.value ?? 0
+        : 0;
 
     /*
      * A draft says so on its own page.

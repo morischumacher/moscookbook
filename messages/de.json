@@ -806,5 +806,11 @@
     "banner": "Das ist ein Entwurf. Er steht nicht in deiner Liste, ist nicht auffindbar und kann nicht ver\u00f6ffentlicht oder geteilt werden.",
     "stage": "Als Entwurf",
     "stageHint": "\u00dcbernimmt das Rezept, aber noch nicht in deine Liste."
+  },
+  "Loading": {
+    "page": "Wird geladen…",
+    "recipes": "Rezepte werden geladen…",
+    "entries": "Einträge werden geladen…",
+    "collections": "Sammlungen werden geladen…"
   }
 }

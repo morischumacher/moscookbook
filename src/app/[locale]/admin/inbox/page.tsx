@@ -9,6 +9,7 @@ import { formatDate } from '@/lib/formatDate';
 import { pageContainer } from '@/lib/ui';
 import Loading from '@/components/ui/Loading';
 import PageHeader from '@/components/admin/PageHeader';
+import { BusyLabel } from '@/components/ui/Busy';
 
 interface DraftSummary {
     title?: string;
@@ -471,7 +472,7 @@ function CaptureRow({
                         disabled={busy}
                         className="font-medium underline underline-offset-4 disabled:opacity-50"
                     >
-                        {busy ? t('working') : t('accept')}
+                        <BusyLabel busy={busy} busyText={t('working')}>{t('accept')}</BusyLabel>
                     </button>
                 )}
 

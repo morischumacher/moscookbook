@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { currentUserVerified } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import AdminNav from '@/components/admin/AdminNav';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 
 // The proxy also guards /admin, from the cookie. This is the check that asks
 // the database — so a person demoted or deleted five minutes ago does not keep
@@ -45,9 +47,11 @@ export default async function AdminLayout({
     // rather than by each page, so that every page under /admin has it and no
     // page has to remember to draw a way back.
     return (
-        <>
+        // Every translation, including the admin's own, which the site-wide
+        // provider leaves out. See i18n/clientMessages.
+        <NextIntlClientProvider messages={await getMessages()}>
             <AdminNav unresolvedReports={unresolvedReports} />
             {children}
-        </>
+        </NextIntlClientProvider>
     );
 }

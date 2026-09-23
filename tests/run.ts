@@ -47,6 +47,7 @@ import pageTitle from './pageTitle.test';
 import secretBox from './secretBox.test';
 import readableText from './readableText.test';
 import siteProfile from './siteProfile.test';
+import clientMessages from './clientMessages.test';
 import siteLearn, { siteLearnWiringTests } from './siteLearn.test';
 import drafts from './drafts.test';
 import routeParams from './routeParams.test';
@@ -116,6 +117,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['siteProfile', siteProfile],
     ['aiProviders', aiProviders],
     ['aiPolish', aiPolish],
+    ['clientMessages', clientMessages],
     ['siteLearn', siteLearn],
     ['siteLearnWiringTests', siteLearnWiringTests],
     ['drafts', drafts],

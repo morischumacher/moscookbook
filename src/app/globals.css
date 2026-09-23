@@ -384,3 +384,22 @@ body {
     content: '';
   }
 }
+
+/*
+ * The navigation line (components/ui/NavigationProgress). It runs fast at
+ * first and slows as it goes, so it is always moving and never arrives before
+ * the page does: an honest "still coming" rather than a fake percentage.
+ */
+.nav-progress-run {
+  width: 85%;
+  animation: nav-progress 8s cubic-bezier(0.1, 0.8, 0.2, 1) both;
+}
+
+@keyframes nav-progress {
+  from { width: 0; }
+  to { width: 85%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress-run { animation: none; width: 60%; }
+}

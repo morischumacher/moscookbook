@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import ReactMarkdown from 'react-markdown';
 import { toDisplayIngredient, type StructuredIngredient } from '@/lib/ingredientParts';
-import { splitSteps } from '@/lib/steps';
 import ShareButton from '@/components/share/ShareButton';
 import { cookProgressKey, parseCookProgress, worthSaving } from '@/lib/cookProgress';
 
@@ -13,7 +11,7 @@ const SERVING_STEPS = [1, 2, 3, 4, 6, 8, 10, 12];
 export default function RecipeBody({
     recipeId,
     ingredients,
-    instructions,
+    steps,
     baseServings,
     title,
     locale,
@@ -22,7 +20,15 @@ export default function RecipeBody({
     /** Which recipe's progress is being remembered. */
     recipeId: number;
     ingredients: StructuredIngredient[];
-    instructions: string;
+    /**
+     * The method, one rendered step each.
+     *
+     * Rendered on the server by RecipeArticle and handed in finished. The
+     * Markdown parser used to come to every visitor's phone with this
+     * component — a third of a recipe page's own script, to turn a dozen
+     * short paragraphs into HTML that could have been sent as HTML.
+     */
+    steps: React.ReactNode[];
     baseServings: number | null;
     /** For the share sheet, which offers it as the message's subject. */
     title: string;
@@ -61,8 +67,6 @@ export default function RecipeBody({
     const wakeLock = useRef<WakeLockSentinel | null>(null);
 
     const t = useTranslations('Recipe');
-
-    const steps = useMemo(() => splitSteps(instructions), [instructions]);
 
     const factor = baseServings && servings ? servings / baseServings : 1;
 
@@ -378,7 +382,7 @@ export default function RecipeBody({
                                     className={`markdown-step flex-1 transition-opacity ${checked ? 'opacity-40' : ''
                                         }`}
                                 >
-                                    <ReactMarkdown>{step}</ReactMarkdown>
+                                    {step}
                                 </div>
                             </li>
                         );

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { buttonPrimarySmall } from '@/lib/ui';
+import { BusyLabel } from '@/components/ui/Busy';
 
 /**
  * The one press that turns an import into one of this cookbook's own recipes.
@@ -48,7 +49,7 @@ export default function FinishDraft({ recipeId }: { recipeId: number }) {
     return (
         <span className="inline-flex items-center gap-3">
             <button type="button" className={buttonPrimarySmall} disabled={busy} onClick={finish}>
-                {busy ? t('finishing') : t('finish')}
+                <BusyLabel busy={busy} busyText={t('finishing')}>{t('finish')}</BusyLabel>
             </button>
             {failed && <span className="text-sm text-danger">{t('finishFailed')}</span>}
         </span>

@@ -4,7 +4,9 @@ import FavoriteButton from '@/components/FavoriteButton';
 import RecipeSource from '@/components/recipe/RecipeSource';
 import ViewTracker from '@/components/ViewTracker';
 import Logo from '@/components/brand/Logo';
+import ReactMarkdown from 'react-markdown';
 import RecipeBody from '@/components/recipe/RecipeBody';
+import { splitSteps } from '@/lib/steps';
 import Gallery from '@/components/recipe/Gallery';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import Cooked, { type CookedEntry } from '@/components/recipe/Cooked';
@@ -325,7 +327,9 @@ export default async function RecipeArticle({
                 <RecipeBody
                     recipeId={recipe.id}
                     ingredients={recipe.ingredients}
-                    instructions={recipe.instructions}
+                    steps={splitSteps(recipe.instructions).map((step, index) => (
+                        <ReactMarkdown key={index}>{step}</ReactMarkdown>
+                    ))}
                     baseServings={recipe.servings}
                     title={recipe.title}
                     locale={locale}

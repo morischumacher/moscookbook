@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import InlineConfirm from '@/components/ui/InlineConfirm';
 import { buttonPrimary, buttonSecondary } from '@/lib/ui';
 import { MAX_RECIPES_PER_COLLECTION } from '@/lib/collectionSchema';
+import { BusyLabel } from '@/components/ui/Busy';
 
 export interface CollectionDraft {
     id?: number;
@@ -247,7 +248,7 @@ export default function CollectionForm({
 
             <div className="flex flex-wrap items-center gap-6">
                 <button type="submit" disabled={busy || !title.trim()} className={buttonPrimary}>
-                    {busy ? t('saving') : t('save')}
+                    <BusyLabel busy={busy} busyText={t('saving')}>{t('save')}</BusyLabel>
                 </button>
 
                 {initial.id && (

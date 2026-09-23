@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import prisma from './prisma';
 import { prepareErrorReport } from './errorReport';
 
@@ -48,5 +49,21 @@ export async function reportServerError(
  */
 export function failed(label: string, error: unknown): void {
     console.error(label, error);
-    void reportServerError(error, { path: label });
+
+    /*
+     * Inside `after()`, where there is a request to attach it to.
+     *
+     * A bare `void` promise is not waited for by anything, and on a serverless
+     * function the instance can be frozen the moment the response has gone —
+     * which is exactly when an error handler has just sent its 500. The write
+     * to the error log was the part most likely to be cut off, on the very
+     * requests it exists for. `after()` keeps the function alive for it.
+     * Outside a request (a script, a test) there is nothing to attach to and
+     * `after` throws, so it falls back to the old way.
+     */
+    try {
+        after(() => reportServerError(error, { path: label }));
+    } catch {
+        void reportServerError(error, { path: label });
+    }
 }
