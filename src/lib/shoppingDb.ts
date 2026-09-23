@@ -155,6 +155,7 @@ export async function removeSource(listId: number, source: string): Promise<numb
             if (rest.length === 0) await tx.shoppingItem.delete({ where: { id: line.id } });
             else await tx.shoppingItem.update({ where: { id: line.id }, data: { sources: rest } });
         }
+        await tx.shoppingList.update({ where: { id: listId }, data: { updatedAt: new Date() } });
         return lines.length;
     });
 }
