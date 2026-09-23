@@ -8,6 +8,7 @@ import { buttonPrimarySmall, pageContainer } from '@/lib/ui';
 import PageHeader from '@/components/admin/PageHeader';
 import ExampleButton from '@/components/admin/ExampleButton';
 import { EXAMPLE_POST_SLUG } from '@/lib/examples';
+import { stageOf } from '@/lib/shareStage';
 
 const isExampleSlug = (slug: string) => (Object.values(EXAMPLE_POST_SLUG) as string[]).includes(slug);
 
@@ -18,6 +19,7 @@ interface AdminPostRow {
     publishedAt: Date | null;
     createdAt: Date;
     shareToken: string | null;
+    isPublic: boolean;
     recipes: { recipe: { title: string } }[];
     collections: { collection: { title: string } }[];
 }
@@ -29,6 +31,7 @@ export default async function AdminPosts({
 }) {
     const { locale } = await params;
     const t = await getTranslations('Blog');
+    const tShare = await getTranslations('Share');
 
     const posts: AdminPostRow[] = await prisma.post.findMany({
         orderBy: [{ publishedAt: { sort: 'desc', nulls: 'first' } }, { createdAt: 'desc' }],
@@ -40,6 +43,7 @@ export default async function AdminPosts({
             publishedAt: true,
             createdAt: true,
             shareToken: true,
+            isPublic: true,
             ...postAboutTitlesSelect,
         },
     });
@@ -74,7 +78,13 @@ export default async function AdminPosts({
                                     <span>{formatDate(post.publishedAt ?? post.createdAt, locale, 'short')}</span>
                                     <span>• {post.publishedAt ? t('published') : t('draft')}</span>
                                     {aboutTitles(post) && <span>• {aboutTitles(post)}</span>}
-                                    {post.shareToken && <span>• {t('hasPublicLink')}</span>}
+                                    {/* Who can read it, in the Share dialog's words; nothing
+                                        when it is the household's, which most are. */}
+                                    {(() => {
+                                        const stage = stageOf({ isPublic: post.isPublic, linkUrl: post.shareToken });
+                                        if (stage === 'household' || stage === 'admins') return null;
+                                        return <span>• {stage === 'web' ? tShare('stageWeb') : tShare('stageLink')}</span>;
+                                    })()}
                                 </p>
                             </div>
 

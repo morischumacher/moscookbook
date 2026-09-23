@@ -34,7 +34,7 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
                         Da ist etwas kaputtgegangen.
                     </h1>
                     <p style={{ color: '#4B5563', marginBottom: '1.5rem' }}>
-                        Something went wrong. Bitte lade die Seite neu.
+                        Bitte lade die Seite neu. / Something went wrong – please reload the page.
                     </p>
                     {/*
                         A plain <a>, and the rule is switched off for this one
