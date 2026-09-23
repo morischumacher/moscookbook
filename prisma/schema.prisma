@@ -51,7 +51,7 @@ model User {
   avatarUrl      String?
 
   tokens         AuthToken[]
-  shoppingList   ShoppingList?
+  shoppingLists  ShoppingList[]
   shoppingShares ShoppingListMember[]
   posts          Post[]
   cookEntries    CookEntry[]
@@ -832,10 +832,18 @@ model PostCollection {
 /// One shopping list per person. Recipes and collections are added to it at
 /// the servings they were being read at; the same ingredient from several
 /// recipes becomes one line. See lib/shopping.ts.
+/// A shopping list. Everybody has one main list (`name` null — "Einkaufsliste"),
+/// made the first time it is asked for, and may make more with a name
+/// ("Grillparty Samstag"). Each is private or shared on its own. At most one
+/// main list per person (a partial unique index in migration 0051, which
+/// Prisma cannot express: a generated migration that drops
+/// "ShoppingList_one_main" must have that line taken out).
 model ShoppingList {
   id         Int            @id @default(autoincrement())
-  userId     Int            @unique
+  userId     Int
   user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String?
+  createdAt  DateTime       @default(now())
 
   /// A link that lets somebody without an account see the list and tick
   /// things off — the person who is actually in the shop. Null when not shared.
@@ -846,13 +854,13 @@ model ShoppingList {
   items      ShoppingItem[]
   members    ShoppingListMember[]
   updatedAt  DateTime       @updatedAt
+
+  @@index([userId])
 }
 
-/// Somebody of the cookbook invited to share a list — one list for the
-/// household. Until they accept (`acceptedAt`) it is an invitation; after, it
-/// is the list they use instead of their own, with everything the owner can
-/// do except choosing who else is on it and the link. At most one accepted
-/// row per person (a partial unique index in migration 0050).
+/// Somebody of the cookbook invited to a list. Until they accept
+/// (`acceptedAt`) it is an invitation; after, the list is among theirs, and
+/// they can do everything on it but choose who else is on it and the link.
 model ShoppingListMember {
   listId     Int
   list       ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)

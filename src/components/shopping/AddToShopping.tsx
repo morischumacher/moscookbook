@@ -1,17 +1,24 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { BusyLabel } from '@/components/ui/Busy';
 import { buttonSecondary } from '@/lib/ui';
+import type { ListSummary } from '@/lib/shoppingDb';
+import { listLabel } from './listLabel';
 
 /**
  * "Put this on the shopping list" — a recipe at the servings it is being read
  * at, or every recipe in a collection. Stays on the page and says it worked,
  * with the way to the list beside it, because the next thing is usually a
  * second recipe rather than the list.
+ *
+ * With more than one list there is a choice of which, remembered for next
+ * time; with one there is nothing to choose.
  */
+
+const TARGET_KEY = 'shopping-target';
 export default function AddToShopping(
     props: { recipeId: number; servings: number | null } | { collectionId: number } | { menuId: number; guests: number | null }
 ) {
@@ -29,12 +36,46 @@ export default function AddToShopping(
     // What was actually sent. Undo takes back exactly that — not what the
     // servings stepper says by the time somebody presses it.
     const sentBody = useRef<string | null>(null);
+    // Which list it went on, for undo and for the way to the list.
+    const [sentTo, setSentTo] = useState('');
+
+    const [lists, setLists] = useState<ListSummary[]>([]);
+    const [target, setTarget] = useState('');
+    useEffect(() => {
+        let alive = true;
+        fetch('/api/shopping/lists')
+            .then((res) => (res.ok ? (res.json() as Promise<{ lists: ListSummary[] }>) : null))
+            .then((data) => {
+                if (!alive || !data) return;
+                setLists(data.lists);
+                let remembered = '';
+                try {
+                    remembered = localStorage.getItem(TARGET_KEY) ?? '';
+                } catch {
+                    // Blocked storage: the main list.
+                }
+                if (data.lists.some((list) => String(list.id) === remembered)) setTarget(remembered);
+            })
+            .catch(() => undefined);
+        return () => {
+            alive = false;
+        };
+    }, []);
+    const choose = (value: string) => {
+        setTarget(value);
+        try {
+            localStorage.setItem(TARGET_KEY, value);
+        } catch {
+            // Only a convenience.
+        }
+    };
+    const query = target ? `?list=${target}` : '';
 
     const add = async () => {
         setState('busy');
         const body = JSON.stringify({ ...what, locale });
         try {
-            const res = await fetch('/api/shopping', {
+            const res = await fetch(`/api/shopping${query}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body,
@@ -47,6 +88,7 @@ export default function AddToShopping(
             // ingredients, whose list then stayed empty.
             const data: { added?: number } = await res.json().catch(() => ({}));
             sentBody.current = body;
+            setSentTo(query);
             setState(data.added === 0 ? 'empty' : 'done');
         } catch {
             setState('failed');
@@ -58,7 +100,7 @@ export default function AddToShopping(
         if (!sentBody.current) return;
         setState('undoing');
         try {
-            const res = await fetch('/api/shopping/remove', {
+            const res = await fetch(`/api/shopping/remove${sentTo}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: sentBody.current,
@@ -88,11 +130,25 @@ export default function AddToShopping(
             >
                 <BusyLabel busy={state === 'busy'}>{label}</BusyLabel>
             </button>
+            {lists.length > 1 && (
+                <select
+                    value={target}
+                    onChange={(event) => choose(event.target.value)}
+                    aria-label={t('addTo')}
+                    className="w-full rounded-full border border-control bg-transparent px-3 py-2 text-sm sm:w-auto"
+                >
+                    {lists.map((list) => (
+                        <option key={list.id} value={list.owner && list.name === null ? '' : String(list.id)}>
+                            {listLabel(list, t)}
+                        </option>
+                    ))}
+                </select>
+            )}
             <span role="status" className="text-muted">
                 {(state === 'done' || state === 'undoing') && (
                     <>
                         {t('addedRecipe')}{' '}
-                        <Link href="/shopping" className="font-medium text-ink underline underline-offset-4">
+                        <Link href={`/shopping${sentTo}`} className="font-medium text-ink underline underline-offset-4">
                             {t('openList')}
                         </Link>
                         {' · '}

@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { AISLES, amountLabel, listAsText, type Aisle } from '@/lib/shopping';
 import type { ShoppingItemRow } from '@/lib/shoppingDb';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
 import { buttonPrimarySmall } from '@/lib/ui';
 import ShoppingSharing from './ShoppingSharing';
+import ListSettings from './ListSettings';
 
 /**
  * The list, in the shop.
@@ -25,7 +26,8 @@ import ShoppingSharing from './ShoppingSharing';
  * who can tick — and add, if the owner allows it.
  */
 
-type Mode = { kind: 'account'; owner: boolean; shareToken: string | null; canAdd: boolean } | { kind: 'shared'; token: string; canAdd: boolean };
+type Mode =
+    | { kind: 'account'; listId: number; name: string | null; owner: boolean; shareToken: string | null; canAdd: boolean } | { kind: 'shared'; token: string; canAdd: boolean };
 
 /*
  * One store per list: ticks queued on your own list are not sent to somebody
@@ -53,6 +55,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     const t = useTranslations('Shopping');
     const locale = useLocale() as 'en' | 'de';
     const [ask, dialog] = useConfirm();
+    const router = useRouter();
 
     const [items, setItems] = useState(initial);
     const [text, setText] = useState('');
@@ -62,7 +65,9 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     const [linkCanAdd, setLinkCanAdd] = useState(mode.kind === 'shared' ? mode.canAdd : true);
     const canAdd = mode.kind !== 'shared' || linkCanAdd;
 
-    const base = mode.kind === 'shared' ? `/api/shopping/shared/${mode.token}` : '/api/shopping';
+    // Which list, on every call about it.
+    const listQuery = mode.kind === 'account' ? `list=${mode.listId}` : '';
+    const base = mode.kind === 'shared' ? `/api/shopping/shared/${mode.token}` : `/api/shopping?${listQuery}`;
     // The add field is folded away: most lines come from recipes.
     const [adderOpen, setAdderOpen] = useState(false);
 
@@ -104,6 +109,12 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         await flush();
         try {
             const res = await fetch(base);
+            // Taken off this list, or it was deleted, while the page was open.
+            if (res.status === 404 && mode.kind === 'account') {
+                router.replace('/shopping');
+                router.refresh();
+                return;
+            }
             if (!res.ok) return;
             const data: { items: ShoppingItemRow[]; canAdd?: boolean } = await res.json();
             if (typeof data.canAdd === 'boolean') setLinkCanAdd(data.canAdd);
@@ -112,7 +123,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         } catch {
             // Offline: what is on screen is the best there is.
         }
-    }, [base, flush]);
+    }, [base, flush, mode.kind, router]);
 
     // Ticks made offline on an earlier visit, and anything the other person
     // ticked meanwhile: on arrival, when the phone comes back online, and when
@@ -189,7 +200,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             }))
         )
             return;
-        const res = await fetch(`/api/shopping?which=${which}`, { method: 'DELETE' }).catch(() => null);
+        const res = await fetch(`/api/shopping?which=${which}&${listQuery}`, { method: 'DELETE' }).catch(() => null);
         if (res?.ok) setItems(((await res.json()) as { items: ShoppingItemRow[] }).items);
     };
 
@@ -203,7 +214,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     /** Everything one recipe put on the list, taken off again. */
     const removeRecipe = async (source: string) => {
         if (!(await ask({ title: t('removeRecipeQuestion', { recipe: source }), confirmLabel: t('removeRecipe'), destructive: true }))) return;
-        const res = await fetch('/api/shopping/remove', {
+        const res = await fetch(`/api/shopping/remove?${listQuery}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ source }),
@@ -392,8 +403,10 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                 )}
 
                 {mode.kind === 'account' && (
-                    <ShoppingSharing owner={mode.owner} shareLink={shareLink} onShareToken={setShareToken} canAdd={mode.canAdd} onNote={setNote} />
+                    <ShoppingSharing listId={mode.listId} owner={mode.owner} shareLink={shareLink} onShareToken={setShareToken} canAdd={mode.canAdd} onNote={setNote} />
                 )}
+
+                {mode.kind === 'account' && mode.owner && mode.name !== null && <ListSettings listId={mode.listId} name={mode.name} />}
 
                 {mode.kind === 'account' && items.length > 0 && (
                     <button type="button" onClick={() => void clear('all')} className="self-start text-faint underline underline-offset-4 hover:text-danger">

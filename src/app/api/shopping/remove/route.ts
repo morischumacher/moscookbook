@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { refuse, route } from '@/lib/route';
-import { activeList, collectionLines, itemsOf, recipeLines, removeLines, removeSource } from '@/lib/shoppingDb';
+import { collectionLines, itemsOf, recipeLines, removeLines, removeSource } from '@/lib/shoppingDb';
 import { menuLines } from '@/lib/menuDb';
+import { requestedList } from '@/lib/shoppingRequest';
 
 const body = z.union([
     z.object({ recipeId: z.number().int().positive().max(2_147_483_647), servings: z.number().int().min(1).max(100).nullable().optional(), locale: z.enum(['de', 'en']).optional() }),
@@ -18,8 +19,8 @@ const body = z.union([
  * `{ source }` is the list's own "Rezept entfernen": everything a recipe put
  * on the list, by its name under the lines. See `removeSource`.
  */
-export const POST = route({ access: 'user', body, label: 'Taking lines off the shopping list' }, async ({ user, body }) => {
-    const list = await activeList(user.id);
+export const POST = route({ access: 'user', body, label: 'Taking lines off the shopping list' }, async ({ req, user, body }) => {
+    const list = await requestedList(req, user.id);
     if ('source' in body) {
         const changed = await removeSource(list.id, body.source);
         return NextResponse.json({ changed, items: await itemsOf(list.id) });
