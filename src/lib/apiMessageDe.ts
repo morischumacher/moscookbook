@@ -114,6 +114,7 @@ const EXACT: Record<string, string> = {
     'That entry already has as many pictures as it holds.': 'Dieser Eintrag hat schon so viele Bilder, wie möglich sind.',
     'This inbox entry is already a recipe.': 'Aus diesem Eingangs-Eintrag ist schon ein Rezept geworden.',
     'This recipe was changed elsewhere since you opened it.': 'Das Rezept wurde inzwischen woanders gespeichert.',
+    'That passkey could not be checked.': 'Der Passkey konnte nicht geprüft werden.',
     'That entry is gone.': 'Diesen Eintrag gibt es nicht mehr.',
     'Not yours to write on.': 'Das ist nicht dein Eintrag.',
     'Not yours to add to.': 'Das ist nicht dein Eintrag.',

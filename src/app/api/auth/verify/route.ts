@@ -7,6 +7,7 @@ import { hashToken, tokenState } from '@/lib/authTokens';
 import { failed } from '@/lib/reportServerError';
 import { emailChangedMail } from '@/lib/authMail';
 import { sendMail } from '@/lib/mailer';
+import { isPrismaError } from '@/lib/prismaErrors';
 
 const schema = z.object({
     token: z.string().trim().min(1).max(200),
@@ -116,10 +117,18 @@ async function moveToNewAddress(userId: number, now: Date, locale: string) {
         return NextResponse.json({ message: 'That address already belongs to another account.', reason: 'taken' }, { status: 409 });
     }
 
-    await prisma.user.update({
-        where: { id: user.id },
-        data: { email: user.pendingEmail, emailVerifiedAt: now, pendingEmail: null },
-    });
+    try {
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { email: user.pendingEmail, emailVerifiedAt: now, pendingEmail: null },
+        });
+    } catch (error) {
+        // Taken in the moment between the check above and this write.
+        if (isPrismaError(error, 'P2002')) {
+            return NextResponse.json({ message: 'That address already belongs to another account.', reason: 'taken' }, { status: 409 });
+        }
+        throw error;
+    }
     // A reset link already sent to the old address must not outlive the
     // move: the address may have been changed because that mailbox is not
     // safe any more.

@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
             expectedChallenge: challenge,
             expectedOrigin: origins,
             expectedRPID: rpID,
-            requireUserVerification: false,
+            requireUserVerification: true,
         });
         if (!verification.verified) {
             return NextResponse.json({ message: 'The passkey could not be checked.' }, { status: 400 });

@@ -38,7 +38,12 @@ export async function POST(req: NextRequest) {
 
     if (!parsed.success) {
         return NextResponse.json(
-            { message: parsed.error.issues[0]?.message ?? 'Invalid input data', reason: 'invalid' },
+            // A password problem is not a bad link: "invalid" made the form say
+            // the link had expired when the password was only too long.
+            {
+                message: parsed.error.issues[0]?.message ?? 'Invalid input data',
+                reason: parsed.error.issues.some((issue) => issue.path[0] === 'password') ? 'password' : 'invalid',
+            },
             { status: 400 }
         );
     }

@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         // One passkey per password manager or device: the browser says so
         // rather than making a second one for the same place.
         excludeCredentials: user.passkeys.map((key) => ({ id: key.credentialId, transports: key.transports })),
-        authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' },
+        authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
     });
 
     const session = await getSession();
