@@ -98,8 +98,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const requestedEntry = numberParam(req, 'entry');
 
     try {
-        const form = await req.formData();
-        const file = form.get('file');
+        // Not a form at all (JSON, nothing): the same answer as a form
+        // without a file, rather than a 500 from the parser.
+        const form = await req.formData().catch(() => null);
+        const file = form?.get('file');
 
         if (!(file instanceof File)) {
             return NextResponse.json({ message: 'No picture received.' }, { status: 400 });

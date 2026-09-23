@@ -164,9 +164,19 @@ export default function CookMode({
                 )}
             </header>
 
+            {/* What a screen reader hears: a timer running out, once. The
+                clocks themselves tick twice a second and must not be a live
+                region, or it would talk without pause. */}
+            <p role="status" className="sr-only">
+                {timers
+                    .filter((timer) => timer.done)
+                    .map((timer) => t('timerDoneSaid', { label: timer.label }))
+                    .join(' ')}
+            </p>
+
             {/* Running timers, whichever step started them. */}
             {timers.length > 0 && (
-                <div className="border-b border-line bg-surface px-4 py-2" role="status" aria-live="polite">
+                <div className="border-b border-line bg-surface px-4 py-2">
                     <ul className="mx-auto flex max-w-3xl flex-wrap gap-2">
                         {timers.map((timer) => (
                             <li key={timer.id}>

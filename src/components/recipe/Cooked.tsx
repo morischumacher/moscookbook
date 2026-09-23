@@ -67,6 +67,8 @@ export default function Cooked({
     const fileInput = useRef<HTMLInputElement>(null);
 
     const [busy, setBusy] = useState(false);
+    // Which action is running: deleting a photo said "Wird notiert…" on the log button.
+    const [logging, setLogging] = useState(false);
     const [stage, setStage] = useState<'preparing' | 'uploading'>('preparing');
     const [error, setError] = useState('');
 
@@ -81,6 +83,7 @@ export default function Cooked({
 
     const log = async () => {
         setBusy(true);
+        setLogging(true);
         setError('');
 
         try {
@@ -97,6 +100,7 @@ export default function Cooked({
             setError(t('failed'));
         } finally {
             setBusy(false);
+            setLogging(false);
         }
     };
 
@@ -225,7 +229,7 @@ export default function Cooked({
                         disabled={busy}
                         className="text-sm underline underline-offset-4 disabled:opacity-50"
                     >
-                        {busy && target === null ? t('logging') : t('logIt')}
+                        {logging ? t('logging') : t('logIt')}
                     </button>
                 )}
             </div>
@@ -357,6 +361,7 @@ export default function Cooked({
                                                     <span className="absolute right-1 top-1">
                                                         <InlineConfirm
                                                             label="×"
+                                                            ariaLabel={t('removePhoto')}
                                                             confirmLabel={t('remove')}
                                                             destructive
                                                             disabled={busy}
@@ -387,7 +392,8 @@ export default function Cooked({
 
                                         <InlineConfirm
                                             label={t('undoLog')}
-                                            confirmLabel={t('undoLog')}
+                                            question={t('undoLogQuestion')}
+                                            confirmLabel={t('undoLogConfirm')}
                                             destructive
                                             disabled={busy}
                                             onConfirm={() => removeEntry(entry.id)}

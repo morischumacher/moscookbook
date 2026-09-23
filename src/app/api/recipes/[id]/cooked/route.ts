@@ -81,7 +81,8 @@ export const PATCH = route<'user', typeof noteBody, Params>(
             data: { note: body.note },
         });
 
-        if (updated.count !== 1) refuse(403, 'Not yours to write on.');
+        // Missing or somebody else's: the same answer, which does not say which.
+        if (updated.count !== 1) refuse(404, 'That entry is gone.');
 
         return NextResponse.json({ success: true, note: body.note });
     }

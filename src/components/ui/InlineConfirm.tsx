@@ -26,6 +26,7 @@ import { useTranslations } from 'next-intl';
  */
 export default function InlineConfirm({
     label,
+    ariaLabel,
     question,
     confirmLabel,
     onConfirm,
@@ -35,6 +36,8 @@ export default function InlineConfirm({
 }: {
     /** What the button says before it is pressed. */
     label: string;
+    /** For a label that is only a sign ("×"): what a screen reader says instead. */
+    ariaLabel?: string;
     /**
      * The question. Defaults to a plain "Sure?", which is usually enough —
      * the button beside it already says what is about to happen. Pass a longer
@@ -73,6 +76,7 @@ export default function InlineConfirm({
                 type="button"
                 onClick={() => setAsking(true)}
                 disabled={disabled}
+                aria-label={ariaLabel}
                 className={className}
             >
                 {label}

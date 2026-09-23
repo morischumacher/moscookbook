@@ -18,6 +18,11 @@ export default function cookStepsTests() {
     equal('no timer in "200 g"', timersIn('200 g Mehl unterrühren'), []);
     equal('nor in "Minzblätter"', timersIn('3 Minzblätter'), []);
     equal('an overnight rest is not a kitchen timer', timersIn('24 Stunden ziehen lassen'), []);
+    equal(
+        'minutes after a dropped long rest do not join the timer before',
+        timersIn('30 Minuten köcheln, dann 24 Stunden und 10 Minuten ruhen').map((timer) => timer.seconds),
+        [1800, 600]
+    );
 
     equal('the clock', clock(90), '1:30');
     equal('with hours', clock(3900), '1:05:00');
