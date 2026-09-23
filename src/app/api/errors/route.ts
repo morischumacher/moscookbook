@@ -56,6 +56,20 @@ export async function POST(req: NextRequest) {
         // a task by itself. Otherwise one anonymous POST, copied from the
         // public task list, could reopen any task at will.
         const signedIn = Boolean(await getCurrentUser());
+        /*
+         * The row keeps the words of whoever reported first. Anonymous text
+         * must not reach the task list on the back of a signed-in report of
+         * the same error: the fingerprint ignores quoted values and the first
+         * stack line, so somebody could post that error ahead of time with
+         * words of their own in exactly those places. Becoming trusted, the
+         * row takes the signed-in report's words instead.
+         */
+        if (signedIn) {
+            await prisma.errorLog.updateMany({
+                where: { fingerprint: report.fingerprint, trusted: false },
+                data: { message: report.message, stack: report.stack, path: report.path },
+            });
+        }
         const seen = await prisma.errorLog.updateMany({
             where: { fingerprint: report.fingerprint },
             data: signedIn
@@ -75,7 +89,10 @@ export async function POST(req: NextRequest) {
          * is far more than a working site ever has.
          */
         if (seen.count === 0) {
-            const open = await prisma.errorLog.count({ where: { source: 'client', resolvedAt: null } });
+            // Only anonymous rows count against the room, and a signed-in
+            // report is always kept: filling the table from many addresses
+            // must not silence the errors real people run into.
+            const open = signedIn ? 0 : await prisma.errorLog.count({ where: { source: 'client', resolvedAt: null, trusted: false } });
             if (open < MAX_OPEN_CLIENT_ERRORS) {
                 await prisma.errorLog.create({ data: { ...report, trusted: signedIn } });
             }

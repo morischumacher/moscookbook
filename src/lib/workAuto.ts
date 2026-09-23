@@ -10,8 +10,9 @@ import { readReason, type ReasonCode } from './captureReasons';
  * be switched on. Those are the importer telling the truth, and a work list
  * full of them would hide the ones that matter.
  *
- * Tickets never go on by themselves: they are somebody's own words, and
- * publishing them is a decision for the admin.
+ * Of tickets only "Etwas geht nicht" goes on by itself (lib/workItemsDb): an
+ * idea or anything else is somebody's own words, and publishing it is a
+ * decision for the admin.
  */
 
 /** Reasons that mean the reader fell short, not that there was nothing to read. */

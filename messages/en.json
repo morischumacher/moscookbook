@@ -1313,7 +1313,7 @@
     "copy": "Copy",
     "copied": "Copied",
     "loading": "Loading…",
-    "empty": "No tasks. Errors are added by themselves; tickets and inbox items are added with the button on each.",
+    "empty": "No tasks. Errors and “Something is broken” tickets are added by themselves; everything else is added with the button on each.",
     "closed": "done",
     "close": "Done",
     "reopen": "Reopen",
@@ -1342,7 +1342,7 @@
     "downloadJson": "Download as JSON",
     "downloadMarkdown": "Download as Markdown",
     "copyFailed": "Copying did not work – the browser refused access to the clipboard.",
-    "exportListHeading": "# The open items on the work list",
+    "exportListHeading": "# The open tasks",
     "shareTicket": "Have AI implement it",
     "shareCapture": "Have AI improve reading this",
     "shareExplainTicket": "Goes onto the task list: an AI implements what the ticket asks for and reports back when it is done.",
@@ -1351,7 +1351,7 @@
     "sharedDone": "AI reports it done – confirm under Tasks",
     "awaitingHeading": "Done by the AI – please confirm",
     "openHeading": "Open",
-    "closedHeading": "Done",
+    "closedHeading": "Done or withdrawn",
     "confirm": "Confirm",
     "rejectDone": "Not done",
     "rejectPlaceholder": "What is still missing? (optional)",
@@ -1365,7 +1365,9 @@
     "tokenShown": "Shown only now – copy it:",
     "tokenExists": "A key is set up.",
     "tokenCopy": "Copy the key",
-    "tokenTapToCopy": "Tap to copy"
+    "tokenTapToCopy": "Tap to copy",
+    "actFailed": "That did not work — the task changed meanwhile. The list is up to date now.",
+    "tokenRemakeQuestion": "Make a new key? The old one stops working at once."
   },
   "Tokens": {
     "openDashboard": "See token usage and how to save →",

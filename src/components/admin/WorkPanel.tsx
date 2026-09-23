@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/lib/formatDate';
 import Loading from '@/components/ui/Loading';
+import { useConfirm } from '@/components/ui/useConfirm';
 import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 
 interface PublicList {
@@ -83,9 +84,11 @@ export default function WorkPanel() {
         const blob = new Blob([text], { type: format === 'json' ? 'application/json' : 'text/markdown' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `arbeitsliste-${new Date().toISOString().slice(0, 10)}.${format}`;
+        link.download = `aufgaben-${new Date().toISOString().slice(0, 10)}.${format}`;
         link.click();
-        URL.revokeObjectURL(link.href);
+        // Not at once: Safari and Firefox can cancel a download whose address
+        // is revoked in the same moment it starts.
+        setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
     };
 
     const load = useCallback(
@@ -101,8 +104,12 @@ export default function WorkPanel() {
         void load();
     }, [load]);
 
+    const [actFailed, setActFailed] = useState(false);
     const act = async (id: number, init: RequestInit) => {
-        await fetch(`/api/work-items/${id}`, { headers: { 'Content-Type': 'application/json' }, ...init }).catch(() => null);
+        const res = await fetch(`/api/work-items/${id}`, { headers: { 'Content-Type': 'application/json' }, ...init }).catch(() => null);
+        // A confirm that did not go through (the task changed meanwhile)
+        // used to look exactly like one that did.
+        setActFailed(!res?.ok);
         await load();
     };
 
@@ -115,6 +122,11 @@ export default function WorkPanel() {
 
     return (
         <div>
+            {actFailed && (
+                <p role="alert" className="mb-4 text-sm text-danger">
+                    {t('actFailed')}
+                </p>
+            )}
             {/* First what only you can do: an AI said it is done. */}
             {awaiting.length > 0 && (
                 <section className="mb-8">
@@ -315,6 +327,7 @@ function TaskKey() {
     const [shown, setShown] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [ask, dialog] = useConfirm();
 
     useEffect(() => {
         let alive = true;
@@ -328,6 +341,8 @@ function TaskKey() {
     }, []);
 
     const make = async () => {
+        // A new key ends the old one: whatever still uses it stops working.
+        if (exists && !(await ask({ title: t('tokenRemakeQuestion'), confirmLabel: t('tokenRemake'), destructive: true }))) return;
         setBusy(true);
         const res = await fetch('/api/work-items/token', { method: 'POST' }).catch(() => null);
         const data = res?.ok ? ((await res.json()) as { token: string }) : null;
@@ -341,6 +356,7 @@ function TaskKey() {
 
     return (
         <section className="mt-6 rounded-lg border border-line px-3 py-3 text-sm">
+            {dialog}
             <h3 className="text-xs font-bold uppercase tracking-widest text-muted">{t('tokenHeading')}</h3>
             <p className="mt-1 text-muted">{t('tokenExplain')}</p>
             {shown && (

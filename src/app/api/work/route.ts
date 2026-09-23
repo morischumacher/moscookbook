@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
         sharedAt: item.createdAt.toISOString(),
         closedAt: item.closedAt?.toISOString() ?? null,
         closedReason: item.closedReason,
-        ...(item.doneAt ? { reportedDoneAt: item.doneAt.toISOString(), doneSummary: item.doneNote ? anonymize(item.doneNote, people) : null, doneRef: item.doneRef } : {}),
+        ...(item.doneAt ? { reportedDoneAt: item.doneAt.toISOString(), doneSummary: item.doneNote ? anonymize(item.doneNote, people) : null, doneRef: item.doneRef ? anonymize(item.doneRef, people) : null } : {}),
         data,
     });
 
