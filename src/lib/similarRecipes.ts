@@ -40,7 +40,7 @@ export async function similarRecipes(recipe: {
     searchTitle: string;
     searchBody: string;
     category: string | null;
-}): Promise<SimilarRecipe[]> {
+}, locale?: string): Promise<SimilarRecipe[]> {
     const query = similarityQuery(`${recipe.searchTitle} ${recipe.searchBody}`);
     if (!query) return [];
 
@@ -50,7 +50,19 @@ export async function similarRecipes(recipe: {
     const rows: { id: number; title: string; slug: string; imageUrl: string | null }[] =
         await prisma.$queryRaw<{ id: number; title: string; slug: string; imageUrl: string | null }[]>`
             SELECT r."id",
-                   r."title",
+                   -- In the reader's language when translated, as on the
+                   -- home page: "Green Curry" sat on the German page.
+                   COALESCE(
+                       (
+                           SELECT t."title"
+                           FROM "RecipeTranslation" t
+                           WHERE t."recipeId" = r."id"
+                             AND t."locale" = ${locale ?? ''}
+                             AND r."language" IS DISTINCT FROM ${locale ?? ''}
+                           LIMIT 1
+                       ),
+                       r."title"
+                   ) AS "title",
                    r."slug",
                    (
                        SELECT i."url"

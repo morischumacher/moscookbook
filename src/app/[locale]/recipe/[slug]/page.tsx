@@ -184,7 +184,7 @@ export default async function RecipePage({
             : [],
         // Computed from the recipe's own search vector, which already exists
         // and is already indexed. See lib/similarRecipes.
-        isMember ? similarRecipes(recipe) : [],
+        isMember ? similarRecipes(recipe, locale) : [],
     ]);
 
     const hasViewed = cookieStore.has(`viewed_recipe_${recipe.id}`);

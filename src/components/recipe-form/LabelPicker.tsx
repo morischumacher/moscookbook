@@ -87,6 +87,9 @@ export default function LabelPicker({
                     onBlur={add}
                     disabled={full}
                     placeholder={full ? t('labelsFull', { max: MAX_LABELS }) : t('labelsAdd')}
+                    // Named by the list it adds to; the placeholder goes as
+                    // soon as somebody types.
+                    aria-label={`${label}: ${t('labelsAdd')}`}
                     className="w-full min-w-0 rounded-lg border border-control bg-transparent px-3 py-2 text-sm outline-none focus:border-ink disabled:opacity-50"
                 />
             </div>

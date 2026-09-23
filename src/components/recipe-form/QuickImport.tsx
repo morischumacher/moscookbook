@@ -310,6 +310,7 @@ export default function QuickImport({
                         onChange={(event) => setText(event.target.value)}
                         rows={8}
                         placeholder={t('pastePlaceholder')}
+                        aria-label={t('pastePlaceholder')}
                         className="w-full rounded-lg border border-control bg-transparent p-3 font-mono text-sm outline-none focus:border-ink"
                     />
                     {/*

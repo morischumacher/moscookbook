@@ -66,7 +66,7 @@ export default function InboxFilters({
 
             {sources.length > 1 && (
                 <div className={rail} role="group" aria-label={t('filterSource')}>
-                    <button type="button" onClick={() => set({ source: '' })} className={chip(!query.source)}>
+                    <button type="button" onClick={() => set({ source: '' })} aria-pressed={!query.source} className={chip(!query.source)}>
                         {t('filterAll')}
                         <span className="tabular-nums text-xs opacity-60">{total}</span>
                     </button>

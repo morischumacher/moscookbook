@@ -371,7 +371,10 @@
     "translateUnusable": "The AI left out or merged ingredients, so the translation was discarded. Try again.",
     "tooManyPictures": "At most {max} pictures per recipe – the rest were not uploaded.",
     "slugTaken": "There is already a recipe at this address. Change the address (slug) or the title.",
-    "saveInvalid": "The recipe cannot be saved like this – please check the fields."
+    "saveInvalid": "The recipe cannot be saved like this – please check the fields.",
+    "rowUp": "Move ingredient {number} up",
+    "rowDown": "Move ingredient {number} down",
+    "rowRemove": "Remove ingredient {number}"
   },
   "QuickImport": {
     "heading": "Fill in quickly",
