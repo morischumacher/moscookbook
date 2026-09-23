@@ -127,7 +127,7 @@ export default async function RecipePage({
         isMember
             ? prisma.post.findMany({
                   where: {
-                      recipeId: recipe.id,
+                      recipes: { some: { recipeId: recipe.id } },
                       ...(user?.admin ? {} : { publishedAt: { not: null } }),
                   },
                   orderBy: [{ publishedAt: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],

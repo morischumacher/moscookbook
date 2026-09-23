@@ -210,12 +210,12 @@ model Post {
   /// sharing: private, secret link, open web.
   isPublic    Boolean   @default(false)
 
-  /// The recipe this belongs to, when it belongs to one.
-  ///
-  /// SetNull rather than Cascade: deleting a recipe should not silently delete
-  /// something somebody wrote. The note simply becomes an entry of its own.
-  recipeId    Int?
-  recipe      Recipe?   @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  /// The recipes and collections this entry is about, in the order they
+  /// were listed. An entry used to belong to at most one recipe; writing about
+  /// a week of cooking, or introducing a collection, needed more than that.
+  /// Deleting a recipe or a collection removes the link, never the entry.
+  recipes     PostRecipe[]
+  collections PostCollection[]
 
   authorId    Int?
   author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -234,7 +234,6 @@ model Post {
 
   @@index([publishedAt])
   @@index([isPublic])
-  @@index([recipeId, publishedAt])
 }
 
 /// A photograph of the dish as somebody actually cooked it.
@@ -391,7 +390,7 @@ model Recipe {
   favorites      Favorite[]
   ingredients    Ingredient[]
   captures       Capture[]
-  posts          Post[]
+  posts          PostRecipe[]
   cookEntries    CookEntry[]
   collections    CollectionRecipe[]
 
@@ -571,8 +570,12 @@ model Collection {
   id          Int      @id @default(autoincrement())
   title       String
   slug        String   @unique
-  /// One line, shown under the title. Optional.
+  /// Shown under the title. Markdown, as long as it needs to be; the first
+  /// paragraph is what a tile shows.
   description String?
+  /// The collection's own picture, uploaded to our store. Without one, the
+  /// first recipe's picture stands in.
+  imageUrl    String?
 
   /// Whether this collection's own address answers without a session.
   /// The third stage of sharing, as on a recipe and an entry.
@@ -586,6 +589,7 @@ model Collection {
   updatedAt   DateTime @updatedAt
 
   recipes     CollectionRecipe[]
+  posts       PostCollection[]
 
   @@index([createdAt])
   @@index([isPublic])
@@ -748,3 +752,32 @@ model SiteProfile {
 
   @@index([stale, usedAt])
 }
+
+/// A recipe an entry is about. See `Post.recipes`.
+model PostRecipe {
+  postId   Int
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  recipeId Int
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  position Int
+
+  @@id([postId, recipeId])
+  @@index([recipeId])
+}
+
+/// A collection an entry is about. See `Post.collections`.
+model PostCollection {
+  postId       Int
+  post         Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  collectionId Int
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  position     Int
+
+  @@id([postId, collectionId])
+  @@index([collectionId])
+}
+

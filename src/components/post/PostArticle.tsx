@@ -5,6 +5,7 @@ import { Link } from '@/i18n/routing';
 import Logo from '@/components/brand/Logo';
 import ShareButton from '@/components/share/ShareButton';
 import { formatDate } from '@/lib/formatDate';
+import InlinePicture from '@/components/ui/InlinePicture';
 
 export interface PostRow {
     id: number;
@@ -24,7 +25,65 @@ export interface PostRow {
      */
     isPublic?: boolean;
     author: { name: string } | null;
-    recipe: { title: string; slug: string } | null;
+    recipes: { recipe: AboutRecipe }[];
+    collections: { collection: AboutCollection }[];
+}
+
+export interface AboutRecipe {
+    id: number;
+    title: string;
+    slug: string;
+    isPublic: boolean;
+    isDraft: boolean;
+    images: { url: string }[];
+}
+
+export interface AboutCollection {
+    id: number;
+    title: string;
+    slug: string;
+    isPublic: boolean;
+    imageUrl: string | null;
+}
+
+/**
+ * What an entry is about, as every page that shows one reads it: the recipes
+ * and collections in the order they were listed, with enough of each to draw
+ * a small card and to decide who may see it.
+ */
+export const postAboutSelect = {
+    recipes: {
+        orderBy: { position: 'asc' as const },
+        select: {
+            recipe: {
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    isPublic: true,
+                    isDraft: true,
+                    images: { orderBy: { position: 'asc' as const }, take: 1, select: { url: true } },
+                },
+            },
+        },
+    },
+    collections: {
+        orderBy: { position: 'asc' as const },
+        select: { collection: { select: { id: true, title: true, slug: true, isPublic: true, imageUrl: true } } },
+    },
+};
+
+/** Just the names, for a line in a list. */
+export const postAboutTitlesSelect = {
+    recipes: { orderBy: { position: 'asc' as const }, select: { recipe: { select: { title: true } } } },
+    collections: { orderBy: { position: 'asc' as const }, select: { collection: { select: { title: true } } } },
+};
+
+export function aboutTitles(post: {
+    recipes: { recipe: { title: string } }[];
+    collections: { collection: { title: string } }[];
+}): string {
+    return [...post.recipes.map((row) => row.recipe.title), ...post.collections.map((row) => row.collection.title)].join(', ');
 }
 
 /**
@@ -57,6 +116,28 @@ export default async function PostArticle({
     const t = await getTranslations('Blog');
 
 
+    const visible = (item: { isPublic: boolean }) => mode === 'private' || item.isPublic;
+    const about = [
+        ...post.recipes
+            .map((row) => row.recipe)
+            .filter((recipe) => !recipe.isDraft && visible(recipe))
+            .map((recipe) => ({
+                kind: 'recipe' as const,
+                href: `/recipe/${recipe.slug}`,
+                title: recipe.title,
+                image: recipe.images[0]?.url ?? null,
+            })),
+        ...post.collections
+            .map((row) => row.collection)
+            .filter(visible)
+            .map((collection) => ({
+                kind: 'collection' as const,
+                href: `/collections/${collection.slug}`,
+                title: collection.title,
+                image: collection.imageUrl,
+            })),
+    ];
+
     // A draft has no date of its own yet, so it shows when it was started.
     const shown = post.publishedAt ?? post.createdAt;
 
@@ -80,21 +161,6 @@ export default async function PostArticle({
                     {post.publishedAt === null && <span>• {t('draft')}</span>}
                 </div>
 
-                {/* An entry attached to a recipe says so and links back. The
-                    recipe page shows the same entry from the other side; this
-                    is the only thing that tells a reader arriving here where it
-                    belongs. */}
-                {post.recipe && mode === 'private' && (
-                    <p className="print:hidden mb-8 text-sm">
-                        {t('belongsTo')}{' '}
-                        <Link
-                            href={`/recipe/${post.recipe.slug}`}
-                            className="font-medium underline underline-offset-4"
-                        >
-                            {post.recipe.title}
-                        </Link>
-                    </p>
-                )}
 
                 {/*
                     The share panel that used to sit here is gone. It offered
@@ -121,8 +187,46 @@ export default async function PostArticle({
 
             <div className="container mx-auto mt-10 max-w-2xl px-4 font-serif text-lg leading-relaxed sm:px-8">
                 <div className="post-body">
-                    <ReactMarkdown>{post.body}</ReactMarkdown>
+                    <ReactMarkdown components={{ img: InlinePicture }}>{post.body}</ReactMarkdown>
                 </div>
+
+                {/* What the entry is about. At the end, where a reader who
+                    wants to cook it is when they finish reading, and as cards
+                    rather than a line of links, because a picture is how a
+                    recipe is recognised. On a shared or public page only what
+                    is itself public is listed: an entry going on the web does
+                    not take a private recipe's name with it. */}
+                {about.length > 0 && (
+                    <section className="print:hidden mt-12 border-t border-line pt-6 [font-family:var(--font-sans)]">
+                        <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted">
+                            {t('aboutTitle')}
+                        </h2>
+                        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {about.map((item) => (
+                                <li key={item.href}>
+                                    <Link
+                                        href={item.href}
+                                        className="group flex items-center gap-3 rounded-xl border border-line p-2 pr-4 transition-colors hover:border-ink"
+                                    >
+                                        <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-surface">
+                                            {item.image && (
+                                                <Image src={item.image} alt="" fill sizes="64px" className="object-cover" />
+                                            )}
+                                        </span>
+                                        <span className="min-w-0">
+                                            <span className="block text-[11px] font-semibold uppercase tracking-widest text-faint">
+                                                {item.kind === 'recipe' ? t('aboutRecipe') : t('aboutCollection')}
+                                            </span>
+                                            <span className="block font-bold leading-tight group-hover:underline">
+                                                {item.title}
+                                            </span>
+                                        </span>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                )}
 
                 <div className="print:hidden mt-12 flex flex-wrap items-center gap-6 border-t border-line pt-6">
                     <ShareButton

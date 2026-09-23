@@ -38,10 +38,25 @@ const DELETE = process.argv.includes('--delete');
 /** Long enough to cover somebody filling in a recipe form slowly. */
 const GRACE_HOURS = 24;
 
+/**
+ * Our own pictures written into a text as Markdown, `![…](https://…)`.
+ * Matched on the store's address rather than on the Markdown, so a picture
+ * pasted as a bare link or inside HTML counts too — a false keep costs a few
+ * kilobytes, a false delete costs a picture.
+ */
+function picturesIn(text) {
+    return [...text.matchAll(/https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\/[^\s)"'<>]+/gi)].map(
+        (match) => match[0]
+    );
+}
+
 async function referencedUrls() {
-    const [images, posts, cookedPhotos, captures, avatars] = await Promise.all([
+    const [images, posts, cookedPhotos, captures, avatars, collections, recipeTexts] = await Promise.all([
         prisma.image.findMany({ select: { url: true } }),
-        prisma.post.findMany({ select: { imageUrl: true } }),
+        // The body too: a picture placed inside an entry's text is pointed at
+        // by nothing but the text, and without this it would be deleted a
+        // week after it was written.
+        prisma.post.findMany({ select: { imageUrl: true, body: true } }),
         prisma.cookEntryPhoto.findMany({ select: { url: true } }),
         // The inbox counts: a capture holds a screenshot that has not become a
         // recipe yet, and sweeping those away would empty the inbox of its
@@ -51,6 +66,10 @@ async function referencedUrls() {
         // column whose files are deleted on the next run — silently, and a
         // week later, which is the worst possible shape for that bug.
         prisma.user.findMany({ select: { avatarUrl: true } }),
+        // A collection's own picture, and any written into its description.
+        prisma.collection.findMany({ select: { imageUrl: true, description: true } }),
+        // A recipe's method is Markdown as well, and may hold a picture.
+        prisma.recipe.findMany({ select: { instructions: true } }),
     ]);
 
     const urls = new Set();
@@ -59,6 +78,15 @@ async function referencedUrls() {
     for (const row of cookedPhotos) if (row.url) urls.add(row.url);
     for (const row of captures) if (row.imageUrl) urls.add(row.imageUrl);
     for (const row of avatars) if (row.avatarUrl) urls.add(row.avatarUrl);
+    for (const row of collections) if (row.imageUrl) urls.add(row.imageUrl);
+
+    for (const text of [
+        ...posts.map((row) => row.body),
+        ...collections.map((row) => row.description ?? ''),
+        ...recipeTexts.map((row) => row.instructions),
+    ]) {
+        for (const url of picturesIn(text)) urls.add(url);
+    }
 
     // A draft in the inbox holds the picture inside its JSON rather than in a
     // column of its own, so that is read too. Cheap, and the alternative is

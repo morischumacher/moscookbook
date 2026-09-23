@@ -1,13 +1,13 @@
 import { getTranslations } from 'next-intl/server';
-import prisma from '@/lib/prisma';
+import { collectionOptions, recipeOptions } from '@/lib/pickOptions';
 import PostForm from '@/components/post/PostForm';
 
 /**
  * A new entry.
  *
  * `?recipeId=` pre-selects a recipe, which is how the "write a note" link on a
- * recipe page arrives here. It is only a preselection: the dropdown still
- * opens on a list with "no recipe" in it, and an entry never needs one.
+ * recipe page arrives here. It is only a preselection: it can be taken out,
+ * and an entry never needs a recipe.
  */
 export default async function NewPost({
     searchParams,
@@ -17,22 +17,11 @@ export default async function NewPost({
     const { recipeId } = await searchParams;
     const t = await getTranslations('Blog');
 
-    // Annotated rather than inferred: without a generated Prisma client this
-    // comes back as `any`, and the callback below then has no type to check.
-    const recipes: { id: number; title: string }[] = await prisma.recipe.findMany({
-        // A draft cannot carry a post, so it is not offered as a choice. This
-        // also handles `?recipeId=` arriving for one: the validity check below
-        // looks the id up in this list, so an id that is not in it is dropped.
-        where: { isDraft: false },
-        orderBy: { title: 'asc' },
-        select: { id: true, title: true },
-    });
+    const [recipes, collections] = await Promise.all([recipeOptions(), collectionOptions()]);
 
+    // A draft is not in the list, so `?recipeId=` naming one is simply dropped.
     const preselected = Number.parseInt(recipeId ?? '', 10);
-    const valid =
-        !Number.isNaN(preselected) && recipes.some((recipe) => recipe.id === preselected)
-            ? preselected
-            : null;
+    const valid = recipes.some((recipe) => recipe.id === preselected) ? preselected : null;
 
     return (
         <main className="container mx-auto max-w-2xl px-4 pb-32 md:px-8">
@@ -47,10 +36,12 @@ export default async function NewPost({
                         slug: '',
                         body: '',
                         imageUrl: '',
-                        recipeId: valid,
+                        recipeIds: valid === null ? [] : [valid],
+                        collectionIds: [],
                         published: false,
                     }}
                     recipes={recipes}
+                    collections={collections}
                 />
             </div>
         </main>

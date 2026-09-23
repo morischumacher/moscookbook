@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { compressImage, looksLikeImage, UPLOAD_LIMIT_BYTES } from '@/lib/imageCompression';
+import { looksLikeImage } from '@/lib/imageCompression';
+import { uploadPicture } from '@/lib/uploadClient';
 import { labelClass } from './formStyles';
 
 export default function GalleryField({
@@ -44,31 +45,19 @@ export default function GalleryField({
 
             for (const file of usable) {
                 try {
-                    const prepared = await compressImage(file);
+                    const result = await uploadPicture(file);
 
-                    // The platform refuses a request body over 4.5 MB before
-                    // any of our code runs, and says so in HTML — so what came
-                    // back would have been "upload failed" and nothing else.
-                    if (prepared.size > UPLOAD_LIMIT_BYTES) {
-                        onError(t('uploadTooLarge'));
-                        continue;
-                    }
-
-                    const formData = new FormData();
-                    formData.append('file', prepared);
-
-                    const res = await fetch('/api/upload', { method: 'POST', body: formData });
-                    const data = await res.json();
-
-                    if (!res.ok || !data.url) {
-                        onError(data.message || t('uploadFailed'));
-                    } else {
-                        const next = [...current.current, data.url];
+                    if (result.ok) {
+                        const next = [...current.current, result.url];
                         current.current = next;
                         onChange(next);
+                    } else {
+                        onError(
+                            result.reason === 'too-large'
+                                ? t('uploadTooLarge')
+                                : result.message || t('uploadFailed')
+                        );
                     }
-                } catch {
-                    onError(t('uploadFailed'));
                 } finally {
                     setUploading((count) => count - 1);
                 }

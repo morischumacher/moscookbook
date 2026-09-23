@@ -43,7 +43,7 @@ const webUrl = z
  * every new field to the safe value — and an archive from a newer version is
  * refused with the numbers in the message rather than half-read.
  */
-export const ARCHIVE_VERSION = 5;
+export const ARCHIVE_VERSION = 6;
 
 const archiveIngredientSchema = z.object({
     position: z.number().int().min(0),
@@ -108,7 +108,13 @@ const archivePostSchema = z.object({
     imageUrl: z.preprocess((value) => (value === '' ? null : value), webUrl.nullable()).default(null),
     publishedAt: z.string().nullable().default(null),
     createdAt: z.string().default(() => new Date().toISOString()),
-    /** The recipe it belongs to, by slug. Null for a standalone entry. */
+    /**
+     * The recipes and collections it is about, by slug, in order. Version 6;
+     * before that an entry had at most one recipe, as `recipeSlug`, which is
+     * still read (see `postRecipeSlugs`) and no longer written.
+     */
+    recipeSlugs: z.array(z.string()).default([]),
+    collectionSlugs: z.array(z.string()).default([]),
     recipeSlug: z.string().nullable().default(null),
     /** Who wrote it, by name. Accounts are not in an archive. */
     author: z.string().nullable().default(null),
@@ -172,6 +178,8 @@ const archiveCollectionSchema = z.object({
     title: z.string().min(1),
     slug: z.string().min(1),
     description: z.string().nullable().default(null),
+    /** Version 6. */
+    imageUrl: z.preprocess((value) => (value === '' ? null : value), webUrl.nullable()).default(null),
     createdAt: z.string().default(() => new Date().toISOString()),
     recipeSlugs: z.array(z.string()).default([]),
 });
@@ -268,7 +276,8 @@ export interface ExportablePost {
     imageUrl: string | null;
     publishedAt: Date | null;
     createdAt: Date;
-    recipe: { slug: string } | null;
+    recipes: { recipe: { slug: string } }[];
+    collections: { collection: { slug: string } }[];
     author: { name: string } | null;
 }
 
@@ -284,6 +293,7 @@ export interface ExportableCollection {
     title: string;
     slug: string;
     description: string | null;
+    imageUrl: string | null;
     createdAt: Date;
     recipes: { recipe: { slug: string } }[];
 }
@@ -332,9 +342,17 @@ export function toArchivePost(post: ExportablePost): Archive['posts'][number] {
         // where every id is new, and a slug is the one name that survives the
         // trip. The author is a name for the same reason — accounts are not in
         // an archive.
-        recipeSlug: post.recipe?.slug ?? null,
+        recipeSlugs: post.recipes.map((row) => row.recipe.slug),
+        collectionSlugs: post.collections.map((row) => row.collection.slug),
+        recipeSlug: null,
         author: post.author?.name ?? null,
     };
+}
+
+/** The recipes an archived entry is about, whichever version wrote it. */
+export function postRecipeSlugs(post: ArchivePost): string[] {
+    if (post.recipeSlugs.length > 0) return post.recipeSlugs;
+    return post.recipeSlug ? [post.recipeSlug] : [];
 }
 
 export function toArchiveCookEntry(entry: ExportableCookEntry): ArchiveCookEntry {
@@ -416,6 +434,7 @@ export function toArchiveCollection(
         title: collection.title,
         slug: collection.slug,
         description: collection.description,
+        imageUrl: collection.imageUrl,
         createdAt: collection.createdAt.toISOString(),
         // Already ordered by the query; the array's own order is the order.
         recipeSlugs: collection.recipes.map((row) => row.recipe.slug),

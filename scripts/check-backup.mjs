@@ -61,6 +61,8 @@ const NOT_BACKED_UP = new Map([
         'them into the repo where they can be read, corrected and shipped',
     ],
     ['CollectionRecipe', "carried inside each collection's entry, in order, rather than as its own list"],
+    ['PostRecipe', "carried inside each entry as recipeSlugs, in order, rather than as its own list"],
+    ['PostCollection', "carried inside each entry as collectionSlugs, in order, rather than as its own list"],
     ['CookEntryPhoto', "carried inside each cooking's entry, in order, rather than as its own list"],
 ]);
 

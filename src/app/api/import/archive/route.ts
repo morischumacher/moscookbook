@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { requireAdmin } from '@/lib/auth';
-import { parseArchive, cookEntriesFrom, type ArchiveRecipe } from '@/lib/archive';
+import { parseArchive, cookEntriesFrom, postRecipeSlugs, type ArchivePost, type ArchiveRecipe } from '@/lib/archive';
 import { newRecipeData } from '@/lib/recipeRepo';
 import { describeWriteFailure } from '@/lib/prismaErrors';
 import { failed as reportFailure } from '@/lib/reportServerError';
@@ -154,6 +154,7 @@ export async function POST(req: NextRequest) {
         );
 
         let posts = 0;
+        const postCollections: ArchivePost[] = [];
         for (const post of result.archive.posts) {
             const taken = await prisma.post.findUnique({
                 where: { slug: post.slug },
@@ -182,7 +183,13 @@ export async function POST(req: NextRequest) {
                             imageUrl: post.imageUrl,
                             publishedAt: safeDate(post.publishedAt),
                             createdAt: safeDate(post.createdAt) ?? new Date(),
-                            recipeId: post.recipeSlug ? slugToId.get(post.recipeSlug) ?? null : null,
+                            // The recipes it is about, those the archive has.
+                            recipes: {
+                                create: postRecipeSlugs(post)
+                                    .map((slug) => slugToId.get(slug))
+                                    .filter((id): id is number => id !== undefined)
+                                    .map((recipeId, index) => ({ recipeId, position: index })),
+                            },
                             // Authorship is by name in an archive and accounts
                             // are not in one, so a restored entry has no author
                             // rather than a wrong one.
@@ -191,6 +198,7 @@ export async function POST(req: NextRequest) {
                     }),
                 ]);
                 posts += 1;
+                if (post.collectionSlugs.length > 0) postCollections.push(post);
             } catch (error) {
                 failed.push({
                     slug: post.slug,
@@ -290,6 +298,7 @@ export async function POST(req: NextRequest) {
                             title: collection.title,
                             slug: collection.slug,
                             description: collection.description,
+                            imageUrl: collection.imageUrl,
                             createdAt: safeDate(collection.createdAt) ?? new Date(),
                             recipes: {
                                 create: recipeIds.map((recipeId, index) => ({
@@ -309,6 +318,30 @@ export async function POST(req: NextRequest) {
                 });
                 reportFailure(`Archive import: collection ${collection.slug} failed`, error);
             }
+        }
+
+        // Which collections each entry is about, now that the collections
+        // exist. Positions follow the archive's order.
+        for (const post of postCollections) {
+            const [row, found] = await Promise.all([
+                prisma.post.findUnique({ where: { slug: post.slug }, select: { id: true } }),
+                prisma.collection.findMany({
+                    where: { slug: { in: post.collectionSlugs } },
+                    select: { id: true, slug: true },
+                }),
+            ]);
+            if (!row) continue;
+
+            const idBySlug = new Map(found.map((collection) => [collection.slug, collection.id]));
+            await prisma.postCollection
+                .createMany({
+                    data: post.collectionSlugs
+                        .map((slug) => idBySlug.get(slug))
+                        .filter((id): id is number => id !== undefined)
+                        .map((collectionId, index) => ({ postId: row.id, collectionId, position: index })),
+                    skipDuplicates: true,
+                })
+                .catch((error) => reportFailure(`Archive import: collections of ${post.slug}`, error));
         }
 
         return NextResponse.json({

@@ -3,7 +3,7 @@ import { cache } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
-import PostArticle, { type PostRow } from '@/components/post/PostArticle';
+import PostArticle, { postAboutSelect, type PostRow } from '@/components/post/PostArticle';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { shareUrl } from '@/lib/shareToken';
 
@@ -18,7 +18,7 @@ const postSelect = {
     shareToken: true,
     isPublic: true,
     author: { select: { name: true } },
-    recipe: { select: { title: true, slug: true } },
+    ...postAboutSelect,
 } as const;
 
 const loadPost = cache(async (slug: string): Promise<PostRow | null> => {

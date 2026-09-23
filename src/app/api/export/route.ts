@@ -160,7 +160,8 @@ export async function GET() {
                                 imageUrl: true,
                                 publishedAt: true,
                                 createdAt: true,
-                                recipe: { select: { slug: true } },
+                                recipes: { orderBy: { position: 'asc' }, select: { recipe: { select: { slug: true } } } },
+                                collections: { orderBy: { position: 'asc' }, select: { collection: { select: { slug: true } } } },
                                 author: { select: { name: true } },
                             },
                         }),
@@ -203,6 +204,7 @@ export async function GET() {
                                 title: true,
                                 slug: true,
                                 description: true,
+                                imageUrl: true,
                                 createdAt: true,
                                 recipes: {
                                     orderBy: { position: 'asc' },

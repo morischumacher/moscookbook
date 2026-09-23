@@ -6,9 +6,10 @@ import { Link, useRouter } from '@/i18n/routing';
 import { captureLabel } from '@/lib/capture';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { formatDate } from '@/lib/formatDate';
-import { pageContainer } from '@/lib/ui';
+import { buttonPrimarySmall, buttonSecondary, pageContainer } from '@/lib/ui';
 import Loading from '@/components/ui/Loading';
 import PageHeader from '@/components/admin/PageHeader';
+import Disclosure from '@/components/ui/Disclosure';
 import { BusyLabel } from '@/components/ui/Busy';
 
 interface DraftSummary {
@@ -204,6 +205,21 @@ export default function AdminInboxPage() {
     return (
         <main className={`${pageContainer} pb-32`}>
             <PageHeader title={t('title')} intro={t('explanation')} />
+
+            {/* Asked for: the row of actions had to be learned rather than
+                read. One sentence each, folded away once it is known. */}
+            <div className="mt-2 border-t border-line">
+                <Disclosure title={t('legendTitle')}>
+                    <ul className="flex flex-col gap-2 text-sm leading-relaxed text-muted">
+                        <li>{t('legendAccept')}</li>
+                        <li>{t('legendStage')}</li>
+                        <li>{t('legendFinish')}</li>
+                        <li>{t('legendRetry')}</li>
+                        <li>{t('legendAskAi')}</li>
+                        <li>{t('legendRest')}</li>
+                    </ul>
+                </Disclosure>
+            </div>
 
             {error && (
                 <p className="mb-6 rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
@@ -464,15 +480,25 @@ function CaptureRow({
                 />
             )}
 
-            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            {/*
+                Three decisions, and everything else in a menu.
+
+                There were eight links in one row, all the same size, and the
+                screen had to be learned rather than read. What somebody
+                actually decides about a capture is one of three things — take
+                it, take it as a draft, or fix it first — so those are the
+                buttons, in that order, with the one that finishes the job
+                drawn as the button. Reading it again, asking the model,
+                opening the source, reporting and deleting are all things you
+                do *before* deciding, or instead of it, and they live under
+                "More". The legend above the list says what each one does.
+            */}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
                 {canPublish && (
-                    <button
-                        type="button"
-                        onClick={onPublish}
-                        disabled={busy}
-                        className="font-medium underline underline-offset-4 disabled:opacity-50"
-                    >
-                        <BusyLabel busy={busy} busyText={t('working')}>{t('accept')}</BusyLabel>
+                    <button type="button" onClick={onPublish} disabled={busy} className={buttonPrimarySmall}>
+                        <BusyLabel busy={busy && busyAction === 'publish'} busyText={t('working')}>
+                            {t('accept')}
+                        </BusyLabel>
                     </button>
                 )}
 
@@ -480,105 +506,96 @@ function CaptureRow({
                     does not count yet. Beside the direct one rather than
                     replacing it, because sometimes you already know — a recipe
                     you have cooked for years and are only typing up does not
-                    need a probation period, and making it serve one would
-                    teach you to press past the draft state without reading it. */}
+                    need a probation period. */}
                 {canPublish && (
                     <button
                         type="button"
                         onClick={onStage}
                         disabled={busy}
                         title={tDrafts('stageHint')}
-                        className="text-muted underline underline-offset-4 disabled:opacity-50"
+                        className={buttonSecondary}
                     >
-                        {tDrafts('stage')}
+                        <BusyLabel busy={busy && busyAction === 'stage'}>{tDrafts('stage')}</BusyLabel>
                     </button>
                 )}
 
                 <Link
                     href={`/admin/create?capture=${capture.id}`}
-                    className="underline underline-offset-4"
+                    className={canPublish ? 'px-3 text-sm underline underline-offset-4' : buttonPrimarySmall}
                 >
                     {t('finish')}
                 </Link>
 
-                <button
-                    type="button"
-                    onClick={onRetry}
-                    disabled={busy}
-                    title={t('retryExplain')}
-                    className="text-muted underline underline-offset-4 disabled:opacity-50"
-                >
-                    {t('retry')}
-                </button>
+                <details className="relative">
+                    <summary className="flex min-h-11 cursor-pointer list-none items-center px-3 text-sm text-muted underline underline-offset-4 [&::-webkit-details-marker]:hidden">
+                        {t('more')}
+                    </summary>
 
-                {/*
-                    Always offered, including on a draft the scoring called
-                    good — which is the whole point of it being here.
+                    <div className="absolute left-0 z-10 mt-1 flex w-64 flex-col rounded-xl border border-line bg-page p-1 text-sm shadow-lg">
+                        <button
+                            type="button"
+                            onClick={onRetry}
+                            disabled={busy}
+                            className="rounded-lg px-3 py-2 text-left hover:bg-surface disabled:opacity-50"
+                        >
+                            <span className="block">{t('retry')}</span>
+                            <span className="block text-xs text-muted">{t('retryExplain')}</span>
+                        </button>
 
-                    The scoring decides whether a model is asked *without*
-                    being told to. It is a guess made from shape alone: it can
-                    see that a draft has a title, ingredients with quantities
-                    and a method, and it cannot see that the method is the
-                    wrong recipe's. Somebody reading the draft can. So the
-                    automatic decision saves them the trouble in the common
-                    case and never takes the decision away from them.
+                        {/*
+                            Always offered, including on a draft the scoring
+                            called good. The scoring is a guess made from
+                            shape alone: it can see that a draft has a title,
+                            quantities and a method, and it cannot see that the
+                            method is the wrong recipe's. Costs a call every
+                            time, which is why it says so.
+                        */}
+                        <button
+                            type="button"
+                            onClick={onAskAi}
+                            disabled={busy || !aiAvailable}
+                            className="rounded-lg px-3 py-2 text-left hover:bg-surface disabled:opacity-50"
+                        >
+                            <span className="block">{tAi('askAi')}</span>
+                            <span className="block text-xs text-muted">
+                                {!aiAvailable
+                                    ? tAi('polishOff')
+                                    : alreadyAsked
+                                      ? tAi('askAgainExplain')
+                                      : tAi('askAiExplain')}
+                            </span>
+                        </button>
 
-                    Costs a call every time it is pressed, which is why it says
-                    what it does rather than being a second "retry".
-                */}
-                <button
-                    type="button"
-                    onClick={onAskAi}
-                    disabled={busy || !aiAvailable}
-                    title={
-                        !aiAvailable
-                            ? tAi('polishOff')
-                            : alreadyAsked
-                              ? tAi('askAgainExplain')
-                              : tAi('askAiExplain')
-                    }
-                    className={`underline underline-offset-4 disabled:no-underline disabled:opacity-50 ${
-                        alreadyAsked ? 'text-faint' : 'text-muted'
-                    }`}
-                >
-                    {tAi('askAi')}
-                </button>
+                        {capture.sourceUrl && (
+                            <a
+                                href={capture.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="rounded-lg px-3 py-2 hover:bg-surface"
+                            >
+                                {t('openSource')}
+                            </a>
+                        )}
 
-                {/*
-                    Something came out wrong and you want it looked at.
+                        {/* The description arrives already written: which row,
+                            what state, where from. */}
+                        <Link
+                            href={`/tickets?from=${encodeURIComponent(`/${locale}/admin/inbox`)}&about=${encodeURIComponent(reportText)}`}
+                            className="rounded-lg px-3 py-2 hover:bg-surface"
+                        >
+                            {t('report')}
+                        </Link>
 
-                    The alternative was opening the ticket form and typing out
-                    which of forty rows you meant, what state it was in and
-                    where it came from — which is the moment most tickets stop
-                    being written. The description arrives already written and
-                    entirely editable.
-                */}
-                <Link
-                    href={`/tickets?from=${encodeURIComponent(`/${locale}/admin/inbox`)}&about=${encodeURIComponent(reportText)}`}
-                    className="text-muted underline underline-offset-4"
-                >
-                    {t('report')}
-                </Link>
-
-                {capture.sourceUrl && (
-                    <a
-                        href={capture.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-muted underline underline-offset-4"
-                    >
-                        {t('openSource')}
-                    </a>
-                )}
-
-                <button
-                    type="button"
-                    onClick={onDiscard}
-                    disabled={busy}
-                    className="text-faint underline underline-offset-4 hover:text-danger disabled:opacity-50"
-                >
-                    {t('discard')}
-                </button>
+                        <button
+                            type="button"
+                            onClick={onDiscard}
+                            disabled={busy}
+                            className="rounded-lg px-3 py-2 text-left text-danger hover:bg-danger-surface disabled:opacity-50"
+                        >
+                            {t('discard')}
+                        </button>
+                    </div>
+                </details>
             </div>
         </li>
     );

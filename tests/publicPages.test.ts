@@ -104,6 +104,7 @@ export default function publicPagesTests() {
         title: 'Sonntag',
         slug: 'sonntag',
         description: null,
+        imageUrl: null,
         isPublic: true,
         shareToken: null,
         recipes: [

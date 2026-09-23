@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
-import PostArticle, { type PostRow } from '@/components/post/PostArticle';
+import PostArticle, { postAboutSelect, type PostRow } from '@/components/post/PostArticle';
 import { excerptOf } from '@/lib/postSchema';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { shareUrl } from '@/lib/shareToken';
@@ -28,7 +28,7 @@ const loadShared = cache(async (token: string): Promise<PostRow | null> => {
             createdAt: true,
             shareToken: true,
             author: { select: { name: true } },
-            recipe: { select: { title: true, slug: true } },
+            ...postAboutSelect,
         },
     });
 });

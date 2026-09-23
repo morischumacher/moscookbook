@@ -59,13 +59,16 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
     // translation checker.
     const groups: { href: string; label: string; count?: number }[][] = [
         [
-            { href: '/admin', label: t('dashboard') },
+            // In the order the work arrives: shared into the inbox, taken in
+            // as a draft, finished into a recipe, arranged into collections,
+            // written about. Every link is a noun — the section — and making
+            // a new thing is a button on that section's page.
             { href: '/admin/inbox', label: tInbox('nav') },
-            // Straight after the inbox, because that is the step after it.
             { href: '/admin/drafts', label: tDrafts('nav') },
-            { href: '/admin/collections/new', label: tCollections('createNew') },
+            { href: '/admin', label: t('dashboard') },
+            { href: '/admin/collections', label: tCollections('adminNav') },
+            { href: '/admin/posts', label: tBlog('adminNav') },
         ],
-        [{ href: '/admin/posts', label: tBlog('adminNav') }],
         [
             { href: '/admin/users', label: t('people') },
             { href: '/admin/reports', label: tReports('nav'), count: unresolvedReports },

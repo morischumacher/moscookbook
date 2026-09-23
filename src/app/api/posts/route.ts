@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
 import { slugify } from '@/lib/recipe';
+import { linkCreates, refusedLinks } from '@/lib/postLinks';
 import { postInputSchema, formatPostError } from '@/lib/postSchema';
 import { postSearchFields } from '@/lib/searchText';
 import { failed } from '@/lib/reportServerError';
@@ -39,29 +40,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: formatPostError(parsed.error) }, { status: 400 });
     }
 
-    const { title, slug, body, imageUrl, recipeId, published } = parsed.data;
+    const { title, slug, body, imageUrl, recipeIds, collectionIds, published } = parsed.data;
 
-    /*
-     * No post about a draft.
-     *
-     * This is the line he drew himself — "zwischen es ist in der queue und
-     * post" — and it is also a leak: a post can be shared at /p/<token>, which
-     * needs no account, and it shows its recipe's title and link. So a post
-     * about a draft is a draft with a public address by another route.
-     */
-    if (recipeId) {
-        const recipe: { isDraft: boolean } | null = await prisma.recipe.findUnique({
-            where: { id: recipeId },
-            select: { isDraft: true },
-        });
-
-        if (recipe?.isDraft) {
-            return NextResponse.json(
-                { message: 'A post cannot be written about a draft. Finish the recipe first.' },
-                { status: 409 }
-            );
-        }
-    }
+    // No post about a draft, nor about something that is gone. See lib/postLinks.
+    const refusal = await refusedLinks(recipeIds, collectionIds);
+    if (refusal) return NextResponse.json({ message: refusal }, { status: 409 });
 
     try {
         const post = await prisma.post.create({
@@ -71,7 +54,7 @@ export async function POST(req: NextRequest) {
                 body,
                 ...postSearchFields({ title, body }),
                 imageUrl,
-                recipeId: recipeId ?? null,
+                ...linkCreates(recipeIds, collectionIds),
                 authorId: auth.user.id,
                 // The server decides the moment. A client that could set it
                 // would be able to publish into the past or the future.

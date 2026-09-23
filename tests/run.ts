@@ -49,6 +49,7 @@ import readableText from './readableText.test';
 import siteProfile from './siteProfile.test';
 import clientMessages from './clientMessages.test';
 import recipeRepo, { storedDraftTests } from './recipeRepo.test';
+import examples from './examples.test';
 import siteLearn, { siteLearnWiringTests } from './siteLearn.test';
 import drafts from './drafts.test';
 import routeParams from './routeParams.test';
@@ -121,6 +122,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['clientMessages', clientMessages],
     ['recipeRepo', recipeRepo],
     ['storedDraftTests', storedDraftTests],
+    ['examples', examples],
     ['siteLearn', siteLearn],
     ['siteLearnWiringTests', siteLearnWiringTests],
     ['drafts', drafts],

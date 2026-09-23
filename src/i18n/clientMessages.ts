@@ -28,6 +28,7 @@ export const ADMIN_ONLY_NAMESPACES = [
     'QuickImport',
     'RecipeForm',
     'Errors',
+    'Examples',
 ] as const;
 
 /** Read only by server components through getTranslations, never sent. */

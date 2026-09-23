@@ -5,7 +5,11 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { slugify } from '@/lib/recipe';
 import { useLocalDraft } from '@/lib/useLocalDraft';
-import { buttonPrimary } from '@/lib/ui';
+import { buttonPrimary, buttonSecondary } from '@/lib/ui';
+import { BusyLabel } from '@/components/ui/Busy';
+import MarkdownEditor from '@/components/ui/MarkdownEditor';
+import PictureField from '@/components/ui/PictureField';
+import PickList, { type PickOption } from '@/components/ui/PickList';
 
 const fieldClass =
     'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
@@ -17,14 +21,16 @@ export interface PostDraft {
     slug: string;
     body: string;
     imageUrl: string;
-    recipeId: number | null;
+    recipeIds: number[];
+    collectionIds: number[];
     published: boolean;
 }
 
 /**
  * Writing an entry.
  *
- * A title, a Markdown box, an optional picture and an optional recipe. There is
+ * A title, the text (with pictures in it, if wanted), an optional cover
+ * picture, and the recipes and collections it is about. There is
  * no AI here and no import: this is the one part of the cookbook where the
  * words are supposed to be the author's, and a machine offering to write them
  * would be answering a question nobody asked.
@@ -44,10 +50,12 @@ export interface PostDraft {
 export default function PostForm({
     initial,
     recipes,
+    collections,
 }: {
     initial: PostDraft;
-    /** Every recipe, so an entry can be attached to one. Small list, one query. */
-    recipes: { id: number; title: string }[];
+    /** Every finished recipe, so an entry can be about some of them. */
+    recipes: PickOption[];
+    collections: PickOption[];
 }) {
     const t = useTranslations('Blog');
     const router = useRouter();
@@ -57,9 +65,10 @@ export default function PostForm({
     const [slugTouched, setSlugTouched] = useState(initial.slug !== '');
     const [body, setBody] = useState(initial.body);
     const [imageUrl, setImageUrl] = useState(initial.imageUrl);
-    const [recipeId, setRecipeId] = useState<number | null>(initial.recipeId);
+    const [recipeIds, setRecipeIds] = useState<number[]>(initial.recipeIds);
+    const [collectionIds, setCollectionIds] = useState<number[]>(initial.collectionIds);
 
-    const [busy, setBusy] = useState(false);
+    const [busy, setBusy] = useState<null | 'publish' | 'draft'>(null);
     const [error, setError] = useState('');
 
     // Keyed by the entry being edited, so a draft of one never turns up in
@@ -67,8 +76,8 @@ export default function PostForm({
     const draftKey = `post-draft-${initial.id ?? 'new'}`;
 
     const values = useMemo(
-        () => ({ title, slug, body, imageUrl, recipeId }),
-        [title, slug, body, imageUrl, recipeId]
+        () => ({ title, slug, body, imageUrl, recipeIds, collectionIds }),
+        [title, slug, body, imageUrl, recipeIds, collectionIds]
     );
 
     // A title or a body. A picture on its own is not an entry anybody would
@@ -77,7 +86,7 @@ export default function PostForm({
     const draft = useLocalDraft(draftKey, values, Boolean(title.trim() || body.trim()));
 
     const restoreDraft = () => {
-        const saved = draft.read();
+        const saved = draft.read() as (Partial<typeof values> & { recipeId?: number | null }) | null;
         if (!saved) return;
 
         setTitle(saved.title ?? '');
@@ -85,12 +94,14 @@ export default function PostForm({
         setSlugTouched(Boolean(saved.slug));
         setBody(saved.body ?? '');
         setImageUrl(saved.imageUrl ?? '');
-        setRecipeId(saved.recipeId ?? null);
+        // A draft kept before an entry could be about several recipes.
+        setRecipeIds(saved.recipeIds ?? (saved.recipeId ? [saved.recipeId] : []));
+        setCollectionIds(saved.collectionIds ?? []);
         draft.clear();
     };
 
     const save = async (published: boolean) => {
-        setBusy(true);
+        setBusy(published ? 'publish' : 'draft');
         setError('');
 
         try {
@@ -104,7 +115,8 @@ export default function PostForm({
                         slug: slug || slugify(title),
                         body,
                         imageUrl,
-                        recipeId,
+                        recipeIds,
+                        collectionIds,
                         published,
                     }),
                 }
@@ -125,7 +137,7 @@ export default function PostForm({
         } catch {
             setError(t('saveFailed'));
         } finally {
-            setBusy(false);
+            setBusy(null);
         }
     };
 
@@ -136,7 +148,7 @@ export default function PostForm({
                 // Enter in a field means "save what I have", never "publish".
                 void save(initial.published);
             }}
-            className="flex flex-col gap-6"
+            className="flex flex-col gap-8"
         >
             {error && (
                 <p className="rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
@@ -183,84 +195,74 @@ export default function PostForm({
                 />
             </div>
 
-            <div>
-                <label htmlFor="body" className={labelClass}>{t('fieldBody')}</label>
-                <textarea
-                    id="body"
-                    value={body}
-                    onChange={(event) => setBody(event.target.value)}
-                    required
-                    rows={16}
-                    className={`${fieldClass} font-mono text-base leading-relaxed`}
-                />
-                <p className="mt-2 text-sm text-muted">{t('markdownHint')}</p>
-            </div>
+            <MarkdownEditor id="body" label={t('fieldBody')} value={body} onChange={setBody} rows={16} />
 
-            <div>
-                <label htmlFor="recipeId" className={labelClass}>{t('fieldRecipe')}</label>
-                <select
-                    id="recipeId"
-                    value={recipeId ?? ''}
-                    onChange={(event) =>
-                        setRecipeId(event.target.value === '' ? null : Number(event.target.value))
-                    }
-                    className={fieldClass}
-                >
-                    {/* First and selected by default: an entry never needs a
-                        recipe, and the empty option is what says so. */}
-                    <option value="">{t('noRecipe')}</option>
-                    {recipes.map((recipe) => (
-                        <option key={recipe.id} value={recipe.id}>
-                            {recipe.title}
-                        </option>
-                    ))}
-                </select>
-                <p className="mt-2 text-sm text-muted">{t('recipeHint')}</p>
-            </div>
+            <PictureField
+                id="imageUrl"
+                label={t('fieldImage')}
+                hint={t('imageHint')}
+                value={imageUrl}
+                onChange={setImageUrl}
+            />
 
-            <div>
-                <label htmlFor="imageUrl" className={labelClass}>{t('fieldImage')}</label>
-                <input
-                    type="url"
-                    id="imageUrl"
-                    value={imageUrl}
-                    onChange={(event) => setImageUrl(event.target.value)}
-                    placeholder="https://…"
-                    className={fieldClass}
-                />
-            </div>
+            <PickList
+                label={t('fieldRecipes')}
+                hint={t('recipesHint')}
+                options={recipes}
+                value={recipeIds}
+                onChange={setRecipeIds}
+            />
 
-            <div>
-                <label htmlFor="slug" className={labelClass}>{t('fieldSlug')}</label>
-                <input
-                    type="text"
-                    id="slug"
-                    value={slug}
-                    onChange={(event) => {
-                        setSlugTouched(true);
-                        setSlug(event.target.value);
-                    }}
-                    className={`${fieldClass} font-mono text-base`}
-                />
-            </div>
+            <PickList
+                label={t('fieldCollections')}
+                hint={t('collectionsHint')}
+                options={collections}
+                value={collectionIds}
+                onChange={setCollectionIds}
+            />
+
+            {/* The address is set once and rarely thought about again, so it
+                is out of the way — but visible, with what it is for, because
+                "Address" on its own was read as a street. */}
+            <details className="rounded-lg border border-line px-4 py-3" open={slugTouched && initial.slug !== slug}>
+                <summary className="cursor-pointer text-sm font-medium">
+                    {t('fieldSlug')} <span className="font-mono text-muted">/blog/{slug || slugify(title) || '…'}</span>
+                </summary>
+                <div className="mt-3">
+                    <label htmlFor="slug" className="sr-only">{t('fieldSlug')}</label>
+                    <input
+                        type="text"
+                        id="slug"
+                        value={slug}
+                        onChange={(event) => {
+                            setSlugTouched(true);
+                            setSlug(event.target.value);
+                        }}
+                        className={`${fieldClass} font-mono text-base`}
+                    />
+                    <p className="mt-2 text-sm text-muted">{t('slugHint')}</p>
+                </div>
+            </details>
 
             <div className="flex flex-wrap items-center gap-4 border-t border-line pt-6">
                 <button
                     type="button"
                     onClick={() => void save(true)}
-                    disabled={busy}
+                    disabled={busy !== null}
                     className={buttonPrimary}
                 >
-                    {initial.published ? t('savePublished') : t('publish')}
+                    <BusyLabel busy={busy === 'publish'}>
+                        {initial.published ? t('savePublished') : t('publish')}
+                    </BusyLabel>
                 </button>
 
                 <button
                     type="button"
                     onClick={() => void save(false)}
-                    disabled={busy}
-                    className="rounded-full border border-line px-6 py-3 font-medium disabled:opacity-50"
+                    disabled={busy !== null}
+                    className={buttonSecondary}
                 >
-                    {t('saveDraft')}
+                    <BusyLabel busy={busy === 'draft'}>{t('saveDraft')}</BusyLabel>
                 </button>
             </div>
         </form>

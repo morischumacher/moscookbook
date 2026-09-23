@@ -112,8 +112,10 @@ export default function draftsTests() {
 
     check(
         'and no post can be written about one',
-        /recipe\?\.isDraft\)/.test(source('src/app/api/posts/route.ts')),
-        'posts route — a post is shareable at /p/<token>, which needs no account'
+        /recipes\.some\(\(recipe\) => recipe\.isDraft\)/.test(source('src/lib/postLinks.ts')) &&
+            /refusedLinks\(/.test(source('src/app/api/posts/route.ts')) &&
+            /refusedLinks\(/.test(source('src/app/api/posts/[id]/route.ts')),
+        'posts routes — a post is shareable at /p/<token>, which needs no account, so both creating and editing one check'
     );
 
     check(

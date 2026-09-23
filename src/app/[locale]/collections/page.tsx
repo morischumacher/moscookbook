@@ -1,3 +1,5 @@
+import Image from 'next/image';
+import { excerptOf } from '@/lib/postSchema';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
@@ -20,7 +22,9 @@ export default async function CollectionsPage() {
         title: string;
         slug: string;
         description: string | null;
+        imageUrl: string | null;
         _count: { recipes: number };
+        recipes: { recipe: { images: { url: string }[] } }[];
     }[] = await prisma.collection.findMany({
         orderBy: { createdAt: 'desc' },
         take: 100,
@@ -29,7 +33,16 @@ export default async function CollectionsPage() {
             title: true,
             slug: true,
             description: true,
+            imageUrl: true,
             _count: { select: { recipes: true } },
+            // The first recipe's picture stands in for a collection without
+            // its own. Drafts are skipped, as everywhere a collection is shown.
+            recipes: {
+                where: { recipe: { isDraft: false } },
+                orderBy: { position: 'asc' },
+                take: 1,
+                select: { recipe: { select: { images: { orderBy: { position: 'asc' }, take: 1, select: { url: true } } } } },
+            },
         },
     });
 
@@ -55,17 +68,32 @@ export default async function CollectionsPage() {
                         <li key={collection.id}>
                             <Link
                                 href={`/collections/${collection.slug}`}
-                                className="block py-5 transition-opacity hover:opacity-70"
+                                className="flex items-center gap-4 py-5 transition-opacity hover:opacity-70"
                             >
-                                <h2 className="text-xl font-bold leading-tight">{collection.title}</h2>
+                                <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-surface">
+                                    {(collection.imageUrl ?? collection.recipes[0]?.recipe.images[0]?.url) && (
+                                        <Image
+                                            src={(collection.imageUrl ?? collection.recipes[0]?.recipe.images[0]?.url)!}
+                                            alt=""
+                                            fill
+                                            sizes="80px"
+                                            className="object-cover"
+                                        />
+                                    )}
+                                </span>
+                                <span className="min-w-0">
+                                    <h2 className="text-xl font-bold leading-tight">{collection.title}</h2>
 
-                                {collection.description && (
-                                    <p className="mt-1 font-serif text-muted">{collection.description}</p>
-                                )}
+                                    {/* The description can be pages long now;
+                                        a list shows its opening words. */}
+                                    {collection.description && (
+                                        <p className="mt-1 font-serif text-muted">{excerptOf(collection.description, 140)}</p>
+                                    )}
 
-                                <p className="mt-2 text-xs uppercase tracking-widest text-faint">
-                                    {t('recipeCount', { count: collection._count.recipes })}
-                                </p>
+                                    <p className="mt-2 text-xs uppercase tracking-widest text-faint">
+                                        {t('recipeCount', { count: collection._count.recipes })}
+                                    </p>
+                                </span>
                             </Link>
                         </li>
                     ))}

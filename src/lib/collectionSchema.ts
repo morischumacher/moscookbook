@@ -10,7 +10,9 @@ import { slugify } from './recipe';
  */
 
 const MAX_TITLE = 80;
-const MAX_DESCRIPTION = 200;
+// Room for a few paragraphs: a collection is often introduced — the menu,
+// the occasion, what to make first — and one line was not enough for that.
+const MAX_DESCRIPTION = 5000;
 
 /** Enough for a menu, few enough that the page stays a page. */
 export const MAX_RECIPES_PER_COLLECTION = 60;
@@ -29,6 +31,15 @@ export const collectionInputSchema = z.object({
      * refused: dragging a recipe onto a list it is already on is a mistake
      * with an obvious intention.
      */
+    /** Uploaded to our store by the form. Empty means none. */
+    imageUrl: z
+        .string()
+        .trim()
+        .max(2048)
+        .refine((value) => value === '' || /^https?:\/\//i.test(value), 'The picture has to be an http(s) link')
+        .nullable()
+        .optional()
+        .transform((value) => value || null),
     recipeIds: z
         .array(z.number().int().positive())
         .max(MAX_RECIPES_PER_COLLECTION)

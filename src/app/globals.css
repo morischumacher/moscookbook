@@ -284,6 +284,20 @@ body {
   padding-left: 1.5rem;
 }
 
+/* The markers themselves. `list-style: revert` on the items was not enough:
+   an item inherits its marker from the list, and the reset had already set
+   the list to none — so every list in an entry was a column of loose lines. */
+.post-body ul,
+.markdown-step ul { list-style: disc; }
+.post-body ol,
+.markdown-step ol { list-style: decimal; }
+
+/* A link in running text has to look like one. */
+.post-body a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .post-body li {
   margin-bottom: 0.4rem;
   list-style: revert;
