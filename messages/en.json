@@ -357,13 +357,13 @@
   },
   "Inbox": {
     "title": "Inbox",
-    "explanation": "Everything you share from your phone or paste here lands in the inbox first. Add it to the cookbook, save it as a draft, or edit it first.",
+    "explanation": "Everything you share from your phone or paste here lands in the inbox first. What was recognised completely you take into the cookbook; where something is missing, the coloured box says what you can do.",
     "loading": "Loading the inbox…",
     "rereading": "Reading it again with the rules…",
     "empty": "Nothing waiting. Share something from your phone, or paste a link above.",
     "untitled": "Untitled",
     "accept": "Add to cookbook",
-    "finish": "Edit first",
+    "finish": "Edit",
     "retry": "Read again",
     "discard": "Delete",
     "openSource": "Open the source",
@@ -373,9 +373,9 @@
     "published": "{count, plural, one {# already taken} other {# already taken}}",
     "nav": "Inbox",
     "status": {
-      "new": "Not read yet",
-      "ready": "Ready",
-      "needsWork": "Needs a minute",
+      "new": "Being read…",
+      "ready": "Complete",
+      "needsWork": "Needs your decision",
       "failed": "Could not be read",
       "published": "Taken"
     },
@@ -399,7 +399,7 @@
     "legendTitle": "What the buttons do",
     "legendAccept": "Add to cookbook — the recipe goes straight into your list, as it is.",
     "legendStage": "Save as draft — it is kept, but under Drafts until you have cooked it and marked it done.",
-    "legendFinish": "Edit first — opens the recipe form with everything filled in, to correct it before saving.",
+    "legendFinish": "Edit — opens the recipe form with everything filled in, to correct it before saving.",
     "legendRetry": "More → Read again — reads the link once more with the rules; the AI only if the rules fall short. Free unless the AI is needed.",
     "legendAskAi": "More → Read with AI — has the AI read it even if the rules think they managed. Costs one call.",
     "legendRest": "More → Open the source, Report a problem (a ticket already describing this row), Delete.",
@@ -449,7 +449,25 @@
       "unsafe-url": "unsafe address",
       "not-a-page": "not a web page",
       "not-an-image": "not a picture"
-    }
+    },
+    "decision": {
+      "noRecipe": "No recipe found",
+      "elsewhere": "The recipe is somewhere else",
+      "spoken": "Recipe only spoken in the video",
+      "picture": "Picture not read yet",
+      "partial": "Only partly recognised",
+      "failed": "Import failed",
+      "incomplete": "Not fully recognised"
+    },
+    "step": {
+      "askAi": "Read with AI",
+      "retry": "Read again",
+      "edit": "Edit",
+      "openSource": "Open the source",
+      "discard": "Delete"
+    },
+    "aiOffHint": "The AI could help here, but it is switched off (Admin → AI).",
+    "legendDecision": "Rows with a coloured edge were not fully recognised: the box says what happened, and the steps that fit."
   },
   "Devices": {
     "title": "Devices",

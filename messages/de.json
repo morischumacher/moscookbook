@@ -357,13 +357,13 @@
   },
   "Inbox": {
     "title": "Eingang",
-    "explanation": "Alles, was du vom Handy teilst oder hier einfügst, landet zuerst hier. Ins Kochbuch, als Entwurf, oder erst bearbeiten.",
+    "explanation": "Alles, was du vom Handy teilst oder hier einfügst, landet zuerst hier. Vollständig Erkanntes übernimmst du ins Kochbuch; wo etwas fehlt, steht im farbigen Kasten, was du tun kannst.",
     "loading": "Eingang wird geladen…",
     "rereading": "Wird noch einmal mit den Regeln gelesen…",
     "empty": "Nichts da. Teile etwas vom Handy oder füge oben einen Link ein.",
     "untitled": "Ohne Titel",
     "accept": "Ins Kochbuch",
-    "finish": "Erst bearbeiten",
+    "finish": "Bearbeiten",
     "retry": "Neu einlesen",
     "discard": "Löschen",
     "openSource": "Quelle öffnen",
@@ -373,9 +373,9 @@
     "published": "{count, plural, one {# schon übernommen} other {# schon übernommen}}",
     "nav": "Eingang",
     "status": {
-      "new": "Noch nicht gelesen",
-      "ready": "Fertig",
-      "needsWork": "Braucht eine Minute",
+      "new": "Wird gelesen…",
+      "ready": "Vollständig erkannt",
+      "needsWork": "Entscheidung nötig",
       "failed": "Nicht lesbar",
       "published": "Übernommen"
     },
@@ -399,7 +399,7 @@
     "legendTitle": "Was die Knöpfe tun",
     "legendAccept": "Ins Kochbuch — das Rezept kommt direkt in deine Liste, so wie es ist.",
     "legendStage": "Als Entwurf — es wird aufgehoben, aber unter Entwürfe, bis du es gekocht und als fertig markiert hast.",
-    "legendFinish": "Erst bearbeiten — öffnet das Rezeptformular mit allem ausgefüllt, um es vor dem Speichern zu korrigieren.",
+    "legendFinish": "Bearbeiten — öffnet das Rezeptformular mit allem ausgefüllt, zum Korrigieren vor dem Speichern.",
     "legendRetry": "Mehr → Neu einlesen — liest den Link noch einmal mit den Regeln; die KI nur, wenn die Regeln nicht reichen. Kostenlos, solange keine KI nötig ist.",
     "legendAskAi": "Mehr → Mit KI lesen — lässt die KI lesen, auch wenn die Regeln meinen, sie hätten es geschafft. Kostet einen Aufruf.",
     "legendRest": "Mehr → Quelle öffnen, Problem melden (ein Ticket, das diese Zeile schon beschreibt), Löschen.",
@@ -449,7 +449,25 @@
       "unsafe-url": "unsichere Adresse",
       "not-a-page": "keine Webseite",
       "not-an-image": "kein Bild"
-    }
+    },
+    "decision": {
+      "noRecipe": "Kein Rezept gefunden",
+      "elsewhere": "Das Rezept liegt woanders",
+      "spoken": "Rezept nur im Video gesprochen",
+      "picture": "Bild noch nicht ausgelesen",
+      "partial": "Nur teilweise erkannt",
+      "failed": "Import fehlgeschlagen",
+      "incomplete": "Nicht vollständig erkannt"
+    },
+    "step": {
+      "askAi": "Mit KI lesen",
+      "retry": "Neu einlesen",
+      "edit": "Bearbeiten",
+      "openSource": "Quelle öffnen",
+      "discard": "Löschen"
+    },
+    "aiOffHint": "Die KI könnte hier helfen, ist aber ausgeschaltet (Verwaltung → KI).",
+    "legendDecision": "Einträge mit farbigem Rand wurden nicht vollständig erkannt: Im Kasten steht, was passiert ist, und die passenden nächsten Schritte."
   },
   "Devices": {
     "title": "Geräte",

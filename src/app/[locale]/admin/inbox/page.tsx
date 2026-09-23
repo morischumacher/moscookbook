@@ -1,12 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { captureLabel } from '@/lib/capture';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { formatDate } from '@/lib/formatDate';
-import { buttonPrimarySmall, buttonSecondary, pageContainer } from '@/lib/ui';
+import { buttonDanger, buttonPrimarySmall, buttonSecondary, pageContainer } from '@/lib/ui';
 import Loading from '@/components/ui/Loading';
 import PageHeader from '@/components/admin/PageHeader';
 import Disclosure from '@/components/ui/Disclosure';
@@ -15,6 +15,7 @@ import InboxPaste from '@/components/admin/InboxPaste';
 import InboxFilters from '@/components/admin/InboxFilters';
 import { countBy, filterInbox, NO_FILTER, type InboxQuery } from '@/lib/inboxFilter';
 import { readReason } from '@/lib/captureReasons';
+import { decisionFor, type Step } from '@/lib/inboxDecision';
 import ShareToWorkList, { type WorkState } from '@/components/admin/ShareToWorkList';
 
 interface DraftSummary {
@@ -245,6 +246,7 @@ export default function AdminInboxPage() {
                         <li>{t('legendRetry')}</li>
                         <li>{t('legendAskAi')}</li>
                         <li>{t('legendRest')}</li>
+                        <li>{t('legendDecision')}</li>
                     </ul>
                 </Disclosure>
             </div>
@@ -393,6 +395,33 @@ function CaptureRow({
         (Boolean(capture.draft?.title) && Boolean(capture.draft?.instructions));
 
     /*
+     * A row that did not come in complete is a question to you, not a
+     * recipe, and it now looks like one: a box saying what happened, with
+     * the steps that fit — see lib/inboxDecision. A complete row keeps the
+     * three plain choices.
+     */
+    const decision = decisionFor(capture, aiAvailable);
+
+    /*
+     * "More" is a <details>, which stays open until it is clicked again — so
+     * after "Read again" it sat open over the row it had just changed. It
+     * closes when one of its actions is chosen and when you tap anywhere else.
+     */
+    const menu = useRef<HTMLDetailsElement>(null);
+    const closeMenu = () => menu.current?.removeAttribute('open');
+    useEffect(() => {
+        const away = (event: PointerEvent) => {
+            if (menu.current?.open && !menu.current.contains(event.target as Node)) closeMenu();
+        };
+        document.addEventListener('pointerdown', away);
+        return () => document.removeEventListener('pointerdown', away);
+    }, []);
+    const fromMenu = (action: () => void) => () => {
+        closeMenu();
+        action();
+    };
+
+    /*
      * Whether a model has already had a go at this one.
      *
      * "Read again" and "Read with AI" are not two names for one thing, and
@@ -527,7 +556,48 @@ function CaptureRow({
                 </p>
             )}
 
-            {why && <p className="mt-1 text-sm text-muted">{why}</p>}
+            {!decision && why && <p className="mt-1 text-sm text-muted">{why}</p>}
+
+            {decision && (
+                <div
+                    className={`mt-3 rounded-xl border-l-4 bg-surface p-3 ${
+                        capture.status === 'failed' ? 'border-danger' : 'border-accent'
+                    }`}
+                >
+                    <p className="text-sm font-bold">
+                        <span aria-hidden="true">{capture.status === 'failed' ? '⚠︎ ' : '✋ '}</span>
+                        {t(`decision.${decision.situation}`)}
+                    </p>
+                    {why && <p className="mt-1 text-sm leading-relaxed text-muted">{why}</p>}
+                    {decision.aiWouldHelp && <p className="mt-1 text-xs text-faint">{t('aiOffHint')}</p>}
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {decision.steps.map((step: Step, index: number) => {
+                            const style =
+                                index === 0 ? (step === 'discard' ? buttonDanger : buttonPrimarySmall) : step === 'discard' ? 'px-2 text-sm text-danger underline underline-offset-4' : buttonSecondary;
+                            if (step === 'edit') {
+                                return (
+                                    <Link key={step} href={`/admin/create?capture=${capture.id}`} className={style}>
+                                        {t('step.edit')}
+                                    </Link>
+                                );
+                            }
+                            if (step === 'openSource') {
+                                return (
+                                    <a key={step} href={capture.sourceUrl ?? '#'} target="_blank" rel="noopener noreferrer" className={style}>
+                                        {t('step.openSource')}
+                                    </a>
+                                );
+                            }
+                            const act = step === 'askAi' ? onAskAi : step === 'retry' ? onRetry : onDiscard;
+                            return (
+                                <button key={step} type="button" onClick={act} disabled={busy} className={style}>
+                                    <BusyLabel busy={busy && busyAction === step}>{t(`step.${step}`)}</BusyLabel>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/*
                 The row is working, and this says on whose time.
@@ -561,7 +631,7 @@ function CaptureRow({
                 "More". The legend above the list says what each one does.
             */}
             <div className="mt-4 flex flex-wrap items-center gap-2">
-                {canPublish && (
+                {canPublish && !decision && (
                     <button type="button" onClick={onPublish} disabled={busy} className={buttonPrimarySmall}>
                         <BusyLabel busy={busy && busyAction === 'publish'} busyText={t('working')}>
                             {t('accept')}
@@ -574,7 +644,7 @@ function CaptureRow({
                     replacing it, because sometimes you already know — a recipe
                     you have cooked for years and are only typing up does not
                     need a probation period. */}
-                {canPublish && (
+                {canPublish && !decision && (
                     <button
                         type="button"
                         onClick={onStage}
@@ -586,14 +656,17 @@ function CaptureRow({
                     </button>
                 )}
 
-                <Link
-                    href={`/admin/create?capture=${capture.id}`}
-                    className={canPublish ? 'px-3 text-sm underline underline-offset-4' : buttonPrimarySmall}
-                >
-                    {t('finish')}
-                </Link>
+                {/* In the box above when the row needs a decision. */}
+                {!decision && (
+                    <Link
+                        href={`/admin/create?capture=${capture.id}`}
+                        className={canPublish ? 'px-3 text-sm underline underline-offset-4' : buttonPrimarySmall}
+                    >
+                        {t('finish')}
+                    </Link>
+                )}
 
-                <details className="relative">
+                <details ref={menu} className="relative">
                     <summary className="flex min-h-11 cursor-pointer list-none items-center px-3 text-sm text-muted underline underline-offset-4 [&::-webkit-details-marker]:hidden">
                         {t('more')}
                     </summary>
@@ -601,7 +674,7 @@ function CaptureRow({
                     <div className="absolute left-0 z-10 mt-1 flex w-64 flex-col rounded-xl border border-line bg-page p-1 text-sm shadow-lg">
                         <button
                             type="button"
-                            onClick={onRetry}
+                            onClick={fromMenu(onRetry)}
                             disabled={busy}
                             className="rounded-lg px-3 py-2 text-left hover:bg-surface disabled:opacity-50"
                         >
@@ -619,7 +692,7 @@ function CaptureRow({
                         */}
                         <button
                             type="button"
-                            onClick={onAskAi}
+                            onClick={fromMenu(onAskAi)}
                             disabled={busy || !aiAvailable}
                             className="rounded-lg px-3 py-2 text-left hover:bg-surface disabled:opacity-50"
                         >
@@ -638,6 +711,7 @@ function CaptureRow({
                                 href={capture.sourceUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={closeMenu}
                                 className="rounded-lg px-3 py-2 hover:bg-surface"
                             >
                                 {t('openSource')}
@@ -657,7 +731,7 @@ function CaptureRow({
 
                         <button
                             type="button"
-                            onClick={onDiscard}
+                            onClick={fromMenu(onDiscard)}
                             disabled={busy}
                             className="rounded-lg px-3 py-2 text-left text-danger hover:bg-danger-surface disabled:opacity-50"
                         >
@@ -673,7 +747,7 @@ function CaptureRow({
 function StatusBadge({ status }: { status: string }) {
     const t = useTranslations('Inbox');
     const tone =
-        status === 'ready' ? 'text-ink' : status === 'failed' ? 'text-danger' : 'text-faint';
+        status === 'ready' ? 'text-ink' : status === 'failed' ? 'text-danger' : status === 'needsWork' ? 'font-semibold text-accent-text' : 'text-faint';
 
     return <span className={tone}>{t(`status.${status}`)}</span>;
 }

@@ -8,6 +8,7 @@ import { readReason, reason } from '../src/lib/captureReasons';
 import { classifyCapture } from '../src/lib/capture';
 import { captureInputFrom } from '../src/lib/captureInput';
 import { recipeElsewhere } from '../src/lib/socialHints';
+import { extractYoutubePage } from '../src/lib/youtube';
 import { processCapture } from '../src/lib/captureProcess';
 
 const BLOG = `<!DOCTYPE html><html><head><title>Hainanese Chicken Rice | Kochblog</title>
@@ -146,4 +147,17 @@ export default async function socialImportTests() {
     const bio = await processCapture(classifyCapture({ url: 'https://www.instagram.com/p/DAbc123xyz/' })!, { mode: 'off', keys: [] });
     equal('the inbox says where the recipe is', readReason(bio.error)?.code, 'recipeInBio');
     restore();
+
+    suite('social: a YouTube title is a title, not a view count');
+    const shortPage = `<html><head><title>Crispy Chili Oil Noodles - YouTube</title>
+<meta property="og:title" content="Crispy Chili Oil Noodles"></head><body><script>
+var a = {"videoDetails":{"videoId":"abcdefghijk","isLive":false},"overlay":{"title":"737.681","x":1}};
+var b = {"videoDetails":{"videoId":"abcdefghijk","title":"Crispy Chili Oil Noodles","shortDescription":"Zutaten\\n200 g Nudeln","author":"Koch"}};
+</script></body></html>`;
+    const short = extractYoutubePage(shortPage, 'abcdefghijk');
+    equal('the object with the title, not the next title in the page', short.title, 'Crispy Chili Oil Noodles');
+    equal('its description with it', short.description, 'Zutaten\n200 g Nudeln');
+    equal('and its channel', short.channel, 'Koch');
+    const onlyCount = extractYoutubePage('<html><head><title>643 - YouTube</title><meta property="og:title" content="Linsen-Dal in 20 Minuten"></head><body><script>var a = {"videoDetails":{"videoId":"x","title":"643"}};</script></body></html>', 'abcdefghijk');
+    equal('a number is never taken as the title', onlyCount.title, 'Linsen-Dal in 20 Minuten');
 }
