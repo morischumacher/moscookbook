@@ -44,7 +44,8 @@
     "offlineKeeping": "Saving {done} of {total}…",
     "offlineKept": "{count, plural, one {# recipe} other {# recipes}} can now be opened without signal.",
     "favoritesChip": "Favourites",
-    "toFirstPage": "Back to the first page"
+    "toFirstPage": "Back to the first page",
+    "sortRelevance": "Best match"
   },
   "Categories": {
     "Breakfast": "Breakfast",

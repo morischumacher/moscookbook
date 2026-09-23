@@ -44,7 +44,8 @@
     "offlineKeeping": "{done} von {total} werden gespeichert…",
     "offlineKept": "{count, plural, one {# Rezept lässt} other {# Rezepte lassen}} sich jetzt ohne Netz öffnen.",
     "favoritesChip": "Favoriten",
-    "toFirstPage": "Zur ersten Seite"
+    "toFirstPage": "Zur ersten Seite",
+    "sortRelevance": "Beste Treffer"
   },
   "Categories": {
     "Breakfast": "Frühstück",
