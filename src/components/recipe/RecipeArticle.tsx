@@ -1,13 +1,13 @@
 import { getTranslations } from 'next-intl/server';
 import RatingDisplay from '@/components/RatingDisplay';
 import FavoriteButton from '@/components/FavoriteButton';
+import RecipeSource from '@/components/recipe/RecipeSource';
 import ViewTracker from '@/components/ViewTracker';
 import Logo from '@/components/brand/Logo';
 import RecipeBody from '@/components/recipe/RecipeBody';
 import Gallery from '@/components/recipe/Gallery';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import Cooked, { type CookedEntry } from '@/components/recipe/Cooked';
-import Visibility from '@/components/recipe/Visibility';
 import SimilarRecipes from '@/components/recipe/SimilarRecipes';
 import type { SimilarRecipe } from '@/lib/similarRecipes';
 import type { StructuredIngredient } from '@/lib/ingredientParts';
@@ -50,6 +50,13 @@ export interface RecipeRow {
     images: { url: string }[];
     ratings: { value: number; userId: number }[];
     ingredients: StructuredIngredient[];
+    /**
+     * The share this recipe was made from, for its link and nothing else.
+     * Optional: a recipe typed in by hand has no capture behind it, and the
+     * surfaces that render a recipe without asking for one (the shared page
+     * builds its own row) should not have to invent an empty array.
+     */
+    captures?: { sourceUrl: string | null }[];
 }
 
 /** What the page needs from the database, in one place so both routes agree. */
@@ -57,6 +64,15 @@ export const recipeInclude = {
     images: { orderBy: { position: 'asc' } },
     ratings: true,
     ingredients: { orderBy: { position: 'asc' } },
+    /*
+     * The capture this recipe was made from, for the one field worth showing:
+     * where it came from. One row, because a recipe is made from one share —
+     * a merge attaches a second, and the first is the one that made it.
+     *
+     * Only ever read for the link. Everything else on a capture is the raw
+     * material the recipe replaced.
+     */
+    captures: { orderBy: { id: 'asc' }, take: 1, select: { sourceUrl: true } },
 } as const;
 
 export interface RecipeArticleProps {
@@ -187,7 +203,6 @@ export default async function RecipeArticle({
                 <Gallery
                     images={recipe.images.map((image) => image.url)}
                     title={recipe.title}
-                    variant="hero"
                 />
             </div>
 
@@ -264,20 +279,33 @@ export default async function RecipeArticle({
                     )}
                 </div>
 
-                {/* One panel, not two. Publishing and the secret link are
-                    two answers to one question — who can see this — and they
-                    were briefly two stacked boxes saying it twice. */}
-                {mode === 'private' && isAdmin && (
-                    <div className="print:hidden mt-6">
-                        <Visibility
-                            recipeId={recipe.id}
-                            isPublic={recipe.isPublic}
-                            url={url}
-                            shareUrl={publicUrl}
-                            locale={locale}
-                        />
+                {/*
+                    Where it came from, under the row about what people thought
+                    of it — which is the same kind of fact: something about the
+                    recipe rather than part of it.
+
+                    Shown to whoever can see the page, including somebody
+                    holding a shared link: crediting the blog a recipe was
+                    taken from is the right thing to do in front of a guest,
+                    not something to hide from one.
+                */}
+                {recipe.captures?.[0]?.sourceUrl && (
+                    <div className="print:hidden mt-4">
+                        <RecipeSource url={recipe.captures[0].sourceUrl} />
                     </div>
                 )}
+
+                {/*
+                    The visibility panel that stood here is gone.
+                    
+                    It answered "who can see this" with two of the three
+                    stages and a box, while the Share button further down
+                    answered it a third way by minting a link without saying
+                    so. One control now — the button opens it — and the one
+                    thing the panel had that the button did not, a state you
+                    could read without pressing anything, is the line beside
+                    the button in the admin list.
+                */}
 
                 {/* On paper the pills and the picture are gone, so the facts
                     come back as a plain line. */}
@@ -300,22 +328,20 @@ export default async function RecipeArticle({
                     instructions={recipe.instructions}
                     baseServings={recipe.servings}
                     title={recipe.title}
-                    // What the share sheet hands over: the public link, so
-                    // that it reaches someone without an account. When there is
-                    // none yet and this person may publish, the button makes
-                    // one in the same tap rather than quietly sharing an
-                    // address that ends at a sign-in form.
-                    // A public recipe shares its own address; a private one
-                    // shares the secret link, or offers to make one, because
-                    // its own address ends at a sign-in form.
-                    shareUrl={
-                        mode === 'shared' || recipe.isPublic ? url : publicUrl ?? undefined
-                    }
-                    shareCreateUrl={
-                        mode === 'private' && isAdmin && !recipe.isPublic && !publicUrl
-                            ? `/api/recipes/${recipe.id}/share?locale=${locale}`
-                            : undefined
-                    }
+                    locale={locale}
+                    /*
+                     * Where this recipe stands, and whether this person may
+                     * move it. The button opens the dialog for an admin and
+                     * hands the address over directly for anybody else —
+                     * somebody holding a shared link has no stages to choose
+                     * between, so a dialog would only be three refusals.
+                     */
+                    share={{
+                        isPublic: recipe.isPublic,
+                        linkUrl: publicUrl,
+                        ownUrl: url,
+                        mayChange: mode === 'private' && isAdmin,
+                    }}
                 />
 
                 {mode === 'private' && (

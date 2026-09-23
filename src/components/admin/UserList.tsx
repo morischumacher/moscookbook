@@ -1,15 +1,22 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useConfirm } from '@/components/ui/useConfirm';
 import InlineConfirm from '@/components/ui/InlineConfirm';
+import { formatDate } from '@/lib/formatDate';
 
 interface User {
     id: number;
     name?: string;
     email: string;
     admin: boolean;
+    /** Whether they have confirmed their address. */
+    verified: boolean;
+    /** Who invited them, when the invitation is still on record. */
+    invitedBy: string | null;
+    /** When they took it up. */
+    joinedAt: string | null;
 }
 
 /**
@@ -23,6 +30,7 @@ interface User {
  */
 export default function UserList() {
     const t = useTranslations('Admin');
+    const locale = useLocale();
 
     const [ask, dialog] = useConfirm();
 
@@ -109,6 +117,36 @@ export default function UserList() {
                                 <p className="truncate font-medium">{user.name || user.email}</p>
                                 {user.name && (
                                     <p className="truncate text-sm text-muted">{user.email}</p>
+                                )}
+
+                                {/*
+                                    Where the spent invitations went.
+                                    
+                                    They used to sit in the list below this one
+                                    for ever, each saying "used by …", which
+                                    made the place you go to *make* an
+                                    invitation mostly a record of old ones. The
+                                    fact is about the person, so it lives on
+                                    the person — and an unconfirmed address is
+                                    worth seeing in the same glance, since it
+                                    is the reason somebody cannot reset their
+                                    own password.
+                                */}
+                                {(user.invitedBy || !user.verified) && (
+                                    <p className="mt-0.5 truncate text-xs text-faint">
+                                        {user.invitedBy && (
+                                            <span>
+                                                {user.joinedAt
+                                                    ? t('invitedByOn', {
+                                                          name: user.invitedBy,
+                                                          date: formatDate(user.joinedAt, locale),
+                                                      })
+                                                    : t('invitedBy', { name: user.invitedBy })}
+                                            </span>
+                                        )}
+                                        {user.invitedBy && !user.verified && ' · '}
+                                        {!user.verified && <span>{t('unverified')}</span>}
+                                    </p>
                                 )}
                             </div>
 

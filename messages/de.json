@@ -12,7 +12,10 @@
     "greeting": "Hallo {name}",
     "language": "Sprache",
     "toggleMenu": "Menü öffnen",
-    "recipes": "Rezepte"
+    "recipes": "Rezepte",
+    "logoutFailed": "Das Abmelden hat nicht geklappt \u2014 du bist weiterhin angemeldet.",
+    "accountMenu": "Dein Konto und Einstellungen",
+    "account": "Dein Konto"
   },
   "Home": {
     "searchPlaceholder": "Rezepte und Zutaten durchsuchen…",
@@ -55,6 +58,7 @@
     "Indian": "Indisch"
   },
   "Recipe": {
+    "loadingRecipe": "Rezept wird geholt\u2026",
     "ingredients": "Zutaten",
     "instructions": "Zubereitung",
     "noIngredients": "Für dieses Rezept sind keine Zutaten hinterlegt.",
@@ -97,7 +101,8 @@
   "Favorite": {
     "add": "Zu Favoriten hinzufügen",
     "remove": "Aus Favoriten entfernen",
-    "loginRequired": "Zum Merken anmelden"
+    "loginRequired": "Zum Merken anmelden",
+    "notSaved": "Der Favorit konnte nicht gespeichert werden."
   },
   "Auth": {
     "loginTitle": "Anmelden",
@@ -106,9 +111,7 @@
     "password": "Passwort",
     "submitLogin": "Anmelden",
     "submitRegister": "Registrieren",
-    "needAccount": "Noch kein Konto?",
     "haveAccount": "Schon ein Konto?",
-    "registerLink": "Registrieren",
     "loginLink": "Anmelden",
     "failed": "Anmeldung fehlgeschlagen",
     "error": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
@@ -146,6 +149,7 @@
     "inviteExpired": "Diese Einladung ist abgelaufen. Frag Mo nach einem neuen Link."
   },
   "Admin": {
+    "loadingPage": "Seite wird geholt\u2026",
     "dashboard": "Rezepte",
     "lastBackup": "Letzte automatische Sicherung: {date} — {result}",
     "noBackupYet": "Noch keine automatische Sicherung gelaufen. Sie läuft montags um 4 Uhr, sobald CRON_SECRET in Vercel gesetzt ist.",
@@ -173,7 +177,10 @@
     "columnId": "ID",
     "viewCount": "{count, plural, one {# Aufruf} other {# Aufrufe}}",
     "people": "Menschen",
-    "adminNavLabel": "Admin-Bereiche"
+    "adminNavLabel": "Admin-Bereiche",
+    "invitedBy": "Eingeladen von {name}",
+    "invitedByOn": "Eingeladen von {name} · dabei seit {date}",
+    "unverified": "Adresse nicht bestätigt"
   },
   "RecipeForm": {
     "newRecipe": "Neues Rezept",
@@ -298,11 +305,11 @@
     "title": "Eingang",
     "explanation": "Alles, was du vom Handy teilst, landet erst hier. Übernehmen, fertigstellen oder wegwerfen.",
     "loading": "Eingang wird geladen…",
+    "rereading": "Wird noch einmal mit den Regeln gelesen…",
     "empty": "Nichts da. Teile etwas von deinem Handy.",
     "untitled": "Ohne Titel",
-    "devices": "Geräte",
     "accept": "Übernehmen",
-    "finish": "Fertigstellen",
+    "finish": "Öffnen und bearbeiten",
     "retry": "Neu einlesen",
     "discard": "Wegwerfen",
     "openSource": "Quelle öffnen",
@@ -330,12 +337,14 @@
     "duplicateLink": "Dieser Link steht schon im Kochbuch als",
     "duplicateTitle": "Gibt es vielleicht schon:",
     "merge": "Zusammenführen",
-    "confirmMerge": "Mit „{title}\" zusammenführen? Der Text bleibt, wie er ist; ein neues Bild kommt dazu und dieser Eingang wird dem Rezept zugeordnet."
+    "confirmMerge": "Mit „{title}\" zusammenführen? Der Text bleibt, wie er ist; ein neues Bild kommt dazu und dieser Eingang wird dem Rezept zugeordnet.",
+    "report": "Das melden",
+    "reportStatus": "Status",
+    "retryExplain": "Noch einmal einlesen, wie sonst auch — Regeln zuerst, ein Modell nur, wenn es helfen würde."
   },
   "Devices": {
     "title": "Geräte",
     "explanation": "Ein Gerät mit Schlüssel darf Rezepte in deinen Eingang schicken, ohne sich anzumelden. Ein Schlüssel pro Gerät — dann kostet ein verlorenes Handy einen Widerruf und sonst nichts.",
-    "backToInbox": "Zurück zum Eingang",
     "loading": "Geräte werden geladen…",
     "devicesHeading": "Schlüssel",
     "noDevices": "Noch keine Geräte.",
@@ -416,7 +425,19 @@
     "preparing": "Link wird erstellt…",
     "statePrivateCollection": "Diese Sammlung sehen nur Leute mit Konto.",
     "statePublicCollection": "Wer diesen Link hat, kann die Sammlung sehen.",
-    "revokeConfirmCollection": "Diesen Link zurückziehen? Wer ihn schon bekommen hat, kann die Sammlung dann nicht mehr öffnen."
+    "revokeConfirmCollection": "Diesen Link zurückziehen? Wer ihn schon bekommen hat, kann die Sammlung dann nicht mehr öffnen.",
+    "copyFailed": "Kopieren hat nicht geklappt \u2014 der Link steht im Feld darüber.",
+    "linkFailed": "Der Link konnte nicht erstellt werden \u2014 es wurde nichts geteilt.",
+    "whoCanSee": "Wer das sehen kann",
+    "stageHousehold": "Nur der Haushalt",
+    "stageHouseholdBody": "Alle mit einem Konto hier. Ein schon herausgegebener Link hört auf zu funktionieren.",
+    "stageLink": "Wer den Link hat",
+    "stageLinkBody": "Eine geheime Adresse ohne Konto. Du kannst sie später zurückziehen — einen verschickten Link bekommst du aber nicht zurück.",
+    "stageWeb": "Im offenen Web",
+    "stageWebBody": "Die eigene Adresse antwortet jedem, und eine Suchmaschine darf eine Kopie behalten. Bewerten und Fotos brauchen weiterhin ein Konto.",
+    "stageWebBodyOther": "Die eigene Adresse antwortet jedem, und eine Suchmaschine darf eine Kopie behalten. Gezeigt werden nur die Rezepte, die selbst öffentlich sind.",
+    "done": "Fertig",
+    "failed": "Das hat nicht geklappt."
   },
   "Errors": {
     "title": "Fehler",
@@ -437,7 +458,13 @@
     },
     "loadFailed": "Die Fehlerliste konnte nicht geladen werden — diese Seite kann gerade nicht sagen, ob etwas kaputt ist.",
     "resolveFailed": "Das konnte nicht als erledigt markiert werden.",
-    "retry": "Nochmal versuchen"
+    "delete": "Endgültig löschen",
+    "deleteConfirm": "Diese Zeile entfernen? Ihre Vorgeschichte geht mit.",
+    "deleteFailed": "Das konnte nicht gelöscht werden.",
+    "retry": "Nochmal versuchen",
+    "exportMarkdown": "Alle als Markdown kopieren",
+    "copied": "Kopiert",
+    "copyFailed": "Kopieren hat nicht geklappt."
   },
   "ErrorPage": {
     "title": "Diese Seite hat nicht geladen.",
@@ -544,7 +571,8 @@
     "confirmDelete": "Diese Sammlung löschen? Die Rezepte selbst bleiben.",
     "newTitle": "Neue Sammlung",
     "editTitle": "Sammlung bearbeiten",
-    "sharedBy": "Eine Sammlung aus Mo’sCookbook"
+    "sharedBy": "Eine Sammlung aus Mo’sCookbook",
+    "hiddenCount": "{count, plural, one {# weiteres, privat} other {# weitere, privat}}"
   },
   "Visibility": {
     "heading": "Sichtbarkeit",
@@ -554,14 +582,12 @@
     "copyAddress": "Adresse kopieren",
     "copied": "Kopiert",
     "makePublic": "Veröffentlichen",
-    "makePrivate": "Wieder privat machen",
+    "makePrivate": "Privat machen",
     "sureQuestion": "Ins offene Netz stellen?",
     "working": "Einen Moment…",
     "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
     "share": "Teilen",
     "copyFailed": "Kopieren ging nicht.",
-    "makePublicShort": "Veröffentlichen",
-    "makePrivateShort": "Privat",
     "statePublic": "Öffentlich",
     "statePrivate": "Privat"
   },
@@ -594,6 +620,12 @@
     "rightsBody": "Du kannst Auskunft, Berichtigung, Löschung, Einschränkung und Übertragung deiner Daten verlangen und der Verarbeitung widersprechen. Schreib mir, das genügt. Wenn du dich beschweren möchtest, ist die Datenschutzbehörde in Wien zuständig.",
     "privacyUpdated": "Stand: September 2026. Sollte sich an der Seite etwas ändern, das hier steht, ändert sich auch dieser Text."
   },
+  "Reports": {
+    "nav": "Meldungen",
+    "title": "Meldungen",
+    "errors": "Fehler",
+    "tickets": "Tickets"
+  },
   "Tickets": {
     "title": "Ticket aufmachen",
     "intro": "Was fehlt, was nervt, was du dir wünschst. Ein Satz reicht — je konkreter, desto eher ist es schnell behoben.",
@@ -612,6 +644,7 @@
     "backToRecipes": "Zurück zu den Rezepten",
     "nav": "Tickets",
     "adminTitle": "Tickets",
+    "adminExplanation": "Was Leute zum Kochbuch gesagt haben. Die Seite, auf der sie waren, steht so da, wie sie gesendet wurde.",
     "loading": "Wird geladen…",
     "loadFailed": "Die Liste konnte nicht geladen werden.",
     "noneOpen": "Nichts offen.",
@@ -625,7 +658,8 @@
     "copied": "Kopiert",
     "copyFailed": "Kopieren ging nicht.",
     "ticketHint": "Kopiert einen fertigen Text mit Seite, Datum und Beschreibung — zum Einfügen dort, wo es behoben wird.",
-    "dropPage": "Nicht mitschicken"
+    "dropPage": "Nicht mitschicken",
+    "exportMarkdown": "Alle als Markdown kopieren"
   },
   "Account": {
     "title": "Dein Konto",
@@ -636,13 +670,36 @@
     "remove": "Entfernen",
     "working": "Einen Moment…",
     "failed": "Hat nicht geklappt. Bitte noch einmal versuchen.",
-    "nav": "Konto"
+    "nav": "Konto",
+    "change": "Ändern",
+    "close": "Schließen",
+    "save": "Speichern",
+    "nameTitle": "Dein Name",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "nameSaved": "Dein Name wurde geändert.",
+    "emailTitle": "E-Mail-Adresse",
+    "newEmail": "Neue Adresse",
+    "yourPassword": "Dein Passwort",
+    "emailBody": "Die neue Adresse muss bestätigt werden, deshalb geht sofort ein Link dorthin. Die alte Adresse wird über die Änderung informiert.",
+    "emailSaved": "Die Adresse wurde geändert. Im neuen Postfach liegt der Bestätigungslink.",
+    "passwordTitle": "Passwort",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "passwordSaved": "Dein Passwort wurde geändert.",
+    "deleteTitle": "Konto löschen",
+    "deleteExplain": "Deine Bewertungen, Favoriten und Anmeldungen gehen mit. Notizen und Fotos von dem, was du gekocht hast, bleiben ohne deinen Namen im Kochbuch, und die Rezepte gehören dem Haushalt.",
+    "deleteConfirm": "Dein Konto löschen?",
+    "deleteBody": "Das lässt sich nicht rückgängig machen.",
+    "deleteAction": "Mein Konto löschen",
+    "deleted": "Dein Konto wurde gelöscht."
   },
   "Ai": {
     "nav": "KI",
     "title": "KI-Import",
     "intro": "Rezepte werden zuerst mit Regeln gelesen — strukturierte Daten auf der Seite, die Beschreibung eines Videos, ein eingefügter Text. Das kostet nichts und funktioniert ohne alles hier. Ein Schlüssel ist der zweite Versuch: für ein Foto, weil Pixel keine Regel haben, und für die vielen Blogs, die ihre Zutaten ohne jede Auszeichnung hinschreiben.",
     "loading": "Wird geladen …",
+    "reading": "Ein Modell liest das gerade\u2026",
     "cannotStore": "Diese Installation hat kein Sitzungsgeheimnis, unter dem ein Schlüssel verschlossen werden könnte. Bis SECRET_COOKIE_PASSWORD gesetzt ist, lässt sich hier nichts speichern.",
     "modeHeading": "Wann gefragt wird",
     "modeIntro": "Die Regeln laufen in jeder Einstellung zuerst. Hier steht nur, ob danach noch jemand gefragt wird.",
@@ -702,7 +759,9 @@
     "rebuildWithAi": "Rezept mit KI aus der Eingabe erstellen",
     "modelHint": "Leer lassen ist meistens richtig. Antwortet das Standardmodell nicht — überlastet oder Kontingent leer —, wird automatisch das nächste probiert und das funktionierende hier eingetragen.",
     "modelAuto": "Automatisch gewählt am {date}, weil das vorherige nicht geantwortet hat. Du kannst es jederzeit überschreiben; dann bleibt deine Wahl stehen.",
-    "testModel": "Geantwortet hat: {model}."
+    "testModel": "Geantwortet hat: {model}.",
+    "askAiExplain": "Ein Modell fragen, obwohl die Regeln meinen, sie hätten es geschafft. Kostet einen Aufruf.",
+    "askAgainExplain": "Ein Modell hat das hier schon gelesen. Noch einmal fragen kostet noch einen Aufruf und sagt vermutlich dasselbe."
   },
   "SiteProfiles": {
     "title": "Gelernte Seiten",

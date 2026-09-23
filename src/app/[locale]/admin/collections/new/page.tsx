@@ -1,7 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 import prisma from '@/lib/prisma';
 import CollectionForm from '@/components/collection/CollectionForm';
-import { pageContainer, pageTop, pageHeading } from '@/lib/ui';
+import { pageContainer } from '@/lib/ui';
+import PageHeader from '@/components/admin/PageHeader';
 
 export default async function NewCollectionPage() {
     const t = await getTranslations('Collections');
@@ -15,7 +16,7 @@ export default async function NewCollectionPage() {
 
     return (
         <main className={`${pageContainer} pb-32`}>
-            <h1 className={`${pageTop} ${pageHeading} mb-8`}>{t('newTitle')}</h1>
+            <PageHeader title={t('newTitle')} />
 
             <CollectionForm
                 initial={{ title: '', description: '', recipeIds: [] }}

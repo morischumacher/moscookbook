@@ -1,8 +1,8 @@
 import { getTranslations } from 'next-intl/server';
-import { Link } from '@/i18n/routing';
 import AiKeys from '@/components/admin/AiKeys';
 import SiteProfiles from '@/components/admin/SiteProfiles';
-import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import PageHeader from '@/components/admin/PageHeader';
+import { pageContainer } from '@/lib/ui';
 
 /**
  * The AI screen.
@@ -14,20 +14,14 @@ import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
  */
 export default async function AdminAiPage() {
     const t = await getTranslations('Ai');
-    const tDevices = await getTranslations('Devices');
 
     return (
         <main className={`${pageContainer} pb-32`}>
-            <div
-                className={`mb-8 flex flex-wrap items-baseline justify-between gap-4 ${pageTop} ${pageHeading}`}
-            >
-                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
-                <Link href="/admin/devices" className="text-sm underline underline-offset-4">
-                    {tDevices('nav')}
-                </Link>
-            </div>
-
-            <p className="mb-10 font-serif text-muted">{t('intro')}</p>
+            {/* This page was missed when the other seven were brought onto one
+                header, and it still carried a back link to the devices page —
+                which is exactly the "some have one and some do not" the
+                unification was for. */}
+            <PageHeader title={t('title')} intro={t('intro')} />
 
             <AiKeys />
             <SiteProfiles />

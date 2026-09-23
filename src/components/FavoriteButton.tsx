@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import styles from './FavoriteButton.module.css';
 import { useConfirm } from '@/components/ui/useConfirm';
+import { messageFrom } from '@/lib/apiMessage';
 
 interface FavoriteButtonProps {
     recipeId: number;
@@ -33,13 +34,21 @@ export default function FavoriteButton({ recipeId, initialFavorited, disabled = 
             if (!res.ok) {
                 // Revert
                 setIsFavorited(previousState);
-                if (res.status === 401) {
-                    await ask({ title: t('loginRequired'), kind: 'alert' });
-                }
+                /*
+                 * Every failure is now said out loud, not only the 401.
+                 * Reverting the heart without a word meant a tap that had done
+                 * nothing looked exactly like a tap on an already-favourited
+                 * recipe — and the next tap did nothing either.
+                 */
+                await ask({
+                    title: res.status === 401 ? t('loginRequired') : await messageFrom(res, t('notSaved')),
+                    kind: 'alert',
+                });
             }
         } catch {
             // Revert
             setIsFavorited(previousState);
+            await ask({ title: t('notSaved'), kind: 'alert' });
         } finally {
             setIsLoading(false);
         }

@@ -884,7 +884,17 @@ export default function RecipeForm({
                     </button>
                     <button
                         type="button"
-                        onClick={() => router.push('/admin')}
+                        /*
+                         * Cancel used to leave the saved draft behind, so the
+                         * next time this form opened it offered to restore the
+                         * thing that had just been abandoned on purpose. The
+                         * form autosaves for the tab that crashes, not for the
+                         * edit somebody decided against.
+                         */
+                        onClick={() => {
+                            clearDraft();
+                            router.push('/admin');
+                        }}
                         className="text-sm text-muted underline underline-offset-4"
                     >
                         {t('cancel')}

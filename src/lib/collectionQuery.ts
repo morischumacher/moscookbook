@@ -14,13 +14,28 @@ export interface CollectionRow {
     title: string;
     slug: string;
     description: string | null;
+    /** Whether this collection's own address answers without a session. */
+    isPublic: boolean;
     shareToken: string | null;
-    recipes: { id: number; title: string; slug: string; imageUrl: string | null }[];
+    recipes: {
+        id: number;
+        title: string;
+        slug: string;
+        imageUrl: string | null;
+        /** Whether this recipe's own address answers without a session. */
+        isPublic: boolean;
+    }[];
 }
 
 interface JoinRow {
     position: number;
-    recipe: { id: number; title: string; slug: string; images: { url: string }[] };
+    recipe: {
+        id: number;
+        title: string;
+        slug: string;
+        isPublic: boolean;
+        images: { url: string }[];
+    };
 }
 
 interface RawCollection {
@@ -28,6 +43,7 @@ interface RawCollection {
     title: string;
     slug: string;
     description: string | null;
+    isPublic: boolean;
     shareToken: string | null;
     recipes: JoinRow[];
 }
@@ -52,6 +68,9 @@ const include = {
                     id: true,
                     title: true,
                     slug: true,
+                    // So a public collection can leave out the recipes that
+                    // are not themselves public. See collectionVisibility.
+                    isPublic: true,
                     // One picture, the first — a tile shows one.
                     images: { orderBy: { position: 'asc' as const }, take: 1, select: { url: true } },
                 },
@@ -66,12 +85,14 @@ function flatten(collection: RawCollection): CollectionRow {
         title: collection.title,
         slug: collection.slug,
         description: collection.description,
+        isPublic: collection.isPublic,
         shareToken: collection.shareToken,
         recipes: collection.recipes.map((row) => ({
             id: row.recipe.id,
             title: row.recipe.title,
             slug: row.recipe.slug,
             imageUrl: row.recipe.images[0]?.url ?? null,
+            isPublic: row.recipe.isPublic,
         })),
     };
 }
@@ -84,6 +105,7 @@ export async function collectionBySlug(slug: string): Promise<CollectionRow | nu
             title: true,
             slug: true,
             description: true,
+            isPublic: true,
             shareToken: true,
             ...include,
         },
@@ -104,6 +126,7 @@ export async function collectionByToken(token: string): Promise<CollectionRow | 
             title: true,
             slug: true,
             description: true,
+            isPublic: true,
             shareToken: true,
             ...include,
         },

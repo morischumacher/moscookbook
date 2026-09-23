@@ -6,7 +6,9 @@ import { Link, useRouter } from '@/i18n/routing';
 import { captureLabel } from '@/lib/capture';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { formatDate } from '@/lib/formatDate';
-import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import { pageContainer } from '@/lib/ui';
+import Loading from '@/components/ui/Loading';
+import PageHeader from '@/components/admin/PageHeader';
 
 interface DraftSummary {
     title?: string;
@@ -74,6 +76,10 @@ export default function AdminInboxPage() {
     const [error, setError] = useState('');
     /** Whether "read this with the AI" can do anything. Reported by the list. */
     const [aiAvailable, setAiAvailable] = useState(false);
+    /** And which model would be asked, so the wait can say who is working. */
+    const [aiModel, setAiModel] = useState<string | null>(null);
+    /** Which row is busy doing what, so the right thing can be said about it. */
+    const [busyAction, setBusyAction] = useState<'retry' | 'askAi' | 'publish' | 'stage' | null>(null);
 
     const load = useCallback(async () => {
         try {
@@ -82,6 +88,7 @@ export default function AdminInboxPage() {
             const data = await res.json();
             setCaptures(data.captures);
             setAiAvailable(Boolean(data.aiAvailable));
+            setAiModel(typeof data.aiModel === 'string' ? data.aiModel : null);
         } catch (err) {
             setError(err instanceof Error ? err.message : tAdmin('genericError'));
         } finally {
@@ -95,6 +102,7 @@ export default function AdminInboxPage() {
 
     const act = async (id: number, action: 'retry' | 'askAi' | 'publish' | 'stage') => {
         setBusyId(id);
+        setBusyAction(action);
         setError('');
         try {
             const res = await fetch(`/api/capture/${id}`, {
@@ -107,12 +115,30 @@ export default function AdminInboxPage() {
                 setError(data.message || tAdmin('genericError'));
                 return;
             }
+
+            /*
+             * Taking a capture makes a recipe, and then left you in the inbox
+             * looking at a list it had just vanished from — with no way to
+             * reach the thing you made except going to the overview and
+             * finding it. The slug is in the answer; this is the shortest path
+             * in the whole application and it was missing a step.
+             *
+             * Only for `publish`. Staging is "not now": the point of it is to
+             * carry on down the list, so it stays put.
+             */
+            const slug: unknown = data?.recipe?.slug;
+            if (action === 'publish' && typeof slug === 'string' && slug !== '') {
+                router.push(`/recipe/${slug}`);
+                return;
+            }
+
             await load();
             if (action === 'publish' || action === 'stage') router.refresh();
         } catch {
             setError(tAdmin('genericError'));
         } finally {
             setBusyId(null);
+            setBusyAction(null);
         }
     };
 
@@ -176,14 +202,7 @@ export default function AdminInboxPage() {
 
     return (
         <main className={`${pageContainer} pb-32`}>
-            <div className={`mb-8 flex flex-wrap items-baseline justify-between gap-4 ${pageTop} ${pageHeading}`}>
-                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('title')}</h1>
-                <Link href="/admin/devices" className="text-sm underline underline-offset-4">
-                    {t('devices')}
-                </Link>
-            </div>
-
-            <p className="mb-8 font-serif text-muted">{t('explanation')}</p>
+            <PageHeader title={t('title')} intro={t('explanation')} />
 
             {error && (
                 <p className="mb-6 rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
@@ -192,7 +211,7 @@ export default function AdminInboxPage() {
             )}
 
             {loading ? (
-                <p className="text-muted">{t('loading')}</p>
+                <Loading label={t('loading')} />
             ) : open.length === 0 ? (
                 <p className="border-t border-line py-16 text-center text-muted">{t('empty')}</p>
             ) : (
@@ -202,6 +221,8 @@ export default function AdminInboxPage() {
                             key={capture.id}
                             capture={capture}
                             busy={busyId === capture.id}
+                            busyAction={busyId === capture.id ? busyAction : null}
+                            aiModel={aiModel}
                             onPublish={() => act(capture.id, 'publish')}
                             onStage={() => act(capture.id, 'stage')}
                             onRetry={() => act(capture.id, 'retry')}
@@ -255,6 +276,8 @@ export default function AdminInboxPage() {
 function CaptureRow({
     capture,
     busy,
+    busyAction,
+    aiModel,
     onPublish,
     onStage,
     onRetry,
@@ -265,6 +288,10 @@ function CaptureRow({
 }: {
     capture: Capture;
     busy: boolean;
+    /** What this row is doing, when it is doing something. */
+    busyAction: 'retry' | 'askAi' | 'publish' | 'stage' | null;
+    /** The model that would be asked, for the one wait that is somebody else's. */
+    aiModel: string | null;
     onPublish: () => void;
     onStage: () => void;
     onRetry: () => void;
@@ -289,6 +316,35 @@ function CaptureRow({
     const canPublish =
         capture.status === 'ready' ||
         (Boolean(capture.draft?.title) && Boolean(capture.draft?.instructions));
+
+    /*
+     * Whether a model has already had a go at this one.
+     *
+     * "Read again" and "Read with AI" are not two names for one thing, and
+     * the difference was invisible: reading again uses a model *if the
+     * scoring thinks it would help*, and asking explicitly skips that
+     * judgement and pays for a call regardless. Which means that on a row a
+     * model has already read, the second button mostly buys the same answer a
+     * second time.
+     *
+     * Said rather than taken away — the scoring is a guess from shape alone,
+     * and somebody who has read the draft may know better. The button is
+     * dimmed and its explanation changes; it still works.
+     */
+    const alreadyAsked = (capture.readBy ?? '').includes('ai') && capture.status === 'ready';
+
+    /** The ticket, already written. See the report link below. */
+    const reportText = [
+        `${t('report')}: ${label}`,
+        `${t('reportStatus')}: ${capture.status}${capture.readBy ? ` (${capture.readBy})` : ''}`,
+        capture.aiProvider ? `${tAi('nav')}: ${providerLabel(capture.aiProvider)}` : null,
+        capture.sourceUrl ? capture.sourceUrl : null,
+        capture.error ? capture.error : null,
+        '',
+        '',
+    ]
+        .filter((line) => line !== null)
+        .join('\n');
 
     return (
         <li className="py-5">
@@ -389,6 +445,24 @@ function CaptureRow({
 
             {capture.error && <p className="mt-1 text-sm text-muted">{capture.error}</p>}
 
+            {/*
+                The row is working, and this says on whose time.
+
+                Rereading with the rules is ours and takes a moment; asking a
+                model is somebody else's, takes seconds, costs money and can
+                come back with nothing. The buttons all said "Just a moment…"
+                either way, which made the expensive wait look like the cheap
+                one — so the one that is not ours names the model doing it.
+            */}
+            {busy && (busyAction === 'askAi' || busyAction === 'retry') && (
+                <Loading
+                    className="mt-3"
+                    size={22}
+                    label={busyAction === 'askAi' ? tAi('reading') : t('rereading')}
+                    model={busyAction === 'askAi' ? aiModel : null}
+                />
+            )}
+
             <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
                 {canPublish && (
                     <button
@@ -430,6 +504,7 @@ function CaptureRow({
                     type="button"
                     onClick={onRetry}
                     disabled={busy}
+                    title={t('retryExplain')}
                     className="text-muted underline underline-offset-4 disabled:opacity-50"
                 >
                     {t('retry')}
@@ -454,11 +529,35 @@ function CaptureRow({
                     type="button"
                     onClick={onAskAi}
                     disabled={busy || !aiAvailable}
-                    title={aiAvailable ? undefined : tAi('polishOff')}
-                    className="text-muted underline underline-offset-4 disabled:no-underline disabled:opacity-50"
+                    title={
+                        !aiAvailable
+                            ? tAi('polishOff')
+                            : alreadyAsked
+                              ? tAi('askAgainExplain')
+                              : tAi('askAiExplain')
+                    }
+                    className={`underline underline-offset-4 disabled:no-underline disabled:opacity-50 ${
+                        alreadyAsked ? 'text-faint' : 'text-muted'
+                    }`}
                 >
                     {tAi('askAi')}
                 </button>
+
+                {/*
+                    Something came out wrong and you want it looked at.
+
+                    The alternative was opening the ticket form and typing out
+                    which of forty rows you meant, what state it was in and
+                    where it came from — which is the moment most tickets stop
+                    being written. The description arrives already written and
+                    entirely editable.
+                */}
+                <Link
+                    href={`/tickets?from=${encodeURIComponent(`/${locale}/admin/inbox`)}&about=${encodeURIComponent(reportText)}`}
+                    className="text-muted underline underline-offset-4"
+                >
+                    {t('report')}
+                </Link>
 
                 {capture.sourceUrl && (
                     <a

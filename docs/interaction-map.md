@@ -70,10 +70,10 @@ rule and the proxy can no longer disagree silently.
 
 | Screen | Why | Recommendation |
 |---|---|---|
-| `/[locale]/account` | The only link is the greeting row inside the **mobile** menu (`md:hidden`). On a desktop viewport there is no way to reach it. | Put the greeting/account link in the desktop header row too. |
-| `/[locale]/drafts` as a non-admin | Access is `account`, but the only link lives in `AdminNav`, which renders under `/admin/**` only. A non-admin who types the address sees the list and no Finish button (`mayFinish` is admin-only). | Either make the page `admin` (it is an admin workflow) or link it from the header for everybody. The first is honest. |
+| ~~`/[locale]/account`~~ | The only link was the greeting row inside the **mobile** menu (`md:hidden`). | **Done.** The desktop row carries the same greeting, leading to the same place. |
+| ~~`/[locale]/drafts` as a non-admin~~ | Access was `account`, but the only link lived in `AdminNav`, which renders under `/admin/**` only — so arriving made the navigation vanish, and a non-admin found a list with no button. | **Done.** The page is `/admin/drafts`; `/drafts` redirects. `mayFinish` is gone with it: everyone who reaches the page can finish. |
 | `/[locale]/admin/invites` | A redirect stub kept for old bookmarks; nothing links to it. | Fine as is. Remove once the bookmark is gone. |
-| `/[locale]/register` without `?invite=` | Linked from `/login`, but the page refuses to draw the form; its only exit is back to `/login`. | The login page should say "by invitation" rather than offer a link that dead-ends. |
+| ~~`/[locale]/register` without `?invite=`~~ | Linked from `/login`, but the page refuses to draw the form; its only exit was back to `/login`. | **Done.** The login page says so instead of linking, and the two labels nothing used any more are gone. |
 | `/[locale]/c/[token]` | A leaf: tiles are not links (`linkTo={null}`), by design — the visitor has no account. | Fine, but the page could carry the shared-collection's recipes as `/r/` links if recipes in a shared collection are meant to be readable. Decide, then document. |
 
 `/reset`, `/verify`, `/r/[token]`, `/p/[token]` are reachable only by mailed
@@ -94,19 +94,24 @@ failure looks identical to success:
 | `ShareButton` | If minting the `/r/` token fails it falls through to `window.location.href` — the share *appears* to work but hands out a link that lands on the login form, which is the failure the component exists to prevent. | Say so instead of falling through, or fall through only for public recipes. |
 | `RecipeForm` Cancel | `router.push('/admin')` without `clearDraft()`, so the abandoned draft silently reappears next time. | Ask, or clear. Not both, not neither. |
 
-Each of these components carries its own `fetch` + `catch`. A shared client
-helper (one `postJson`, one error line) is the deferred item from the code
-audit; wiring it in would close this table in one change.
+**Closed.** `src/lib/apiMessage.ts` is the one reader of a failed response —
+it returns the route's own `{ message }` or the caller's sentence, and never
+throws. `useAction()` wraps a request in it and shows the failure in the
+dialog the application already had. Components that already owned a place to
+put a message (`AiKeys`, `SiteProfiles`) use that instead of a second one.
+Every row above now says something when it fails; `ShareButton` stops rather
+than sharing an address the recipient cannot open, and Cancel clears the
+draft it abandoned.
 
 ### 4. Same action, different labels
 
 | Action | Labels in use | Recommendation |
 |---|---|---|
-| Publish / unpublish a recipe | `makePublic` (`Visibility`) vs `makePublicShort` (`RecipeRowActions`), same `PATCH …/visibility` | One label. The short one fits both. |
-| Get a link to a recipe | `Share.share`, `Visibility.share`, `Share.copyLink`, `Visibility.copyAddress` — four labels, and they can copy *different* URLs (`/recipe/<slug>` vs `/r/<token>`) | Two verbs at most: **Share** (mints the token, copies the `/r/` link, uses the share sheet on a phone) and **Copy address** (the plain URL, for people with accounts). Say which is which. |
+| ~~Publish / unpublish a recipe~~ | `makePublic` and `makePublicShort` held the *same string* in both languages; `makePrivate`/`makePrivateShort` held two. | **Done.** One key per action, shortened so it fits a list row as well as a panel. |
+| ~~Get a link to a recipe~~ | Four labels for one question, and two entry points that minted the same token — one of them silently, as a side effect of pressing Share. | **Done, and further than planned.** One control: Share opens a dialog naming the three stages the cookbook has always had. `ShareLink`, `Visibility` and the old `ShareButton` are gone. Entries and collections have the third stage too, which needed migration 0027 and a second and third page that guard themselves. |
 | Create the share token | Explicit `createLink` button in `ShareLink`; invisible inside `share` in `ShareButton` — both on the recipe page at once | Keep one of the two components on the recipe page. |
-| Write a note on a recipe | `addNote` (`RecipeNotes`) vs `newPost` (`/admin/posts`) for the same destination | One label. |
-| Open the devices page | `tDevices('nav')` in AdminNav and on `/admin/ai`; `tInbox('devices')` on the inbox | One label. |
+| ~~Write a note on a recipe~~ | Read again: `addNote` is "Write a blog entry about this recipe" and `newPost` is "New entry". Same destination, different offers — the first carries the recipe with it. | **Not a duplicate.** This row was wrong; the labels stay. |
+| ~~Open the devices page~~ | Three entry points, and `Inbox.devices` held the same string as `Devices.nav` rather than a different one. | **Done.** The inbox reads the navigation's key; two keys holding one string is two strings waiting to disagree. |
 
 ### 5. The three longest paths, and where they can be shortened
 
@@ -137,22 +142,43 @@ one click that could be a redirect.
 ### 6. Endpoints with nothing in the UI
 
 - `GET /api/cron/backup` — called by the Vercel cron with the secret. Correct.
-- `DELETE /api/errors/[id]` — an admin can *resolve* an error from the errors
-  page (`POST`) but nothing deletes one. Either add the button next to
-  "resolve" or remove the handler; a route nobody calls is a route nobody
-  tests.
+- ~~`DELETE /api/errors/[id]`~~ — **done.** The button is among the resolved
+  errors, one deliberate step past the reversible action.
+
+One endpoint left with nothing in the UI, and it is the right one.
+
+## What came after, from using it
+
+The eight below were read off the map. A session with the running application
+produced a second list, which is in the commits rather than here — it is
+about what the screens *feel* like, which a static map cannot see:
+
+- Loading was announced only where you could already tell, and never during
+  the wait between pressing a tab and the page arriving. `loading.tsx` plus
+  one indicator with the oyster in it.
+- "Read again" and "Read with AI" did not say what separated them, and
+  nothing said when asking again would buy the same answer twice.
+- The admin navigation had ten entries in build order, wrapped nothing, and
+  hid the last two off the edge of a phone.
+- Errors and tickets were two entries for one question.
+- Your own account could not be renamed, moved, re-passworded or deleted.
+- Spent invitations were kept in the place you go to make one.
+- A recipe did not say where it came from.
 
 ## Recommendations, in order
 
 1. ~~Make the proxy honour `'recipe'` access.~~ Done — `proxyStepsAside()`, commit f6b1ea1.
-2. One shared client error toast, then wire the seven silent actions to it.
-3. Collapse the four share labels to two verbs and drop one of the two share
-   components on the recipe page.
-4. After Accept in the inbox, go to the recipe.
-5. Put the account link in the desktop header.
-6. Move `/drafts` under `/admin`, or make its access `admin`.
-7. Login page: "by invitation" text instead of a dead register link.
-8. `DELETE /api/errors/[id]`: a button or a deletion.
+2. ~~One shared client error path, then wire the silent actions to it.~~ Done — `messageFrom()` and `useAction()`; the eight sites in the table above all say so now.
+3. ~~Collapse the duplicated labels, and the duplicated entry points.~~ Done.
+   The labels first; then the whole arrangement, when it turned out the two
+   entry points were not merely duplicated but *disagreed* — one of them
+   minted a permanent public link without saying so. See `lib/shareStage` and
+   `components/share/ShareDialog`.
+4. ~~After Accept in the inbox, go to the recipe.~~ Done — the slug was in the answer all along.
+5. ~~Put the account link in the desktop header.~~ Done — the greeting leads there, as it already did on a phone.
+6. ~~Move `/drafts` under `/admin`.~~ Done, with a redirect from the old address.
+7. ~~Login page: "by invitation" text instead of a dead register link.~~ Done — it says `inviteRequired`, the wording the register page itself uses.
+8. ~~`DELETE /api/errors/[id]`: a button or a deletion.~~ Done — a button, among the resolved errors only, since resolving is reversible and this is not.
 
 Every one of these is a small change; none needs a migration. When one is
 done, regenerate the map (`npm run map`) and strike the line here.

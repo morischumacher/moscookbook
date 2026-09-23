@@ -68,7 +68,13 @@ export function adminSectionFor(pathname: string): string | null {
     const path = withoutLocale(pathname);
     if (!path.startsWith('/admin')) return null;
 
-    for (const candidate of ['/admin/inbox', '/admin/posts', '/admin/collections', '/admin/users', '/admin/invites', '/admin/tickets', '/admin/errors', '/admin/devices', '/admin/ai']) {
+    // The two that redirect — /admin/invites, and now /admin/tickets and
+    // /admin/errors — map to what they redirect to, so the right tab is
+    // already marked while the redirect happens.
+    if (path === '/admin/tickets' || path === '/admin/errors') return '/admin/reports';
+    if (path === '/admin/invites') return '/admin/users';
+
+    for (const candidate of ['/admin/inbox', '/admin/drafts', '/admin/posts', '/admin/collections', '/admin/users', '/admin/reports', '/admin/devices', '/admin/ai']) {
         if (path === candidate || path.startsWith(`${candidate}/`)) return candidate;
     }
 

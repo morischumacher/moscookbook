@@ -31,6 +31,27 @@ const OUT = join(ROOT, 'docs', 'interaction-map.generated.md');
 /*  Walking                                                                   */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * A file's code, without its prose.
+ *
+ * Every reader below is a regex over the source, and this codebase explains
+ * itself at length in comments — including, in `useAction`, an example of the
+ * very thing being looked for:
+ *
+ *     await run(() => fetch('/api/…', { method: 'POST' }), t('couldNotSave'));
+ *
+ * which the map dutifully listed as a call to an endpoint named `/api/…`.
+ * check:prisma learned this same lesson the same way. Strings are left alone:
+ * a quote inside a comment is gone with the comment, and a `//` inside a URL
+ * string is not a comment — so block comments go first, then a line comment
+ * only where it is not preceded by a colon.
+ */
+function code(source: string): string {
+    return source
+        .replace(/\/\*[\s\S]*?\*\//g, ' ')
+        .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+}
+
 function walk(dir: string, keep: (path: string) => boolean, into: string[] = []): string[] {
     for (const entry of readdirSync(dir)) {
         if (entry === 'node_modules' || entry.startsWith('.')) continue;
@@ -196,7 +217,7 @@ function componentsIn(text: string, from?: string): string[] {
 /** What a component transitively imports, for the "renders" column. */
 const componentSources = new Map<string, string>();
 for (const file of walk(join(ROOT, 'src', 'components'), (p) => p.endsWith('.tsx'))) {
-    componentSources.set(rel(file).replace(/^src\/components\//, '').replace(/\.tsx$/, ''), readFileSync(file, 'utf8'));
+    componentSources.set(rel(file).replace(/^src\/components\//, '').replace(/\.tsx$/, ''), code(readFileSync(file, 'utf8')));
 }
 
 function transitive(names: string[], seen = new Set<string>()): string[] {
@@ -211,7 +232,7 @@ function transitive(names: string[], seen = new Set<string>()): string[] {
 
 const screens: Screen[] = walk(join(ROOT, 'src', 'app'), (p) => p.endsWith('page.tsx') && !p.includes('/api/')).map((file) => {
     const route = routeOf(file);
-    const text = readFileSync(file, 'utf8');
+    const text = code(readFileSync(file, 'utf8'));
     const direct = componentsIn(text);
     const all = transitive(direct);
     const own = fetchesIn(text);
@@ -256,7 +277,7 @@ const METHODS = /export\s+async\s+function\s+(GET|POST|PUT|PATCH|DELETE)\b/g;
 const endpoints: Endpoint[] = [];
 for (const file of walk(join(ROOT, 'src', 'app', 'api'), (p) => p.endsWith('route.ts'))) {
     const path = rel(file).replace(/^src\/app/, '').replace(/\/route\.ts$/, '');
-    const text = readFileSync(file, 'utf8');
+    const text = code(readFileSync(file, 'utf8'));
     const starts = [...text.matchAll(METHODS)];
     for (const [i, m] of starts.entries()) {
         // The gate is read from this handler's body alone: a file can guard
@@ -285,7 +306,7 @@ for (const file of walk(join(ROOT, 'src', 'app', 'api'), (p) => p.endsWith('rout
 // Who calls what: components and client pages.
 const callerSources = new Map<string, string>(componentSources);
 for (const file of walk(join(ROOT, 'src', 'app'), (p) => p.endsWith('.tsx') && !p.includes('/api/'))) {
-    callerSources.set(rel(file), readFileSync(file, 'utf8'));
+    callerSources.set(rel(file), code(readFileSync(file, 'utf8')));
 }
 const unresolved = new Set<string>();
 for (const [name, text] of callerSources) {

@@ -12,7 +12,10 @@
     "greeting": "Hello {name}",
     "language": "Language",
     "toggleMenu": "Toggle menu",
-    "recipes": "Recipes"
+    "recipes": "Recipes",
+    "logoutFailed": "Signing out did not work \u2014 you are still signed in.",
+    "accountMenu": "Your account and settings",
+    "account": "Your account"
   },
   "Home": {
     "searchPlaceholder": "Search recipes and ingredients…",
@@ -55,6 +58,7 @@
     "Indian": "Indian"
   },
   "Recipe": {
+    "loadingRecipe": "Fetching the recipe\u2026",
     "ingredients": "Ingredients",
     "instructions": "Method",
     "noIngredients": "No ingredients recorded for this recipe.",
@@ -97,7 +101,8 @@
   "Favorite": {
     "add": "Add to favourites",
     "remove": "Remove from favourites",
-    "loginRequired": "Log in to save favourites"
+    "loginRequired": "Log in to save favourites",
+    "notSaved": "The favourite could not be saved."
   },
   "Auth": {
     "loginTitle": "Login",
@@ -106,9 +111,7 @@
     "password": "Password",
     "submitLogin": "Log in",
     "submitRegister": "Register",
-    "needAccount": "Need an account?",
     "haveAccount": "Already have an account?",
-    "registerLink": "Register",
     "loginLink": "Log in",
     "failed": "Login failed",
     "error": "Something went wrong. Please try again.",
@@ -146,6 +149,7 @@
     "inviteExpired": "This invitation has expired. Ask Mo for a new link."
   },
   "Admin": {
+    "loadingPage": "Fetching the page\u2026",
     "dashboard": "Recipes",
     "lastBackup": "Last scheduled backup: {date} — {result}",
     "noBackupYet": "No scheduled backup has run yet. It runs Mondays at 4 a.m. once CRON_SECRET is set in Vercel.",
@@ -173,7 +177,10 @@
     "columnId": "ID",
     "viewCount": "{count, plural, one {# view} other {# views}}",
     "people": "People",
-    "adminNavLabel": "Admin sections"
+    "adminNavLabel": "Admin sections",
+    "invitedBy": "Invited by {name}",
+    "invitedByOn": "Invited by {name} · joined {date}",
+    "unverified": "address not confirmed"
   },
   "RecipeForm": {
     "newRecipe": "New recipe",
@@ -298,11 +305,11 @@
     "title": "Inbox",
     "explanation": "Everything shared from your phone lands here first. Take it, finish it, or bin it.",
     "loading": "Loading the inbox…",
+    "rereading": "Reading it again with the rules…",
     "empty": "Nothing waiting. Share something from your phone.",
     "untitled": "Untitled",
-    "devices": "Devices",
     "accept": "Take it",
-    "finish": "Finish it",
+    "finish": "Open and edit",
     "retry": "Read again",
     "discard": "Bin it",
     "openSource": "Open the source",
@@ -330,12 +337,14 @@
     "duplicateLink": "That link is already in the cookbook as",
     "duplicateTitle": "There may already be",
     "merge": "Merge into it",
-    "confirmMerge": "Merge into “{title}”? Its text stays as it is; a new picture is added and this capture is filed against it."
+    "confirmMerge": "Merge into “{title}”? Its text stays as it is; a new picture is added and this capture is filed against it.",
+    "report": "Report this",
+    "reportStatus": "Status",
+    "retryExplain": "Read it again the usual way — rules first, and a model only if that would help."
   },
   "Devices": {
     "title": "Devices",
     "explanation": "A device with a key may send recipes to your inbox without logging in. One key per device, so losing a phone costs one revoke.",
-    "backToInbox": "Back to the inbox",
     "loading": "Loading devices…",
     "devicesHeading": "Keys",
     "noDevices": "No devices yet.",
@@ -416,7 +425,19 @@
     "preparing": "Preparing link…",
     "statePrivateCollection": "This collection is only for people with an account.",
     "statePublicCollection": "Anyone with this link can see this collection.",
-    "revokeConfirmCollection": "Withdraw this link? Anyone you have already sent it to will no longer be able to open the collection."
+    "revokeConfirmCollection": "Withdraw this link? Anyone you have already sent it to will no longer be able to open the collection.",
+    "copyFailed": "Could not copy \u2014 the link is in the field above.",
+    "linkFailed": "The link could not be made \u2014 nothing was shared.",
+    "whoCanSee": "Who can see this",
+    "stageHousehold": "Only the household",
+    "stageHouseholdBody": "Anybody with an account here. Any link you handed out stops working.",
+    "stageLink": "Anyone with the link",
+    "stageLinkBody": "A secret address that needs no account. You can withdraw it later — but a link you have already sent cannot be unsent.",
+    "stageWeb": "On the open web",
+    "stageWebBody": "Its own address answers to anybody, and a search engine may keep a copy. Rating and photographs still need an account.",
+    "stageWebBodyOther": "Its own address answers to anybody, and a search engine may keep a copy. Only the recipes that are public in their own right are shown.",
+    "done": "Done",
+    "failed": "That did not work."
   },
   "Errors": {
     "title": "Errors",
@@ -437,7 +458,13 @@
     },
     "loadFailed": "The error list could not be loaded, so this page cannot say whether anything is wrong.",
     "resolveFailed": "That could not be marked as handled.",
-    "retry": "Try again"
+    "delete": "Delete for good",
+    "deleteConfirm": "Remove this row? Its history goes with it.",
+    "deleteFailed": "That could not be deleted.",
+    "retry": "Try again",
+    "exportMarkdown": "Copy all as Markdown",
+    "copied": "Copied",
+    "copyFailed": "Could not copy."
   },
   "ErrorPage": {
     "title": "This page did not load.",
@@ -544,7 +571,8 @@
     "confirmDelete": "Delete this collection? The recipes themselves stay.",
     "newTitle": "New collection",
     "editTitle": "Edit collection",
-    "sharedBy": "A collection from Mo’sCookbook"
+    "sharedBy": "A collection from Mo’sCookbook",
+    "hiddenCount": "{count, plural, one {# more, private} other {# more, private}}"
   },
   "Visibility": {
     "heading": "Visibility",
@@ -554,14 +582,12 @@
     "copyAddress": "Copy address",
     "copied": "Copied",
     "makePublic": "Publish",
-    "makePrivate": "Make private again",
+    "makePrivate": "Make private",
     "sureQuestion": "Put this on the open web?",
     "working": "Just a moment…",
     "failed": "That did not work. Please try again.",
     "share": "Share",
     "copyFailed": "Could not copy.",
-    "makePublicShort": "Publish",
-    "makePrivateShort": "Make private",
     "statePublic": "Public",
     "statePrivate": "Private"
   },
@@ -594,6 +620,12 @@
     "rightsBody": "You may ask for access, correction, deletion, restriction and portability of your data, and you may object to its processing. Writing to me is enough. If you would like to complain, the Austrian Data Protection Authority in Vienna is the place.",
     "privacyUpdated": "As of September 2026. If something on the site changes that is described here, this text changes with it."
   },
+  "Reports": {
+    "nav": "Reports",
+    "title": "Reports",
+    "errors": "Errors",
+    "tickets": "Tickets"
+  },
   "Tickets": {
     "title": "Open a ticket",
     "intro": "What is missing, what is annoying, what you would like. One sentence is enough — the more concrete, the sooner it is fixed.",
@@ -612,6 +644,7 @@
     "backToRecipes": "Back to the recipes",
     "nav": "Tickets",
     "adminTitle": "Tickets",
+    "adminExplanation": "What people have said about the cookbook. The page they were on is shown as they sent it.",
     "loading": "Loading…",
     "loadFailed": "The list could not be loaded.",
     "noneOpen": "Nothing open.",
@@ -625,7 +658,8 @@
     "copied": "Copied",
     "copyFailed": "Could not copy.",
     "ticketHint": "Copies a finished text with the page, the date and the description — to paste wherever it gets fixed.",
-    "dropPage": "Leave it out"
+    "dropPage": "Leave it out",
+    "exportMarkdown": "Copy all as Markdown"
   },
   "Account": {
     "title": "Your account",
@@ -636,13 +670,36 @@
     "remove": "Remove",
     "working": "Just a moment…",
     "failed": "That did not work. Please try again.",
-    "nav": "Account"
+    "nav": "Account",
+    "change": "Change",
+    "close": "Close",
+    "save": "Save",
+    "nameTitle": "Your name",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "nameSaved": "Your name has been changed.",
+    "emailTitle": "E-mail address",
+    "newEmail": "New address",
+    "yourPassword": "Your password",
+    "emailBody": "The new address has to be confirmed, so a link goes to it straight away. The old address is told about the change.",
+    "emailSaved": "The address has been changed. Check the new one for the confirmation link.",
+    "passwordTitle": "Password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "passwordSaved": "Your password has been changed.",
+    "deleteTitle": "Delete your account",
+    "deleteExplain": "Your ratings, favourites and sign-ins go with it. Notes and photographs of what you cooked stay in the cookbook without your name on them, and the recipes are the household’s.",
+    "deleteConfirm": "Delete your account?",
+    "deleteBody": "This cannot be undone.",
+    "deleteAction": "Delete my account",
+    "deleted": "Your account has been deleted."
   },
   "Ai": {
     "nav": "AI",
     "title": "AI import",
     "intro": "Recipes are read with rules first — structured data on the page, a video's description, pasted text. That costs nothing and works without any of this. A key is the second attempt: for a photograph, because pixels have no rule, and for the many blogs that write their ingredients with no markup at all.",
     "loading": "Loading …",
+    "reading": "A model is reading this…",
     "cannotStore": "This installation has no session secret to seal a key under. Until SECRET_COOKIE_PASSWORD is set, nothing can be stored here.",
     "modeHeading": "When it gets asked",
     "modeIntro": "The rules run first in every setting. This only says whether anything is asked afterwards.",
@@ -702,7 +759,9 @@
     "rebuildWithAi": "Build the recipe from this with AI",
     "modelHint": "Leaving it empty is usually right. If the default will not answer — busy, or out of quota — the next one is tried automatically and the one that worked is written in here.",
     "modelAuto": "Chosen automatically on {date}, because the previous one did not answer. Overwrite it whenever you like; your choice then stands.",
-    "testModel": "Answered by: {model}."
+    "testModel": "Answered by: {model}.",
+    "askAiExplain": "Ask a model even though the rules think they managed. Costs one call.",
+    "askAgainExplain": "A model has already read this one. Asking again costs another call and will probably say the same thing."
   },
   "SiteProfiles": {
     "title": "Learned sites",

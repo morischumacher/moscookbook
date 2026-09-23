@@ -25,7 +25,21 @@ export async function GET() {
     if ('response' in auth) return auth.response;
 
     try {
+        /*
+         * Only the invitations that are still worth something.
+         *
+         * A spent one is not an invitation, it is a record of one — and as a
+         * record it was in the wrong place: this is the list you come to in
+         * order to *make* an invitation, and it was three-quarters history.
+         * Who invited whom now sits on the person it is about, in the list
+         * above this one.
+         *
+         * Expired ones stay. They are still rows somebody may want to revoke
+         * or reissue, and unlike a spent one they represent something that
+         * never happened.
+         */
         const invites: InviteRow[] = await prisma.invite.findMany({
+            where: { usedAt: null },
             orderBy: { createdAt: 'desc' },
             take: 100,
             select: {

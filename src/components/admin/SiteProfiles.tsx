@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import InlineConfirm from '@/components/ui/InlineConfirm';
 import Disclosure from '@/components/ui/Disclosure';
 import { formatDate } from '@/lib/formatDate';
+import { messageFrom } from '@/lib/apiMessage';
 import { buttonPrimarySmall } from '@/lib/ui';
 
 /**
@@ -111,7 +112,20 @@ export default function SiteProfiles() {
     }
 
     async function forget(host: string) {
-        await fetch(`/api/site-profiles/${encodeURIComponent(host)}`, { method: 'DELETE' });
+        // The response was never looked at, so a refused delete reloaded an
+        // unchanged list — which is what a successful one looks like too.
+        try {
+            const response = await fetch(`/api/site-profiles/${encodeURIComponent(host)}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                setMessage({ good: false, text: await messageFrom(response, t('failed')) });
+                return;
+            }
+        } catch {
+            setMessage({ good: false, text: t('failed') });
+            return;
+        }
         await load();
     }
 

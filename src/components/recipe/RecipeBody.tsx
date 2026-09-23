@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 import { toDisplayIngredient, type StructuredIngredient } from '@/lib/ingredientParts';
 import { splitSteps } from '@/lib/steps';
-import ShareButton from './ShareButton';
+import ShareButton from '@/components/share/ShareButton';
 import { cookProgressKey, parseCookProgress, worthSaving } from '@/lib/cookProgress';
 
 const SERVING_STEPS = [1, 2, 3, 4, 6, 8, 10, 12];
@@ -16,8 +16,8 @@ export default function RecipeBody({
     instructions,
     baseServings,
     title,
-    shareUrl,
-    shareCreateUrl,
+    locale,
+    share,
 }: {
     /** Which recipe's progress is being remembered. */
     recipeId: number;
@@ -26,14 +26,19 @@ export default function RecipeBody({
     baseServings: number | null;
     /** For the share sheet, which offers it as the message's subject. */
     title: string;
-    /** The public link, when the recipe has one. */
-    shareUrl?: string;
+    locale: string;
     /**
-     * Where to make one when it has none. Only passed for somebody allowed to
-     * publish, so that sharing produces a link the other person can open
-     * rather than a sign-in form.
+     * Everything the share control needs: where it stands and who may change
+     * it. Passed as one object because the three fields are one answer — who
+     * can see this — and three loose props are three chances to hand over a
+     * link that does not match the state beside it.
      */
-    shareCreateUrl?: string;
+    share: {
+        isPublic: boolean;
+        linkUrl: string | null;
+        ownUrl: string;
+        mayChange: boolean;
+    };
 }) {
     const [servings, setServings] = useState(baseServings ?? 0);
     const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
@@ -250,9 +255,14 @@ export default function RecipeBody({
                 </button>
 
                 <ShareButton
+                    id={recipeId}
+                    kind="recipe"
                     title={title}
-                    url={shareUrl}
-                    createUrl={shareCreateUrl}
+                    locale={locale}
+                    isPublic={share.isPublic}
+                    linkUrl={share.linkUrl}
+                    ownUrl={share.ownUrl}
+                    mayChange={share.mayChange}
                     className="text-sm text-muted underline underline-offset-4 hover:text-ink"
                 />
 

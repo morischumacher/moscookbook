@@ -3,8 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import ReactMarkdown from 'react-markdown';
 import { Link } from '@/i18n/routing';
 import Logo from '@/components/brand/Logo';
-import ShareButton from '@/components/recipe/ShareButton';
-import ShareLink from '@/components/recipe/ShareLink';
+import ShareButton from '@/components/share/ShareButton';
 import { formatDate } from '@/lib/formatDate';
 
 export interface PostRow {
@@ -16,6 +15,14 @@ export interface PostRow {
     publishedAt: Date | null;
     createdAt: Date;
     shareToken: string | null;
+    /**
+     * Whether this entry's own address answers without a session.
+     *
+     * Optional: the shared page at /p/[token] builds its own row and has no
+     * business knowing, since a token is a different door. The blog page
+     * requires it, and reads it before anything else.
+     */
+    isPublic?: boolean;
     author: { name: string } | null;
     recipe: { title: string; slug: string } | null;
 }
@@ -89,11 +96,13 @@ export default async function PostArticle({
                     </p>
                 )}
 
-                {mode === 'private' && isAdmin && post.publishedAt !== null && (
-                    <div className="print:hidden mb-8">
-                        <ShareLink id={post.id} kind="post" initialUrl={publicUrl} locale={locale} />
-                    </div>
-                )}
+                {/*
+                    The share panel that used to sit here is gone. It offered
+                    one of the three stages — make a secret link, withdraw it —
+                    with no way to say "put this on the web" and no way to see
+                    where the entry stood. The Share button below opens the
+                    control that says all three.
+                */}
             </header>
 
             {post.imageUrl && (
@@ -117,10 +126,17 @@ export default async function PostArticle({
 
                 <div className="print:hidden mt-12 flex flex-wrap items-center gap-6 border-t border-line pt-6">
                     <ShareButton
+                        id={post.id}
+                        kind="post"
                         title={post.title}
-                        // The public link when there is one, so it reaches
-                        // somebody without an account. See ShareButton.
-                        url={mode === 'shared' ? url : publicUrl ?? undefined}
+                        locale={locale}
+                        isPublic={Boolean(post.isPublic)}
+                        linkUrl={publicUrl}
+                        ownUrl={url}
+                        // An unfinished entry cannot go on the open web, and
+                        // the route refuses it — so the stages are not offered
+                        // for one either.
+                        mayChange={mode === 'private' && isAdmin && post.publishedAt !== null}
                         className="text-sm text-muted underline underline-offset-4 hover:text-ink"
                     />
                 </div>

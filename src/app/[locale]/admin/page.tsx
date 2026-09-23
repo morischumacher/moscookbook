@@ -9,7 +9,8 @@ import { shareUrl } from '@/lib/shareToken';
 import BackupPanel from '@/components/admin/BackupPanel';
 import { backupStatus } from '@/lib/backupStatus';
 import { formatDate } from '@/lib/formatDate';
-import { buttonPrimarySmall, pageContainer, pageHeading, pageTop } from '@/lib/ui';
+import { buttonPrimarySmall, pageContainer } from '@/lib/ui';
+import PageHeader from '@/components/admin/PageHeader';
 
 interface AdminRecipeRow {
     id: number;
@@ -52,15 +53,11 @@ export default async function AdminDashboard({
 
     return (
         <main className={`${pageContainer} pb-32`}>
-            <header className={`flex flex-wrap items-baseline justify-between gap-4 ${pageTop} ${pageHeading}`}>
-                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{t('dashboard')}</h1>
-                <Link
-                    href="/admin/create"
-                    className={buttonPrimarySmall}
-                >
+            <PageHeader title={t('dashboard')}>
+                <Link href="/admin/create" className={buttonPrimarySmall}>
                     {t('createNew')}
                 </Link>
-            </header>
+            </PageHeader>
 
             {recipes.length === 0 ? (
                 <p className="py-20 text-center text-muted">{t('noRecipes')}</p>
@@ -115,6 +112,8 @@ export default async function AdminDashboard({
                             <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                                 <RecipeRowActions
                                     recipeId={recipe.id}
+                                    title={recipe.title}
+                                    locale={locale}
                                     isPublic={recipe.isPublic}
                                     url={`${getSiteUrl()}/${locale}/recipe/${recipe.slug}`}
                                     shareUrl={

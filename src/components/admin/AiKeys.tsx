@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import InlineConfirm from '@/components/ui/InlineConfirm';
 import { formatDate } from '@/lib/formatDate';
+import { messageFrom } from '@/lib/apiMessage';
 import { buttonPrimarySmall, chip } from '@/lib/ui';
+import Loading from '@/components/ui/Loading';
 
 /**
  * Where the AI keys are set.
@@ -192,10 +194,18 @@ export default function AiKeys() {
 
     const remove = async () => {
         setBusy(true);
+        setError('');
         try {
             const res = await fetch(`/api/ai-keys/${chosen}`, { method: 'DELETE' });
+            // A refused delete used to produce nothing at all: the panel did
+            // not change, which is also what a successful delete of the last
+            // key looks like.
+            if (!res.ok) {
+                setError(await messageFrom(res, tAdmin('genericError')));
+                return;
+            }
             const data = await res.json().catch(() => ({}));
-            if (res.ok && data.credentials) setCredentials(data.credentials);
+            if (data.credentials) setCredentials(data.credentials);
             setTest(null);
         } catch {
             setError(tAdmin('genericError'));
@@ -204,16 +214,35 @@ export default function AiKeys() {
         }
     };
 
+    /*
+     * The chip moves first, because a switch that waits for the network feels
+     * broken. That optimism is only honest if it is undone when the save
+     * fails — and it was not: the response was never looked at, so a mode that
+     * had not been saved looked exactly like one that had, until the next page
+     * load put it back.
+     */
     const changeMode = async (next: string) => {
+        const previous = mode;
         setMode(next);
-        await fetch('/api/ai-keys', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mode: next }),
-        }).catch(() => undefined);
+        setError('');
+
+        try {
+            const res = await fetch('/api/ai-keys', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode: next }),
+            });
+            if (!res.ok) {
+                setMode(previous);
+                setError(await messageFrom(res, tAdmin('genericError')));
+            }
+        } catch {
+            setMode(previous);
+            setError(tAdmin('genericError'));
+        }
     };
 
-    if (loading) return <p className="text-muted">{t('loading')}</p>;
+    if (loading) return <Loading label={t('loading')} />;
 
     // "Configured" for the menu, "usable" for the sentence about what runs:
     // an untested key is set up and is not being used, and saying otherwise

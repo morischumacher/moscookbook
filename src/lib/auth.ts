@@ -91,3 +91,30 @@ export const currentUserVerified = cache(async (): Promise<SessionUser | null> =
 
     return { ...user, admin: row.admin };
 });
+
+/**
+ * The picture and the name as they are *now*, for the header's profile menu.
+ *
+ * Separate from `currentUserVerified` rather than folded into it: that one is
+ * a permission check run on every admin page and in every guarded route, and
+ * widening its `select` would make every one of those carry two columns
+ * nothing in them reads. This is asked for once per page render, by the
+ * navigation, and cached for the request like its neighbour — which is the
+ * lesson VerifyBanner taught, where one uncached lookup became one query per
+ * page per signed-in person.
+ *
+ * Falls back to the cookie's own name if the row cannot be read: a header
+ * without a picture is a small loss, and a header that throws is the page.
+ */
+export const currentProfile = cache(
+    async (): Promise<{ name: string; avatarUrl: string | null } | null> => {
+        const user = await getCurrentUser();
+        if (!user) return null;
+
+        const row: { name: string; avatarUrl: string | null } | null = await prisma.user
+            .findUnique({ where: { id: user.id }, select: { name: true, avatarUrl: true } })
+            .catch(() => null);
+
+        return row ?? { name: user.name, avatarUrl: null };
+    }
+);

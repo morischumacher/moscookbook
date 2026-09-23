@@ -3,42 +3,44 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-34 screens · 72 endpoints · 48 link edges · 78 call edges
+36 screens · 78 endpoints · 50 link edges · 81 call edges
 
 ## Screens
 
 | Route | Access | Proxy | Calls | Links to |
 |---|---|---|---|---|
-| `/[locale]/account` | account | requires session | `DELETE /api/account/avatar`<br>`POST /api/account/avatar` | `/[locale]/login` |
-| `/[locale]/admin/ai` | admin | requires admin | `DELETE /api/ai-keys/[id]`<br>`DELETE /api/site-profiles/[id]`<br>`GET /api/ai-keys`<br>`GET /api/site-profiles`<br>`PATCH /api/ai-keys`<br>`POST /api/ai-keys`<br>`POST /api/ai-keys/[id]/test`<br>`POST /api/site-profiles` | `/[locale]/admin/devices` |
+| `/[locale]/account` | account | requires session | `* /api/account`<br>`* /api/account/email`<br>`* /api/account/name`<br>`* /api/account/password`<br>`DELETE /api/account/avatar`<br>`POST /api/account/avatar` | `/[locale]/login` |
+| `/[locale]/admin/ai` | admin | requires admin | `DELETE /api/ai-keys/[id]`<br>`DELETE /api/site-profiles/[id]`<br>`GET /api/ai-keys`<br>`GET /api/site-profiles`<br>`PATCH /api/ai-keys`<br>`POST /api/ai-keys`<br>`POST /api/ai-keys/[id]/test`<br>`POST /api/site-profiles` | — |
 | `/[locale]/admin/collections/[id]` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections/new` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/create` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/upload` | `/[locale]/admin` |
-| `/[locale]/admin/devices` | admin | requires admin | `* /api/capture`<br>`DELETE /api/capture-tokens/[id]`<br>`GET /api/capture-tokens`<br>`POST /api/capture-tokens` | `/[locale]/admin/inbox` |
+| `/[locale]/admin/devices` | admin | requires admin | `* /api/capture`<br>`DELETE /api/capture-tokens/[id]`<br>`GET /api/capture-tokens`<br>`POST /api/capture-tokens` | — |
+| `/[locale]/admin/drafts` | admin | requires admin | `POST /api/recipes/[id]/draft` | `/[locale]/recipe/[id]` |
 | `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/upload` | `/[locale]/admin` |
-| `/[locale]/admin/errors` | admin | requires admin | `GET /api/errors`<br>`POST /api/errors/[id]` | — |
-| `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`GET /api/capture`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge` | `/[locale]/admin/create`<br>`/[locale]/admin/devices`<br>`/[locale]/recipe/[id]` |
+| `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
+| `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`GET /api/capture`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge` | `/[locale]/admin/create`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
 | `/[locale]/admin/invites` | admin | requires admin | — | `/[locale]/admin/users` |
-| `/[locale]/admin` | admin | requires admin | `DELETE /api/recipes/[id]`<br>`GET /api/export`<br>`PATCH /api/recipes/[id]/visibility`<br>`POST /api/import/archive`<br>`POST /api/recipes/[id]/share` | `/[locale]/admin/create`<br>`/[locale]/admin/edit/[id]`<br>`/[locale]/recipe/[id]` |
+| `/[locale]/admin` | admin | requires admin | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/recipes/[id]`<br>`GET /api/export`<br>`POST /api/import/archive` | `/[locale]/admin/create`<br>`/[locale]/admin/edit/[id]`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/admin/posts/[id]` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts/new` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts` | admin | requires admin | `DELETE /api/posts/[id]` | `/[locale]/admin/posts/[id]`<br>`/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]` |
-| `/[locale]/admin/tickets` | admin | requires admin | `GET /api/tickets`<br>`PATCH /api/tickets` | — |
+| `/[locale]/admin/reports` | admin | requires admin | `DELETE /api/errors/[id]`<br>`GET /api/errors`<br>`GET /api/tickets`<br>`PATCH /api/tickets`<br>`POST /api/errors/[id]` | — |
+| `/[locale]/admin/tickets` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/users` | admin | requires admin | `DELETE /api/invites/[id]`<br>`DELETE /api/users/[id]`<br>`GET /api/invites`<br>`GET /api/users`<br>`PATCH /api/users/[id]/role`<br>`POST /api/invites` | — |
-| `/[locale]/blog/[slug]` | account | requires session | `* /api/collections/[id]/share`<br>`* /api/posts/[id]/share`<br>`* /api/recipes/[id]/share` | `/[locale]/recipe/[id]` |
+| `/[locale]/blog/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/login`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/blog` | account | requires session | — | `/[locale]/blog/[id]` |
 | `/[locale]/c/[token]` | open | steps aside | — | `/[locale]/recipe/[id]` |
-| `/[locale]/collections/[slug]` | account | requires session | `* /api/collections/[id]/share`<br>`* /api/posts/[id]/share`<br>`* /api/recipes/[id]/share` | `/[locale]/admin/collections/[id]`<br>`/[locale]/recipe/[id]` |
+| `/[locale]/collections/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/admin/collections/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/collections` | account | requires session | — | `/[locale]/admin/collections/new`<br>`/[locale]/collections/[id]` |
-| `/[locale]/drafts` | account | requires session | `POST /api/recipes/[id]/draft` | `/[locale]/recipe/[id]` |
+| `/[locale]/drafts` | account | requires session | — | `/[locale]/admin/drafts` |
 | `/[locale]/forgot` | open | steps aside | `POST /api/auth/forgot` | `/[locale]/login` |
 | `/[locale]/imprint` | open | steps aside | — | — |
-| `/[locale]/login` | open | steps aside | `POST /api/auth/login` | `/[locale]/forgot`<br>`/[locale]/register` |
-| `/[locale]/p/[token]` | open | steps aside | `* /api/collections/[id]/share`<br>`* /api/posts/[id]/share`<br>`* /api/recipes/[id]/share` | `/[locale]/login`<br>`/[locale]/recipe/[id]` |
+| `/[locale]/login` | open | steps aside | `POST /api/auth/login` | `/[locale]/forgot` |
+| `/[locale]/p/[token]` | open | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/login`<br>`/[locale]/recipe/[id]` |
 | `/[locale]` | account | requires session | `* /api/recipes/[id]/favorite`<br>`POST /api/recipes/[id]/rate` | `/[locale]/blog`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/privacy` | open | steps aside | — | — |
-| `/[locale]/r/[token]` | open | steps aside | `* /api/collections/[id]/share`<br>`* /api/posts/[id]/share`<br>`* /api/recipes/[id]/favorite`<br>`* /api/recipes/[id]/share`<br>`DELETE /api/recipes/[id]/cooked`<br>`DELETE /api/recipes/[id]/cooked/photos`<br>`PATCH /api/recipes/[id]/cooked`<br>`PATCH /api/recipes/[id]/visibility`<br>`POST /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked/photos`<br>`POST /api/recipes/[id]/rate`<br>`POST /api/recipes/[id]/view` | `/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
-| `/[locale]/recipe/[slug]` | recipe | steps aside | `* /api/collections/[id]/share`<br>`* /api/posts/[id]/share`<br>`* /api/recipes/[id]/favorite`<br>`* /api/recipes/[id]/share`<br>`DELETE /api/recipes/[id]/cooked`<br>`DELETE /api/recipes/[id]/cooked/photos`<br>`PATCH /api/recipes/[id]/cooked`<br>`PATCH /api/recipes/[id]/visibility`<br>`POST /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked/photos`<br>`POST /api/recipes/[id]/draft`<br>`POST /api/recipes/[id]/rate`<br>`POST /api/recipes/[id]/view` | `/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
+| `/[locale]/r/[token]` | open | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/favorite`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/recipes/[id]/cooked`<br>`DELETE /api/recipes/[id]/cooked/photos`<br>`PATCH /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked/photos`<br>`POST /api/recipes/[id]/rate`<br>`POST /api/recipes/[id]/view` | `/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
+| `/[locale]/recipe/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/favorite`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/recipes/[id]/cooked`<br>`DELETE /api/recipes/[id]/cooked/photos`<br>`PATCH /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked/photos`<br>`POST /api/recipes/[id]/draft`<br>`POST /api/recipes/[id]/rate`<br>`POST /api/recipes/[id]/view` | `/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/register` | open | steps aside | `POST /api/auth/register` | `/[locale]/login` |
 | `/[locale]/reset` | open | steps aside | `POST /api/auth/reset` | `/[locale]/forgot` |
 | `/[locale]/tickets` | account | requires session | `POST /api/tickets` | `/[locale]` |
@@ -50,6 +52,10 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 |---|---|---|---|---|---|
 | POST | `/api/account/avatar` | user (manual) | — | yes | `account/AvatarForm` |
 | DELETE | `/api/account/avatar` | user (manual) | — | yes | `account/AvatarForm` |
+| POST | `/api/account/email` | user | zod | yes | `account/AccountSettings` |
+| POST | `/api/account/name` | user | zod | — | `account/AccountSettings` |
+| POST | `/api/account/password` | user | zod | yes | `account/AccountSettings` |
+| DELETE | `/api/account` | user | zod | yes | `account/AccountSettings` |
 | DELETE | `/api/ai-keys/[provider]` | admin | — | — | `admin/AiKeys` |
 | POST | `/api/ai-keys/[provider]/test` | admin | — | yes | `admin/AiKeys` |
 | GET | `/api/ai-keys` | admin | zod | — | `admin/AiKeys` |
@@ -73,15 +79,16 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | GET | `/api/capture` | admin | zod | yes | `src/app/[locale]/admin/devices/page.tsx`<br>`src/app/[locale]/admin/inbox/page.tsx` |
 | PUT | `/api/collections/[id]` | admin | zod | — | `collection/CollectionForm` |
 | DELETE | `/api/collections/[id]` | admin | zod | — | `collection/CollectionForm` |
-| POST | `/api/collections/[id]/share` | admin | — | — | `recipe/ShareLink` |
-| DELETE | `/api/collections/[id]/share` | admin | — | — | `recipe/ShareLink` |
+| POST | `/api/collections/[id]/share` | admin | — | — | `share/ShareDialog` |
+| DELETE | `/api/collections/[id]/share` | admin | — | — | `share/ShareDialog` |
+| PATCH | `/api/collections/[id]/visibility` | admin | zod | — | `share/ShareDialog` |
 | GET | `/api/collections` | user (manual) | zod | — | `collection/CollectionForm` |
 | POST | `/api/collections` | admin | zod | — | `collection/CollectionForm` |
 | GET | `/api/cron/backup` | cron secret | — | — | *(nothing in the UI)* |
-| POST | `/api/errors/[id]` | admin | — | — | `src/app/[locale]/admin/errors/page.tsx` |
-| DELETE | `/api/errors/[id]` | admin | — | — | *(nothing in the UI)* |
+| POST | `/api/errors/[id]` | admin | — | — | `admin/ErrorsPanel` |
+| DELETE | `/api/errors/[id]` | admin | — | — | `admin/ErrorsPanel` |
 | POST | `/api/errors` | none (open by design) | zod | yes | `ErrorReporter`<br>`GlobalErrorReporter` |
-| GET | `/api/errors` | admin | zod | yes | `src/app/[locale]/admin/errors/page.tsx` |
+| GET | `/api/errors` | admin | zod | yes | `admin/ErrorsPanel` |
 | GET | `/api/export` | admin | — | — | `admin/BackupPanel` |
 | POST | `/api/import/ai` | admin | zod | yes | `recipe-form/QuickImport` |
 | POST | `/api/import/archive` | admin | — | — | `admin/BackupPanel` |
@@ -91,8 +98,9 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/invites` | admin | zod | — | `admin/InvitationList` |
 | PUT | `/api/posts/[id]` | admin | zod | — | `post/PostForm` |
 | DELETE | `/api/posts/[id]` | admin | zod | — | `post/DeletePostButton`<br>`post/PostForm` |
-| POST | `/api/posts/[id]/share` | admin | — | — | `recipe/ShareLink` |
-| DELETE | `/api/posts/[id]/share` | admin | — | — | `recipe/ShareLink` |
+| POST | `/api/posts/[id]/share` | admin | — | — | `share/ShareDialog` |
+| DELETE | `/api/posts/[id]/share` | admin | — | — | `share/ShareDialog` |
+| PATCH | `/api/posts/[id]/visibility` | admin | zod | — | `share/ShareDialog` |
 | POST | `/api/posts` | admin | zod | — | `post/PostForm` |
 | POST | `/api/recipes/[id]/cooked/photos` | user (manual) | — | yes | `recipe/Cooked` |
 | DELETE | `/api/recipes/[id]/cooked/photos` | user (manual) | — | yes | `recipe/Cooked` |
@@ -105,17 +113,17 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/recipes/[id]/rate` | user | zod | — | `Rating` |
 | PUT | `/api/recipes/[id]` | admin | zod | — | `recipe-form/RecipeForm` |
 | DELETE | `/api/recipes/[id]` | admin | zod | — | `DeleteRecipeButton`<br>`recipe-form/RecipeForm` |
-| POST | `/api/recipes/[id]/share` | admin | — | — | `admin/RecipeRowActions`<br>`recipe/RecipeArticle`<br>`recipe/ShareLink` |
-| DELETE | `/api/recipes/[id]/share` | admin | — | — | `recipe/RecipeArticle`<br>`recipe/ShareLink` |
+| POST | `/api/recipes/[id]/share` | admin | — | — | `share/ShareDialog` |
+| DELETE | `/api/recipes/[id]/share` | admin | — | — | `share/ShareDialog` |
 | POST | `/api/recipes/[id]/view` | user (manual) | — | yes | `ViewTracker` |
-| PATCH | `/api/recipes/[id]/visibility` | admin | zod | — | `admin/RecipeRowActions`<br>`recipe/Visibility` |
+| PATCH | `/api/recipes/[id]/visibility` | admin | zod | — | `share/ShareDialog` |
 | POST | `/api/recipes` | admin | zod | — | `recipe-form/RecipeForm` |
 | DELETE | `/api/site-profiles/[host]` | admin | — | — | `admin/SiteProfiles` |
 | GET | `/api/site-profiles` | admin | zod | yes | `admin/SiteProfiles` |
 | POST | `/api/site-profiles` | admin | zod | yes | `admin/SiteProfiles` |
 | POST | `/api/tickets` | user (manual) | zod | yes | `src/app/[locale]/tickets/page.tsx` |
-| GET | `/api/tickets` | admin | zod | yes | `src/app/[locale]/admin/tickets/page.tsx` |
-| PATCH | `/api/tickets` | admin | zod | yes | `src/app/[locale]/admin/tickets/page.tsx` |
+| GET | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
+| PATCH | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
 | POST | `/api/upload` | admin | — | — | `recipe-form/RecipeForm` |
 | PATCH | `/api/users/[id]/role` | admin | zod | — | `admin/UserList` |
 | DELETE | `/api/users/[id]` | admin | — | — | `admin/UserList` |
@@ -129,7 +137,7 @@ Rendered by a layout rather than a page, so they are on every screen (or every a
 |---|---|---|
 | Header | `Navbar` | `/[locale]`<br>`/[locale]/account`<br>`/[locale]/admin`<br>`/[locale]/blog`<br>`/[locale]/collections`<br>`/[locale]/login` |
 | Footer | `Footer` | `/[locale]/imprint`<br>`/[locale]/privacy` |
-| Admin nav | `admin/AdminNav` | `/[locale]/admin`<br>`/[locale]/admin/ai`<br>`/[locale]/admin/collections/new`<br>`/[locale]/admin/devices`<br>`/[locale]/admin/errors`<br>`/[locale]/admin/inbox`<br>`/[locale]/admin/posts`<br>`/[locale]/admin/tickets`<br>`/[locale]/admin/users`<br>`/[locale]/drafts` |
+| Admin nav | `admin/AdminNav` | `/[locale]/admin`<br>`/[locale]/admin/ai`<br>`/[locale]/admin/collections/new`<br>`/[locale]/admin/devices`<br>`/[locale]/admin/drafts`<br>`/[locale]/admin/inbox`<br>`/[locale]/admin/posts`<br>`/[locale]/admin/reports`<br>`/[locale]/admin/users` |
 
 ## Navigation
 
@@ -139,9 +147,7 @@ Screen to screen, from every `href`, `router.push` and `redirect` in the page an
 flowchart LR
   subgraph account
     n__locale__account["/[locale]/account"]
-    n__locale__blog__slug_["/[locale]/blog/[slug]"]
     n__locale__blog["/[locale]/blog"]
-    n__locale__collections__slug_["/[locale]/collections/[slug]"]
     n__locale__collections["/[locale]/collections"]
     n__locale__drafts["/[locale]/drafts"]
     n__locale_["/[locale]"]
@@ -153,6 +159,7 @@ flowchart LR
     n__locale__admin_collections_new["/[locale]/admin/collections/new"]
     n__locale__admin_create["/[locale]/admin/create"]
     n__locale__admin_devices["/[locale]/admin/devices"]
+    n__locale__admin_drafts["/[locale]/admin/drafts"]
     n__locale__admin_edit__id_["/[locale]/admin/edit/[id]"]
     n__locale__admin_errors["/[locale]/admin/errors"]
     n__locale__admin_inbox["/[locale]/admin/inbox"]
@@ -161,8 +168,14 @@ flowchart LR
     n__locale__admin_posts__id_["/[locale]/admin/posts/[id]"]
     n__locale__admin_posts_new["/[locale]/admin/posts/new"]
     n__locale__admin_posts["/[locale]/admin/posts"]
+    n__locale__admin_reports["/[locale]/admin/reports"]
     n__locale__admin_tickets["/[locale]/admin/tickets"]
     n__locale__admin_users["/[locale]/admin/users"]
+  end
+  subgraph decides
+    n__locale__blog__slug_["/[locale]/blog/[slug]"]
+    n__locale__collections__slug_["/[locale]/collections/[slug]"]
+    n__locale__recipe__slug_["/[locale]/recipe/[slug]"]
   end
   subgraph open
     n__locale__c__token_["/[locale]/c/[token]"]
@@ -176,21 +189,18 @@ flowchart LR
     n__locale__reset["/[locale]/reset"]
     n__locale__verify["/[locale]/verify"]
   end
-  subgraph recipe
-    n__locale__recipe__slug_["/[locale]/recipe/[slug]"]
-  end
   n__locale__account --> n__locale__login
-  n__locale__admin_ai --> n__locale__admin_devices
   n__locale__admin_collections__id_ --> n__locale__collections
   n__locale__admin_collections__id_ --> n__locale__collections__slug_
   n__locale__admin_collections_new --> n__locale__collections
   n__locale__admin_collections_new --> n__locale__collections__slug_
   n__locale__admin_create --> n__locale__admin
-  n__locale__admin_devices --> n__locale__admin_inbox
+  n__locale__admin_drafts --> n__locale__recipe__slug_
   n__locale__admin_edit__id_ --> n__locale__admin
+  n__locale__admin_errors --> n__locale__admin_reports
   n__locale__admin_inbox --> n__locale__admin_create
-  n__locale__admin_inbox --> n__locale__admin_devices
   n__locale__admin_inbox --> n__locale__recipe__slug_
+  n__locale__admin_inbox --> n__locale__tickets
   n__locale__admin_invites --> n__locale__admin_users
   n__locale__admin --> n__locale__admin_create
   n__locale__admin --> n__locale__admin_edit__id_
@@ -200,17 +210,19 @@ flowchart LR
   n__locale__admin_posts --> n__locale__admin_posts__id_
   n__locale__admin_posts --> n__locale__admin_posts_new
   n__locale__admin_posts --> n__locale__blog__slug_
+  n__locale__admin_tickets --> n__locale__admin_reports
+  n__locale__blog__slug_ --> n__locale__login
   n__locale__blog__slug_ --> n__locale__recipe__slug_
   n__locale__blog --> n__locale__blog__slug_
   n__locale__c__token_ --> n__locale__recipe__slug_
   n__locale__collections__slug_ --> n__locale__admin_collections__id_
+  n__locale__collections__slug_ --> n__locale__login
   n__locale__collections__slug_ --> n__locale__recipe__slug_
   n__locale__collections --> n__locale__admin_collections_new
   n__locale__collections --> n__locale__collections__slug_
-  n__locale__drafts --> n__locale__recipe__slug_
+  n__locale__drafts --> n__locale__admin_drafts
   n__locale__forgot --> n__locale__login
   n__locale__login --> n__locale__forgot
-  n__locale__login --> n__locale__register
   n__locale__p__token_ --> n__locale__login
   n__locale__p__token_ --> n__locale__recipe__slug_
   n__locale_ --> n__locale__blog
@@ -237,6 +249,15 @@ flowchart LR
   caccount_AvatarForm --> ePOST_api_account_avatar
   eDELETE_api_account_avatar(["DELETE /api/account/avatar"])
   caccount_AvatarForm --> eDELETE_api_account_avatar
+  ePOST_api_account_email(["POST /api/account/email"])
+  caccount_AccountSettings["account/AccountSettings"]
+  caccount_AccountSettings --> ePOST_api_account_email
+  ePOST_api_account_name(["POST /api/account/name"])
+  caccount_AccountSettings --> ePOST_api_account_name
+  ePOST_api_account_password(["POST /api/account/password"])
+  caccount_AccountSettings --> ePOST_api_account_password
+  eDELETE_api_account(["DELETE /api/account"])
+  caccount_AccountSettings --> eDELETE_api_account
   eDELETE_api_ai_keys__provider_(["DELETE /api/ai-keys/[provider]"])
   cadmin_AiKeys["admin/AiKeys"]
   cadmin_AiKeys --> eDELETE_api_ai_keys__provider_
@@ -297,24 +318,28 @@ flowchart LR
   eDELETE_api_collections__id_(["DELETE /api/collections/[id]"])
   ccollection_CollectionForm --> eDELETE_api_collections__id_
   ePOST_api_collections__id__share(["POST /api/collections/[id]/share"])
-  crecipe_ShareLink["recipe/ShareLink"]
-  crecipe_ShareLink --> ePOST_api_collections__id__share
+  cshare_ShareDialog["share/ShareDialog"]
+  cshare_ShareDialog --> ePOST_api_collections__id__share
   eDELETE_api_collections__id__share(["DELETE /api/collections/[id]/share"])
-  crecipe_ShareLink --> eDELETE_api_collections__id__share
+  cshare_ShareDialog --> eDELETE_api_collections__id__share
+  ePATCH_api_collections__id__visibility(["PATCH /api/collections/[id]/visibility"])
+  cshare_ShareDialog --> ePATCH_api_collections__id__visibility
   eGET_api_collections(["GET /api/collections"])
   ccollection_CollectionForm --> eGET_api_collections
   ePOST_api_collections(["POST /api/collections"])
   ccollection_CollectionForm --> ePOST_api_collections
   ePOST_api_errors__id_(["POST /api/errors/[id]"])
-  csrc_app__locale__admin_errors_page_tsx["src/app/[locale]/admin/errors/page.tsx"]
-  csrc_app__locale__admin_errors_page_tsx --> ePOST_api_errors__id_
+  cadmin_ErrorsPanel["admin/ErrorsPanel"]
+  cadmin_ErrorsPanel --> ePOST_api_errors__id_
+  eDELETE_api_errors__id_(["DELETE /api/errors/[id]"])
+  cadmin_ErrorsPanel --> eDELETE_api_errors__id_
   ePOST_api_errors(["POST /api/errors"])
   cErrorReporter["ErrorReporter"]
   cErrorReporter --> ePOST_api_errors
   cGlobalErrorReporter["GlobalErrorReporter"]
   cGlobalErrorReporter --> ePOST_api_errors
   eGET_api_errors(["GET /api/errors"])
-  csrc_app__locale__admin_errors_page_tsx --> eGET_api_errors
+  cadmin_ErrorsPanel --> eGET_api_errors
   eGET_api_export(["GET /api/export"])
   cadmin_BackupPanel["admin/BackupPanel"]
   cadmin_BackupPanel --> eGET_api_export
@@ -340,9 +365,11 @@ flowchart LR
   cpost_DeletePostButton --> eDELETE_api_posts__id_
   cpost_PostForm --> eDELETE_api_posts__id_
   ePOST_api_posts__id__share(["POST /api/posts/[id]/share"])
-  crecipe_ShareLink --> ePOST_api_posts__id__share
+  cshare_ShareDialog --> ePOST_api_posts__id__share
   eDELETE_api_posts__id__share(["DELETE /api/posts/[id]/share"])
-  crecipe_ShareLink --> eDELETE_api_posts__id__share
+  cshare_ShareDialog --> eDELETE_api_posts__id__share
+  ePATCH_api_posts__id__visibility(["PATCH /api/posts/[id]/visibility"])
+  cshare_ShareDialog --> ePATCH_api_posts__id__visibility
   ePOST_api_posts(["POST /api/posts"])
   cpost_PostForm --> ePOST_api_posts
   ePOST_api_recipes__id__cooked_photos(["POST /api/recipes/[id]/cooked/photos"])
@@ -375,21 +402,14 @@ flowchart LR
   cDeleteRecipeButton --> eDELETE_api_recipes__id_
   crecipe_form_RecipeForm --> eDELETE_api_recipes__id_
   ePOST_api_recipes__id__share(["POST /api/recipes/[id]/share"])
-  cadmin_RecipeRowActions["admin/RecipeRowActions"]
-  cadmin_RecipeRowActions --> ePOST_api_recipes__id__share
-  crecipe_RecipeArticle["recipe/RecipeArticle"]
-  crecipe_RecipeArticle --> ePOST_api_recipes__id__share
-  crecipe_ShareLink --> ePOST_api_recipes__id__share
+  cshare_ShareDialog --> ePOST_api_recipes__id__share
   eDELETE_api_recipes__id__share(["DELETE /api/recipes/[id]/share"])
-  crecipe_RecipeArticle --> eDELETE_api_recipes__id__share
-  crecipe_ShareLink --> eDELETE_api_recipes__id__share
+  cshare_ShareDialog --> eDELETE_api_recipes__id__share
   ePOST_api_recipes__id__view(["POST /api/recipes/[id]/view"])
   cViewTracker["ViewTracker"]
   cViewTracker --> ePOST_api_recipes__id__view
   ePATCH_api_recipes__id__visibility(["PATCH /api/recipes/[id]/visibility"])
-  cadmin_RecipeRowActions --> ePATCH_api_recipes__id__visibility
-  crecipe_Visibility["recipe/Visibility"]
-  crecipe_Visibility --> ePATCH_api_recipes__id__visibility
+  cshare_ShareDialog --> ePATCH_api_recipes__id__visibility
   ePOST_api_recipes(["POST /api/recipes"])
   crecipe_form_RecipeForm --> ePOST_api_recipes
   eDELETE_api_site_profiles__host_(["DELETE /api/site-profiles/[host]"])
@@ -403,10 +423,10 @@ flowchart LR
   csrc_app__locale__tickets_page_tsx["src/app/[locale]/tickets/page.tsx"]
   csrc_app__locale__tickets_page_tsx --> ePOST_api_tickets
   eGET_api_tickets(["GET /api/tickets"])
-  csrc_app__locale__admin_tickets_page_tsx["src/app/[locale]/admin/tickets/page.tsx"]
-  csrc_app__locale__admin_tickets_page_tsx --> eGET_api_tickets
+  cadmin_TicketsPanel["admin/TicketsPanel"]
+  cadmin_TicketsPanel --> eGET_api_tickets
   ePATCH_api_tickets(["PATCH /api/tickets"])
-  csrc_app__locale__admin_tickets_page_tsx --> ePATCH_api_tickets
+  cadmin_TicketsPanel --> ePATCH_api_tickets
   ePOST_api_upload(["POST /api/upload"])
   crecipe_form_RecipeForm --> ePOST_api_upload
   ePATCH_api_users__id__role(["PATCH /api/users/[id]/role"])

@@ -65,7 +65,18 @@ export default function navigationTests() {
     equal('an entry being edited is still the entries', adminSectionFor('/de/admin/posts/4'), '/admin/posts');
     equal('a new entry as well', adminSectionFor('/de/admin/posts/new'), '/admin/posts');
     equal('the people page', adminSectionFor('/en/admin/users'), '/admin/users');
-    equal('the errors', adminSectionFor('/en/admin/errors'), '/admin/errors');
+    equal('the reports', adminSectionFor('/en/admin/reports'), '/admin/reports');
+    equal('drafts, now a room of the admin like the rest', adminSectionFor('/de/admin/drafts'), '/admin/drafts');
+
+    /*
+     * The three addresses that redirect mark the tab they redirect *to*, so
+     * the right one is already underlined while the redirect is happening —
+     * rather than nothing being marked for the length of a page load, which
+     * is the state this whole file exists to prevent.
+     */
+    equal('errors, which moved into reports', adminSectionFor('/en/admin/errors'), '/admin/reports');
+    equal('and tickets, which moved with them', adminSectionFor('/de/admin/tickets'), '/admin/reports');
+    equal('and invitations, which moved into people', adminSectionFor('/en/admin/invites'), '/admin/users');
 
     equal('outside the admin, nothing', adminSectionFor('/de/blog'), null);
 }
