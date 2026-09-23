@@ -40,7 +40,9 @@ export default async function CollectionsPage() {
             slug: true,
             description: true,
             imageUrl: true,
-            _count: { select: { recipes: true } },
+            // What the collection page shows: drafts and "only me" recipes are left
+            // out there, so "8 Rezepte" here opened a collection of six.
+            _count: { select: { recipes: { where: { recipe: { isDraft: false, onlyMe: false } } } } },
             // The first recipe's picture stands in for a collection without
             // its own. Drafts are skipped, as everywhere a collection is shown.
             recipes: {

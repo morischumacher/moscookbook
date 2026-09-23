@@ -1205,7 +1205,8 @@
     "deleteList": "Liste löschen",
     "deleteListQuestion": "Die Liste „{name}“ mit allem darauf löschen?",
     "addTo": "Auf welche Liste",
-    "invitedToList": "{name} möchte die Liste „{list}“ mit dir teilen"
+    "invitedToList": "{name} möchte die Liste „{list}“ mit dir teilen",
+    "invitationCount": "{count, plural, one {# Einladung} other {# Einladungen}}"
   },
   "Tags": {
     "vegetarian": "Vegetarisch",
@@ -1296,7 +1297,8 @@
     "save": "Speichern",
     "saveFailed": "Das Menü konnte nicht gespeichert werden.",
     "delete": "Löschen",
-    "confirmDelete": "Dieses Menü löschen?"
+    "confirmDelete": "Dieses Menü löschen?",
+    "shareFailed": "Das hat nicht geklappt. Bitte noch einmal."
   },
   "Work": {
     "tab": "Aufgaben",

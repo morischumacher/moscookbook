@@ -31,7 +31,7 @@ export default async function MenuPage({ params }: { params: Promise<{ locale: s
             <div className="print:hidden">
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                     <PrintButton label={t('print')} />
-                    {menu.recipes.length > 0 && <AddToShopping menuId={menu.id} guests={menu.guests} />}
+                    {user && menu.recipes.length > 0 && <AddToShopping menuId={menu.id} guests={menu.guests} />}
                     {user?.admin && (
                         <Link href={`/admin/menus/${menu.id}`} className="text-sm underline underline-offset-4 hover:text-muted">
                             {t('edit')}

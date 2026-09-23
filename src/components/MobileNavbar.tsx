@@ -14,6 +14,8 @@ interface MobileNavbarProps {
     /** Name and picture as they are now. Null when nobody is signed in. */
     profile: { name: string; avatarUrl: string | null } | null;
     otherLocale: string;
+    /** Shopping lists this person was invited to and has not answered. */
+    invitations?: number;
 }
 
 /**
@@ -40,7 +42,7 @@ interface MobileNavbarProps {
  * full width, which centres its label — so the menu used to have one entry
  * centred among left-aligned ones for no reason anybody could see.
  */
-export default function MobileNavbar({ user, profile, otherLocale }: MobileNavbarProps) {
+export default function MobileNavbar({ user, profile, otherLocale, invitations = 0 }: MobileNavbarProps) {
     const pagePath = usePagePath();
     const t = useTranslations('Navigation');
     const tBlog = useTranslations('Blog');
@@ -85,6 +87,18 @@ export default function MobileNavbar({ user, profile, otherLocale }: MobileNavba
                   : []),
           ]
         : [];
+
+    // An invitation to a shopping list is only answered on that page: a
+    // count beside it is how anybody finds out there is one.
+    const badge = (section: Section) =>
+        section === 'shopping' && invitations > 0 ? (
+            <span
+                className="ml-1.5 inline-block min-w-[1.25rem] rounded-full bg-danger-surface px-1.5 text-center text-xs font-semibold text-danger"
+                aria-label={tShopping('invitationCount', { count: invitations })}
+            >
+                {invitations}
+            </span>
+        ) : null;
 
     const currentLabel = sections.find((entry) => entry.section === current)?.label ?? '';
 
@@ -133,6 +147,7 @@ export default function MobileNavbar({ user, profile, otherLocale }: MobileNavba
                                     }`}
                                 >
                                     {entry.label}
+                                    {badge(entry.section)}
                                 </Link>
                             ))}
 
@@ -167,12 +182,15 @@ export default function MobileNavbar({ user, profile, otherLocale }: MobileNavba
                 <button
                     ref={toggleRef}
                     type="button"
-                    className="-mr-2 flex h-11 w-11 flex-col items-center justify-center gap-1.5 rounded md:hidden"
+                    className="relative -mr-2 flex h-11 w-11 flex-col items-center justify-center gap-1.5 rounded md:hidden"
                     onClick={() => setIsOpen(!isOpen)}
                     aria-label={isOpen ? t('closeMenu') : t('toggleMenu')}
                     aria-expanded={isOpen}
                     aria-controls="mobile-menu"
                 >
+                    {invitations > 0 && !isOpen && (
+                        <span className="absolute right-1 top-1.5 h-2.5 w-2.5 rounded-full bg-danger" aria-hidden />
+                    )}
                     {/* Three bars that become a cross when the menu is open:
                         greying them out did not say "press to close". */}
                     <span className={`block h-0.5 w-6 bg-ink transition-transform ${isOpen ? 'translate-y-2 rotate-45' : ''}`} />
@@ -240,6 +258,7 @@ export default function MobileNavbar({ user, profile, otherLocale }: MobileNavba
                                             }`}
                                         >
                                             {entry.label}
+                                            {badge(entry.section)}
                                         </Link>
                                     ))}
 

@@ -77,6 +77,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         if (isPrismaError(error, 'P2003')) {
             return NextResponse.json({ message: 'That recipe no longer exists.' }, { status: 400 });
         }
+        // Deleted in another tab between reading and writing.
+        if (isPrismaError(error, 'P2025')) {
+            return NextResponse.json({ message: 'Post not found' }, { status: 404 });
+        }
 
         failed('Post update failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

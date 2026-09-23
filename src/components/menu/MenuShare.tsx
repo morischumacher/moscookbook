@@ -15,6 +15,7 @@ export default function MenuShare({ id, initialToken }: { id: number; initialTok
     const [token, setToken] = useState(initialToken);
     const [busy, setBusy] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [failed, setFailed] = useState(false);
     // The address needs the origin, which the server render does not know;
     // reading it during render would not match on hydration.
     const [origin, setOrigin] = useState('');
@@ -24,9 +25,13 @@ export default function MenuShare({ id, initialToken }: { id: number; initialTok
 
     const toggle = async () => {
         setBusy(true);
+        setFailed(false);
         try {
             const res = await fetch(`/api/menus/${id}/share`, { method: token ? 'DELETE' : 'POST' });
             if (res.ok) setToken((await res.json()).shareToken ?? null);
+            else setFailed(true);
+        } catch {
+            setFailed(true);
         } finally {
             setBusy(false);
         }
@@ -65,6 +70,11 @@ export default function MenuShare({ id, initialToken }: { id: number; initialTok
                     <BusyLabel busy={busy}>{token ? t('shareRemove') : t('shareCreate')}</BusyLabel>
                 </button>
             </div>
+            {failed && (
+                <p role="alert" className="mt-2 text-sm text-danger">
+                    {t('shareFailed')}
+                </p>
+            )}
         </section>
     );
 }
