@@ -73,7 +73,6 @@ export default function ProfileMenu({
                 type="button"
                 onClick={() => setOpen(!open)}
                 aria-expanded={open}
-                aria-haspopup="menu"
                 aria-label={t('accountMenu')}
                 className="flex items-center rounded-full transition-opacity hover:opacity-70"
             >
@@ -83,14 +82,13 @@ export default function ProfileMenu({
             {open && (
                 <div
                     ref={panel}
-                    role="menu"
                     className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-lg border border-line bg-page py-1 shadow-lg"
                 >
                     <p className="truncate px-4 py-2 text-xs uppercase tracking-widest text-faint">
                         {user.name}
                     </p>
 
-                    <Link href="/account" role="menuitem" onClick={() => setOpen(false)} className={row}>
+                    <Link href="/account" onClick={() => setOpen(false)} className={row}>
                         {t('account')}
                     </Link>
 
@@ -100,7 +98,7 @@ export default function ProfileMenu({
                         href={pagePath}
                         locale={otherLocale}
                         lang={otherLocale}
-                        role="menuitem"
+                       
                         onClick={() => setOpen(false)}
                         className={row}
                     >

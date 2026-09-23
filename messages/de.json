@@ -2,7 +2,8 @@
   "Site": {
     "title": "mo'scookbook",
     "description": "Meine Lieblingsrezepte – gekocht, gesammelt, weitergegeben.",
-    "rightsReserved": "Alle Rechte vorbehalten."
+    "rightsReserved": "Alle Rechte vorbehalten.",
+    "skipToContent": "Zum Inhalt springen"
   },
   "Navigation": {
     "home": "Startseite",

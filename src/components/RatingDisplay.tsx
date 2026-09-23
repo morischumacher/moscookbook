@@ -59,7 +59,7 @@ export default function RatingDisplay({
                     hover state from rating stayed on the read-only row — it
                     showed your own rating beside the text saying the average. */}
                 {isRatingOpen ? (
-                    <Rating key="edit" value={userRating} recipeId={recipeId} onRated={handleRated} />
+                    <Rating key="edit" value={userRating} recipeId={recipeId} onRated={handleRated} focusOnShow />
                 ) : (
                     <Rating key="view" value={average} readonly />
                 )}
