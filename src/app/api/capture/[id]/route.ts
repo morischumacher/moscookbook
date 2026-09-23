@@ -261,17 +261,18 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     // more of them than are ever published — so this was the largest of the
     // three places that left files in the store with nothing pointing at them.
     // A published capture's picture is not touched: by then the recipe owns it.
-    const doomed: { imageUrl: string | null; status: string } | null =
+    const doomed: { imageUrl: string | null; moreImageUrls: string[]; status: string } | null =
         await prisma.capture.findUnique({
             where: { id: captureId },
-            select: { imageUrl: true, status: true },
+            select: { imageUrl: true, moreImageUrls: true, status: true },
         });
 
     const removed = await prisma.capture.deleteMany({ where: { id: captureId } });
     await syncWorkItem('capture', captureId);
 
-    if (removed.count === 1 && doomed?.imageUrl && doomed.status !== 'published') {
-        await deleteBlobs([doomed.imageUrl]);
+    if (removed.count === 1 && doomed && doomed.status !== 'published') {
+        const files = [doomed.imageUrl, ...doomed.moreImageUrls].filter((url): url is string => Boolean(url));
+        if (files.length > 0) await deleteBlobs(files);
     }
 
     return NextResponse.json({ ok: true });

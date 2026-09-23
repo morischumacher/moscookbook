@@ -54,9 +54,17 @@ const aiRecipeSchema = z.object({
     servings: z.number().int().min(1).max(100).nullable().default(null),
     prepMinutes: z.number().int().min(0).max(10_000).nullable().default(null),
     cookMinutes: z.number().int().min(0).max(10_000).nullable().default(null),
+    /** Web addresses and site names the source shows — see the prompt. */
+    links: z.array(z.string().max(300)).max(10).default([]),
 });
 
 export interface AiExtractionResult extends ParsedRecipe {
+    /**
+     * Addresses and site names visible in the source ("pattyplates.com",
+     * "https://…/rezept"). A screenshot of a comment or a bio often holds
+     * nothing else; captureProcess follows them. Never part of a draft.
+     */
+    links?: string[];
     category: string;
     nationality: string;
     servings: number | null;
@@ -69,7 +77,8 @@ const SYSTEM_PROMPT = `You extract recipes into structured data.
 Return ONLY a JSON object, no prose and no code fences, with exactly these keys:
 {"title": string, "description": string, "category": string, "nationality": string,
  "servings": number|null, "prepMinutes": number|null, "cookMinutes": number|null,
- "ingredients": [{"amount": string, "item": string}], "instructions": string}
+ "ingredients": [{"amount": string, "item": string}], "instructions": string,
+ "links": [string]}
 
 Rules:
 - Keep the language of the source. Do not translate.
@@ -83,11 +92,19 @@ Rules:
   or null when the source does not state them. Never estimate them.
 - Never invent ingredients, quantities or steps that are not in the source.
   If something is missing, leave it empty.
-- If the source is not a recipe at all, return the object with every field empty.`;
+- "links" lists every web address or website name the source shows where a
+  recipe might be — "pattyplates.com", "https://example.com/rezept", a site
+  named in a bio or a comment. Only what is actually there; [] when none.
+- If the source is not a recipe at all, return the object with every field
+  empty (but still fill "links" when the source names a website).`;
 
 export type AiSource =
     | { kind: 'text'; text: string }
-    | { kind: 'image'; base64: string; mediaType: string }
+    /**
+     * `more`: further screenshots of the same share — the post and its
+     * comments, say — read together in one call.
+     */
+    | { kind: 'image'; base64: string; mediaType: string; more?: { base64: string; mediaType: string }[] }
     /**
      * Some text, a system prompt of the caller's own, and no recipe schema.
      *
@@ -105,9 +122,16 @@ function systemFor(source: AiSource): string {
 
 function promptFor(source: AiSource): string {
     if (source.kind === 'raw') return source.text;
-    return source.kind === 'text'
-        ? `Extract the recipe from this text:\n\n${source.text}`
+    if (source.kind === 'text') return `Extract the recipe from this text:\n\n${source.text}`;
+    return source.more && source.more.length > 0
+        ? `These ${source.more.length + 1} images are screenshots of one share — for example a post and its comments. ` +
+              'Extract the one recipe they show together.'
         : 'Extract the recipe shown in this image.';
+}
+
+/** Every picture of an image source, the first one first. */
+function picturesOf(source: { base64: string; mediaType: string; more?: { base64: string; mediaType: string }[] }) {
+    return [{ base64: source.base64, mediaType: source.mediaType }, ...(source.more ?? [])];
 }
 
 export function extractJson(text: string): unknown {
@@ -238,10 +262,10 @@ async function callAnthropic(key: AiKey, source: AiSource): Promise<Answered> {
     const content =
         source.kind === 'image'
             ? [
-                {
+                ...picturesOf(source).map((picture) => ({
                     type: 'image',
-                    source: { type: 'base64', media_type: source.mediaType, data: source.base64 },
-                },
+                    source: { type: 'base64', media_type: picture.mediaType, data: picture.base64 },
+                })),
                 { type: 'text', text: promptFor(source) },
             ]
             : [{ type: 'text', text: promptFor(source) }];
@@ -295,12 +319,12 @@ async function callOpenAi(key: AiKey, source: AiSource): Promise<Answered> {
         source.kind === 'image'
             ? [
                 { type: 'text', text: promptFor(source) },
-                {
+                // OpenAI takes an image as a data URL rather than as a
+                // separate field — the same bytes, a different envelope.
+                ...picturesOf(source).map((picture) => ({
                     type: 'image_url',
-                    // OpenAI takes an image as a data URL rather than as a
-                    // separate field — the same bytes, a different envelope.
-                    image_url: { url: `data:${source.mediaType};base64,${source.base64}` },
-                },
+                    image_url: { url: `data:${picture.mediaType};base64,${picture.base64}` },
+                })),
             ]
             : [{ type: 'text', text: promptFor(source) }];
 
@@ -366,7 +390,7 @@ async function callGoogle(key: AiKey, source: AiSource): Promise<Answered> {
         source.kind === 'image'
             ? [
                 { text: promptFor(source) },
-                { inline_data: { mime_type: source.mediaType, data: source.base64 } },
+                ...picturesOf(source).map((picture) => ({ inline_data: { mime_type: picture.mediaType, data: picture.base64 } })),
             ]
             : [{ text: promptFor(source) }];
 

@@ -123,6 +123,9 @@ model Capture {
   /// cannot yet read it and can be retried once the parser improves.
   rawText   String?
   imageUrl  String?
+  /// Further screenshots of the same share (a post and its comments),
+  /// read together with the first in one AI call. In our picture store.
+  moreImageUrls String[] @default([])
   /// What the sender typed alongside the share.
   note      String?
 

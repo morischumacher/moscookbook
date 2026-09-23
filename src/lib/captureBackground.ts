@@ -17,7 +17,7 @@ import { syncWorkItem } from './workItemsDb';
  * "Share to…", see app/[locale]/share) reads what arrives exactly the same
  * way as a shortcut or a forwarded mail does.
  */
-export function readInBackground(captureId: number, classified: ClassifiedCapture, imageUrl?: string): void {
+export function readInBackground(captureId: number, classified: ClassifiedCapture, imageUrl?: string, moreImageUrls: string[] = []): void {
     const capture = { id: captureId };
     after(async () => {
         try {
@@ -33,7 +33,7 @@ export function readInBackground(captureId: number, classified: ClassifiedCaptur
             const usage = usageRecorder('capture', { captureId: capture.id, source: classified.source });
             const learning = usageRecorder('learn', { captureId: capture.id, source: classified.source });
             const result = await processCapture(
-                { ...classified, imageUrl: imageUrl ?? classified.imageUrl },
+                { ...classified, imageUrl: imageUrl ?? classified.imageUrl, moreImageUrls },
                 ai,
                 {
                     onModel: usage.report,

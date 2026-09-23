@@ -496,16 +496,40 @@ async function processWebPage(
  * far better outcome than a rejected share, which is what standing in a
  * kitchen with a photograph of a cookbook page actually looks like.
  */
+/** What a picture path knows beyond the pictures: for following what they show. */
+interface PictureContext {
+    /** Further screenshots of the same share (a post and its comments). */
+    more?: string[];
+    /** What was shared with them, for the dish's name. */
+    text?: string | null;
+    /** The share's own address, which a found recipe is filed under. */
+    sourceUrl?: string | null;
+}
+
+/** "pattyplates.com/corn" → "https://pattyplates.com/corn"; bare site names are kept as they are. */
+function linkLines(links: string[]): { urls: string; sites: string } {
+    const urls: string[] = [];
+    const sites: string[] = [];
+    for (const raw of links) {
+        const link = raw.trim().replace(/[.,;)]+$/, '');
+        if (/^https?:\/\//i.test(link)) urls.push(link);
+        else if (/^[\w.-]+\.[a-z]{2,}\/\S+/i.test(link)) urls.push(`https://${link}`);
+        else sites.push(link);
+    }
+    return { urls: urls.join('\n'), sites: sites.join(' ') };
+}
+
 async function processImage(
     imageUrl: string | null,
     ai: AiCapability,
-    options: ProcessOptions
+    options: ProcessOptions,
+    context: PictureContext = {}
 ): Promise<ProcessedCapture> {
     if (!imageUrl) {
         return outcome('failed', null, reason('noPicture'));
     }
 
-    const withPicture = { ...emptyDraft(''), imageUrl };
+    const withPicture = { ...emptyDraft(context.sourceUrl ?? ''), imageUrl };
 
     if (!canUseAi(ai)) {
         return outcome(
@@ -525,9 +549,17 @@ async function processImage(
         );
     }
 
+    // The other screenshots of the same share, read in the same call. One
+    // that cannot be fetched is left out rather than failing the rest.
+    const more: { base64: string; mediaType: string }[] = [];
+    for (const url of (context.more ?? []).slice(0, 3)) {
+        const extra = await fetchImageAsBase64(url);
+        if (extra.ok) more.push({ base64: extra.base64, mediaType: extra.mediaType });
+    }
+
     try {
-        const parsed = await extractRecipeWithAi(
-            { kind: 'image', base64: image.base64, mediaType: image.mediaType },
+        const { links = [], ...parsed } = await extractRecipeWithAi(
+            { kind: 'image', base64: image.base64, mediaType: image.mediaType, more },
             ai.keys,
             options.onModel
         );
@@ -537,6 +569,27 @@ async function processImage(
         // is a recipe with no picture at all.
         const draft: ImportedRecipe = { ...withPicture, ...parsed, imageUrl };
         const status = completeness(draft);
+        const trace = { provider: ai.keys[0]?.provider ?? null, asked: true, failed: false };
+
+        /*
+         * The screenshot shows where the recipe is rather than the recipe: a
+         * link in a comment, "pattyplates.com" in a bio. Followed like a link
+         * in a caption — the page read by the rules first — and searched for
+         * on the site when it is only a name.
+         */
+        if (status !== 'ready' && links.length > 0) {
+            const shared = context.sourceUrl ?? '';
+            const { urls, sites } = linkLines(links);
+            const linked = urls ? await fromLinkedRecipe(urls, shared, ai, options) : null;
+            const found =
+                linked ??
+                (sites
+                    ? await fromAuthorSite(`${draft.title || dishName(context.text ?? '')}\n${sites}`, null, shared, ai, options)
+                    : null);
+            if (found?.draft) {
+                return { ...found, draft: mergeDrafts(found.draft, { imageUrl }), readBy: found.readBy === 'rules' ? 'ai' : found.readBy };
+            }
+        }
 
         // Always 'ai', never 'rules+ai': there were no rules here. A
         // photograph is the one source with nothing else to read it.
@@ -544,7 +597,7 @@ async function processImage(
             status,
             draft,
             status === 'ready' ? null : reason('picturePartial'),
-            { provider: ai.keys[0]?.provider ?? null, asked: true, failed: false },
+            trace,
             'ai'
         );
     } catch (error) {
@@ -571,7 +624,7 @@ export async function processCapture(
 ): Promise<ProcessedCapture> {
     try {
         if (capture.kind === 'image') {
-            return await processImage(capture.imageUrl ?? null, ai, options);
+            return await processImage(capture.imageUrl ?? null, ai, options, { more: capture.moreImageUrls ?? [] });
         }
 
         if (capture.kind === 'text') {
@@ -600,7 +653,7 @@ export async function processCapture(
             }
 
             if (completeness(draft) !== 'ready' && capture.imageUrl) {
-                const fromPicture = await processImage(capture.imageUrl, ai, options);
+                const fromPicture = await processImage(capture.imageUrl, ai, options, { more: capture.moreImageUrls ?? [], text });
                 if (fromPicture.status === 'ready') return fromPicture;
             }
 
@@ -629,7 +682,11 @@ export async function processCapture(
         // not be read and the caption was not the recipe, but a picture came
         // with the share. Worth one more attempt before giving up.
         if (result.status !== 'ready' && capture.imageUrl) {
-            const fromPicture = await processImage(capture.imageUrl, ai, options);
+            const fromPicture = await processImage(capture.imageUrl, ai, options, {
+                more: capture.moreImageUrls ?? [],
+                text: [result.draft?.title ?? '', capture.rawText ?? ''].join('\n'),
+                sourceUrl: url,
+            });
             if (fromPicture.status === 'ready') return fromPicture;
         }
 
@@ -744,7 +801,7 @@ export async function readWithAiOnly(
     options: ProcessOptions = {}
 ): Promise<ProcessedCapture> {
     if (!canUseAi(ai)) return outcome('needsWork', null, reason('pictureNeedsAi'));
-    if (capture.kind === 'image') return processImage(capture.imageUrl ?? null, ai, options);
+    if (capture.kind === 'image') return processImage(capture.imageUrl ?? null, ai, options, { more: capture.moreImageUrls ?? [] });
 
     try {
         const material = await materialOf(capture);
@@ -753,7 +810,8 @@ export async function readWithAiOnly(
 
         if (text.trim().length >= 40) {
             try {
-                const parsed = await extractRecipeWithAi({ kind: 'text', text }, ai.keys, options.onModel);
+                const { links: _links, ...parsed } = await extractRecipeWithAi({ kind: 'text', text }, ai.keys, options.onModel);
+                void _links;
                 const draft: ImportedRecipe = {
                     ...emptyDraft(capture.sourceUrl ?? ''),
                     ...parsed,
@@ -774,7 +832,7 @@ export async function readWithAiOnly(
         }
 
         // Nothing to read, or not enough in it: the screenshot, if one came.
-        if (capture.imageUrl) return processImage(capture.imageUrl, ai, options);
+        if (capture.imageUrl) return processImage(capture.imageUrl, ai, options, { more: capture.moreImageUrls ?? [], sourceUrl: capture.sourceUrl });
         return outcome('failed', null, reason('nothingSent'));
     } catch (error) {
         console.error('Capture processing error:', error);

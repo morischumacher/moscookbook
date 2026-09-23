@@ -599,7 +599,17 @@
     "sc2Link1": "In Instagram beim Beitrag auf Teilen → „Link kopieren“ tippen, dann den Screenshot machen.",
     "sc2Link2": "Im Screenshot-Kurzbefehl vor „Get Contents of URL“ die Aktion „Get Clipboard“ einfügen.",
     "sc2Link3": "Im Wörterbuch des Anfrage-Inhalts ein Textfeld „url“ hinzufügen und als Wert die blaue Variable „Clipboard“ wählen:",
-    "sc2LinkNote": "Dann kommen Link und Screenshot zusammen an: Erst wird der Beitrag gelesen – Beschreibung, und ein Rezept-Link darin wird verfolgt –, der Screenshot ist das Bild und der Rückfall, wenn das nicht reicht. Steht in der Zwischenablage gerade kein Link, wird sie ignoriert."
+    "sc2LinkNote": "Dann kommen Link und Screenshot zusammen an: Erst wird der Beitrag gelesen – Beschreibung, und ein Rezept-Link darin wird verfolgt –, der Screenshot ist das Bild und der Rückfall, wenn das nicht reicht. Steht in der Zwischenablage gerade kein Link, wird sie ignoriert.",
+    "sc1ShotsTitle": "Mit den letzten Screenshots (Post, Kommentare, Bio)",
+    "sc1ShotsIntro": "Teilst du einen Post und hast kurz davor Screenshots gemacht – etwa vom Kommentar mit dem Rezept oder vom Link in der Bio –, schickt der Kurzbefehl bis zu 3 davon mit. Die KI liest sie zusammen in einem Aufruf und folgt Links und Webseiten, die darauf zu sehen sind. Ohne neue Screenshots geht nur der Link raus, wie bisher.",
+    "sc1Shots1": "Ganz oben (vor „Get Contents of URL“): „Adjust Date“ – „Current Date“, „Subtract“ 5 „minutes“.",
+    "sc1Shots2": "„Find Photos“: Filter „Is a Screenshot“ und „Date Taken“ „is after“ „Adjusted Date“. „Sort by“ „Date Taken“, „Order“ „Latest First“, „Limit“ an, „Get“ 3 Photos.",
+    "sc1Shots3": "„If“ – „Photos“ „has any value“.",
+    "sc1Shots4": "Darin „Repeat with Each“ mit „Photos“. Innerhalb der Wiederholung: „Resize Image“ auf Breite 1200 (Höhe automatisch), dann „Convert Image“ zu JPEG, Qualität etwa 70 %, „Preserve Metadata“ aus, dann „Base64 Encode“ (unter „Show More“: „Line Breaks“ auf „None“).",
+    "sc1Shots5": "Nach „End Repeat“ (noch im „If“): „Combine Text“ mit „Repeat Results“, Trennzeichen „Custom“ und ein Komma „,“ eintragen.",
+    "sc1Shots6": "Dann „Get Contents of URL“ wie oben, aber im Anfrage-Inhalt zwei Textfelder:",
+    "sc1Shots7": "Unter „Otherwise“ bleibt das bisherige „Get Contents of URL“ mit nur „url“.",
+    "sc1ShotsNote": "Die Reihenfolge der Screenshots ist egal. Verkleinern ist wichtig: Vercel nimmt pro Anfrage höchstens etwa 4 MB an, drei Screenshots mit 1200 px Breite liegen bei rund 1 MB."
   },
   "Share": {
     "share": "Teilen",

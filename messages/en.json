@@ -599,7 +599,17 @@
     "sc2Link1": "In Instagram, tap Share → “Copy link” on the post, then take the screenshot.",
     "sc2Link2": "In the screenshot shortcut, add the action “Get Clipboard” before “Get Contents of URL”.",
     "sc2Link3": "In the request body's dictionary, add a text field “url” and choose the blue variable “Clipboard” as its value:",
-    "sc2LinkNote": "The link and the screenshot then arrive together: the post is read first – its caption, and a recipe link in it is followed – and the screenshot is the picture, and the fallback if that is not enough. If the clipboard does not hold a link, it is ignored."
+    "sc2LinkNote": "The link and the screenshot then arrive together: the post is read first – its caption, and a recipe link in it is followed – and the screenshot is the picture, and the fallback if that is not enough. If the clipboard does not hold a link, it is ignored.",
+    "sc1ShotsTitle": "With the latest screenshots (post, comments, bio)",
+    "sc1ShotsIntro": "If you share a post and took screenshots just before – of the comment with the recipe, or the link in the bio – the shortcut sends up to 3 of them along. The AI reads them together in one call and follows links and websites shown on them. Without new screenshots only the link is sent, as before.",
+    "sc1Shots1": "At the very top (before “Get Contents of URL”): “Adjust Date” – “Current Date”, “Subtract” 5 “minutes”.",
+    "sc1Shots2": "“Find Photos”: filter “Is a Screenshot” and “Date Taken” “is after” “Adjusted Date”. “Sort by” “Date Taken”, “Order” “Latest First”, “Limit” on, “Get” 3 Photos.",
+    "sc1Shots3": "“If” – “Photos” “has any value”.",
+    "sc1Shots4": "Inside it “Repeat with Each” over “Photos”. Inside the repeat: “Resize Image” to width 1200 (auto height), then “Convert Image” to JPEG, quality about 70 %, “Preserve Metadata” off, then “Base64 Encode” (under “Show More”: “Line Breaks” set to “None”).",
+    "sc1Shots5": "After “End Repeat” (still inside the “If”): “Combine Text” with “Repeat Results”, separator “Custom” and a comma “,”.",
+    "sc1Shots6": "Then “Get Contents of URL” as above, but with two text fields in the request body:",
+    "sc1Shots7": "Under “Otherwise” the existing “Get Contents of URL” with only “url” stays.",
+    "sc1ShotsNote": "The order of the screenshots does not matter. Resizing matters: Vercel accepts at most about 4 MB per request; three screenshots 1200 px wide come to about 1 MB."
   },
   "Share": {
     "share": "Share",

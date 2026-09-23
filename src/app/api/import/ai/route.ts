@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { assistsText, canUseAi, extractRecipeWithAi } from '@/lib/aiImport';
-import { aiCapability, rememberModel } from '@/lib/aiConfig';
+import { aiCapability } from '@/lib/aiConfig';
 import { parseRecipeText } from '@/lib/recipeParser';
 import { failed } from '@/lib/reportServerError';
+import { usageRecorder } from '@/lib/tokenUsageDb';
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_IMAGE_BASE64 = 7 * 1024 * 1024; // roughly 5 MB of binary
@@ -84,9 +85,9 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const recipe = await extractRecipeWithAi(parsed.data, ai.keys, (provider, model) =>
-            void rememberModel(provider, model)
-        );
+        const usage = usageRecorder('import', { source: parsed.data.kind === 'image' ? 'photo' : 'note' });
+        const recipe = await extractRecipeWithAi(parsed.data, ai.keys, usage.report);
+        await usage.flush();
         return NextResponse.json({ recipe, source: 'ai' });
     } catch (error) {
         failed('AI import error:', error);

@@ -70,6 +70,7 @@ import recipeTranslation from './recipeTranslation.test';
 import inviteName from './inviteName.test';
 import tokenUsage from './tokenUsage.test';
 import authorSite from './authorSite.test';
+import screenshots from './screenshots.test';
 import siteLearn, { siteLearnWiringTests } from './siteLearn.test';
 import drafts from './drafts.test';
 import routeParams from './routeParams.test';
@@ -165,6 +166,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['inviteName', inviteName],
     ['tokenUsage', tokenUsage],
     ['authorSite', authorSite],
+    ['screenshots', screenshots],
     ['siteLearn', siteLearn],
     ['siteLearnWiringTests', siteLearnWiringTests],
     ['drafts', drafts],
