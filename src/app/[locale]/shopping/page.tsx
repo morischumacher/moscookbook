@@ -65,7 +65,8 @@ export default async function ShoppingPage({
                     listId: list.id,
                     name: list.name,
                     owner: list.owner,
-                    shareToken: settings?.shareToken ?? null,
+                    // The link is the owner's to hand out: not even in a member's page data.
+                    shareToken: list.owner ? (settings?.shareToken ?? null) : null,
                     canAdd: settings?.shareCanAdd ?? true,
                 }}
             />

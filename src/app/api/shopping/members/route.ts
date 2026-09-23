@@ -24,8 +24,13 @@ export const GET = route({ access: 'user', label: 'Shopping list members' }, asy
     let people: { id: number; name: string }[] = [];
     if (list.owner) {
         const taken = new Set([household.owner.id, ...household.members.map((m) => m.id), ...household.invited.map((m) => m.id)]);
-        const everyone = await prisma.user.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, firstName: true }, take: 200 });
-        people = everyone.filter((p) => !taken.has(p.id)).map((p) => ({ id: p.id, name: p.firstName || p.name }));
+        const everyone = await prisma.user.findMany({
+            where: { id: { notIn: [...taken] } },
+            orderBy: { name: 'asc' },
+            select: { id: true, name: true, firstName: true },
+            take: 200,
+        });
+        people = everyone.map((p) => ({ id: p.id, name: p.firstName || p.name }));
     }
     return NextResponse.json({ owner: list.owner, household, people });
 });

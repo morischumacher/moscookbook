@@ -835,7 +835,9 @@ model PostCollection {
 /// A shopping list. Everybody has one main list (`name` null — "Einkaufsliste"),
 /// made the first time it is asked for, and may make more with a name
 /// ("Grillparty Samstag"). Each is private or shared on its own. At most one
-/// main list per person (a partial unique index in migration 0051).
+/// main list per person (a partial unique index in migration 0051, which
+/// Prisma cannot express: a generated migration that drops
+/// "ShoppingList_one_main" must have that line taken out).
 model ShoppingList {
   id         Int            @id @default(autoincrement())
   userId     Int

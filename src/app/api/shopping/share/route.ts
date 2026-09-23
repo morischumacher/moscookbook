@@ -15,15 +15,11 @@ import { requestedList } from '@/lib/shoppingRequest';
 
 export const POST = route({ access: 'user', label: 'Sharing the shopping list' }, async ({ req, user }) => {
     const list = await requestedList(req, user.id, 'owner');
+    // Only where there is none yet: two taps at once must not hand out a
+    // link the second one has already replaced.
+    await prisma.shoppingList.updateMany({ where: { id: list.id, shareToken: null }, data: { shareToken: generateShareToken() } });
     const current = await prisma.shoppingList.findUnique({ where: { id: list.id }, select: { shareToken: true } });
-    if (current?.shareToken) return NextResponse.json({ shareToken: current.shareToken });
-
-    const updated = await prisma.shoppingList.update({
-        where: { id: list.id },
-        data: { shareToken: generateShareToken() },
-        select: { shareToken: true },
-    });
-    return NextResponse.json({ shareToken: updated.shareToken });
+    return NextResponse.json({ shareToken: current?.shareToken ?? null });
 });
 
 export const DELETE = route({ access: 'user', label: 'Unsharing the shopping list' }, async ({ req, user }) => {
