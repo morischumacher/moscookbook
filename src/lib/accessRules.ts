@@ -130,11 +130,14 @@ export function pathAccess(pathname: string): Access {
  *   so the person in the shop can tick things off without an account. The
  *   token is the permission, checked in the route.
  *
+ * - `work` — the work list: things the admin chose to publish for fixing,
+ *   anonymized when they were shared (lib/workItems.ts). Read-only.
+ *
  * Every route still does its own check. This is the net under them, not a
  * replacement for them: `errors` GET is admin-only inside the route even
  * though the path is open here, because the path is open for its POST.
  */
-const OPEN_API = /^\/api\/(?:auth\/[a-z-]+|capture|errors|recipes\/\d+\/view|cron\/[a-z-]+|shopping\/shared\/[A-Za-z0-9_-]{16,64})\/?$/;
+const OPEN_API = /^\/api\/(?:auth\/[a-z-]+|capture|errors|recipes\/\d+\/view|cron\/[a-z-]+|shopping\/shared\/[A-Za-z0-9_-]{16,64}|work)\/?$/;
 
 export type ApiAccess = 'open' | 'session';
 

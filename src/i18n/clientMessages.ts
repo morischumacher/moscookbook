@@ -24,6 +24,7 @@ export const ADMIN_ONLY_NAMESPACES = [
     'Backup',
     'Invites',
     'Reports',
+    'Work',
     'Inbox',
     'QuickImport',
     'RecipeForm',

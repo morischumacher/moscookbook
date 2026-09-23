@@ -1138,5 +1138,29 @@
     "saveFailed": "The menu could not be saved.",
     "delete": "Delete",
     "confirmDelete": "Delete this menu?"
+  },
+  "Work": {
+    "tab": "Work list",
+    "share": "Add to work list",
+    "shareNow": "Share",
+    "shared": "On the work list",
+    "cancel": "Cancel",
+    "notePlaceholder": "What is wrong? (optional)",
+    "publicHint": "Goes onto the public work list anonymized – without names, e-mail addresses or links with keys in them.",
+    "failed": "That did not work.",
+    "explain": "What you share here is listed, anonymized, at this public address – for whoever you ask to fix it, a person or an AI. Everything else stays private. A ready-made brief for a coding AI is in the repository at docs/work-list-prompt.md.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "loading": "Loading…",
+    "empty": "Nothing shared yet. The button is in the inbox (More → Add to work list), on errors and on tickets.",
+    "closed": "done",
+    "close": "Done",
+    "reopen": "Reopen",
+    "remove": "Take off the list",
+    "kind": {
+      "capture": "Inbox",
+      "error": "Error",
+      "ticket": "Ticket"
+    }
   }
 }

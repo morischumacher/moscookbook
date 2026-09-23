@@ -1,5 +1,6 @@
 'use client';
 
+import ShareToWorkList from '@/components/admin/ShareToWorkList';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/lib/formatDate';
@@ -199,6 +200,8 @@ export default function TicketsPanel() {
                                 >
                                     {copied === entry.id ? t('copied') : t('copyTicket')}
                                 </button>
+
+                                <ShareToWorkList kind="ticket" id={entry.id} className="text-xs text-muted" />
 
                                 <button
                                     type="button"

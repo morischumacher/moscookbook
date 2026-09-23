@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import ErrorsPanel from './ErrorsPanel';
 import TicketsPanel from './TicketsPanel';
+import WorkPanel from './WorkPanel';
 import PageHeader from './PageHeader';
 import { pageContainer } from '@/lib/ui';
 
-type Side = 'errors' | 'tickets';
+type Side = 'errors' | 'tickets' | 'work';
 
 /**
  * The two sides of "something was reported", side by side.
@@ -29,6 +30,7 @@ export default function Reports({
     openTickets: number;
 }) {
     const t = useTranslations('Reports');
+    const tWork = useTranslations('Work');
     const [side, setSide] = useState<Side>(openTickets > 0 ? 'tickets' : 'errors');
 
     const tab = (value: Side, label: string, count: number) => {
@@ -65,6 +67,7 @@ export default function Reports({
             <div className="mb-8 -mt-2 flex gap-6 border-b border-line">
                 {tab('errors', t('errors'), openErrors)}
                 {tab('tickets', t('tickets'), openTickets)}
+                {tab('work', tWork('tab'), 0)}
             </div>
 
             {/*
@@ -79,6 +82,8 @@ export default function Reports({
             <div hidden={side !== 'tickets'}>
                 <TicketsPanel />
             </div>
+            {/* Only mounted when opened: it is the list least often looked at. */}
+            {side === 'work' && <WorkPanel />}
         </main>
     );
 }

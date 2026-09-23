@@ -1138,5 +1138,29 @@
     "saveFailed": "Das Menü konnte nicht gespeichert werden.",
     "delete": "Löschen",
     "confirmDelete": "Dieses Menü löschen?"
+  },
+  "Work": {
+    "tab": "Arbeitsliste",
+    "share": "Zur Arbeitsliste",
+    "shareNow": "Freigeben",
+    "shared": "Auf der Arbeitsliste",
+    "cancel": "Abbrechen",
+    "notePlaceholder": "Was ist falsch? (optional)",
+    "publicHint": "Landet anonymisiert – ohne Namen, E-Mail-Adressen und Links mit Schlüssel – auf der öffentlichen Arbeitsliste.",
+    "failed": "Das hat nicht geklappt.",
+    "explain": "Was du hier freigibst, steht anonymisiert unter dieser öffentlichen Adresse – zum Beheben durch wen auch immer du beauftragst, Mensch oder KI. Alles andere bleibt privat. Den fertigen Auftrag für eine Programmier-KI findest du im Repo unter docs/work-list-prompt.md.",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "loading": "Wird geladen…",
+    "empty": "Noch nichts freigegeben. Im Eingang (Mehr → Zur Arbeitsliste), bei Fehlern und bei Tickets gibt es den Knopf.",
+    "closed": "erledigt",
+    "close": "Erledigt",
+    "reopen": "Wieder öffnen",
+    "remove": "Von der Liste nehmen",
+    "kind": {
+      "capture": "Eingang",
+      "error": "Fehler",
+      "ticket": "Ticket"
+    }
   }
 }
