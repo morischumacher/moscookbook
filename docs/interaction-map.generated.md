@@ -3,13 +3,13 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-45 screens · 77 endpoints · 80 link edges · 78 call edges
+45 screens · 83 endpoints · 80 link edges · 84 call edges
 
 ## Screens
 
 | Route | Access | Proxy | Calls | Links to |
 |---|---|---|---|---|
-| `/[locale]/account` | account | requires session | `* /api/account`<br>`* /api/account/email`<br>`* /api/account/name`<br>`* /api/account/password`<br>`* /api/auth/logout`<br>`DELETE /api/account/avatar`<br>`POST /api/account/avatar` | `/[locale]/login` |
+| `/[locale]/account` | account | requires session | `* /api/account`<br>`* /api/account/email`<br>`* /api/account/name`<br>`* /api/account/password`<br>`* /api/auth/logout`<br>`DELETE /api/account/avatar`<br>`DELETE /api/account/passkeys/[id]`<br>`GET /api/account/passkeys`<br>`POST /api/account/avatar`<br>`POST /api/account/passkeys`<br>`POST /api/account/passkeys/options` | `/[locale]/login` |
 | `/[locale]/admin/ai` | admin | requires admin | `DELETE /api/ai-keys/[id]`<br>`DELETE /api/site-profiles/[id]`<br>`GET /api/ai-keys`<br>`GET /api/site-profiles`<br>`PATCH /api/ai-keys`<br>`POST /api/ai-keys`<br>`POST /api/ai-keys/[id]/test`<br>`POST /api/site-profiles` | — |
 | `/[locale]/admin/collections/[id]` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/admin/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections/new` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/admin/collections`<br>`/[locale]/collections/[id]` |
@@ -38,7 +38,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/drafts` | account | requires session | — | `/[locale]/admin/drafts` |
 | `/[locale]/forgot` | open | steps aside | `POST /api/auth/forgot` | `/[locale]/login` |
 | `/[locale]/imprint` | open | steps aside | — | — |
-| `/[locale]/login` | open | steps aside | `POST /api/auth/login` | `/[locale]/forgot` |
+| `/[locale]/login` | open | steps aside | `POST /api/auth/login`<br>`POST /api/auth/passkey-login`<br>`POST /api/auth/passkey-options` | `/[locale]/forgot` |
 | `/[locale]/m/[token]` | open | steps aside | — | — |
 | `/[locale]/menus/[slug]` | account | requires session | `* /api/menus/[id]/share`<br>`POST /api/shopping` | `/[locale]/admin/menus/[id]`<br>`/[locale]/recipe/[id]`<br>`/[locale]/shopping` |
 | `/[locale]/menus` | account | requires session | — | `/[locale]/admin/menus/new`<br>`/[locale]/menus/[id]` |
@@ -65,6 +65,10 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | PUT | `/api/account/email` | user | zod | yes | `account/AccountSettings` |
 | DELETE | `/api/account/email` | user | zod | yes | `account/AccountSettings` |
 | POST | `/api/account/name` | user | zod | — | `account/AccountSettings` |
+| DELETE | `/api/account/passkeys/[id]` | user | — | — | `account/Passkeys` |
+| POST | `/api/account/passkeys/options` | user | zod | yes | `account/Passkeys` |
+| GET | `/api/account/passkeys` | user | — | — | `account/Passkeys` |
+| POST | `/api/account/passkeys` | user | — | — | `account/Passkeys` |
 | POST | `/api/account/password` | user | zod | yes | `account/AccountSettings` |
 | DELETE | `/api/account` | user | zod | yes | `account/AccountSettings` |
 | DELETE | `/api/ai-keys/[provider]` | admin | — | — | `admin/AiKeys` |
@@ -76,6 +80,8 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/auth/forgot` | none (open by design) | zod | yes | `src/app/[locale]/forgot/page.tsx` |
 | POST | `/api/auth/login` | none (open by design) | zod | yes | `src/app/[locale]/login/page.tsx` |
 | POST | `/api/auth/logout` | none (open by design) | — | — | `LogoutButton`<br>`account/AccountSettings` |
+| POST | `/api/auth/passkey-login` | none (open by design) | — | yes | `auth/PasskeyLogin` |
+| POST | `/api/auth/passkey-options` | none (open by design) | — | yes | `auth/PasskeyLogin` |
 | POST | `/api/auth/register` | none (open by design) | zod | yes | `auth/RegisterForm` |
 | POST | `/api/auth/resend-verification` | user | zod | yes | `auth/ResendVerification` |
 | POST | `/api/auth/reset` | device token | zod | yes | `auth/ResetForm` |
@@ -328,6 +334,15 @@ flowchart LR
   caccount_AccountSettings --> eDELETE_api_account_email
   ePOST_api_account_name(["POST /api/account/name"])
   caccount_AccountSettings --> ePOST_api_account_name
+  eDELETE_api_account_passkeys__id_(["DELETE /api/account/passkeys/[id]"])
+  caccount_Passkeys["account/Passkeys"]
+  caccount_Passkeys --> eDELETE_api_account_passkeys__id_
+  ePOST_api_account_passkeys_options(["POST /api/account/passkeys/options"])
+  caccount_Passkeys --> ePOST_api_account_passkeys_options
+  eGET_api_account_passkeys(["GET /api/account/passkeys"])
+  caccount_Passkeys --> eGET_api_account_passkeys
+  ePOST_api_account_passkeys(["POST /api/account/passkeys"])
+  caccount_Passkeys --> ePOST_api_account_passkeys
   ePOST_api_account_password(["POST /api/account/password"])
   caccount_AccountSettings --> ePOST_api_account_password
   eDELETE_api_account(["DELETE /api/account"])
@@ -356,6 +371,11 @@ flowchart LR
   cLogoutButton["LogoutButton"]
   cLogoutButton --> ePOST_api_auth_logout
   caccount_AccountSettings --> ePOST_api_auth_logout
+  ePOST_api_auth_passkey_login(["POST /api/auth/passkey-login"])
+  cauth_PasskeyLogin["auth/PasskeyLogin"]
+  cauth_PasskeyLogin --> ePOST_api_auth_passkey_login
+  ePOST_api_auth_passkey_options(["POST /api/auth/passkey-options"])
+  cauth_PasskeyLogin --> ePOST_api_auth_passkey_options
   ePOST_api_auth_register(["POST /api/auth/register"])
   cauth_RegisterForm["auth/RegisterForm"]
   cauth_RegisterForm --> ePOST_api_auth_register

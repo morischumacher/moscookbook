@@ -66,6 +66,7 @@ const NOT_BACKED_UP = new Map([
     ['ShoppingList', 'a week of groceries, tied to an account, and accounts are not in an archive'],
     ['ShoppingItem', 'the lines of a shopping list — see ShoppingList'],
     ['RecipeRevision', "earlier versions of recipes that are themselves in every backup; a restore starts a new history"],
+    ['Passkey', 'sign-in keys for accounts, which are not in an archive; a restore makes new accounts and new passkeys'],
     ['MenuItem', "carried inside each menu's entry, in order, rather than as its own list"],
     ['CookEntryPhoto', "carried inside each cooking's entry, in order, rather than as its own list"],
 ]);

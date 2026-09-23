@@ -116,8 +116,9 @@ export function pathAccess(pathname: string): Access {
  *
  * What is named, and why each one has to be:
  *
- * - `auth/*` — signing in, registering, the three e-mail-link flows, signing
- *   out. There is no session yet, or the point is to end one.
+ * - `auth/*` — signing in (with a password or a passkey), registering, the
+ *   three e-mail-link flows, signing out. There is no session yet, or the
+ *   point is to end one.
  * - `capture` — the iPhone shortcut. Authenticated by a device token in the
  *   body, not a cookie; a phone has no session and is not going to get one.
  * - `errors` — the client-side error reporter. It runs on the error page,

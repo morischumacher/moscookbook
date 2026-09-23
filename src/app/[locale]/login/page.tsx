@@ -7,6 +7,7 @@ import { Link } from '@/i18n/routing';
 import { destinationFrom } from '@/lib/loginDestination';
 import { goAfterAuth } from '@/lib/afterAuth';
 import { buttonPrimary } from '@/lib/ui';
+import PasskeyLogin from '@/components/auth/PasskeyLogin';
 
 const fieldClass =
     'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
@@ -65,7 +66,9 @@ function LoginForm() {
                     <input
                         type="email"
                         id="email"
-                        autoComplete="email"
+                        // "webauthn": the browser may offer a saved passkey
+                        // right in this field's suggestions.
+                        autoComplete="username webauthn"
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
                         required
@@ -93,6 +96,11 @@ function LoginForm() {
                 >
                     {t('submitLogin')}
                 </button>
+
+                <PasskeyLogin
+                    onSignedIn={(admin) => goAfterAuth(locale, destinationFrom(next, admin ? '/admin' : '/'))}
+                    onError={setError}
+                />
 
                 <p className="text-center text-sm">
                     <Link href="/forgot" className="text-muted underline underline-offset-4">

@@ -173,7 +173,8 @@
     "inviteShareDescription": "Ein privates Kochbuch. Über den Link legst du dein Konto an.",
     "inviteUsed": "Diese Einladung wurde schon benutzt. Wenn das Konto deins ist, melde dich an — sonst frag Mo nach einem neuen Link.",
     "inviteExpired": "Diese Einladung ist abgelaufen. Frag Mo nach einem neuen Link.",
-    "emailMoved": "Deine neue E-Mail-Adresse ist bestätigt und gilt ab sofort. Die bisherige Adresse wurde informiert."
+    "emailMoved": "Deine neue E-Mail-Adresse ist bestätigt und gilt ab sofort. Die bisherige Adresse wurde informiert.",
+    "passkeyLogin": "Mit Passkey anmelden"
   },
   "Admin": {
     "loadingPage": "Seite wird geholt…",
@@ -738,7 +739,7 @@
     "controllerTitle": "Verantwortlich",
     "controllerBody": "Moritz Schumacher, Wien, erreichbar unter moscookbook@gmail.com. Anfragen zu deinen Daten beantworte ich an dieser Adresse.",
     "whatDataTitle": "Welche Daten",
-    "whatDataBody": "Bei einem Konto: Vor- und Nachname, E-Mail-Adresse und ein Passwort, das nur als bcrypt-Hash gespeichert wird. Dazu, was du selbst einträgst — Bewertungen, Kochnotizen, hochgeladene Fotos. Ohne Konto: nur die technischen Daten, die beim Abruf einer Seite anfallen.",
+    "whatDataBody": "Bei einem Konto: Vor- und Nachname, E-Mail-Adresse und ein Passwort, das nur als bcrypt-Hash gespeichert wird. Richtest du einen Passkey ein, zusätzlich dessen öffentlicher Schlüssel und eine Gerätebezeichnung wie „iPhone · Safari“ – der private Schlüssel verlässt dein Gerät nie. Dazu, was du selbst einträgst — Bewertungen, Kochnotizen, hochgeladene Fotos. Ohne Konto: nur die technischen Daten, die beim Abruf einer Seite anfallen.",
     "whyTitle": "Wozu",
     "whyBody": "Die Daten werden ausschließlich dafür verwendet, das Kochbuch zu betreiben: dich anzumelden, deine Beiträge den richtigen Personen zuzuordnen und dir bei Bedarf einen Link zum Zurücksetzen des Passworts zu schicken. Rechtsgrundlage ist Art. 6 Abs 1 lit b DSGVO, für das Führen der Konten und die Abwehr von Missbrauch auch lit f.",
     "cookiesTitle": "Cookies",
@@ -837,7 +838,20 @@
     "emailResend": "Link erneut senden",
     "emailCancel": "Änderung abbrechen",
     "emailResent": "Der Link ist noch einmal unterwegs.",
-    "emailCancelled": "Die Änderung ist abgebrochen; es bleibt bei der bisherigen Adresse."
+    "emailCancelled": "Die Änderung ist abgebrochen; es bleibt bei der bisherigen Adresse.",
+    "passkeysTitle": "Passkeys",
+    "passkeysExplain": "Anmelden mit Face ID, Touch ID oder 1Password statt Passwort. Der Schlüssel bleibt auf deinem Gerät; hier liegt nur der öffentliche Teil. Dein Passwort funktioniert weiterhin.",
+    "passkeysUnsupported": "Dieser Browser kann keine Passkeys. Auf dem iPhone, in Safari, Chrome oder mit 1Password geht es.",
+    "passkeyAdd": "Passkey hinzufügen",
+    "passkeyCreate": "Passkey erstellen",
+    "passkeyAdded": "Passkey gespeichert. Beim nächsten Anmelden einfach „Mit Passkey anmelden“ wählen.",
+    "passkeyRemoved": "Passkey entfernt.",
+    "passkeyRemove": "Entfernen",
+    "passkeyExists": "Auf diesem Gerät bzw. in diesem Passwort-Manager gibt es schon einen Passkey für dein Konto.",
+    "passkeyCancelled": "Abgebrochen – es wurde kein Passkey erstellt.",
+    "passkeySynced": "synchronisiert",
+    "passkeyUsed": "Zuletzt benutzt am {date}",
+    "passkeyAddedOn": "Hinzugefügt am {date}"
   },
   "Ai": {
     "nav": "KI",

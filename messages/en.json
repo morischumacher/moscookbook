@@ -173,7 +173,8 @@
     "inviteShareDescription": "A private cookbook. Open the link to create your account.",
     "inviteUsed": "This invitation has already been used. If the account is yours, sign in — or ask Mo for a new link.",
     "inviteExpired": "This invitation has expired. Ask Mo for a new link.",
-    "emailMoved": "Your new e-mail address is confirmed and in use from now on. The previous address has been told."
+    "emailMoved": "Your new e-mail address is confirmed and in use from now on. The previous address has been told.",
+    "passkeyLogin": "Sign in with a passkey"
   },
   "Admin": {
     "loadingPage": "Fetching the page…",
@@ -738,7 +739,7 @@
     "controllerTitle": "Who is responsible",
     "controllerBody": "Moritz Schumacher, Vienna, reachable at moscookbook@gmail.com. Questions about your data are answered at that address.",
     "whatDataTitle": "What is stored",
-    "whatDataBody": "With an account: a first and last name, an e-mail address, and a password kept only as a bcrypt hash. Plus whatever you enter yourself — ratings, cooking notes, photographs you upload. Without an account: only the technical data that fetching a page produces.",
+    "whatDataBody": "With an account: a first and last name, an e-mail address, and a password kept only as a bcrypt hash. If you set up a passkey, also its public key and a device label such as “iPhone · Safari” – the private key never leaves your device. Plus whatever you enter yourself — ratings, cooking notes, photographs you upload. Without an account: only the technical data that fetching a page produces.",
     "whyTitle": "What for",
     "whyBody": "Only to run the cookbook: to sign you in, to attribute your contributions to the right person, and to send you a link if you need to reset your password. The legal basis is Art. 6(1)(b) GDPR, and for keeping the accounts and preventing abuse also (f).",
     "cookiesTitle": "Cookies",
@@ -837,7 +838,20 @@
     "emailResend": "Send the link again",
     "emailCancel": "Cancel the change",
     "emailResent": "The link is on its way again.",
-    "emailCancelled": "The change is cancelled; the previous address stays."
+    "emailCancelled": "The change is cancelled; the previous address stays.",
+    "passkeysTitle": "Passkeys",
+    "passkeysExplain": "Sign in with Face ID, Touch ID or 1Password instead of a password. The key stays on your device; only its public half is kept here. Your password keeps working.",
+    "passkeysUnsupported": "This browser cannot use passkeys. On an iPhone, in Safari, Chrome or with 1Password it works.",
+    "passkeyAdd": "Add a passkey",
+    "passkeyCreate": "Create passkey",
+    "passkeyAdded": "Passkey saved. Next time, just choose “Sign in with a passkey”.",
+    "passkeyRemoved": "Passkey removed.",
+    "passkeyRemove": "Remove",
+    "passkeyExists": "This device or password manager already holds a passkey for your account.",
+    "passkeyCancelled": "Cancelled – no passkey was created.",
+    "passkeySynced": "synced",
+    "passkeyUsed": "Last used {date}",
+    "passkeyAddedOn": "Added {date}"
   },
   "Ai": {
     "nav": "AI",

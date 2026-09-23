@@ -35,6 +35,7 @@ model User {
   /// takes the account's address away — sign-in and "forgot password" keep
   /// using the old one until then.
   pendingEmail   String?
+  passkeys       Passkey[]
 
   /// A round picture beside this person's contributions.
   ///
@@ -896,3 +897,29 @@ model MenuItem {
   @@index([recipeId])
 }
 
+
+/// A device that may sign in to an account without a password: the public
+/// half of a key pair whose private half never leaves the phone, the laptop
+/// or the password manager. Nothing here is a secret.
+///
+/// Not in any backup, for the same reason accounts are not: a restore makes
+/// new accounts, and a passkey belongs to the installation it was made for.
+model Passkey {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// base64url, as the browser reports it.
+  credentialId String    @unique
+  publicKey    Bytes
+  /// The authenticator's signature counter; most passkeys keep it at 0.
+  counter      Int       @default(0)
+  transports   String[]  @default([])
+  /// "iPhone · Safari", from the browser that made it — how the list tells them apart.
+  name         String
+  /// Synced (iCloud Keychain, 1Password) rather than bound to one device.
+  backedUp     Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  @@index([userId])
+}

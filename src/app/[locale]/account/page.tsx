@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import AvatarForm from '@/components/account/AvatarForm';
 import AccountSettings from '@/components/account/AccountSettings';
+import Passkeys from '@/components/account/Passkeys';
 import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
 
 /**
@@ -72,6 +73,7 @@ export default async function AccountPage({
                 lastName={me.lastName}
                 email={me.email}
                 pendingEmail={me.pendingEmail}
+                passkeys={<Passkeys email={me.email} />}
             />
         </main>
     );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { messageFrom } from '@/lib/apiMessage';
@@ -31,12 +31,15 @@ export default function AccountSettings({
     lastName,
     email,
     pendingEmail,
+    passkeys,
 }: {
     firstName: string;
     lastName: string;
     email: string;
     /** A new address waiting for its link to be followed. */
     pendingEmail: string | null;
+    /** The passkey section, placed after the password it is an alternative to. */
+    passkeys?: ReactNode;
 }) {
     const t = useTranslations('Account');
     const locale = useLocale();
@@ -482,6 +485,8 @@ export default function AccountSettings({
                 )}
                 {note('password')}
             </section>
+
+            {passkeys}
 
             {/* ─────────────────────────────────────────────── the devices */}
             <section className="mt-8 border-t border-line pt-6">

@@ -82,6 +82,12 @@ export interface SessionData {
      * milliseconds. See `SESSION_RECHECK_MS` in proxy.ts.
      */
     checkedAt?: number;
+    /**
+     * The challenge of a passkey ceremony in progress: made by the options
+     * route, spent by the matching verify route, and only good for a few
+     * minutes. Kept in the sealed cookie, so there is no table of them.
+     */
+    passkey?: { challenge: string; purpose: 'register' | 'login'; at: number };
 }
 
 /** The fields a session is made from, as they are read from a `User` row. */
