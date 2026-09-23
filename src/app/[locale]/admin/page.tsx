@@ -36,6 +36,22 @@ interface AdminRecipeRow {
     images: { url: string }[];
 }
 
+/**
+ * The stored run result ("ok: 42 recipes, 5 posts, 10 cook entries"), in the
+ * page's language. What does not have that shape is shown as it was stored.
+ */
+function backupResultIn(t: (key: string, values?: Record<string, number | string>) => string) {
+    return (stored: string | null): string => {
+        if (!stored) return '';
+        const counts = /^ok: (\d+) recipes, (\d+) posts, (\d+) cook entries$/.exec(stored);
+        if (counts) {
+            return t('backupCounts', { recipes: Number(counts[1]), posts: Number(counts[2]), cooks: Number(counts[3]) });
+        }
+        const failure = /^failed: (.*)$/.exec(stored);
+        return failure ? t('backupFailedWith', { detail: failure[1] }) : stored;
+    };
+}
+
 export default async function AdminDashboard({
     params,
     searchParams,
@@ -51,6 +67,7 @@ export default async function AdminDashboard({
         backupStatus(),
     ]);
     const tShare = await getTranslations('Share');
+    const backupResult = backupResultIn((key, values) => t(key as 'backupCounts', values as never));
 
     /*
      * Searched, filtered, sorted and in pages.
@@ -281,7 +298,7 @@ export default async function AdminDashboard({
                 {backup.lastRunAt
                     ? t('lastBackup', {
                         date: formatDate(backup.lastRunAt, locale),
-                        result: backup.lastResult ?? '',
+                        result: backupResult(backup.lastResult),
                     })
                     : t('noBackupYet')}
             </p>
