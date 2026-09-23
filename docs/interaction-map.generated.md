@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-37 screens · 75 endpoints · 60 link edges · 78 call edges
+39 screens · 75 endpoints · 66 link edges · 78 call edges
 
 ## Screens
 
@@ -31,7 +31,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/blog/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/collections/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/blog` | account | requires session | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/blog/[id]`<br>`/[locale]/collections/[id]`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/c/[token]` | open | steps aside | — | `/[locale]/recipe/[id]` |
-| `/[locale]/collections/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/admin/collections/[id]`<br>`/[locale]/blog/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
+| `/[locale]/collections/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`POST /api/shopping` | `/[locale]/admin/collections/[id]`<br>`/[locale]/blog/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]`<br>`/[locale]/shopping` |
 | `/[locale]/collections` | account | requires session | — | `/[locale]/admin/collections/new`<br>`/[locale]/collections/[id]` |
 | `/[locale]/drafts` | account | requires session | — | `/[locale]/admin/drafts` |
 | `/[locale]/forgot` | open | steps aside | `POST /api/auth/forgot` | `/[locale]/login` |
@@ -40,10 +40,12 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/p/[token]` | open | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/collections/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
 | `/[locale]` | account | requires session | `* /api/recipes/[id]/favorite`<br>`POST /api/recipes/[id]/rate` | `/[locale]/blog`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/privacy` | open | steps aside | — | — |
-| `/[locale]/r/[token]` | open | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/favorite`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/recipes/[id]/cooked`<br>`DELETE /api/recipes/[id]/cooked/photos`<br>`PATCH /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked/photos`<br>`POST /api/recipes/[id]/rate`<br>`POST /api/recipes/[id]/view` | `/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
-| `/[locale]/recipe/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/favorite`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/recipes/[id]/cooked`<br>`DELETE /api/recipes/[id]/cooked/photos`<br>`PATCH /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked/photos`<br>`POST /api/recipes/[id]/draft`<br>`POST /api/recipes/[id]/rate`<br>`POST /api/recipes/[id]/view` | `/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
+| `/[locale]/r/[token]` | open | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/favorite`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/recipes/[id]/cooked`<br>`DELETE /api/recipes/[id]/cooked/photos`<br>`PATCH /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked/photos`<br>`POST /api/recipes/[id]/rate`<br>`POST /api/recipes/[id]/view`<br>`POST /api/shopping` | `/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]`<br>`/[locale]/shopping` |
+| `/[locale]/recipe/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/favorite`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/recipes/[id]/cooked`<br>`DELETE /api/recipes/[id]/cooked/photos`<br>`PATCH /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked/photos`<br>`POST /api/recipes/[id]/draft`<br>`POST /api/recipes/[id]/rate`<br>`POST /api/recipes/[id]/view`<br>`POST /api/shopping` | `/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]`<br>`/[locale]/shopping` |
 | `/[locale]/register` | open | steps aside | `POST /api/auth/register` | `/[locale]/login` |
 | `/[locale]/reset` | open | steps aside | `POST /api/auth/reset` | `/[locale]/forgot` |
+| `/[locale]/s/[token]` | open | steps aside | `* /api/shopping`<br>`* /api/shopping/share`<br>`* /api/shopping/shared/[id]`<br>`DELETE /api/shopping`<br>`DELETE /api/shopping/[id]`<br>`PATCH /api/shopping/[id]` | `/[locale]` |
+| `/[locale]/shopping` | account | requires session | `* /api/shopping`<br>`* /api/shopping/share`<br>`* /api/shopping/shared/[id]`<br>`DELETE /api/shopping`<br>`DELETE /api/shopping/[id]`<br>`PATCH /api/shopping/[id]` | `/[locale]`<br>`/[locale]/login` |
 | `/[locale]/tickets` | account | requires session | `POST /api/tickets` | `/[locale]` |
 | `/[locale]/verify` | open | steps aside | `POST /api/auth/verify` | `/[locale]` |
 
@@ -129,10 +131,17 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 
 Calls the map could not match to an endpoint (a URL built elsewhere, or a path the regex misread):
 
+- `* /api/shopping  (from shopping/ShoppingListView)`
+- `* /api/shopping/share  (from shopping/ShoppingListView)`
+- `* /api/shopping/shared/[id]  (from shopping/ShoppingListView)`
 - `DELETE /api/recipes/[id]/cooked  (from recipe/Cooked)`
+- `DELETE /api/shopping  (from shopping/ShoppingListView)`
+- `DELETE /api/shopping/[id]  (from shopping/ShoppingListView)`
 - `PATCH /api/recipes/[id]/cooked  (from recipe/Cooked)`
+- `PATCH /api/shopping/[id]  (from shopping/ShoppingListView)`
 - `POST /api/examples  (from admin/ExampleButton)`
 - `POST /api/recipes/[id]/cooked  (from recipe/Cooked)`
+- `POST /api/shopping  (from shopping/AddToShopping)`
 
 ## Always present
 
@@ -140,7 +149,7 @@ Rendered by a layout rather than a page, so they are on every screen (or every a
 
 | Where | Component | Links to |
 |---|---|---|
-| Header | `Navbar` | `/[locale]`<br>`/[locale]/account`<br>`/[locale]/admin`<br>`/[locale]/blog`<br>`/[locale]/collections`<br>`/[locale]/login` |
+| Header | `Navbar` | `/[locale]`<br>`/[locale]/account`<br>`/[locale]/admin`<br>`/[locale]/blog`<br>`/[locale]/collections`<br>`/[locale]/login`<br>`/[locale]/shopping` |
 | Footer | `Footer` | `/[locale]/imprint`<br>`/[locale]/privacy` |
 | Admin nav | `admin/AdminNav` | `/[locale]/admin`<br>`/[locale]/admin/ai`<br>`/[locale]/admin/collections`<br>`/[locale]/admin/devices`<br>`/[locale]/admin/drafts`<br>`/[locale]/admin/inbox`<br>`/[locale]/admin/posts`<br>`/[locale]/admin/reports`<br>`/[locale]/admin/users` |
 
@@ -156,6 +165,7 @@ flowchart LR
     n__locale__collections["/[locale]/collections"]
     n__locale__drafts["/[locale]/drafts"]
     n__locale_["/[locale]"]
+    n__locale__shopping["/[locale]/shopping"]
     n__locale__tickets["/[locale]/tickets"]
   end
   subgraph admin
@@ -193,6 +203,7 @@ flowchart LR
     n__locale__r__token_["/[locale]/r/[token]"]
     n__locale__register["/[locale]/register"]
     n__locale__reset["/[locale]/reset"]
+    n__locale__s__token_["/[locale]/s/[token]"]
     n__locale__verify["/[locale]/verify"]
   end
   n__locale__account --> n__locale__login
@@ -233,6 +244,7 @@ flowchart LR
   n__locale__collections__slug_ --> n__locale__blog__slug_
   n__locale__collections__slug_ --> n__locale__login
   n__locale__collections__slug_ --> n__locale__recipe__slug_
+  n__locale__collections__slug_ --> n__locale__shopping
   n__locale__collections --> n__locale__admin_collections_new
   n__locale__collections --> n__locale__collections__slug_
   n__locale__drafts --> n__locale__admin_drafts
@@ -247,11 +259,16 @@ flowchart LR
   n__locale__r__token_ --> n__locale__blog__slug_
   n__locale__r__token_ --> n__locale__login
   n__locale__r__token_ --> n__locale__recipe__slug_
+  n__locale__r__token_ --> n__locale__shopping
   n__locale__recipe__slug_ --> n__locale__admin_posts_new
   n__locale__recipe__slug_ --> n__locale__blog__slug_
   n__locale__recipe__slug_ --> n__locale__login
+  n__locale__recipe__slug_ --> n__locale__shopping
   n__locale__register --> n__locale__login
   n__locale__reset --> n__locale__forgot
+  n__locale__s__token_ --> n__locale_
+  n__locale__shopping --> n__locale_
+  n__locale__shopping --> n__locale__login
   n__locale__tickets --> n__locale_
   n__locale__verify --> n__locale_
 ```

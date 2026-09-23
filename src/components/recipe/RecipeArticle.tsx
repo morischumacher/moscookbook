@@ -7,6 +7,7 @@ import Logo from '@/components/brand/Logo';
 import ReactMarkdown from 'react-markdown';
 import RecipeBody from '@/components/recipe/RecipeBody';
 import { splitSteps } from '@/lib/steps';
+import { withCelsius } from '@/lib/units';
 import Gallery from '@/components/recipe/Gallery';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import Cooked, { type CookedEntry } from '@/components/recipe/Cooked';
@@ -136,6 +137,10 @@ export default async function RecipeArticle({
     similar,
 }: RecipeArticleProps) {
     const t = await getTranslations('Recipe');
+
+    // The method one step each, with any Fahrenheit given in Celsius beside
+    // it: the oven here has a Celsius dial.
+    const stepTexts = splitSteps(withCelsius(recipe.instructions));
     const tCategory = await getTranslations('Categories');
     const tCuisine = await getTranslations('Cuisines');
 
@@ -327,9 +332,11 @@ export default async function RecipeArticle({
                 <RecipeBody
                     recipeId={recipe.id}
                     ingredients={recipe.ingredients}
-                    steps={splitSteps(recipe.instructions).map((step, index) => (
+                    steps={stepTexts.map((step, index) => (
                         <ReactMarkdown key={index}>{step}</ReactMarkdown>
                     ))}
+                    stepTexts={stepTexts}
+                    canShop={mode === 'private' && isLoggedIn}
                     baseServings={recipe.servings}
                     title={recipe.title}
                     locale={locale}

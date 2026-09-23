@@ -45,6 +45,7 @@ model User {
   avatarUrl      String?
 
   tokens         AuthToken[]
+  shoppingList   ShoppingList?
   posts          Post[]
   cookEntries    CookEntry[]
   tickets        Ticket[]
@@ -779,5 +780,44 @@ model PostCollection {
 
   @@id([postId, collectionId])
   @@index([collectionId])
+}
+
+/// One shopping list per person. Recipes and collections are added to it at
+/// the servings they were being read at; the same ingredient from several
+/// recipes becomes one line. See lib/shopping.ts.
+model ShoppingList {
+  id         Int            @id @default(autoincrement())
+  userId     Int            @unique
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// A link that lets somebody without an account see the list and tick
+  /// things off — the person who is actually in the shop. Null when not shared.
+  shareToken String?        @unique
+
+  items      ShoppingItem[]
+  updatedAt  DateTime       @updatedAt
+}
+
+model ShoppingItem {
+  id         Int          @id @default(autoincrement())
+  listId     Int
+  list       ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  /// As it is shown: "Zwiebeln".
+  name       String
+  /// What lines are merged on: the name folded to lower case and singular.
+  key        String
+  /// 'mass' (g), 'volume' (ml), 'spoon' (ml), 'count:<unit>', or null for an
+  /// ingredient with no amount ("Salz"). Lines only merge when this matches.
+  measure    String?
+  amount     Float?
+  /// Which shelf it is on, for grouping. See lib/shopping.ts.
+  aisle      String
+  /// The recipes it is for, as titles — shown under the line.
+  sources    String[]     @default([])
+  checked    Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+
+  @@index([listId, checked])
 }
 

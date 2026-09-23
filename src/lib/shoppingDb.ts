@@ -1,0 +1,118 @@
+import prisma from './prisma';
+import { linesFor, mergeInto, type PlannedLine } from './shopping';
+
+/**
+ * The shopping list's storage. The thinking is in lib/shopping.ts; this only
+ * reads and writes it.
+ */
+
+export const shoppingItemSelect = {
+    id: true,
+    name: true,
+    measure: true,
+    amount: true,
+    aisle: true,
+    sources: true,
+    checked: true,
+} as const;
+
+export interface ShoppingItemRow {
+    id: number;
+    name: string;
+    measure: string | null;
+    amount: number | null;
+    aisle: string;
+    sources: string[];
+    checked: boolean;
+}
+
+/** This person's list, made the first time it is asked for. */
+export async function listOf(userId: number) {
+    return prisma.shoppingList.upsert({
+        where: { userId },
+        create: { userId },
+        update: {},
+        select: { id: true, shareToken: true },
+    });
+}
+
+export async function itemsOf(listId: number): Promise<ShoppingItemRow[]> {
+    return prisma.shoppingItem.findMany({
+        where: { listId },
+        orderBy: [{ checked: 'asc' }, { createdAt: 'asc' }],
+        select: shoppingItemSelect,
+    });
+}
+
+/** New lines onto a list, merged with what is already there. Returns how many lines changed. */
+export async function addLines(listId: number, planned: PlannedLine[]): Promise<number> {
+    if (planned.length === 0) return 0;
+
+    const existing = await prisma.shoppingItem.findMany({
+        where: { listId, checked: false },
+        select: { id: true, key: true, measure: true, amount: true, sources: true, checked: true },
+    });
+
+    const plan = mergeInto(existing, planned);
+
+    await prisma.$transaction([
+        ...plan.updates.map((update) =>
+            prisma.shoppingItem.update({
+                where: { id: update.id },
+                data: { amount: update.amount, sources: update.sources },
+            })
+        ),
+        prisma.shoppingItem.createMany({
+            data: plan.creates.map((line) => ({
+                listId,
+                name: line.name,
+                key: line.key,
+                measure: line.measure,
+                amount: line.amount,
+                aisle: line.aisle,
+                sources: line.sources,
+            })),
+        }),
+        prisma.shoppingList.update({ where: { id: listId }, data: { updatedAt: new Date() } }),
+    ]);
+
+    return plan.updates.length + plan.creates.length;
+}
+
+const ingredientSelect = {
+    orderBy: { position: 'asc' as const },
+    select: { name: true, quantity: true, quantityMax: true, unit: true },
+};
+
+/**
+ * A recipe's lines at the servings it was being read at. `servings` is what
+ * the stepper on the recipe page showed; the recipe's own number is what its
+ * amounts are written for.
+ */
+export async function recipeLines(recipeId: number, servings: number | null): Promise<PlannedLine[] | null> {
+    const recipe = await prisma.recipe.findUnique({
+        where: { id: recipeId },
+        select: { title: true, servings: true, ingredients: ingredientSelect },
+    });
+    if (!recipe) return null;
+
+    const factor = servings && recipe.servings ? servings / recipe.servings : 1;
+    return linesFor(recipe.ingredients, factor, recipe.title);
+}
+
+/** Every finished recipe in a collection, each at its own servings. */
+export async function collectionLines(collectionId: number): Promise<PlannedLine[] | null> {
+    const collection = await prisma.collection.findUnique({
+        where: { id: collectionId },
+        select: {
+            recipes: {
+                where: { recipe: { isDraft: false } },
+                orderBy: { position: 'asc' },
+                select: { recipe: { select: { title: true, ingredients: ingredientSelect } } },
+            },
+        },
+    });
+    if (!collection) return null;
+
+    return collection.recipes.flatMap((row) => linesFor(row.recipe.ingredients, 1, row.recipe.title));
+}

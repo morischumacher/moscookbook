@@ -5,6 +5,7 @@ import { publicOnly } from '@/lib/collectionVisibility';
 import CollectionIntro from '@/components/collection/CollectionIntro';
 import CollectionGrid from '@/components/collection/CollectionGrid';
 import ShareButton from '@/components/share/ShareButton';
+import AddToShopping from '@/components/shopping/AddToShopping';
 import { getCurrentUser } from '@/lib/auth';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { shareUrl } from '@/lib/shareToken';
@@ -109,6 +110,10 @@ export default async function CollectionPage({
                 gets the address they are already looking at — see ShareButton.
             */}
             <div className="mt-10 flex flex-wrap items-center gap-6">
+                {/* Every recipe on the list at once — a menu is shopped for
+                    in one go. For people with an account, whose list it is. */}
+                {user && shown.recipes.length > 0 && <AddToShopping collectionId={collection.id} />}
+
                 <ShareButton
                     id={collection.id}
                     kind="collection"

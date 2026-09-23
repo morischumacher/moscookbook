@@ -69,7 +69,7 @@ const DECIDES_PATH = /^\/(?:en|de)\/(?:recipe|blog|collections)\/[^/]+\/?$/;
  * page called `/en/registered-users` would be read as starting with `register`
  * and let through.
  */
-const OPEN_PATH = /^\/(?:en|de)\/(?:login|register|forgot|reset|verify|r|p|c|imprint|privacy)(?:\/|$)/;
+const OPEN_PATH = /^\/(?:en|de)\/(?:login|register|forgot|reset|verify|r|p|c|s|imprint|privacy)(?:\/|$)/;
 
 /**
  * Whether the proxy lets a request through without looking at the session.
@@ -125,12 +125,15 @@ export function pathAccess(pathname: string): Access {
  * - `recipes/<id>/view` — the view counter, which a public recipe's visitor
  *   increments without an account.
  * - `cron/*` — Vercel's scheduler, authenticated by `CRON_SECRET`.
+ * - `shopping/shared/<token>` — a shopping list somebody was sent a link to,
+ *   so the person in the shop can tick things off without an account. The
+ *   token is the permission, checked in the route.
  *
  * Every route still does its own check. This is the net under them, not a
  * replacement for them: `errors` GET is admin-only inside the route even
  * though the path is open here, because the path is open for its POST.
  */
-const OPEN_API = /^\/api\/(?:auth\/[a-z-]+|capture|errors|recipes\/\d+\/view|cron\/[a-z-]+)\/?$/;
+const OPEN_API = /^\/api\/(?:auth\/[a-z-]+|capture|errors|recipes\/\d+\/view|cron\/[a-z-]+|shopping\/shared\/[A-Za-z0-9_-]{16,64})\/?$/;
 
 export type ApiAccess = 'open' | 'session';
 

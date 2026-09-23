@@ -32,6 +32,17 @@ export const buttonPrimary =
 export const buttonPrimarySmall =
     'inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-4 text-sm font-medium text-page transition-opacity hover:opacity-85 disabled:opacity-50';
 
+/**
+ * For a hand that is busy: cook mode's "done, next", reached without looking.
+ * Taller than the others and the width of its row.
+ */
+export const buttonPrimaryLarge =
+    'inline-flex min-h-14 items-center justify-center rounded-full bg-ink px-6 text-lg font-medium text-page transition-opacity hover:opacity-85 disabled:opacity-50';
+
+/** Floating over the page, in a corner: a running kitchen timer. */
+export const buttonFloating =
+    'fixed bottom-4 right-4 z-50 inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-5 text-lg text-page shadow-lg transition-opacity hover:opacity-85';
+
 /** The alternative to a primary button: outlined, same size. */
 export const buttonSecondary =
     'inline-flex min-h-11 items-center justify-center rounded-full border border-line px-4 text-sm font-medium transition-colors hover:border-ink disabled:opacity-50';

@@ -123,6 +123,10 @@ async function trim(cache) {
 /**
  * Pages that are never kept, whatever they return: the admin area, and every
  * address with a secret in it. `/(en|de)/` first, as every page has.
+ *
+ * Except one: a shared shopping list (`/s/<token>`) is kept on purpose. It is
+ * opened in a shop, where the signal is worst, and it holds nothing but a
+ * list of groceries.
  */
 const NEVER_KEPT = /^\/(?:en|de)\/(?:admin|login|register|forgot|reset|verify|account|r|p|c)(?:\/|$)/;
 
