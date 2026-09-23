@@ -7,6 +7,7 @@ import { bestCaptionTrack, captionText, captionTracksFrom } from '../src/lib/you
 import { readReason, reason } from '../src/lib/captureReasons';
 import { classifyCapture } from '../src/lib/capture';
 import { captureInputFrom } from '../src/lib/captureInput';
+import { recipeElsewhere } from '../src/lib/socialHints';
 import { processCapture } from '../src/lib/captureProcess';
 
 const BLOG = `<!DOCTYPE html><html><head><title>Hainanese Chicken Rice | Kochblog</title>
@@ -127,4 +128,22 @@ export default async function socialImportTests() {
     const junk = captureInputFrom({ url: 'Einkaufsliste Milch Eier', image: { base64: 'AAAA', mediaType: 'image/jpeg' } });
     equal('whatever else was on the clipboard is ignored', junk?.kind, 'image');
     equal('and not read as a recipe', junk?.rawText, null);
+
+    suite('social: the recipe is somewhere else');
+    equal('link in bio', recipeElsewhere('So lecker! Rezept findet ihr über den Link in meiner Bio 🍝'), 'bio');
+    equal('link in bio, English', recipeElsewhere('Full recipe at the link in bio!'), 'bio');
+    equal('in the comments', recipeElsewhere('Das Rezept steht im ersten Kommentar 👇'), 'comments');
+    equal('recipe in comments, English', recipeElsewhere('Recipe in the comments below'), 'comments');
+    equal('comment for a DM', recipeElsewhere('Kommentiere PASTA und ich schicke dir das Rezept per Nachricht!'), 'dm');
+    equal('comment for a DM, English', recipeElsewhere('Comment "SOUP" and I\'ll send you the recipe'), 'dm');
+    equal('nothing of the kind', recipeElsewhere('Zutaten: 200 g Mehl, 2 Eier'), null);
+
+    restore = stubFetch({
+        'https://www.instagram.com/p/DAbc123xyz/embed/captioned/': {
+            html: '<div class="Caption"><a class="CaptionUsername" href="#">koch</a> Die beste Pasta! Rezept über den Link in meiner Bio.<div class="CaptionComments"></div></div>',
+        },
+    });
+    const bio = await processCapture(classifyCapture({ url: 'https://www.instagram.com/p/DAbc123xyz/' })!, { mode: 'off', keys: [] });
+    equal('the inbox says where the recipe is', readReason(bio.error)?.code, 'recipeInBio');
+    restore();
 }

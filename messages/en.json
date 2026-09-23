@@ -435,7 +435,10 @@
       "pagePartial": "The page held only part of a recipe.",
       "videoPartial": "The video description held only part of a recipe.",
       "videoSpoken": "The recipe is not in the description – it is probably only spoken in the video. Watch and type it in, or send a screenshot.",
-      "videoSpokenNeedsAi": "The recipe is only spoken in the video. The subtitles are there – “Read with AI” turns them into a recipe."
+      "videoSpokenNeedsAi": "The recipe is only spoken in the video. The subtitles are there – “Read with AI” turns them into a recipe.",
+      "recipeInBio": "The recipe is behind the link in the bio, which the app cannot open. Tip: tap the bio link in Instagram, open the recipe there and share that page.",
+      "recipeInComments": "The recipe is in the comments, which cannot be read without an account. Tip: screenshot the comment, then share the post; the screenshot is read then.",
+      "recipeByDm": "The recipe is only sent by direct message (“comment … and I'll send it”). Tip: paste the message into the inbox as text, or send a screenshot of it."
     },
     "fetchFailure": {
       "timeout": "it took too long",

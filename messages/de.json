@@ -435,7 +435,10 @@
       "pagePartial": "Die Seite enthielt nur einen Teil des Rezepts.",
       "videoPartial": "In der Videobeschreibung stand nur ein Teil des Rezepts.",
       "videoSpoken": "Das Rezept steht nicht in der Beschreibung – es wird wohl nur im Video gesprochen. Anschauen und abtippen, oder einen Screenshot schicken.",
-      "videoSpokenNeedsAi": "Das Rezept wird nur im Video gesprochen. Die Untertitel sind da – „Mit KI lesen“ macht daraus ein Rezept."
+      "videoSpokenNeedsAi": "Das Rezept wird nur im Video gesprochen. Die Untertitel sind da – „Mit KI lesen“ macht daraus ein Rezept.",
+      "recipeInBio": "Das Rezept ist hinter dem Link in der Bio – den kann die App nicht öffnen. Tipp: In Instagram den Bio-Link antippen, das Rezept dort öffnen und diese Seite teilen.",
+      "recipeInComments": "Das Rezept steht in den Kommentaren – die sind ohne Anmeldung nicht lesbar. Tipp: Screenshot vom Kommentar machen und danach den Post teilen; dann wird der Screenshot gelesen.",
+      "recipeByDm": "Das Rezept gibt es nur per Direktnachricht („Kommentiere … und ich schicke es dir“). Tipp: Die Nachricht als Text in den Eingang einfügen oder einen Screenshot davon schicken."
     },
     "fetchFailure": {
       "timeout": "Zeitüberschreitung",

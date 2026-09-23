@@ -27,6 +27,9 @@ export const REASON_CODES = [
     'videoPartial',
     'videoSpoken',
     'videoSpokenNeedsAi',
+    'recipeInBio',
+    'recipeInComments',
+    'recipeByDm',
 ] as const;
 
 export type ReasonCode = (typeof REASON_CODES)[number];
