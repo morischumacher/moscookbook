@@ -50,8 +50,11 @@ export function formatQuantity(value: number, locale: 'en' | 'de' = 'de'): strin
     const whole = Math.floor(rounded);
     const remainder = rounded - whole;
 
+    // Eighths too: a quarter cup scaled by a half is 1/8, and "0,63 Tasse"
+    // is 5/8 that nobody measures as a decimal.
     const FRACTIONS: [number, string][] = [
-        [0.25, '1/4'], [1 / 3, '1/3'], [0.5, '1/2'], [2 / 3, '2/3'], [0.75, '3/4'],
+        [0.125, '1/8'], [0.25, '1/4'], [1 / 3, '1/3'], [0.375, '3/8'], [0.5, '1/2'],
+        [0.625, '5/8'], [2 / 3, '2/3'], [0.75, '3/4'], [0.875, '7/8'],
     ];
 
     for (const [decimal, label] of FRACTIONS) {

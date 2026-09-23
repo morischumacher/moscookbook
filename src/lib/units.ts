@@ -124,7 +124,11 @@ export function tidy(parts: AmountParts, locale: Locale = 'de'): AmountParts {
     if (unit.id === 'tsp' && parts.quantity >= 3 && Number.isInteger(parts.quantity / 3) && parts.quantityMax === null) {
         return { quantity: parts.quantity / 3, quantityMax: null, unit: def('tbsp').label[locale] };
     }
-    return { ...parts, unit: unit.label[locale] };
+    // Spoons in the page's abbreviation (EL/tbsp say the same for one or
+    // three); anything else as it was written: the label is singular, and
+    // "2 1/4 Tasse" replaced a correct "2 1/4 cups".
+    if (unit.id === 'tbsp' || unit.id === 'tsp') return { ...parts, unit: unit.label[locale] };
+    return parts;
 }
 
 /**

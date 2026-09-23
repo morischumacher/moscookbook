@@ -261,6 +261,7 @@ export default async function AdminDashboard({
                                 />
                                 <Link
                                     href={`/admin/edit/${recipe.id}`}
+                                    aria-label={`${t('edit')}: ${recipe.title}`}
                                     className="underline underline-offset-4 hover:text-muted"
                                 >
                                     {t('edit')}

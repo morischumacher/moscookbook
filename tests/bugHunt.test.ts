@@ -11,7 +11,7 @@ import { formatQuantity } from '../src/lib/amount';
 import { inLanguage, sourceKey } from '../src/lib/recipeTranslation';
 import { toStructuredIngredients } from '../src/lib/ingredientParts';
 import { worthSaving } from '../src/lib/cookProgress';
-import { toBase, fromBase } from '../src/lib/units';
+import { toBase, fromBase, tidy } from '../src/lib/units';
 
 export default function bugHuntTests() {
     suite('bug hunt: steps');
@@ -72,4 +72,10 @@ export default function bugHuntTests() {
     equal('anderthalb Stunden too', timersIn('anderthalb Stunden garen')[0]?.seconds, 5400);
     equal('two separate timers stay two', timersIn('15 Minuten kochen, dann 5 Minuten ruhen').length, 2);
     equal('no record for a recipe without servings', worthSaving({ ingredients: [], steps: [], servings: 0 }, null), false);
+
+    suite('bug hunt: round 9');
+    equal('a scaled cup keeps its written unit', tidy({ quantity: 2.25, quantityMax: null, unit: 'cups' }, 'de').unit, 'cups');
+    equal('spoons still read as the page writes them', tidy({ quantity: 2, quantityMax: null, unit: 'tbsp' }, 'de').unit, 'EL');
+    equal('1.875 is 1 7/8', formatQuantity(1.875), '1 7/8');
+    equal('0.625 is 5/8', formatQuantity(0.625, 'en'), '5/8');
 }

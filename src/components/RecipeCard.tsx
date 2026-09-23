@@ -127,9 +127,9 @@ export default function RecipeCard({
                                 {[categoryLabel, cuisineLabel].filter(Boolean).join(' · ')}
                             </span>
                         )}
-                        <h3 className="mt-1 text-lg font-bold leading-tight text-ink">
+                        <h2 className="mt-1 text-lg font-bold leading-tight text-ink">
                             {title}
-                        </h3>
+                        </h2>
                         {marks && <span className="mt-1 block text-sm" aria-hidden="true">{marks}</span>}
                         {rating > 0 && (
                             <span className="mt-2 block">
@@ -143,11 +143,12 @@ export default function RecipeCard({
                     against one colour here, instead of against every photograph
                     anybody ever uploads. Repeated on the tile that has no
                     photograph would be saying it twice, so it is not. */}
-                {/* An <h3>, not a <span>. A grid of twenty-four recipes with
+                {/* An <h2>, not a <span>. A grid of twenty-four recipes with
                     no headings in it cannot be walked by heading, which is how
                     a screen reader reads a list of things — and the title is a
-                    heading in every sense except the markup. h3 because the
-                    page's h1 is the cookbook and h2 is the section. */}
+                    heading in every sense except the markup. h2 because the
+                    grid sits right under the page's h1: there is no section
+                    heading between them, and h3 skipped a level. */}
                 {imageUrl && (
                     /*
                         Under the title, on a line of its own — which costs a
@@ -167,9 +168,9 @@ export default function RecipeCard({
                         looks the same either way; the fourth is why.
                     */
                     <div className="mt-2">
-                        <h3 className="text-[15px] font-bold leading-tight text-ink">
+                        <h2 className="text-[15px] font-bold leading-tight text-ink">
                             {title}
-                        </h3>
+                        </h2>
                         {marks && <p className="mt-0.5 text-sm" aria-hidden="true">{marks}</p>}
 
                         {rating > 0 && (
