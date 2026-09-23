@@ -12,6 +12,8 @@ import {
     type ExportablePost,
     type ExportableCookEntry,
     type ExportableCollection,
+    type ExportableMenu,
+    menuArchiveSelect,
 } from '@/lib/archive';
 import { failed } from '@/lib/reportServerError';
 import { recordBackupRun } from '@/lib/backupStatus';
@@ -144,12 +146,18 @@ export async function GET(req: NextRequest) {
             },
         });
 
+        const menus: ExportableMenu[] = await prisma.menu.findMany({
+            orderBy: { createdAt: 'asc' },
+            select: menuArchiveSelect,
+        });
+
         const archive = buildArchive(
             recipes,
             new Date(),
             posts,
             cookEntries,
-            collections
+            collections,
+            menus
         );
 
         // Housekeeping, attached to the one thing that already runs weekly.

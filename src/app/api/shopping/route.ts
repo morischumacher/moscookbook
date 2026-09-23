@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { refuse, route } from '@/lib/route';
 import { lineFromText } from '@/lib/shopping';
 import { addLines, collectionLines, itemsOf, listOf, recipeLines } from '@/lib/shoppingDb';
+import { menuLines } from '@/lib/menuDb';
 
 /**
  * The signed-in person's shopping list: read it, add to it, clear it.
@@ -21,6 +22,7 @@ export const GET = route({ access: 'user', label: 'Shopping list' }, async ({ us
 const addBody = z.union([
     z.object({ recipeId: z.number().int().positive(), servings: z.number().int().min(1).max(100).nullable().optional() }),
     z.object({ collectionId: z.number().int().positive() }),
+    z.object({ menuId: z.number().int().positive() }),
     z.object({ text: z.string().trim().min(1).max(200) }),
 ]);
 
@@ -30,7 +32,9 @@ export const POST = route({ access: 'user', body: addBody, label: 'Adding to the
             ? await recipeLines(body.recipeId, body.servings ?? null)
             : 'collectionId' in body
               ? await collectionLines(body.collectionId)
-              : [lineFromText(body.text)].filter((line) => line !== null);
+              : 'menuId' in body
+                ? await menuLines(body.menuId)
+                : [lineFromText(body.text)].filter((line) => line !== null);
 
     if (lines === null) refuse(404, 'That is no longer there.');
 

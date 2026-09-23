@@ -35,6 +35,7 @@ const webUrl = z
  */
 
 /**
+ * 7: menus. 6: pictures on collections and entries about several recipes.
  * 5: one cooking entry with its photographs, where 2-4 had a list of
  * photographs and a separate list of cookings; and whether a recipe is
  * published. 4 added collections, 3 cooking logs, 2 entries and photographs.
@@ -43,7 +44,7 @@ const webUrl = z
  * every new field to the safe value — and an archive from a newer version is
  * refused with the numbers in the message rather than half-read.
  */
-export const ARCHIVE_VERSION = 6;
+export const ARCHIVE_VERSION = 7;
 
 const archiveIngredientSchema = z.object({
     position: z.number().int().min(0),
@@ -188,6 +189,32 @@ const archiveCollectionSchema = z.object({
     recipeSlugs: z.array(z.string()).default([]),
 });
 
+/**
+ * A menu: an evening in courses. Version 7. Each dish points at its recipe
+ * by slug, or at none — the bread and the cheese are on the card too. A
+ * recipe that is not in the archive leaves its dish as words.
+ */
+const archiveMenuSchema = z.object({
+    title: z.string().min(1),
+    slug: z.string().min(1),
+    occasion: z.string().nullable().default(null),
+    date: z.string().nullable().default(null),
+    guests: z.number().int().nullable().default(null),
+    style: z.string().default('casual'),
+    intro: z.string().nullable().default(null),
+    createdAt: z.string().default(() => new Date().toISOString()),
+    items: z
+        .array(
+            z.object({
+                course: z.string().min(1),
+                title: z.string().min(1),
+                description: z.string().nullable().default(null),
+                recipeSlug: z.string().nullable().default(null),
+            })
+        )
+        .default([]),
+});
+
 export const archiveSchema = z.object({
     version: z.number().int(),
     exportedAt: z.string(),
@@ -199,12 +226,14 @@ export const archiveSchema = z.object({
     cookPhotos: z.array(legacyCookPhotoSchema).default([]),
     cookLogs: z.array(legacyCookLogSchema).default([]),
     collections: z.array(archiveCollectionSchema).default([]),
+    menus: z.array(archiveMenuSchema).default([]),
 });
 
 export type ArchiveRecipe = z.infer<typeof archiveRecipeSchema>;
 export type ArchivePost = z.infer<typeof archivePostSchema>;
 export type ArchiveCookEntry = z.infer<typeof archiveCookEntrySchema>;
 export type ArchiveCollection = z.infer<typeof archiveCollectionSchema>;
+export type ArchiveMenu = z.infer<typeof archiveMenuSchema>;
 export type Archive = z.infer<typeof archiveSchema>;
 
 export interface ParseResult {
@@ -303,6 +332,34 @@ export interface ExportableCollection {
     createdAt: Date;
     recipes: { recipe: { slug: string } }[];
 }
+
+export interface ExportableMenu {
+    title: string;
+    slug: string;
+    occasion: string | null;
+    date: Date | null;
+    guests: number | null;
+    style: string;
+    intro: string | null;
+    createdAt: Date;
+    items: { course: string; title: string; description: string | null; recipe: { slug: string } | null }[];
+}
+
+/** The fields a menu query has to select for `toArchiveMenu`. */
+export const menuArchiveSelect = {
+    title: true,
+    slug: true,
+    occasion: true,
+    date: true,
+    guests: true,
+    style: true,
+    intro: true,
+    createdAt: true,
+    items: {
+        orderBy: { position: 'asc' as const },
+        select: { course: true, title: true, description: true, recipe: { select: { slug: true } } },
+    },
+};
 
 /*
  * One row, converted.
@@ -448,12 +505,32 @@ export function toArchiveCollection(
     };
 }
 
+export function toArchiveMenu(menu: ExportableMenu): ArchiveMenu {
+    return {
+        title: menu.title,
+        slug: menu.slug,
+        occasion: menu.occasion,
+        date: menu.date ? menu.date.toISOString() : null,
+        guests: menu.guests,
+        style: menu.style,
+        intro: menu.intro,
+        createdAt: menu.createdAt.toISOString(),
+        items: menu.items.map((item) => ({
+            course: item.course,
+            title: item.title,
+            description: item.description,
+            recipeSlug: item.recipe?.slug ?? null,
+        })),
+    };
+}
+
 export function buildArchive(
     recipes: ExportableRecipe[],
     now = new Date(),
     posts: ExportablePost[] = [],
     cookEntries: ExportableCookEntry[] = [],
-    collections: ExportableCollection[] = []
+    collections: ExportableCollection[] = [],
+    menus: ExportableMenu[] = []
 ): Archive {
     return {
         version: ARCHIVE_VERSION,
@@ -469,6 +546,7 @@ export function buildArchive(
         cookPhotos: [],
         cookLogs: [],
         collections: collections.map(toArchiveCollection),
+        menus: menus.map(toArchiveMenu),
     };
 }
 

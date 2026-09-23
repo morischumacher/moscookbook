@@ -69,7 +69,7 @@ const DECIDES_PATH = /^\/(?:en|de)\/(?:recipe|blog|collections)\/[^/]+\/?$/;
  * page called `/en/registered-users` would be read as starting with `register`
  * and let through.
  */
-const OPEN_PATH = /^\/(?:en|de)\/(?:login|register|forgot|reset|verify|r|p|c|s|imprint|privacy)(?:\/|$)/;
+const OPEN_PATH = /^\/(?:en|de)\/(?:login|register|forgot|reset|verify|r|p|c|s|m|imprint|privacy)(?:\/|$)/;
 
 /**
  * Whether the proxy lets a request through without looking at the session.

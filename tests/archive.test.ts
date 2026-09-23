@@ -269,6 +269,22 @@ export function archiveCollectionsTests() {
                     { recipe: { slug: 'nachtisch' } },
                 ],
             },
+        ],
+        [
+            {
+                title: 'Heiligabend',
+                slug: 'heiligabend',
+                occasion: 'Weihnachten',
+                date: new Date('2026-12-24T00:00:00Z'),
+                guests: 6,
+                style: 'festive',
+                intro: null,
+                createdAt: new Date('2026-09-01T10:00:00Z'),
+                items: [
+                    { course: 'Vorspeise', title: 'Kürbissuppe', description: null, recipe: { slug: 'vorspeise' } },
+                    { course: 'Vorspeise', title: 'Brot und Butter', description: null, recipe: null },
+                ],
+            },
         ]
     );
 
@@ -283,6 +299,13 @@ export function archiveCollectionsTests() {
         ['vorspeise', 'hauptgang', 'nachtisch']
     );
 
+    equal('the menu is carried', archive.menus[0].style, 'festive');
+    equal(
+        'its dishes by recipe slug, or by none',
+        archive.menus[0].items.map((item) => item.recipeSlug),
+        ['vorspeise', null]
+    );
+
     /* ------------------------------------------------------- reading it back */
 
     const parsed = parseArchive(JSON.parse(JSON.stringify(archive)));
@@ -294,6 +317,7 @@ export function archiveCollectionsTests() {
         parsed.archive?.collections[0].recipeSlugs,
         ['vorspeise', 'hauptgang', 'nachtisch']
     );
+    equal('and the menu, with its date', parsed.archive?.menus[0].date, '2026-12-24T00:00:00.000Z');
 
     /* -------------------------------------------------------- older archives */
 
@@ -306,6 +330,7 @@ export function archiveCollectionsTests() {
     check('an archive from before any of this still reads', older.ok, older.error);
     equal('with no cookings rather than an error', older.archive?.cookEntries, []);
     equal('and no collections', older.archive?.collections, []);
+    equal('and no menus', older.archive?.menus, []);
 
     /* ------------------------------ an archive written before the two merged */
 

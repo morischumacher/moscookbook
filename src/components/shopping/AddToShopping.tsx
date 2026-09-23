@@ -13,7 +13,7 @@ import { buttonSecondary } from '@/lib/ui';
  * second recipe rather than the list.
  */
 export default function AddToShopping(
-    props: { recipeId: number; servings: number | null } | { collectionId: number }
+    props: { recipeId: number; servings: number | null } | { collectionId: number } | { menuId: number; guests: number | null }
 ) {
     const t = useTranslations('Shopping');
     const [state, setState] = useState<'idle' | 'busy' | 'done' | 'failed'>('idle');
@@ -25,7 +25,11 @@ export default function AddToShopping(
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(
-                    'recipeId' in props ? { recipeId: props.recipeId, servings: props.servings } : { collectionId: props.collectionId }
+                    'recipeId' in props
+                        ? { recipeId: props.recipeId, servings: props.servings }
+                        : 'menuId' in props
+                          ? { menuId: props.menuId }
+                          : { collectionId: props.collectionId }
                 ),
             });
             setState(res.ok ? 'done' : 'failed');
@@ -34,7 +38,14 @@ export default function AddToShopping(
         }
     };
 
-    const label = 'recipeId' in props ? t('addRecipe') : t('addCollection');
+    const label =
+        'recipeId' in props
+            ? t('addRecipe')
+            : 'menuId' in props
+              ? props.guests
+                  ? t('addMenuGuests', { count: props.guests })
+                  : t('addCollection')
+              : t('addCollection');
 
     return (
         <span className="inline-flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:flex-none">

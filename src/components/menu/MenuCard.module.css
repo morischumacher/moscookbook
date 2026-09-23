@@ -1,0 +1,263 @@
+/*
+ * A menu card. Paper, not a web page: its colours stay the same in dark mode
+ * and on paper, because it is an object that is printed and put on a table.
+ * Three styles share one structure; only type, colour and ornament change.
+ */
+
+.card {
+  margin: 0 auto;
+  max-width: 34rem;
+  padding: 3rem 2rem 2.5rem;
+  text-align: center;
+  background: #fffaf3;
+  color: #1b1b1b;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+
+.logo {
+  margin: 0 auto 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.occasion {
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0.5rem 0 0;
+  line-height: 1.1;
+}
+
+.intro {
+  margin: 1rem auto 0;
+  max-width: 26rem;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.courses {
+  margin-top: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.course {
+  break-inside: avoid;
+}
+
+.courseName {
+  margin-bottom: 0.6rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.dish + .dish {
+  margin-top: 0.7rem;
+}
+
+.dishTitle {
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
+
+.dishDescription {
+  margin-top: 0.15rem;
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.footer {
+  margin-top: 2.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------- casual: an evening with friends */
+
+.casual {
+  font-family: var(--font-sans);
+}
+.casual .occasion,
+.casual .courseName,
+.casual .footer {
+  color: #c73500;
+  font-weight: 700;
+}
+.casual .title {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.casual .intro,
+.casual .dishDescription {
+  color: #5a5249;
+}
+.casual .dishTitle {
+  font-weight: 700;
+}
+.casual .courseName::before,
+.casual .courseName::after {
+  content: '—';
+  margin: 0 0.6em;
+  opacity: 0.5;
+}
+
+/* ------------------------------------------------------------ chic: a date */
+
+.chic {
+  background: #fdfcf9;
+  padding: 4rem 2.5rem 3rem;
+}
+.chic .title {
+  font-size: 2.8rem;
+  font-weight: 500;
+  font-style: italic;
+}
+.chic .occasion,
+.chic .courseName,
+.chic .footer {
+  color: #6b6b6b;
+  font-weight: 500;
+}
+.chic .dishTitle {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+.chic .dishDescription,
+.chic .intro {
+  color: #555;
+}
+.chic .course + .course::before {
+  content: '';
+  display: block;
+  margin: 0 auto 1.75rem;
+  width: 2.5rem;
+  border-top: 1px solid #bdb6aa;
+}
+
+/* ---------------------------------------------------- festive: Christmas */
+
+.festive {
+  background: #fbf7ee;
+  color: #1f3d2b;
+  outline: 1px solid #a8843a;
+  outline-offset: -0.9rem;
+  padding: 3.5rem 2.5rem 3rem;
+}
+.festive .title {
+  font-size: 2.6rem;
+  font-weight: 700;
+}
+.festive .occasion,
+.festive .courseName,
+.festive .footer {
+  color: #8a6a26;
+  font-weight: 600;
+}
+.festive .dishTitle {
+  font-weight: 600;
+}
+.festive .dishDescription,
+.festive .intro {
+  color: #3f5a49;
+}
+.festive .course + .course::before {
+  content: '✦';
+  display: block;
+  margin-bottom: 1.25rem;
+  color: #a8843a;
+  font-size: 0.8rem;
+}
+
+/* ------------------------------------------------------------------ print */
+
+@media print {
+  /* A named page, so the A5 size applies to the card alone. A bare @page
+     would stay in force after a client-side visit and print the next recipe
+     on A5 too. */
+  @page menu {
+    size: A5 portrait;
+    margin: 12mm;
+  }
+
+  .card {
+    page: menu;
+    box-shadow: none;
+    max-width: none;
+    padding-top: 0;
+    padding-bottom: 0;
+    background: transparent !important;
+  }
+
+  .festive {
+    outline-offset: 0;
+    padding: 6mm;
+  }
+
+  /* Sized for one A5 sheet, six courses included: the screen's generous
+     spacing runs a festive menu onto a second page. */
+  .logo {
+    margin-bottom: 4mm;
+  }
+  .title,
+  .chic .title,
+  .festive .title,
+  .casual .title {
+    font-size: 22pt;
+  }
+  .intro {
+    margin-top: 3mm;
+    font-size: 10pt;
+  }
+  .occasion,
+  .footer {
+    font-size: 7pt;
+  }
+  .courses {
+    margin-top: 5mm;
+    gap: 3.5mm;
+  }
+  .courseName {
+    margin-bottom: 1.5mm;
+    font-size: 7pt;
+  }
+  .dishTitle,
+  .chic .dishTitle {
+    font-size: 11.5pt;
+  }
+  .dishDescription {
+    font-size: 9pt;
+  }
+  .dish + .dish {
+    margin-top: 1.5mm;
+  }
+  .chic .course + .course::before {
+    margin-bottom: 3.5mm;
+  }
+  .festive .course + .course::before {
+    margin-bottom: 2.5mm;
+    font-size: 6pt;
+  }
+  .footer {
+    margin-top: 5mm;
+  }
+
+  .card * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .festive,
+  .festive .title,
+  .festive .dishTitle {
+    color: #1f3d2b !important;
+  }
+}

@@ -128,7 +128,7 @@ async function trim(cache) {
  * opened in a shop, where the signal is worst, and it holds nothing but a
  * list of groceries.
  */
-const NEVER_KEPT = /^\/(?:en|de)\/(?:admin|login|register|forgot|reset|verify|account|r|p|c)(?:\/|$)/;
+const NEVER_KEPT = /^\/(?:en|de)\/(?:admin|login|register|forgot|reset|verify|account|r|p|c|m)(?:\/|$)/;
 
 function isCacheable(request, url) {
     if (request.method !== 'GET') return false;

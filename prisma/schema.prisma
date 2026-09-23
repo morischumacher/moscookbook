@@ -394,6 +394,7 @@ model Recipe {
   favorites      Favorite[]
   ingredients    Ingredient[]
   captures       Capture[]
+  menuItems      MenuItem[]
   revisions      RecipeRevision[]
   posts          PostRecipe[]
   cookEntries    CookEntry[]
@@ -842,5 +843,51 @@ model RecipeRevision {
   createdAt DateTime @default(now())
 
   @@index([recipeId, createdAt])
+}
+
+/// A menu for an evening: courses in order, each with its dishes, printed as
+/// a card in one of three styles. Not a collection — a collection is a list
+/// of recipes, a menu is an evening. See lib/menu.ts.
+model Menu {
+  id         Int        @id @default(autoincrement())
+  title      String
+  slug       String     @unique
+  /// "Weihnachten 2026", "Annas Geburtstag". Shown on the card.
+  occasion   String?
+  date       DateTime?
+  /// What the shopping list scales every recipe to.
+  guests     Int?
+  /// 'casual', 'chic' or 'festive'. See MENU_STYLES in lib/menu.ts.
+  style      String     @default("casual")
+  /// A line or two of welcome, under the title.
+  intro      String?
+  /// A link that shows the card without an account. Null when not shared.
+  shareToken String?    @unique
+  items      MenuItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([date])
+}
+
+/// One dish on a menu. The course is its name ("Vorspeise"); dishes of one
+/// course are consecutive, in `position` order.
+model MenuItem {
+  id          Int     @id @default(autoincrement())
+  menuId      Int
+  menu        Menu    @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  position    Int
+  course      String
+  /// The recipe, when the dish is one of ours. A deleted recipe leaves the
+  /// dish on the menu under its written name.
+  recipeId    Int?
+  recipe      Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  /// As the card says it. Filled from the recipe when one is chosen.
+  title       String
+  /// One line under it: "mit geröstetem Kürbiskernöl".
+  description String?
+
+  @@index([menuId, position])
+  @@index([recipeId])
 }
 

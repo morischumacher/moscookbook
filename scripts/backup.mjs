@@ -26,7 +26,7 @@ const prisma = new PrismaClient();
 // Kept in step with src/lib/archive.ts by hand, and checked by
 // scripts/check-backup.mjs — this file had quietly stayed at 1 while the
 // application moved to 2, which is exactly the drift that guard is for.
-const ARCHIVE_VERSION = 6;
+const ARCHIVE_VERSION = 7;
 
 function outputDir() {
     const flag = process.argv.indexOf('--out');
@@ -111,6 +111,18 @@ async function main() {
         },
     });
 
+    // An evening in courses; each dish by its recipe's slug, or by none.
+    const menus = await prisma.menu.findMany({
+        orderBy: { createdAt: 'asc' },
+        select: {
+            title: true, slug: true, occasion: true, date: true, guests: true, style: true, intro: true, createdAt: true,
+            items: {
+                orderBy: { position: 'asc' },
+                select: { course: true, title: true, description: true, recipe: { select: { slug: true } } },
+            },
+        },
+    });
+
     const archive = {
         version: ARCHIVE_VERSION,
         exportedAt: new Date().toISOString(),
@@ -153,6 +165,22 @@ async function main() {
             imageUrl: collection.imageUrl,
             createdAt: collection.createdAt.toISOString(),
             recipeSlugs: collection.recipes.map((row) => row.recipe.slug),
+        })),
+        menus: menus.map((menu) => ({
+            title: menu.title,
+            slug: menu.slug,
+            occasion: menu.occasion,
+            date: menu.date ? menu.date.toISOString() : null,
+            guests: menu.guests,
+            style: menu.style,
+            intro: menu.intro,
+            createdAt: menu.createdAt.toISOString(),
+            items: menu.items.map((item) => ({
+                course: item.course,
+                title: item.title,
+                description: item.description,
+                recipeSlug: item.recipe?.slug ?? null,
+            })),
         })),
     };
 

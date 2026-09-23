@@ -45,7 +45,7 @@ export default async function CollectionPage({
     // `publicOnly`: publishing a menu must not publish what is on it.
     const shown = user ? { ...collection, hidden: 0 } : publicOnly(collection);
 
-    const [t, tBlog] = await Promise.all([getTranslations('Collections'), getTranslations('Blog')]);
+    const [t, tBlog, tMenus] = await Promise.all([getTranslations('Collections'), getTranslations('Blog'), getTranslations('Menus')]);
 
     // Entries written about this collection, for people with an account — the
     // same "From the blog" a recipe page has, and the other end of an entry's
@@ -136,6 +136,17 @@ export default async function CollectionPage({
                         className="text-sm underline underline-offset-4"
                     >
                         {t('edit')}
+                    </Link>
+                )}
+
+                {/* The collection as an evening: its recipes sorted into
+                    courses, for a card to print or send. */}
+                {user?.admin && shown.recipes.length > 0 && (
+                    <Link
+                        href={`/admin/menus/new?collection=${collection.id}`}
+                        className="text-sm underline underline-offset-4"
+                    >
+                        {tMenus('fromCollection')}
                     </Link>
                 )}
             </div>

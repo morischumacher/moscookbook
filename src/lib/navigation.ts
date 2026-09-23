@@ -17,7 +17,7 @@
  * none, which is exactly the state this replaces.
  */
 
-export type Section = 'recipes' | 'collections' | 'blog' | 'shopping' | 'admin' | null;
+export type Section = 'recipes' | 'collections' | 'menus' | 'blog' | 'shopping' | 'admin' | null;
 
 /**
  * Strips `/en` or `/de` from the front, so the rules below are written once.
@@ -41,6 +41,7 @@ export function sectionFor(pathname: string): Section {
     if (path === '/admin' || path.startsWith('/admin/')) return 'admin';
     if (path === '/blog' || path.startsWith('/blog/')) return 'blog';
     if (path === '/collections' || path.startsWith('/collections/')) return 'collections';
+    if (path === '/menus' || path.startsWith('/menus/')) return 'menus';
     if (path === '/shopping') return 'shopping';
 
     // The recipe list is the front page, and a single recipe belongs with it.

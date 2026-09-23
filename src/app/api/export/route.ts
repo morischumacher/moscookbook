@@ -8,10 +8,13 @@ import {
     toArchivePost,
     toArchiveCookEntry,
     toArchiveCollection,
+    toArchiveMenu,
+    menuArchiveSelect,
     type ExportableRecipe,
     type ExportablePost,
     type ExportableCookEntry,
     type ExportableCollection,
+    type ExportableMenu,
 } from '@/lib/archive';
 import { failed } from '@/lib/reportServerError';
 
@@ -215,6 +218,19 @@ export async function GET() {
                             },
                         }),
                     toArchiveCollection
+                );
+
+                write('],\n  "menus": [');
+
+                await writeAll<ExportableMenu & { id: number }, unknown>(
+                    (afterId) =>
+                        prisma.menu.findMany({
+                            where: { id: { gt: afterId } },
+                            orderBy: { id: 'asc' },
+                            take: PAGE,
+                            select: { id: true, ...menuArchiveSelect },
+                        }),
+                    toArchiveMenu
                 );
 
                 write(']\n}\n');

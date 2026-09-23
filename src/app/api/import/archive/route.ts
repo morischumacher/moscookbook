@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
+import { menuStyle } from '@/lib/menu';
 import { requireAdmin } from '@/lib/auth';
 import { parseArchive, cookEntriesFrom, postRecipeSlugs, type ArchivePost, type ArchiveRecipe } from '@/lib/archive';
 import { newRecipeData } from '@/lib/recipeRepo';
@@ -346,6 +347,45 @@ export async function POST(req: NextRequest) {
                 .catch((error) => reportFailure(`Archive import: collections of ${post.slug}`, error));
         }
 
+        // Menus after the recipes, for the same reason as collections. A dish
+        // whose recipe is not here stays on the card as words.
+        let menus = 0;
+        for (const menu of result.archive.menus) {
+            try {
+                const taken = await prisma.menu.findUnique({ where: { slug: menu.slug }, select: { id: true } });
+                if (taken && !replace) continue;
+
+                await prisma.$transaction([
+                    ...(taken ? [prisma.menu.deleteMany({ where: { slug: menu.slug } })] : []),
+                    prisma.menu.create({
+                        data: {
+                            title: menu.title,
+                            slug: menu.slug,
+                            occasion: menu.occasion,
+                            date: menu.date ? safeDate(menu.date) : null,
+                            guests: menu.guests,
+                            style: menuStyle(menu.style),
+                            intro: menu.intro,
+                            createdAt: safeDate(menu.createdAt) ?? new Date(),
+                            items: {
+                                create: menu.items.map((item, index) => ({
+                                    position: index,
+                                    course: item.course,
+                                    title: item.title,
+                                    description: item.description,
+                                    recipeId: item.recipeSlug ? (slugToId.get(item.recipeSlug) ?? null) : null,
+                                })),
+                            },
+                        },
+                    }),
+                ]);
+                menus += 1;
+            } catch (error) {
+                failed.push({ slug: menu.slug, reason: describeWriteFailure(error) });
+                reportFailure(`Archive import: menu ${menu.slug} failed`, error);
+            }
+        }
+
         return NextResponse.json({
             created,
             replaced,
@@ -355,6 +395,7 @@ export async function POST(req: NextRequest) {
             entries,
             photos,
             collections,
+            menus,
             // Reported rather than thrown: the rest of the archive is in, and
             // the admin needs to know exactly what is not.
             failed,
