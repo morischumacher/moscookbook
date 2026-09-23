@@ -172,7 +172,9 @@
     "inviteShareTitle": "Du bist zu Mo'sCookbook eingeladen",
     "inviteShareDescription": "Ein privates Kochbuch. Über den Link legst du dein Konto an.",
     "inviteUsed": "Diese Einladung wurde schon benutzt. Wenn das Konto deins ist, melde dich an — sonst frag Mo nach einem neuen Link.",
-    "inviteExpired": "Diese Einladung ist abgelaufen. Frag Mo nach einem neuen Link."
+    "inviteExpired": "Diese Einladung ist abgelaufen. Frag Mo nach einem neuen Link.",
+    "emailMoved": "Deine neue E-Mail-Adresse ist bestätigt und gilt ab sofort. Die bisherige Adresse wurde informiert.",
+    "passkeyLogin": "Mit Passkey anmelden"
   },
   "Admin": {
     "loadingPage": "Seite wird geholt…",
@@ -435,7 +437,10 @@
       "pagePartial": "Die Seite enthielt nur einen Teil des Rezepts.",
       "videoPartial": "In der Videobeschreibung stand nur ein Teil des Rezepts.",
       "videoSpoken": "Das Rezept steht nicht in der Beschreibung – es wird wohl nur im Video gesprochen. Anschauen und abtippen, oder einen Screenshot schicken.",
-      "videoSpokenNeedsAi": "Das Rezept wird nur im Video gesprochen. Die Untertitel sind da – „Mit KI lesen“ macht daraus ein Rezept."
+      "videoSpokenNeedsAi": "Das Rezept wird nur im Video gesprochen. Die Untertitel sind da – „Mit KI lesen“ macht daraus ein Rezept.",
+      "recipeInBio": "Das Rezept ist hinter dem Link in der Bio – den kann die App nicht öffnen. Tipp: In Instagram den Bio-Link antippen, das Rezept dort öffnen und diese Seite teilen.",
+      "recipeInComments": "Das Rezept steht in den Kommentaren – die sind ohne Anmeldung nicht lesbar. Tipp: Screenshot vom Kommentar machen und danach den Post teilen; dann wird der Screenshot gelesen.",
+      "recipeByDm": "Das Rezept gibt es nur per Direktnachricht („Kommentiere … und ich schicke es dir“). Tipp: Die Nachricht als Text in den Eingang einfügen oder einen Screenshot davon schicken."
     },
     "fetchFailure": {
       "timeout": "Zeitüberschreitung",
@@ -734,7 +739,7 @@
     "controllerTitle": "Verantwortlich",
     "controllerBody": "Moritz Schumacher, Wien, erreichbar unter moscookbook@gmail.com. Anfragen zu deinen Daten beantworte ich an dieser Adresse.",
     "whatDataTitle": "Welche Daten",
-    "whatDataBody": "Bei einem Konto: Vor- und Nachname, E-Mail-Adresse und ein Passwort, das nur als bcrypt-Hash gespeichert wird. Dazu, was du selbst einträgst — Bewertungen, Kochnotizen, hochgeladene Fotos. Ohne Konto: nur die technischen Daten, die beim Abruf einer Seite anfallen.",
+    "whatDataBody": "Bei einem Konto: Vor- und Nachname, E-Mail-Adresse und ein Passwort, das nur als bcrypt-Hash gespeichert wird. Richtest du einen Passkey ein, zusätzlich dessen öffentlicher Schlüssel und eine Gerätebezeichnung wie „iPhone · Safari“ – der private Schlüssel verlässt dein Gerät nie. Dazu, was du selbst einträgst — Bewertungen, Kochnotizen, hochgeladene Fotos. Ohne Konto: nur die technischen Daten, die beim Abruf einer Seite anfallen.",
     "whyTitle": "Wozu",
     "whyBody": "Die Daten werden ausschließlich dafür verwendet, das Kochbuch zu betreiben: dich anzumelden, deine Beiträge den richtigen Personen zuzuordnen und dir bei Bedarf einen Link zum Zurücksetzen des Passworts zu schicken. Rechtsgrundlage ist Art. 6 Abs 1 lit b DSGVO, für das Führen der Konten und die Abwehr von Missbrauch auch lit f.",
     "cookiesTitle": "Cookies",
@@ -812,18 +817,41 @@
     "emailTitle": "E-Mail-Adresse",
     "newEmail": "Neue Adresse",
     "yourPassword": "Dein Passwort",
-    "emailBody": "Die neue Adresse muss bestätigt werden, deshalb geht sofort ein Link dorthin. Die alte Adresse wird über die Änderung informiert.",
-    "emailSaved": "Die Adresse wurde geändert. Im neuen Postfach liegt der Bestätigungslink.",
+    "emailBody": "Die neue Adresse gilt erst, wenn du den Link bestätigst, den wir dorthin schicken. Bis dahin bleibt deine jetzige Adresse aktiv – ein Tippfehler kostet also nichts.",
+    "emailSaved": "Fast geschafft: Im Postfach der neuen Adresse liegt ein Bestätigungslink. Erst danach wird umgestellt.",
     "passwordTitle": "Passwort",
     "currentPassword": "Aktuelles Passwort",
     "newPassword": "Neues Passwort",
-    "passwordSaved": "Dein Passwort wurde geändert.",
+    "passwordSaved": "Passwort geändert. Alle anderen Geräte sind abgemeldet; eine Bestätigung ist per E-Mail unterwegs.",
     "deleteTitle": "Konto löschen",
     "deleteExplain": "Deine Bewertungen, Favoriten und Anmeldungen gehen mit. Notizen und Fotos von dem, was du gekocht hast, bleiben ohne deinen Namen im Kochbuch, und die Rezepte gehören dem Haushalt.",
     "deleteConfirm": "Dein Konto löschen?",
     "deleteBody": "Das lässt sich nicht rückgängig machen.",
     "deleteAction": "Mein Konto löschen",
-    "deleted": "Dein Konto wurde gelöscht."
+    "deleted": "Dein Konto wurde gelöscht.",
+    "show": "Anzeigen",
+    "hide": "Verbergen",
+    "passwordHint": "Mindestens 8 Zeichen. Alle anderen Geräte werden danach abgemeldet, und du bekommst eine Bestätigung per E-Mail.",
+    "newPasswordAgain": "Neues Passwort wiederholen",
+    "passwordMismatch": "Die beiden Passwörter stimmen nicht überein.",
+    "emailPending": "Wartet auf Bestätigung: {email}. Bis du den Link dort anklickst, bleibt die Adresse oben aktiv.",
+    "emailResend": "Link erneut senden",
+    "emailCancel": "Änderung abbrechen",
+    "emailResent": "Der Link ist noch einmal unterwegs.",
+    "emailCancelled": "Die Änderung ist abgebrochen; es bleibt bei der bisherigen Adresse.",
+    "passkeysTitle": "Passkeys",
+    "passkeysExplain": "Anmelden mit Face ID, Touch ID oder 1Password statt Passwort. Der Schlüssel bleibt auf deinem Gerät; hier liegt nur der öffentliche Teil. Dein Passwort funktioniert weiterhin.",
+    "passkeysUnsupported": "Dieser Browser kann keine Passkeys. Auf dem iPhone, in Safari, Chrome oder mit 1Password geht es.",
+    "passkeyAdd": "Passkey hinzufügen",
+    "passkeyCreate": "Passkey erstellen",
+    "passkeyAdded": "Passkey gespeichert. Beim nächsten Anmelden einfach „Mit Passkey anmelden“ wählen.",
+    "passkeyRemoved": "Passkey entfernt.",
+    "passkeyRemove": "Entfernen",
+    "passkeyExists": "Auf diesem Gerät bzw. in diesem Passwort-Manager gibt es schon einen Passkey für dein Konto.",
+    "passkeyCancelled": "Abgebrochen – es wurde kein Passkey erstellt.",
+    "passkeySynced": "synchronisiert",
+    "passkeyUsed": "Zuletzt benutzt am {date}",
+    "passkeyAddedOn": "Hinzugefügt am {date}"
   },
   "Ai": {
     "nav": "KI",
@@ -1110,5 +1138,29 @@
     "saveFailed": "Das Menü konnte nicht gespeichert werden.",
     "delete": "Löschen",
     "confirmDelete": "Dieses Menü löschen?"
+  },
+  "Work": {
+    "tab": "Arbeitsliste",
+    "share": "Zur Arbeitsliste",
+    "shareNow": "Freigeben",
+    "shared": "Auf der Arbeitsliste",
+    "cancel": "Abbrechen",
+    "notePlaceholder": "Was ist falsch? (optional)",
+    "publicHint": "Landet anonymisiert – ohne Namen, E-Mail-Adressen und Links mit Schlüssel – auf der öffentlichen Arbeitsliste.",
+    "failed": "Das hat nicht geklappt.",
+    "explain": "Was du hier freigibst, steht anonymisiert unter dieser öffentlichen Adresse – zum Beheben durch wen auch immer du beauftragst, Mensch oder KI. Alles andere bleibt privat. Den fertigen Auftrag für eine Programmier-KI findest du im Repo unter docs/work-list-prompt.md.",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "loading": "Wird geladen…",
+    "empty": "Noch nichts freigegeben. Im Eingang (Mehr → Zur Arbeitsliste), bei Fehlern und bei Tickets gibt es den Knopf.",
+    "closed": "erledigt",
+    "close": "Erledigt",
+    "reopen": "Wieder öffnen",
+    "remove": "Von der Liste nehmen",
+    "kind": {
+      "capture": "Eingang",
+      "error": "Fehler",
+      "ticket": "Ticket"
+    }
   }
 }

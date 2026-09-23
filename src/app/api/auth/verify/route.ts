@@ -5,9 +5,12 @@ import { forgetVerified } from '@/lib/verifiedFlag';
 import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { hashToken, tokenState } from '@/lib/authTokens';
 import { failed } from '@/lib/reportServerError';
+import { emailChangedMail } from '@/lib/authMail';
+import { sendMail } from '@/lib/mailer';
 
 const schema = z.object({
     token: z.string().trim().min(1).max(200),
+    locale: z.enum(['en', 'de']).optional(),
 });
 
 /**
@@ -44,20 +47,20 @@ export async function POST(req: NextRequest) {
         const tokenHash = hashToken(parsed.data.token);
 
         const claimed = await prisma.authToken.updateMany({
-            where: { tokenHash, purpose: 'verify', usedAt: null, expiresAt: { gt: now } },
+            where: { tokenHash, purpose: { in: ['verify', 'email'] }, usedAt: null, expiresAt: { gt: now } },
             data: { usedAt: now },
         });
 
         const record = await prisma.authToken.findUnique({ where: { tokenHash } });
 
         if (claimed.count !== 1) {
-            const state = tokenState(record, 'verify', now);
+            const state = tokenState(record, record?.purpose === 'email' ? 'email' : 'verify', now);
 
             // A used token whose owner is confirmed means this link already did
             // its job — most often because the mail client opened it first.
             if (state === 'used' && record) {
                 const user = await prisma.user.findUnique({ where: { id: record.userId } });
-                if (user?.emailVerifiedAt) {
+                if (user?.emailVerifiedAt && !(record.purpose === 'email' && user.pendingEmail)) {
                     return NextResponse.json({ success: true, alreadyVerified: true });
                 }
             }
@@ -70,6 +73,10 @@ export async function POST(req: NextRequest) {
 
         if (!record) {
             return NextResponse.json({ message: 'Unknown link.', reason: 'unknown' }, { status: 400 });
+        }
+
+        if (record.purpose === 'email') {
+            return await moveToNewAddress(record.userId, now, parsed.data.locale ?? 'de');
         }
 
         await prisma.user.update({
@@ -86,4 +93,38 @@ export async function POST(req: NextRequest) {
         failed('Address confirmation failed:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
+}
+
+/**
+ * The new address answered: it becomes the account's address, confirmed, and
+ * the old one is told — now, when it has actually stopped being the account's.
+ */
+async function moveToNewAddress(userId: number, now: Date, locale: string) {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, name: true, pendingEmail: true },
+    });
+    if (!user?.pendingEmail) {
+        return NextResponse.json({ message: 'This link cannot be used any more.', reason: 'used' }, { status: 400 });
+    }
+
+    const taken = await prisma.user.findFirst({
+        where: { email: { equals: user.pendingEmail, mode: 'insensitive' }, NOT: { id: user.id } },
+        select: { id: true },
+    });
+    if (taken) {
+        return NextResponse.json({ message: 'That address already belongs to another account.', reason: 'taken' }, { status: 409 });
+    }
+
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { email: user.pendingEmail, emailVerifiedAt: now, pendingEmail: null },
+    });
+    forgetVerified(user.id);
+
+    void sendMail(emailChangedMail(user.email, user.name, user.pendingEmail, locale)).catch((error) =>
+        failed('verify: notice to the old address', error)
+    );
+
+    return NextResponse.json({ success: true, emailChanged: true });
 }

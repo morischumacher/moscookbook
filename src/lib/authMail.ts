@@ -158,6 +158,70 @@ export function emailChangedMail(to: string, name: string, next: string, localeC
     };
 }
 
+/**
+ * "Your password was changed" — to the account's own address, after a change
+ * made while signed in. A notice with one way out: whoever did not make the
+ * change can take the account back through "forgot password", which only the
+ * mailbox can finish.
+ */
+export function passwordChangedMail(to: string, name: string, forgotUrl: string, localeCode: string): Mail {
+    const language = locale(localeCode);
+
+    if (language === 'de') {
+        const heading = 'Dein Passwort wurde geändert';
+        const body = `Hallo ${name}, das Passwort deines Kontos bei mo'scookbook wurde eben geändert. Alle anderen Geräte wurden dabei abgemeldet.`;
+        const footer = 'Warst du das nicht, setz dein Passwort über den Knopf oben sofort neu.';
+
+        return {
+            to,
+            subject: "mo'scookbook: Passwort geändert",
+            text: `${heading}\n\n${body}\n\n${footer}\n${forgotUrl}\n`,
+            html: wrap(heading, body, 'Passwort zurücksetzen', forgotUrl, footer),
+        };
+    }
+
+    const heading = 'Your password was changed';
+    const body = `Hello ${name}, the password on your mo'scookbook account was just changed. Every other device was signed out.`;
+    const footer = 'If that was not you, reset your password with the button above straight away.';
+
+    return {
+        to,
+        subject: "mo'scookbook: password changed",
+        text: `${heading}\n\n${body}\n\n${footer}\n${forgotUrl}\n`,
+        html: wrap(heading, body, 'Reset password', forgotUrl, footer),
+    };
+}
+
+/** The link that makes a new address the account's address. Sent to the new one. */
+export function confirmEmailMail(to: string, name: string, url: string, localeCode: string): Mail {
+    const language = locale(localeCode);
+    const validFor = days(TOKEN_LIFETIME_MINUTES.email);
+
+    if (language === 'de') {
+        const heading = 'Neue E-Mail-Adresse bestätigen';
+        const body = `Hallo ${name}, du möchtest dein Konto bei mo'scookbook auf diese Adresse umstellen. Sie gilt erst, wenn du hier bestätigst – bis dahin bleibt die bisherige Adresse aktiv.`;
+        const footer = `Der Link gilt ${validFor} Tage. Warst du das nicht, ignoriere diese Nachricht einfach.`;
+
+        return {
+            to,
+            subject: "mo'scookbook: Neue E-Mail-Adresse bestätigen",
+            text: `${heading}\n\n${body}\n\n${url}\n\n${footer}\n`,
+            html: wrap(heading, body, 'Adresse bestätigen', url, footer),
+        };
+    }
+
+    const heading = 'Confirm your new e-mail address';
+    const body = `Hello ${name}, you asked to move your mo'scookbook account to this address. It only takes effect once you confirm here – until then your previous address stays active.`;
+    const footer = `The link is valid for ${validFor} days. If this was not you, simply ignore this message.`;
+
+    return {
+        to,
+        subject: "mo'scookbook: confirm your new e-mail address",
+        text: `${heading}\n\n${body}\n\n${url}\n\n${footer}\n`,
+        html: wrap(heading, body, 'Confirm address', url, footer),
+    };
+}
+
 export function verifyMail(to: string, name: string, url: string, localeCode: string): Mail {
     const language = locale(localeCode);
     const validFor = days(TOKEN_LIFETIME_MINUTES.verify);

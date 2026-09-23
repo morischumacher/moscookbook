@@ -5,8 +5,6 @@ import prisma from '@/lib/prisma';
 import { requireUser } from '@/lib/auth';
 import { passwordMatches } from '@/lib/accountGuard';
 import { issueToken } from '@/lib/issueToken';
-import { emailChangedMail } from '@/lib/authMail';
-import { sendMail } from '@/lib/mailer';
 import { rateLimitShared } from '@/lib/rateLimitShared';
 import { formatZodError } from '@/lib/zodMessage';
 import { describeWriteFailure } from '@/lib/prismaErrors';
@@ -21,32 +19,21 @@ const schema = z.object({
 /**
  * Changing the address mail goes to.
  *
- * ## Why this needs no new table
+ * ## Nothing changes until the new address answers
  *
- * The usual shape is a `pendingEmail` column: the new address is parked there,
- * a token is mailed to it, and confirming moves it across. That is a migration
- * and a second verification path for a household cookbook with five accounts
- * in it.
+ * The new address is parked in `pendingEmail` and a link is mailed to it.
+ * Only following that link moves it across. Until then the account signs in
+ * with, and resets its password through, the address it had — so a typo in
+ * the new one costs nothing but a second try. (It used to change at once and
+ * ask for confirmation afterwards, which left an account whose only address
+ * was a typo one forgotten password away from being lost.)
  *
- * This does the same work with what is already here. The address is changed at
- * once, `emailVerifiedAt` is cleared, and the *existing* verification mail is
- * sent to the new address — the same one registration sends, read by the same
- * route, shown by the same banner that already sits above every page until an
- * address is confirmed. A typo therefore leaves you signed in, unverified, and
- * able to correct it, which is the same place the parked-column version leaves
- * you, minus a column.
+ * The password is asked for, because an address is how an account is taken
+ * back; the old address is told once the move actually happens (see the
+ * verify route), because that is when it stops being the account's.
  *
- * ## Why the old address is told first
- *
- * An address quietly changed to somebody else's is how an account stops being
- * yours. The password is asked for, and the address that is losing the account
- * is told before it loses it — so the one person who would want to know finds
- * out while they can still do something about it. Sent before the change, not
- * after, because after the change there is nowhere left to send it.
- *
- * Mail failing does not fail the change: this cookbook runs without mail
- * configured at all, and refusing to let somebody fix their own address
- * because a Gmail app password expired would be the wrong way round.
+ * Mail failing does not fail the request: the row keeps the pending address,
+ * and "send the link again" is on the account page.
  */
 export async function POST(req: NextRequest) {
     const auth = await requireUser();
@@ -82,29 +69,73 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
+    // The address it already has: whatever was pending is dropped.
     if (me.email === email) {
+        await cancelPending(me.id);
         return NextResponse.json({ ok: true, unchanged: true });
     }
 
-    // Told while there is still somewhere to tell. A notice, not a token:
-    // nothing about it is meant to be pressed. Fire and forget — see above.
-    void sendMail(emailChangedMail(me.email, me.name, email, locale)).catch((error) =>
-        failed('account/email: notice to the old address', error)
-    );
-
-    try {
-        await prisma.user.update({
-            where: { id: auth.user.id },
-            data: { email, emailVerifiedAt: null },
-        });
-    } catch (error) {
-        // Almost always the unique index: somebody else has that address.
-        return NextResponse.json({ message: describeWriteFailure(error) }, { status: 409 });
+    const taken = await prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' }, NOT: { id: me.id } },
+        select: { id: true },
+    });
+    if (taken) {
+        return NextResponse.json({ message: 'That address already belongs to another account.' }, { status: 409 });
     }
 
-    void issueToken({ ...me, email }, 'verify', locale).catch((error) =>
+    await prisma.user.update({ where: { id: me.id }, data: { pendingEmail: email } });
+
+    void issueToken({ ...me, email }, 'email', locale).catch((error) =>
         failed('account/email: confirmation to the new address', error)
     );
 
+    return NextResponse.json({ ok: true, pending: email });
+}
+
+const resendSchema = z.object({ locale: z.enum(['en', 'de']).optional() });
+
+/** "Send the link again" — to the address that is waiting, if one is. */
+export async function PUT(req: NextRequest) {
+    const auth = await requireUser();
+    if ('response' in auth) return auth.response;
+
+    const limit = await rateLimitShared(`email:${auth.user.id}`, 5, 60 * 60 * 1000);
+    if (!limit.ok) {
+        return NextResponse.json(
+            { message: 'Too many attempts. Please wait a while.' },
+            { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+        );
+    }
+
+    const { locale = 'en' } = resendSchema.parse(await req.json().catch(() => ({})));
+    const me = await prisma.user.findUnique({
+        where: { id: auth.user.id },
+        select: { id: true, name: true, pendingEmail: true },
+    });
+    if (!me?.pendingEmail) {
+        return NextResponse.json({ message: 'No new address is waiting to be confirmed.' }, { status: 400 });
+    }
+
+    try {
+        await issueToken({ id: me.id, name: me.name, email: me.pendingEmail }, 'email', locale);
+    } catch (error) {
+        failed('account/email: resending the confirmation', error);
+        return NextResponse.json({ message: describeWriteFailure(error) }, { status: 500 });
+    }
     return NextResponse.json({ ok: true });
+}
+
+/** Never mind: the waiting address is dropped and its link stops working. */
+export async function DELETE() {
+    const auth = await requireUser();
+    if ('response' in auth) return auth.response;
+    await cancelPending(auth.user.id);
+    return NextResponse.json({ ok: true });
+}
+
+async function cancelPending(userId: number): Promise<void> {
+    await prisma.$transaction([
+        prisma.user.update({ where: { id: userId }, data: { pendingEmail: null } }),
+        prisma.authToken.updateMany({ where: { userId, purpose: 'email', usedAt: null }, data: { usedAt: new Date() } }),
+    ]);
 }

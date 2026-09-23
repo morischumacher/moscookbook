@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
@@ -9,12 +9,17 @@ import { passwordMatches } from '@/lib/accountGuard';
 import { BCRYPT_COST } from '@/lib/passwordHash';
 import { rateLimitShared } from '@/lib/rateLimitShared';
 import { formatZodError } from '@/lib/zodMessage';
+import { passwordChangedMail } from '@/lib/authMail';
+import { sendMail } from '@/lib/mailer';
+import { getSiteUrl } from '@/lib/siteUrl';
+import { failed } from '@/lib/reportServerError';
 
 const schema = z.object({
     current: z.string().min(1, 'Your current password is required').max(200),
     // The same floor as registration. A rule that applies when an account is
     // made and not when its password is changed is a rule with a way round it.
     next: z.string().min(8, 'The new password must be at least 8 characters').max(200),
+    locale: z.enum(['en', 'de']).optional(),
 });
 
 /**
@@ -67,15 +72,18 @@ export async function POST(req: NextRequest) {
     await session.save();
 
     /*
-     * The session is left alone on purpose.
-     *
-     * Signing everybody out of everything is the right answer when a password
-     * is changed because it was *stolen*, and this route can only be reached
-     * by somebody who already knows the old one. Throwing this person out of
-     * the tab they are standing in would be punishing the common case for the
-     * shape of the rare one — and there is no session list here to clear the
-     * other devices from anyway, so it would be a half-measure that merely
-     * felt thorough.
+     * And the account's own address is told. Not asked first — the current
+     * password is the proof, and a second step would only slow down the person
+     * who knows it — but told, so that a change nobody meant is noticed while
+     * "forgot password" can still take the account back. After the answer, so
+     * a slow mail server never holds up the form.
      */
+    const locale = parsed.data.locale ?? 'de';
+    after(() =>
+        sendMail(passwordChangedMail(updated.email, updated.name, `${getSiteUrl()}/${locale}/forgot`, locale)).catch((error) =>
+            failed('account/password: notice', error)
+        )
+    );
+
     return NextResponse.json({ ok: true });
 }

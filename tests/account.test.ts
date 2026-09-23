@@ -118,32 +118,28 @@ export default function accountTests() {
     suite('account: changing an address');
 
     /*
-     * The call site, not the import. The first draft of this compared
-     * `indexOf('emailChangedMail')` — which finds the import line at the top
-     * of the file and is therefore before everything, whatever the code does.
-     * The probe that moved the call after the update left this green, which
-     * is how the check got fixed.
+     * The move only happens when the new address answers. Until then the
+     * request parks it, and the account keeps signing in with the old one.
      */
+    const verify = source('app/api/auth/verify/route.ts');
     check(
-        'the old address is told before it stops being the address',
-        email.indexOf('sendMail(emailChangedMail') < email.indexOf('prisma.user.update'),
-        'the notice must be sent before the update'
+        'the request only parks the new address',
+        email.includes('pendingEmail: email') && !/data:\s*\{\s*email[,:\s]/.test(email),
+        'email route must not write User.email'
+    );
+    check('the new address gets its own link', email.includes("'email', locale"), 'email route');
+    check(
+        'following it moves the address and confirms it',
+        verify.includes('email: user.pendingEmail, emailVerifiedAt: now, pendingEmail: null'),
+        'verify route'
     );
     check(
-        'the new one has to be confirmed',
-        email.includes('emailVerifiedAt: null') && email.includes("'verify'"),
-        'email route'
+        'the old address is told once it has stopped being the address',
+        verify.indexOf('sendMail(emailChangedMail') > verify.indexOf('pendingEmail: null'),
+        'the notice goes after the move'
     );
-    check(
-        'a taken address is a 409, not a 500',
-        email.includes('describeWriteFailure') && email.includes('status: 409'),
-        'email route'
-    );
-    check(
-        'and mail failing does not fail the change',
-        email.includes('void sendMail(') && email.includes('void issueToken('),
-        'both sends are fire-and-forget'
-    );
+    check('a taken address is a 409, not a 500', email.includes('status: 409') && verify.includes('status: 409'), 'both routes');
+    check('and mail failing does not fail the request', email.includes('void issueToken('), 'fire-and-forget');
 
     suite('account: who may reach it');
 

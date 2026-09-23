@@ -116,8 +116,9 @@ export function pathAccess(pathname: string): Access {
  *
  * What is named, and why each one has to be:
  *
- * - `auth/*` — signing in, registering, the three e-mail-link flows, signing
- *   out. There is no session yet, or the point is to end one.
+ * - `auth/*` — signing in (with a password or a passkey), registering, the
+ *   three e-mail-link flows, signing out. There is no session yet, or the
+ *   point is to end one.
  * - `capture` — the iPhone shortcut. Authenticated by a device token in the
  *   body, not a cookie; a phone has no session and is not going to get one.
  * - `errors` — the client-side error reporter. It runs on the error page,
@@ -129,11 +130,14 @@ export function pathAccess(pathname: string): Access {
  *   so the person in the shop can tick things off without an account. The
  *   token is the permission, checked in the route.
  *
+ * - `work` — the work list: things the admin chose to publish for fixing,
+ *   anonymized when they were shared (lib/workItems.ts). Read-only.
+ *
  * Every route still does its own check. This is the net under them, not a
  * replacement for them: `errors` GET is admin-only inside the route even
  * though the path is open here, because the path is open for its POST.
  */
-const OPEN_API = /^\/api\/(?:auth\/[a-z-]+|capture|errors|recipes\/\d+\/view|cron\/[a-z-]+|shopping\/shared\/[A-Za-z0-9_-]{16,64})\/?$/;
+const OPEN_API = /^\/api\/(?:auth\/[a-z-]+|capture|errors|recipes\/\d+\/view|cron\/[a-z-]+|shopping\/shared\/[A-Za-z0-9_-]{16,64}|work)\/?$/;
 
 export type ApiAccess = 'open' | 'session';
 

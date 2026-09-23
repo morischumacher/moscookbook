@@ -16,6 +16,7 @@ import { aiInput, fillGapsWithAi, NOT_ASKED, outcome, reasonFor } from './captur
 import { captionDraft } from './captionDraft';
 import { reason } from './captureReasons';
 import { recipeLinksIn } from './recipeLinks';
+import { recipeElsewhere } from './socialHints';
 import { instagramEmbedUrl, instagramShortcode, readInstagramEmbed } from './instagram';
 import { bestCaptionTrack, captionText, captionTracksFrom } from './youtubeCaptions';
 
@@ -234,19 +235,29 @@ async function processSocial(
     const post = embed?.ok ? readInstagramEmbed(embed.html) : null;
 
     const text = [rawText ?? '', post?.caption ?? ''].filter((part) => part.trim()).join('\n\n') || null;
-    const withPicture = (result: ProcessedCapture): ProcessedCapture =>
-        result.draft && post?.imageUrl ? { ...result, draft: mergeDrafts(result.draft, { imageUrl: post.imageUrl }) } : result;
+    const finish = (result: ProcessedCapture): ProcessedCapture => {
+        const pictured =
+            result.draft && post?.imageUrl ? { ...result, draft: mergeDrafts(result.draft, { imageUrl: post.imageUrl }) } : result;
+        if (pictured.status === 'ready') return pictured;
+
+        // Not here, but the post says where: in the bio, in the comments, or
+        // by DM. Said as such, with what works for each — see socialHints.
+        const said = [text ?? '', pictured.draft?.title ?? '', pictured.draft?.description ?? ''].join('\n');
+        const elsewhere = recipeElsewhere(said);
+        const code = elsewhere === 'bio' ? 'recipeInBio' : elsewhere === 'comments' ? 'recipeInComments' : elsewhere === 'dm' ? 'recipeByDm' : null;
+        return code ? { ...pictured, error: reason(code) } : pictured;
+    };
 
     // The rules alone first, so that a link in the caption is tried before
     // anything is paid for.
     const byRules = await processWebPage(url, text, RULES_ONLY, { ...options, learnWith: undefined });
-    if (byRules.status === 'ready' && !options.force) return withPicture(byRules);
+    if (byRules.status === 'ready' && !options.force) return finish(byRules);
 
     const linked = await fromLinkedRecipe(text ?? '', url, ai, options);
-    if (linked?.draft) return withPicture(linked);
+    if (linked?.draft) return finish(linked);
 
-    if (!canUseAi(ai)) return withPicture(byRules);
-    return withPicture(await processWebPage(url, text, ai, options));
+    if (!canUseAi(ai)) return finish(byRules);
+    return finish(await processWebPage(url, text, ai, options));
 }
 
 async function processWebPage(

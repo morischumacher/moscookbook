@@ -14,7 +14,7 @@ import { randomToken, localeUrl } from './tokens';
  * table.
  */
 
-export type TokenPurpose = 'reset' | 'verify';
+export type TokenPurpose = 'reset' | 'verify' | 'email';
 
 /**
  * How long each kind is good for.
@@ -27,6 +27,8 @@ export type TokenPurpose = 'reset' | 'verify';
 export const TOKEN_LIFETIME_MINUTES: Record<TokenPurpose, number> = {
     reset: 60,
     verify: 7 * 24 * 60,
+    /** A move to a new address: two days, then it is asked for again. */
+    email: 2 * 24 * 60,
 };
 
 /** 256 bits, URL-safe. It travels in a link, so it must survive being pasted. */

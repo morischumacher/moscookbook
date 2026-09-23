@@ -1,5 +1,6 @@
 'use client';
 
+import ShareToWorkList from '@/components/admin/ShareToWorkList';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/lib/formatDate';
@@ -213,6 +214,7 @@ export default function ErrorsPanel() {
                                         {expanded === row.id ? t('hideStack') : t('showStack')}
                                     </button>
                                 )}
+                                <ShareToWorkList kind="error" id={row.id} />
                                 {!showResolved ? (
                                     <button
                                         type="button"

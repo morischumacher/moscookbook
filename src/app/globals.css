@@ -439,3 +439,19 @@ html {
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
 }
+
+/* ---------------------------------------------------------------- autofill */
+
+/*
+ * A field a password manager has filled keeps the page's colours. The
+ * browser's own pale blue (or yellow) made a filled form look like an error
+ * state, and on the cream background it was the loudest thing on the page.
+ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-fg);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-bg) inset;
+  caret-color: var(--color-fg);
+  transition: background-color 9999s ease-out 0s;
+}

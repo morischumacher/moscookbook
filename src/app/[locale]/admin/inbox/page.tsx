@@ -15,6 +15,7 @@ import InboxPaste from '@/components/admin/InboxPaste';
 import InboxFilters from '@/components/admin/InboxFilters';
 import { countBy, filterInbox, NO_FILTER, type InboxQuery } from '@/lib/inboxFilter';
 import { readReason } from '@/lib/captureReasons';
+import ShareToWorkList from '@/components/admin/ShareToWorkList';
 
 interface DraftSummary {
     title?: string;
@@ -649,6 +650,8 @@ function CaptureRow({
                         >
                             {t('report')}
                         </Link>
+
+                        <ShareToWorkList kind="capture" id={capture.id} className="rounded-lg px-3 py-2 no-underline hover:bg-surface" />
 
                         <button
                             type="button"
