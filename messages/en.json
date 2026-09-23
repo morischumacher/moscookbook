@@ -143,7 +143,8 @@
     "loginRequired": "Sign in to rate recipes.",
     "failed": "Rating could not be saved.",
     "error": "Something went wrong while saving your rating.",
-    "rateN": "{value, number} of {max}"
+    "rateN": "{value, number} of {max}",
+    "cancel": "Cancel"
   },
   "Favorite": {
     "add": "Add to favourites",

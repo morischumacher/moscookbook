@@ -335,7 +335,7 @@ export default function RecipeForm({
     };
 
     return (
-        <div className="container mx-auto max-w-3xl px-4 py-10 sm:px-8">
+        <main className="container mx-auto max-w-3xl px-4 py-10 sm:px-8">
             <h1 className="mb-8 text-3xl font-extrabold tracking-tight sm:text-4xl">
                 {mode === 'create' ? t('newRecipe') : t('editRecipe', { title: initial?.title ?? '' })}
             </h1>
@@ -585,6 +585,6 @@ export default function RecipeForm({
                     </button>
                 </div>
             </form>
-        </div>
+        </main>
     );
 }

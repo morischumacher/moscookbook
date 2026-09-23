@@ -10,6 +10,7 @@ import { aisleOf, shoppingKey, lineFromText, amountLabel } from '../src/lib/shop
 import { formatQuantity } from '../src/lib/amount';
 import { inLanguage, sourceKey } from '../src/lib/recipeTranslation';
 import { toStructuredIngredients } from '../src/lib/ingredientParts';
+import { worthSaving } from '../src/lib/cookProgress';
 import { toBase, fromBase } from '../src/lib/units';
 
 export default function bugHuntTests() {
@@ -64,4 +65,11 @@ export default function bugHuntTests() {
     };
     equal('a translation of the current text is not stale', inLanguage(translated, 'en').stale, false);
     equal('one of an edited text is', inLanguage({ ...translated, instructions: '1. Lange kochen' }, 'en').stale, true);
+
+    suite('bug hunt: round 8');
+    equal('1 h 30 min is one timer', timersIn('Bake 1 h 30 min.').map((timer) => timer.seconds), [5400]);
+    equal('nach einer Stunde is a timer', timersIn('Nach einer Stunde wenden.')[0]?.seconds, 3600);
+    equal('anderthalb Stunden too', timersIn('anderthalb Stunden garen')[0]?.seconds, 5400);
+    equal('two separate timers stay two', timersIn('15 Minuten kochen, dann 5 Minuten ruhen').length, 2);
+    equal('no record for a recipe without servings', worthSaving({ ingredients: [], steps: [], servings: 0 }, null), false);
 }

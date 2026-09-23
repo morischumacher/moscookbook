@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
+import { Link, usePathname as usePagePath } from '@/i18n/routing';
 import Avatar from './Avatar';
 import LogoutButton from './LogoutButton';
 
@@ -29,6 +29,7 @@ export default function ProfileMenu({
     user: { name: string; avatarUrl: string | null };
     otherLocale: string;
 }) {
+    const pagePath = usePagePath();
     const t = useTranslations('Navigation');
     const [open, setOpen] = useState(false);
     const button = useRef<HTMLButtonElement>(null);
@@ -94,8 +95,11 @@ export default function ProfileMenu({
                     </Link>
 
                     <Link
-                        href="/"
+                        // The same page in the other language, not the home page: from a
+                        // recipe, "In English lesen" means this recipe.
+                        href={pagePath}
                         locale={otherLocale}
+                        lang={otherLocale}
                         role="menuitem"
                         onClick={() => setOpen(false)}
                         className={row}

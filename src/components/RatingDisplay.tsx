@@ -55,10 +55,13 @@ export default function RatingDisplay({
     return (
         <div className={infoClassName}>
             <span className="inline-flex items-center gap-2">
+                {/* Keyed apart: React reused one instance for both, and the
+                    hover state from rating stayed on the read-only row — it
+                    showed your own rating beside the text saying the average. */}
                 {isRatingOpen ? (
-                    <Rating value={userRating} recipeId={recipeId} onRated={handleRated} />
+                    <Rating key="edit" value={userRating} recipeId={recipeId} onRated={handleRated} />
                 ) : (
-                    <Rating value={average} readonly />
+                    <Rating key="view" value={average} readonly />
                 )}
 
                 {/* The count in words rather than "(0)" next to five empty
@@ -76,6 +79,15 @@ export default function RatingDisplay({
 
             <span aria-hidden="true">•</span>
             <span>{tRecipe('views', { count: views })}</span>
+
+            {isRatingOpen && (
+                <>
+                    <span aria-hidden="true">•</span>
+                    <button type="button" onClick={() => setIsRatingOpen(false)} className="text-sm text-muted underline underline-offset-4">
+                        {t('cancel')}
+                    </button>
+                </>
+            )}
 
             {isLoggedIn && !isRatingOpen && (
                 <>

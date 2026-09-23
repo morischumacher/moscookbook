@@ -192,7 +192,9 @@ export default async function RecipeArticle({
 
 
     return (
-        <article className="min-h-screen w-full bg-page pb-32">
+        // The page's main landmark: nothing around a recipe provides one.
+        <main className="min-h-screen w-full bg-page pb-32">
+        <article>
             {mode === 'private' && <ViewTracker recipeId={recipe.id} />}
 
             {/* The markup this application reads out of other people's pages,
@@ -461,5 +463,6 @@ export default async function RecipeArticle({
                 )}
             </div>
         </article>
+        </main>
     );
 }

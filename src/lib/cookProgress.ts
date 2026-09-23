@@ -77,5 +77,8 @@ export function worthSaving(progress: Omit<CookProgress, 'at'>, baseServings: nu
 
     // Servings on their own count only when they have been changed from what
     // the recipe says — otherwise every recipe anybody opens leaves a record.
+    // A recipe with no servings of its own has nothing to change them from
+    // (the page holds 0 there), so nothing to remember either.
+    if (baseServings === null || baseServings <= 0) return false;
     return progress.servings !== null && progress.servings !== baseServings;
 }

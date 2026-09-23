@@ -10,8 +10,9 @@
   /* Body text and headings */
   --color-muted: #4B5563;
   /* Secondary text: meta lines, hints, captions. 7.2:1 on the page. */
-  --color-faint: #6B7280;
-  /* Tertiary: eyebrows, counts, placeholder icons. 4.6:1 — was #9CA3AF at
+  --color-faint: #636A76;
+  /* Tertiary: eyebrows, counts, placeholder icons. 5.2:1 on the page and
+     4.7:1 on the surface fill (#6B7280 was 4.2:1 there, under AA). Was #9CA3AF at
      2.4:1, which fails even the 3:1 asked of a graphic, and that colour was
      carrying every uppercase label on the site. npm run check:contrast now
      refuses to let it drift back. */
@@ -24,8 +25,8 @@
      among them rather than as a row of buttons. */
   --color-surface: rgba(0, 0, 0, 0.04);
   /* Subtle fills: thumbnails, panels */
-  --color-danger: #DC2626;
-  /* Destructive actions only */
+  --color-danger: #C81E1E;
+  /* Destructive actions only. 5.0:1 on the surface fill, where #DC2626 was 4.2:1. */
   --color-danger-surface: #FEF2F2;
   --color-danger-line: #FCA5A5;
 

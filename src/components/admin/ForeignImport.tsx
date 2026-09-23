@@ -101,6 +101,7 @@ export default function ForeignImport() {
                 type="file"
                 accept=".paprikarecipes,.paprikarecipe,.zip,.cook,.json"
                 onChange={(event) => void read(event.target.files?.[0])}
+                aria-label={t('title')}
                 className="mt-4 text-sm"
             />
 
