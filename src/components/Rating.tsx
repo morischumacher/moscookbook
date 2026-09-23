@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import Oyster from './brand/Oyster';
 import styles from './Rating.module.css';
@@ -23,6 +23,8 @@ interface RatingProps {
     size?: 'md' | 'sm';
     /** Set when the oysters sit on a photograph rather than on the page. */
     onDark?: boolean;
+    /** Put focus on the first oyster when shown (after "Bewerten"). */
+    focusOnShow?: boolean;
 }
 
 /**
@@ -45,7 +47,14 @@ export default function Rating({
     onRated,
     size = 'md',
     onDark = false,
+    focusOnShow = false,
 }: RatingProps) {
+    // "Bewerten" is replaced by the oysters: without this, focus fell to the
+    // page and a keyboard had to find its way back.
+    const first = useRef<HTMLButtonElement>(null);
+    useEffect(() => {
+        if (focusOnShow) first.current?.focus();
+    }, [focusOnShow]);
     const t = useTranslations('Rating');
     // "4,5" on a German page, not "4.5".
     const oneDecimal = new Intl.NumberFormat(useLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -132,6 +141,7 @@ export default function Rating({
         return (
             <button
                 key={position}
+                ref={position === 1 ? first : undefined}
                 type="button"
                 onClick={() => handleRate(position)}
                 onMouseEnter={() => setHoverValue(position)}

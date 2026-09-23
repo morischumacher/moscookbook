@@ -119,6 +119,7 @@ export default async function LocaleLayout({
     // Not the whole file: see i18n/clientMessages. The admin layout sends the
     // rest to the pages that need it.
     const messages = publicClientMessages(await getMessages());
+    const tSite = await getTranslations({ locale, namespace: 'Site' });
 
     return (
         <html lang={locale}>
@@ -127,6 +128,14 @@ export default async function LocaleLayout({
                     {/* Makes an already-opened recipe readable with no signal.
                         Registers after load, never blocks anything, and is
                         network-first — see public/sw.js. */}
+                    {/* The first stop for Tab: past the navigation to the page.
+                        Hidden until focused. */}
+                    <a
+                        href="#content"
+                        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[300] focus:rounded-lg focus:bg-page focus:px-4 focus:py-2 focus:shadow-lg"
+                    >
+                        {tSite('skipToContent')}
+                    </a>
                     <ServiceWorker />
                     <GlobalErrorReporter />
                     {/* Suspense because it reads the search params, which
@@ -136,7 +145,7 @@ export default async function LocaleLayout({
                     </Suspense>
                     <Navbar locale={locale} />
                     <VerifyBanner />
-                    <div style={{ minHeight: 'calc(100dvh - 140px)', display: 'flex', flexDirection: 'column' }}>
+                    <div id="content" tabIndex={-1} style={{ minHeight: 'calc(100dvh - 140px)', display: 'flex', flexDirection: 'column', outline: 'none' }}>
                         {children}
                     </div>
                     <Footer />

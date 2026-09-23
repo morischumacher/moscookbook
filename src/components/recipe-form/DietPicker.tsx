@@ -85,6 +85,18 @@ export default function DietPicker({
                             role="radio"
                             aria-checked={spiciness === level}
                             aria-label={t('spicinessLevel', { level })}
+                            // The radio pattern: one tab stop for the group,
+                            // arrow keys to move within it.
+                            tabIndex={spiciness === level ? 0 : -1}
+                            onKeyDown={(event) => {
+                                const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0;
+                                if (!step) return;
+                                event.preventDefault();
+                                const next = (level + step + MAX_SPICINESS + 1) % (MAX_SPICINESS + 1);
+                                onSpiciness(next);
+                                const group = event.currentTarget.parentElement;
+                                requestAnimationFrame(() => (group?.children[next] as HTMLElement | undefined)?.focus());
+                            }}
                             onClick={() => onSpiciness(level)}
                             className={`min-h-9 min-w-12 rounded-full px-3 text-sm transition-colors ${
                                 spiciness === level ? 'bg-ink text-page' : 'border border-control text-muted hover:border-ink'

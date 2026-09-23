@@ -64,6 +64,10 @@ export default function FavoriteButton({ recipeId, initialFavorited, disabled = 
             onClick={toggleFavorite}
             disabled={disabled}
             title={disabled ? t('loginRequired') : isFavorited ? t('remove') : t('add')}
+            // A name that is not only a tooltip, and the state a screen
+            // reader can say: on the favourites or not.
+            aria-label={disabled ? t('loginRequired') : t('add')}
+            aria-pressed={disabled ? undefined : isFavorited}
         >
             <svg
                 xmlns="http://www.w3.org/2000/svg"

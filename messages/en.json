@@ -2,7 +2,8 @@
   "Site": {
     "title": "mo'scookbook",
     "description": "My favourite recipes – cooked, kept, passed on.",
-    "rightsReserved": "All rights reserved."
+    "rightsReserved": "All rights reserved.",
+    "skipToContent": "Skip to content"
   },
   "Navigation": {
     "home": "Home",
