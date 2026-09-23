@@ -1,3 +1,5 @@
+import prisma from './prisma';
+import { slugify } from './recipe';
 import { searchFields } from './searchText';
 import type { StructuredIngredient } from './ingredientParts';
 
@@ -91,4 +93,22 @@ export function newRecipeData(
         images: { create: fields.imageUrls.map((url, index) => ({ url, position: index })) },
         ingredients: { create: ingredientRows(fields.ingredients) },
     };
+}
+
+/**
+ * An address no other recipe has: the title's, or the title's with "-2",
+ * "-3". For writers that must not stop to ask — the inbox, an import of three
+ * hundred recipes — where the same dish arriving twice is a thing that
+ * happens and "-2" beats an error.
+ */
+export async function freeRecipeSlug(title: string): Promise<string> {
+    const base = slugify(title) || 'rezept';
+
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+        const candidate = attempt === 0 ? base : `${base}-${attempt + 1}`;
+        const taken = await prisma.recipe.findUnique({ where: { slug: candidate }, select: { id: true } });
+        if (!taken) return candidate;
+    }
+
+    return `${base}-${Date.now()}`;
 }

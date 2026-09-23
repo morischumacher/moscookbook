@@ -991,5 +991,19 @@
     "openInbox": "Open the inbox",
     "failed": "That did not work. Please share it again.",
     "adminOnly": "Only the cookbook's admin can add recipes this way."
+  },
+  "ForeignImport": {
+    "title": "Import from another app",
+    "explain": "An export from Paprika (.paprikarecipes), Mealie or Tandoor (.zip), or Cooklang (.cook). It is read on this device; you choose which recipes come in, and they arrive under Drafts with their photos. A title that is already here is skipped.",
+    "nothingFound": "No recipes found in that file.",
+    "found": "{count, plural, one {# recipe} other {# recipes}} found.",
+    "all": "Select all",
+    "none": "Select none",
+    "summary": "{ingredients} ingredients · {from}",
+    "import": "Import {count, plural, one {# recipe} other {# recipes}} as drafts",
+    "importing": "Importing {done} of {total}…",
+    "failed": "The import stopped. What arrived so far is under Drafts; choose the file again for the rest.",
+    "result": "{created, plural, one {# recipe} other {# recipes}} imported{skipped, plural, =0 {} other {, # already here}}.",
+    "toDrafts": "Open Drafts"
   }
 }

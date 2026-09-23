@@ -7,6 +7,7 @@ import RecipeRowActions from '@/components/admin/RecipeRowActions';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { shareUrl } from '@/lib/shareToken';
 import BackupPanel from '@/components/admin/BackupPanel';
+import ForeignImport from '@/components/admin/ForeignImport';
 import { backupStatus } from '@/lib/backupStatus';
 import { formatDate } from '@/lib/formatDate';
 import { buttonPrimarySmall, pageContainer } from '@/lib/ui';
@@ -146,6 +147,7 @@ export default async function AdminDashboard({
                     : t('noBackupYet')}
             </p>
             <BackupPanel />
+            <ForeignImport />
         </main>
     );
 }

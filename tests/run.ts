@@ -56,6 +56,7 @@ import cookSteps from './cookSteps.test';
 import tags from './tags.test';
 import offline from './offline.test';
 import revisions from './revisions.test';
+import foreignImport from './foreignImport.test';
 import siteLearn, { siteLearnWiringTests } from './siteLearn.test';
 import drafts from './drafts.test';
 import routeParams from './routeParams.test';
@@ -137,6 +138,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['tags', tags],
     ['offline', offline],
     ['revisions', revisions],
+    ['foreignImport', foreignImport],
     ['siteLearn', siteLearn],
     ['siteLearnWiringTests', siteLearnWiringTests],
     ['drafts', drafts],

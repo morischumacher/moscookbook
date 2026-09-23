@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-40 screens · 75 endpoints · 69 link edges · 78 call edges
+40 screens · 75 endpoints · 70 link edges · 78 call edges
 
 ## Screens
 
@@ -21,7 +21,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`GET /api/capture`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge` | `/[locale]/admin/create`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
 | `/[locale]/admin/invites` | admin | requires admin | — | `/[locale]/admin/users` |
-| `/[locale]/admin` | admin | requires admin | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/recipes/[id]`<br>`GET /api/export`<br>`POST /api/import/archive` | `/[locale]/admin/create`<br>`/[locale]/admin/edit/[id]`<br>`/[locale]/recipe/[id]` |
+| `/[locale]/admin` | admin | requires admin | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/recipes/[id]`<br>`GET /api/export`<br>`POST /api/import/archive`<br>`POST /api/import/recipes` | `/[locale]/admin/create`<br>`/[locale]/admin/drafts`<br>`/[locale]/admin/edit/[id]`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/admin/posts/[id]` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts/new` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts` | admin | requires admin | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/posts/[id]`<br>`POST /api/examples` | `/[locale]/admin/posts/[id]`<br>`/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/collections/[id]`<br>`/[locale]/recipe/[id]` |
@@ -143,6 +143,7 @@ Calls the map could not match to an endpoint (a URL built elsewhere, or a path t
 - `PATCH /api/shopping/[id]  (from shopping/ShoppingListView)`
 - `POST /api/capture/share  (from admin/ShareIntoInbox)`
 - `POST /api/examples  (from admin/ExampleButton)`
+- `POST /api/import/recipes  (from admin/ForeignImport)`
 - `POST /api/recipes/[id]/cooked  (from recipe/Cooked)`
 - `POST /api/recipes/[id]/revisions/[id]  (from recipe-form/RecipeHistory)`
 - `POST /api/shopping  (from shopping/AddToShopping)`
@@ -228,6 +229,7 @@ flowchart LR
   n__locale__admin_inbox --> n__locale__tickets
   n__locale__admin_invites --> n__locale__admin_users
   n__locale__admin --> n__locale__admin_create
+  n__locale__admin --> n__locale__admin_drafts
   n__locale__admin --> n__locale__admin_edit__id_
   n__locale__admin --> n__locale__recipe__slug_
   n__locale__admin_posts__id_ --> n__locale__admin_posts

@@ -991,5 +991,19 @@
     "openInbox": "Eingang öffnen",
     "failed": "Das hat nicht geklappt. Bitte noch einmal teilen.",
     "adminOnly": "Nur die Verwaltung des Kochbuchs kann so Rezepte hinzufügen."
+  },
+  "ForeignImport": {
+    "title": "Aus einer anderen App importieren",
+    "explain": "Ein Export aus Paprika (.paprikarecipes), Mealie oder Tandoor (.zip) oder Cooklang (.cook). Er wird auf diesem Gerät gelesen; du wählst, welche Rezepte kommen, und sie landen mit ihren Fotos unter Entwürfe. Ein Titel, den es schon gibt, wird übersprungen.",
+    "nothingFound": "In dieser Datei wurden keine Rezepte gefunden.",
+    "found": "{count, plural, one {# Rezept} other {# Rezepte}} gefunden.",
+    "all": "Alle auswählen",
+    "none": "Keine auswählen",
+    "summary": "{ingredients} Zutaten · {from}",
+    "import": "{count, plural, one {# Rezept} other {# Rezepte}} als Entwurf importieren",
+    "importing": "{done} von {total} werden importiert…",
+    "failed": "Der Import wurde unterbrochen. Was schon angekommen ist, steht unter Entwürfe; wähle die Datei für den Rest noch einmal.",
+    "result": "{created, plural, one {# Rezept} other {# Rezepte}} importiert{skipped, plural, =0 {} other {, # schon vorhanden}}.",
+    "toDrafts": "Entwürfe öffnen"
   }
 }

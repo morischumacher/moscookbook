@@ -4,8 +4,7 @@ import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
-import { slugify } from '@/lib/recipe';
-import { newRecipeData } from '@/lib/recipeRepo';
+import { freeRecipeSlug, newRecipeData } from '@/lib/recipeRepo';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { processCapture } from '@/lib/captureProcess';
 import { siteLearning } from '@/lib/siteProfileDb';
@@ -52,20 +51,7 @@ function parseId(raw: string): number | null {
  * thing that happens — two people send you the same video — and getting
  * "-2" is a far better outcome than an error in a queue.
  */
-async function freeSlug(title: string): Promise<string> {
-    const base = slugify(title) || 'rezept';
-
-    for (let attempt = 0; attempt < 50; attempt += 1) {
-        const candidate = attempt === 0 ? base : `${base}-${attempt + 1}`;
-        const taken = await prisma.recipe.findUnique({
-            where: { slug: candidate },
-            select: { id: true },
-        });
-        if (!taken) return candidate;
-    }
-
-    return `${base}-${Date.now()}`;
-}
+const freeSlug = freeRecipeSlug;
 
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
     const auth = await requireAdmin();
