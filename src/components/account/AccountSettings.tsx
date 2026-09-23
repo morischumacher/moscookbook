@@ -138,9 +138,26 @@ export default function AccountSettings({
             t('failed')
         );
 
-        // A full load, not router.push: the session is gone and every cached
-        // server render above this page still believes it is not.
-        if (ok) window.location.href = `/${locale}/login`;
+        if (!ok) return;
+
+        /*
+         * The same pair as LogoutButton, and for the same reason: the session
+         * is gone on the server while every cached render above this page —
+         * the header greeting, the navigation — still believes it is not.
+         * `refresh()` throws that cache away, so the login page and the chrome
+         * around it are rebuilt without the account that no longer exists.
+         *
+         * `replace` rather than `push`: back from the login form must not land
+         * on the settings of a deleted account.
+         *
+         * This was a `window.location.href` assignment, on the theory that
+         * only a full load could be trusted to forget the session. It could
+         * not stay: `@next/next/no-location-assign-relative-destination` warns
+         * on it, lint runs at --max-warnings 0, and the theory was wrong
+         * anyway — sign-out has the identical problem and solves it here.
+         */
+        router.replace('/login');
+        router.refresh();
     };
 
     const field =
