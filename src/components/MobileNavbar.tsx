@@ -169,7 +169,7 @@ export default function MobileNavbar({ user, profile, otherLocale }: MobileNavba
                     type="button"
                     className="-mr-2 flex h-11 w-11 flex-col items-center justify-center gap-1.5 rounded md:hidden"
                     onClick={() => setIsOpen(!isOpen)}
-                    aria-label={t('toggleMenu')}
+                    aria-label={isOpen ? t('closeMenu') : t('toggleMenu')}
                     aria-expanded={isOpen}
                     aria-controls="mobile-menu"
                 >
@@ -196,7 +196,7 @@ export default function MobileNavbar({ user, profile, otherLocale }: MobileNavba
                         page into dark mode. */}
                     <button
                         type="button"
-                        aria-label={t('toggleMenu')}
+                        aria-label={t('closeMenu')}
                         onClick={close}
                         className="fixed inset-0 top-[77px] z-40 bg-page/80 backdrop-blur-sm md:hidden"
                     />
