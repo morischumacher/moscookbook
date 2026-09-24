@@ -139,7 +139,7 @@ async function trim(cache) {
 // Nor a person's own pages — drafts, the shopping list, tickets — nor the
 // share target, whose address carries what was shared: on a shared tablet
 // whose session ran out, the next person offline could read them.
-const NEVER_KEPT = /^\/(?:en|de)\/(?:admin|login|register|forgot|reset|verify|account|r|p|c|m|s|share|drafts|shopping|tickets)(?:\/|$)/;
+const NEVER_KEPT = /^\/(?:en|de)\/(?:admin|login|register|forgot|reset|verify|account|r|p|c|m|share|drafts|shopping|tickets)(?:\/|$)/;
 
 function isCacheable(request, url) {
     if (request.method !== 'GET') return false;

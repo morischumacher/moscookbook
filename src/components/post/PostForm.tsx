@@ -89,7 +89,12 @@ export default function PostForm({
 
     const restoreDraft = () => {
         const saved = draft.read() as (Partial<typeof values> & { recipeId?: number | null }) | null;
-        if (!saved) return;
+        // Unreadable (truncated, an older shape): the offer goes, or it stayed
+        // up forever with autosave switched off behind it.
+        if (!saved) {
+            draft.clear();
+            return;
+        }
 
         setTitle(saved.title ?? '');
         setSlug(saved.slug ?? '');
