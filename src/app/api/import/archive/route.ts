@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
                         where: { slug: recipe.slug },
                         select: {
                             id: true, title: true, slug: true, description: true, category: true, nationality: true,
-                            instructions: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true,
+                            instructions: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true, isDraft: true,
                             ingredients: { orderBy: { position: 'asc' }, select: { raw: true, name: true, section: true } },
                         },
                     });
@@ -169,6 +169,9 @@ export async function POST(req: NextRequest) {
                         where: { slug: recipe.slug },
                         data: {
                             ...data,
+                            // Finishing a draft is one-way: an older archive
+                            // must not turn a finished recipe back into one.
+                            ...(current && !current.isDraft ? { isDraft: false } : {}),
                             images: { deleteMany: {}, ...data.images },
                             ingredients: { deleteMany: {}, ...data.ingredients },
                             translations: { deleteMany: {}, ...('translations' in data ? data.translations : {}) },

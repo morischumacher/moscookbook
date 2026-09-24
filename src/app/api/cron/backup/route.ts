@@ -174,7 +174,12 @@ export async function GET(req: NextRequest) {
         // Nothing depends on it — a closed rate-limit window is reused in
         // place — but without it the table grows a row per address that ever
         // signed in.
-        const sweptLimits = await sweepRateLimits();
+        // And never at the backup's expense: a sweep that throws used to stop
+        // the week's archive from being written.
+        const sweptLimits = await sweepRateLimits().catch((error: unknown) => {
+            console.error('Backup: sweeping rate limits failed:', error);
+            return 0;
+        });
         if (sweptLimits > 0) console.log(`Swept ${sweptLimits} closed rate-limit windows.`);
 
         await put(
