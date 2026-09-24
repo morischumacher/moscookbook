@@ -1,6 +1,6 @@
 /** Units: metric by default, tidy after scaling, addable for the shopping list */
 import { suite, check, equal } from './harness';
-import { fromBase, hasNonMetric, tidy, toBase, toMetric, unitOf } from '../src/lib/units';
+import { countUnitLabel, fromBase, hasNonMetric, tidy, toBase, toMetric, unitOf } from '../src/lib/units';
 
 const amount = (quantity: number | null, unit: string | null, quantityMax: number | null = null) => ({
     quantity,
@@ -47,4 +47,12 @@ export default function unitsTests() {
     equal('cloves add up as cloves, keyed by the singular', toBase(amount(2, 'Zehen'), 'Knoblauch'), { key: 'count:zehe', amount: 2 });
     equal('a plain count too', toBase(amount(3, null), 'Eier'), { key: 'count:', amount: 3 });
     equal('a range buys the top of it', toBase(amount(2, null, 3), 'Eier'), { key: 'count:', amount: 3 });
+
+    suite('units: rounding and named units');
+    equal('999 g is a kilo, not "1.000 g"', tidy({ quantity: 999, quantityMax: null, unit: 'g' }, 'de'), { quantity: 1, quantityMax: null, unit: 'kg' });
+    equal('998 ml is a litre too', tidy({ quantity: 998, quantityMax: null, unit: 'ml' }, 'de').unit, 'l');
+    equal('three cloves are Zehen', countUnitLabel('Zehe', 3), 'Zehen');
+    equal('one can is a Dose', countUnitLabel('Dosen', 1), 'Dose');
+    equal('a word that is no unit is left alone', countUnitLabel('große', 3), 'große');
+    equal('English stays lower case', countUnitLabel('clove', 2), 'cloves');
 }

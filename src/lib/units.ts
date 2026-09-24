@@ -114,11 +114,12 @@ export function tidy(parts: AmountParts, locale: Locale = 'de'): AmountParts {
 
     const def = (id: string) => UNITS.find((candidate) => candidate.id === id)!;
 
+    // Chosen after rounding: 999 g rounds to 1000, and read "1.000 g".
     if (unit.dimension === 'mass' && unit.metric) {
-        return express(top * unit.base >= 1000 ? def('kg') : def('g'));
+        return express(kitchenRound(top * unit.base, 'g') >= 1000 ? def('kg') : def('g'));
     }
     if (unit.dimension === 'volume' && unit.metric) {
-        return express(top * unit.base >= 1000 ? def('l') : def('ml'));
+        return express(kitchenRound(top * unit.base, 'ml') >= 1000 ? def('l') : def('ml'));
     }
     // Three teaspoons are a tablespoon, but only when it comes out even.
     if (unit.id === 'tsp' && parts.quantity >= 3 && Number.isInteger(parts.quantity / 3) && parts.quantityMax === null) {
@@ -176,6 +177,16 @@ const COUNT_UNITS: Array<[singular: string, plural: string]> = [
 ];
 const ENGLISH_COUNT_UNITS = new Set(['clove', 'can', 'slice', 'pinch', 'bunch']);
 const COUNT_ALIASES: Record<string, string> = { stk: 'stück', 'stk.': 'stück', pck: 'packung', 'pck.': 'packung', päckchen: 'packung' };
+
+/**
+ * A named unit agreeing with its number: "1 Zehe" for three is "3 Zehen",
+ * not "3 Zehe". Anything that is not one of the named units comes back as it
+ * was written.
+ */
+export function countUnitLabel(unit: string | null, amount: number): string | null {
+    if (!unit || !isCountUnit(unit)) return unit;
+    return countUnitFor(countUnitKey(unit), amount);
+}
 
 /** A word that is a unit of its own ("Zehe", "Dosen", "Stk"), not part of the name. */
 export function isCountUnit(word: string): boolean {
