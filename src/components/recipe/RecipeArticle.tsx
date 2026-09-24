@@ -5,6 +5,7 @@ import FavoriteButton from '@/components/FavoriteButton';
 import RecipeSource from '@/components/recipe/RecipeSource';
 import ViewTracker from '@/components/ViewTracker';
 import ReactMarkdown from 'react-markdown';
+import { StorePicture } from '@/components/ui/InlinePicture';
 import RecipeBody from '@/components/recipe/RecipeBody';
 import { splitSteps } from '@/lib/steps';
 import { withCelsius } from '@/lib/units';
@@ -403,7 +404,9 @@ export default async function RecipeArticle({
                     recipeId={recipe.id}
                     ingredients={recipe.ingredients}
                     steps={stepTexts.map((step, index) => (
-                        <ReactMarkdown key={index}>{step}</ReactMarkdown>
+                        <ReactMarkdown key={index} components={{ img: StorePicture }}>
+                            {step}
+                        </ReactMarkdown>
                     ))}
                     stepTexts={stepTexts}
                     canShop={mode === 'private' && isLoggedIn}

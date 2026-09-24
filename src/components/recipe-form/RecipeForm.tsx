@@ -5,6 +5,7 @@ import { sayable } from '@/lib/apiMessage';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import ReactMarkdown from 'react-markdown';
+import { StorePicture } from '@/components/ui/InlinePicture';
 import { slugify, type Ingredient } from '@/lib/recipe';
 import PolishPanel from './PolishPanel';
 import TranslationPanel from './TranslationPanel';
@@ -542,7 +543,7 @@ export default function RecipeForm({
 
                     {preview ? (
                         <div className="prose min-h-[12rem] max-w-none rounded-lg border border-line p-4">
-                            <ReactMarkdown>{instructions || t('previewEmpty')}</ReactMarkdown>
+                            <ReactMarkdown components={{ img: StorePicture }}>{instructions || t('previewEmpty')}</ReactMarkdown>
                         </div>
                     ) : (
                         <textarea
