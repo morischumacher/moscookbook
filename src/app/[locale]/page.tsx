@@ -319,12 +319,11 @@ export default async function HomePage({
     /**
      * Reads one page of recipes in an order the database cannot produce itself.
      *
-     * Both the rating sort and the relevance sort rank ids in memory and then
-     * need the rows back in that order — which `IN (…)` does not promise — so
-     * the ordering is reapplied after the fetch.
+     * Every sort that is not a plain column ranks ids first and then needs the
+     * rows back in that order — which `IN (…)` does not promise — so the
+     * ordering is reapplied after the fetch.
      */
-    async function pageOf(orderedIds: number[]): Promise<RecipeListRow[]> {
-        const pageIds = orderedIds.slice(skip, skip + PAGE_SIZE);
+    async function rowsInOrder(pageIds: number[]): Promise<RecipeListRow[]> {
         if (pageIds.length === 0) return [];
 
         const unordered: RecipeListRow[] = await prisma.recipe.findMany({
@@ -341,97 +340,86 @@ export default async function HomePage({
             .filter((recipe): recipe is RecipeListRow => recipe !== undefined);
     }
 
+    /**
+     * Every id the filters let through.
+     *
+     * The filters are a Prisma `where` — favourites, the search, the
+     * ingredient words, the chips, visibility — and saying all of that again
+     * in SQL would be a second copy of the rules for who may see what, one
+     * that nobody would remember to keep in step. So the sorts Prisma cannot
+     * express start from these ids and do only the ordering in SQL.
+     */
+    async function matchingIds(): Promise<number[]> {
+        const matching: { id: number }[] = await prisma.recipe.findMany({ where, select: { id: true } });
+        return matching.map((row) => row.id);
+    }
+
     /** The page of tiles, in whichever order was asked for. */
     async function listRecipes(): Promise<RecipeListRow[]> {
 
         if (sortByRelevance && rankById) {
             // The filters may have removed some hits, so the ids are re-read
             // through `where` and then put back into the ranking's order.
-            const matching: { id: number }[] = await prisma.recipe.findMany({
-                where,
-                select: { id: true },
-            });
-
-            return pageOf(
-                matching
-                    .map((row) => row.id)
-                    .sort((a, b) => (rankById.get(a) ?? 0) - (rankById.get(b) ?? 0))
+            const ordered = (await matchingIds()).sort(
+                (a, b) => (rankById.get(a) ?? 0) - (rankById.get(b) ?? 0)
             );
+            return rowsInOrder(ordered.slice(skip, skip + PAGE_SIZE));
         } else if (sort === 'rating') {
-            // Prisma cannot order by an average across a relation. Rather than
-            // loading every recipe and sorting in memory, fetch only the ids that
-            // match, rank them against a single aggregate query, then read the one
-            // page that is actually shown.
-            const matching: { id: number }[] = await prisma.recipe.findMany({
-                where,
-                select: { id: true },
-            });
-            const matchingIds = matching.map((row) => row.id);
+            /*
+             * Prisma cannot order by an average across a relation, so this one
+             * query does: the filtered ids, each with its average (0 for a
+             * recipe nobody has rated), best first and the newer id first on
+             * a tie — and only the page shown comes back, not every average.
+             * The ids are a bound array parameter, never text in the query.
+             */
+            const ids = await matchingIds();
+            if (ids.length === 0) return [];
 
-            // Deliberately not annotated: Prisma infers groupBy's argument type
-            // from the expected result, so an explicit annotation here breaks the
-            // inference rather than documenting it.
-            const averageById = new Map<number, number>();
-
-            if (matchingIds.length > 0) {
-                const averages = await prisma.rating.groupBy({
-                    by: ['recipeId'],
-                    where: { recipeId: { in: matchingIds } },
-                    _avg: { value: true },
-                });
-
-                for (const entry of averages) {
-                    averageById.set(entry.recipeId, entry._avg.value ?? 0);
-                }
-            }
-
-            return pageOf(
-                matchingIds.sort(
-                    (a, b) => (averageById.get(b) ?? 0) - (averageById.get(a) ?? 0) || b - a
-                )
-            );
+            const pageRows = await prisma.$queryRaw<{ id: number }[]>`
+                SELECT m."id"
+                FROM unnest(${ids}::int[]) AS m("id")
+                LEFT JOIN (
+                    SELECT "recipeId", AVG("value") AS "average"
+                    FROM "Rating"
+                    WHERE "recipeId" = ANY(${ids}::int[])
+                    GROUP BY "recipeId"
+                ) a ON a."recipeId" = m."id"
+                ORDER BY COALESCE(a."average", 0) DESC, m."id" DESC
+                LIMIT ${PAGE_SIZE} OFFSET ${skip}
+            `;
+            return rowsInOrder(pageRows.map((row) => row.id));
         } else if (sort === 'forgotten') {
             /*
              * "Not made in a while", which is the question a cookbook is actually
              * for once it has more recipes than anybody can hold in their head.
              *
              * Same shape as the rating sort, and for the same reason: Prisma cannot
-             * order by an aggregate across a relation, so the matching ids are
-             * ranked against one grouped query and only the page shown is read.
+             * order by an aggregate across a relation, so the filtered ids are
+             * ranked in one query that returns only the page shown.
              *
              * A recipe nobody has ever cooked sorts first, because it is the most
              * forgotten thing there is — and that is the difference between this
              * and "oldest": a recipe added in 2023 and made last week is not
-             * waiting for anybody.
+             * waiting for anybody. It counts as cooked at the epoch, which is
+             * what the in-memory sort this replaced did (a time of 0), so the
+             * order and its tie-break on the id are unchanged.
              */
-            const matching: { id: number }[] = await prisma.recipe.findMany({
-                where,
-                select: { id: true },
-            });
-            const matchingIds = matching.map((row) => row.id);
+            const ids = await matchingIds();
+            if (ids.length === 0) return [];
 
-            const lastCookedById = new Map<number, number>();
-
-            if (matchingIds.length > 0) {
-                const lastCooked = await prisma.cookEntry.groupBy({
-                    by: ['recipeId'],
-                    where: { recipeId: { in: matchingIds } },
-                    _max: { cookedAt: true },
-                });
-
-                for (const entry of lastCooked) {
-                    const at = entry._max.cookedAt;
-                    if (at) lastCookedById.set(entry.recipeId, new Date(at).getTime());
-                }
-            }
-
-            return pageOf(
-                matchingIds.sort(
-                    (a, b) =>
-                        // Never cooked is 0, which sorts before every real date.
-                        (lastCookedById.get(a) ?? 0) - (lastCookedById.get(b) ?? 0) || a - b
-                )
-            );
+            const pageRows = await prisma.$queryRaw<{ id: number }[]>`
+                SELECT m."id"
+                FROM unnest(${ids}::int[]) AS m("id")
+                LEFT JOIN (
+                    SELECT "recipeId", MAX("cookedAt") AS "lastCooked"
+                    FROM "CookEntry"
+                    WHERE "recipeId" = ANY(${ids}::int[])
+                    GROUP BY "recipeId"
+                ) c ON c."recipeId" = m."id"
+                ORDER BY COALESCE(c."lastCooked", TIMESTAMP '1970-01-01 00:00:00') ASC, m."id" ASC
+                LIMIT ${PAGE_SIZE} OFFSET ${skip}
+            `;
+            return rowsInOrder(pageRows.map((row) => row.id));
         } else {
             return prisma.recipe.findMany({ where, orderBy, skip, take: PAGE_SIZE, select: tile });
         }

@@ -1,5 +1,6 @@
 import type { StructuredIngredient } from './ingredientParts';
 import { toDisplayIngredient } from './ingredientParts';
+import type { RatingSummary } from './ratingSummary';
 
 /**
  * schema.org/Recipe for a recipe of our own.
@@ -26,7 +27,8 @@ export interface JsonLdRecipeInput {
     createdAt: Date;
     images: { url: string }[];
     ingredients: StructuredIngredient[];
-    ratings: { value: number }[];
+    /** Counted and summed by the database; see lib/ratingSummary. */
+    rating: RatingSummary;
     /** Optional so older callers and tests need not know about it. */
     tags?: string[];
     url: string;
@@ -101,12 +103,11 @@ export function buildRecipeJsonLd(recipe: JsonLdRecipeInput): Record<string, unk
         data.totalTime = isoDuration(recipe.prepMinutes + recipe.cookMinutes);
     }
 
-    if (recipe.ratings.length > 0) {
-        const sum = recipe.ratings.reduce((total, rating) => total + rating.value, 0);
+    if (recipe.rating.count > 0) {
         data.aggregateRating = {
             '@type': 'AggregateRating',
-            ratingValue: Number((sum / recipe.ratings.length).toFixed(2)),
-            ratingCount: recipe.ratings.length,
+            ratingValue: Number((recipe.rating.sum / recipe.rating.count).toFixed(2)),
+            ratingCount: recipe.rating.count,
             bestRating: 5,
             worstRating: 1,
         };

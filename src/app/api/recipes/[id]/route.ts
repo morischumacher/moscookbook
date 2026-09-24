@@ -63,6 +63,36 @@ export async function PUT(
         const structured = toStructuredIngredients(ingredients);
         const ingredientRows = positioned(structured).map((row) => ({ ...row, recipeId }));
 
+        const sentTranslation = parsed.data.translation;
+        const language = parsed.data.language;
+
+        /*
+         * Everything the write depends on, read at once: none of these reads
+         * needs another's answer, and each one used to be its own round trip
+         * before the next could start.
+         *
+         * - The pictures as they are now, in their order. Wanted twice: for
+         *   the files this edit is about to stop pointing at, and for the
+         *   version check below. It used to be read once for each.
+         * - The version this edit replaces, kept so it can be looked at and
+         *   undone (lib/revisions).
+         * - The translation, when the form did not send one (see below).
+         */
+        const [pictures, before, keptTranslationRow] = await Promise.all([
+            replaceImages || baseVersion
+                ? prisma.image.findMany({ where: { recipeId }, orderBy: { position: 'asc' }, select: { url: true } })
+                : [],
+            prisma.recipe.findUnique({
+                where: { id: recipeId },
+                select: {
+                    title: true, slug: true, description: true, category: true, nationality: true,
+                    instructions: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true,
+                    ingredients: { orderBy: { position: 'asc' }, select: { raw: true, name: true, section: true } },
+                },
+            }),
+            sentTranslation === undefined ? keptTranslation(recipeId) : null,
+        ]);
+
         // Which files this edit is about to stop pointing at. Read before the
         // write, because after it there is nothing left to ask. Deleting a
         // recipe has always taken its pictures with it; editing one quietly did
@@ -71,37 +101,20 @@ export async function PUT(
         const droppedUrls: string[] = [];
 
         if (replaceImages) {
-            const before: { url: string }[] = await prisma.image.findMany({
-                where: { recipeId },
-                select: { url: true },
-            });
-
             const kept = new Set(imageUrls ?? []);
-            for (const image of before) {
+            for (const image of pictures) {
                 if (!kept.has(image.url)) droppedUrls.push(image.url);
             }
         }
 
-        /*
-         * The version this edit replaces, kept so it can be looked at and
-         * undone (lib/revisions). Only when something the history shows
-         * actually changed: saving twice is not two versions.
-         */
-        const before = await prisma.recipe.findUnique({
-            where: { id: recipeId },
-            select: {
-                title: true, slug: true, description: true, category: true, nationality: true,
-                instructions: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true,
-                ingredients: { orderBy: { position: 'asc' }, select: { raw: true, name: true, section: true } },
-            },
-        });
+        // Only when something the history shows actually changed: saving
+        // twice is not two versions.
         const previous = before ? snapshotOf(before) : null;
 
         // Opened on another version than this one: somebody saved (or
         // restored an older version) in the meantime. Writing now would undo
         // that without anybody seeing it.
         if (baseVersion && previous) {
-            const pictures = await prisma.image.findMany({ where: { recipeId }, orderBy: { position: 'asc' }, select: { url: true } });
             if (versionOf(previous, pictures.map((picture) => picture.url)) !== baseVersion) {
                 return NextResponse.json({ message: 'This recipe was changed elsewhere since you opened it.', conflict: true }, { status: 409 });
             }
@@ -117,9 +130,7 @@ export async function PUT(
         // The translation: replaced when the form sent one (or null to drop
         // it), otherwise kept — and then still read, so the search columns
         // rewritten below go on finding the recipe in both languages.
-        const sentTranslation = parsed.data.translation;
-        const language = parsed.data.language;
-        const translation = sentTranslation !== undefined ? sentTranslation : await keptTranslation(recipeId);
+        const translation = sentTranslation !== undefined ? sentTranslation : keptTranslationRow;
         const newTranslation = sentTranslation !== undefined ? translationRow(sentTranslation, language) : null;
 
         const [updatedRecipe] = await prisma.$transaction([

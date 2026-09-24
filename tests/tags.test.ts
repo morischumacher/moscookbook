@@ -20,7 +20,7 @@ export default function tagsTests() {
     suite('tags: for search engines');
     const data = buildRecipeJsonLd({
         title: 'Linsen-Dal', description: null, instructions: '1. Kochen.', category: null, nationality: null,
-        servings: 2, prepMinutes: null, cookMinutes: null, createdAt: new Date(), images: [], ingredients: [], ratings: [],
+        servings: 2, prepMinutes: null, cookMinutes: null, createdAt: new Date(), images: [], ingredients: [], rating: { count: 0, sum: 0 },
         tags: ['vegan', 'vegetarian', 'winter'], url: 'https://example.com/dal',
     });
     equal('keywords', data.keywords, 'winter');

@@ -13,11 +13,18 @@ import { shareUrl } from '@/lib/shareToken';
 import { similarRecipes } from '@/lib/similarRecipes';
 import { inLanguage } from '@/lib/recipeTranslation';
 import { maysee } from '@/lib/recipeVisibility';
+import { loadRatingSummary } from '@/lib/ratingSummary';
 
 // generateMetadata and the page itself both need the recipe; cache() makes
-// that a single database round trip per request instead of two.
+// that a single database round trip per request instead of two. The rating
+// count and total are asked for alongside, by slug, so they cost no extra
+// wait: an aggregate cannot ride inside the include (see RecipeRow.rating).
 const loadRecipe = cache(async (slug: string): Promise<RecipeRow | null> => {
-    return prisma.recipe.findUnique({ where: { slug }, include: recipeInclude });
+    const [row, rating] = await Promise.all([
+        prisma.recipe.findUnique({ where: { slug }, include: recipeInclude }),
+        loadRatingSummary({ slug }),
+    ]);
+    return row && { ...row, rating };
 });
 
 /**
@@ -130,16 +137,23 @@ export default async function RecipePage({
      *
      * Queried conditionally rather than filtered later: the cheapest way to
      * not leak something is not to fetch it. And queried together — these
-     * five used to run one after another, five round trips where one will do.
+     * used to run one after another, a round trip each where one will do.
      */
     const isMember = Boolean(user);
 
-    const [cookieStore, favorite, notes, cooked, similar] = await Promise.all([
+    const [cookieStore, favorite, ownRating, notes, cooked, similar] = await Promise.all([
         cookies(),
         user
             ? prisma.favorite.findUnique({
                   where: { userId_recipeId: { userId: user.id, recipeId: recipe.id } },
                   select: { userId: true },
+              })
+            : null,
+        // The viewer's own rating, the one row of them the page needs.
+        user
+            ? prisma.rating.findUnique({
+                  where: { userId_recipeId: { userId: user.id, recipeId: recipe.id } },
+                  select: { value: true },
               })
             : null,
         // Oldest first: a cooking log is read as a sequence. Drafts only for
@@ -194,9 +208,7 @@ export default async function RecipePage({
     const views = !user?.admin && !hasViewed ? recipe.views + 1 : recipe.views;
 
     const isFavorited = favorite !== null;
-    const userRatingValue = user
-        ? recipe.ratings.find((rating: { userId: number }) => rating.userId === user.id)?.value ?? 0
-        : 0;
+    const userRatingValue = ownRating?.value ?? 0;
 
     /*
      * A draft says so on its own page.

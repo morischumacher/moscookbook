@@ -8,6 +8,7 @@ import { Link } from '@/i18n/routing';
 import prisma from '@/lib/prisma';
 import { getSiteUrl } from '@/lib/siteUrl';
 import { shareUrl } from '@/lib/shareToken';
+import { loadRatingSummary } from '@/lib/ratingSummary';
 
 /**
  * A recipe someone was given a link to.
@@ -34,11 +35,18 @@ const loadShared = cache(async (token: string): Promise<RecipeRow | null> => {
      * in the whole cookbook that works with no account at all, and "should be
      * unreachable" is not a property worth betting a private recipe on.
      */
-    return prisma.recipe.findFirst({
-        // Nor an "only me" recipe, which never has a link (see recipeColumns).
-        where: { shareToken: token, isDraft: false, onlyMe: false },
-        include: recipeInclude,
-    });
+    // The rating count and total beside the row rather than after it: the
+    // same filter finds the same recipe, and an aggregate cannot ride inside
+    // the include (see RecipeRow.rating).
+    const [row, rating] = await Promise.all([
+        prisma.recipe.findFirst({
+            // Nor an "only me" recipe, which never has a link (see recipeColumns).
+            where: { shareToken: token, isDraft: false, onlyMe: false },
+            include: recipeInclude,
+        }),
+        loadRatingSummary({ shareToken: token, isDraft: false, onlyMe: false }),
+    ]);
+    return row && { ...row, rating };
 });
 
 export async function generateMetadata({
