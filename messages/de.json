@@ -137,7 +137,8 @@
     "cookFinish": "Fertig gekocht",
     "translatedFrom": "Übersetzt aus dem {language, select, en {Englischen} other {Deutschen}}",
     "translationStale": "Das Original wurde seitdem geändert.",
-    "timerDoneSaid": "Timer für {label} ist abgelaufen."
+    "timerDoneSaid": "Timer für {label} ist abgelaufen.",
+    "cookView": "Ansicht"
   },
   "Rating": {
     "rate": "Bewerten",
@@ -155,7 +156,8 @@
     "add": "Zu Favoriten hinzufügen",
     "remove": "Aus Favoriten entfernen",
     "loginRequired": "Zum Merken anmelden",
-    "notSaved": "Der Favorit konnte nicht gespeichert werden."
+    "notSaved": "Der Favorit konnte nicht gespeichert werden.",
+    "addNamed": "{title} zu Favoriten hinzufügen"
   },
   "Auth": {
     "loginTitle": "Anmelden",

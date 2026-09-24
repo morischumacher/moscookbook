@@ -270,7 +270,7 @@ export default function ShareDialog({
                             </button>
                         </div>
 
-                        {copyRefused && <p className="text-sm text-danger">{t('copyFailed')}</p>}
+                        {copyRefused && <p role="alert" className="text-sm text-danger">{t('copyFailed')}</p>}
                     </div>
                 )}
 

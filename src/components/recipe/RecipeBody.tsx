@@ -368,7 +368,7 @@ export default function RecipeBody({
                                 type="button"
                                 aria-pressed={system === which}
                                 onClick={() => chooseSystem(which)}
-                                className={`rounded-full px-3 py-1.5 ${system === which ? 'bg-ink text-page' : 'text-muted'}`}
+                                className={`min-h-11 rounded-full px-3 py-1.5 ${system === which ? 'bg-ink text-page' : 'text-muted'}`}
                             >
                                 {which === 'metric' ? t('unitsMetric') : t('unitsOriginal')}
                             </button>

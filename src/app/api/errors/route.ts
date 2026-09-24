@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { requireAdmin, getCurrentUser } from '@/lib/auth';
@@ -47,15 +47,36 @@ export async function POST(req: NextRequest) {
         path: parsed.data.path,
     });
 
+    // Signed in or not decides what a report may do. Anybody's counts;
+    // only a signed-in one reopens a resolved error, moves "last seen"
+    // (which reopens a task reported done) and makes the error trusted —
+    // a task by itself. Otherwise one anonymous POST, copied from the
+    // public task list, could reopen any task at will.
+    //
+    // Read here, before the answer goes: the session cookie is part of the
+    // request, and after() is not promised to be able to read it.
+    let signedIn: boolean;
     try {
-        // A recurrence reopens it: something marked as dealt with that is
-        // still happening has not been dealt with.
-        // Signed in or not decides what a report may do. Anybody's counts;
-        // only a signed-in one reopens a resolved error, moves "last seen"
-        // (which reopens a task reported done) and makes the error trusted —
-        // a task by itself. Otherwise one anonymous POST, copied from the
-        // public task list, could reopen any task at will.
-        const signedIn = Boolean(await getCurrentUser());
+        signedIn = Boolean(await getCurrentUser());
+    } catch (error) {
+        failed('Could not store an error report:', error);
+        return new NextResponse(null, { status: 204 });
+    }
+
+    /*
+     * The storing runs after the answer has gone. The page that broke learns
+     * nothing from it either way — the answer is 204 whatever happens — so a
+     * visitor on a broken page was waiting on several queries and the work
+     * list for no reason.
+     */
+    after(() => storeReport(report, signedIn));
+
+    return new NextResponse(null, { status: 204 });
+}
+
+/** Counts, stores and hands on one report; see the POST handler. */
+async function storeReport(report: ReturnType<typeof prepareErrorReport>, signedIn: boolean): Promise<void> {
+    try {
         /*
          * The row keeps the words of whoever reported first. Anonymous text
          * must not reach the task list on the back of a signed-in report of
@@ -70,6 +91,8 @@ export async function POST(req: NextRequest) {
                 data: { message: report.message, stack: report.stack, path: report.path },
             });
         }
+        // A recurrence reopens it: something marked as dealt with that is
+        // still happening has not been dealt with.
         const seen = await prisma.errorLog.updateMany({
             where: { fingerprint: report.fingerprint },
             data: signedIn
@@ -112,8 +135,6 @@ export async function POST(req: NextRequest) {
         // two first reports of the same error lands here, and one is enough.
         failed('Could not store an error report:', error);
     }
-
-    return new NextResponse(null, { status: 204 });
 }
 
 /** The list, for the admin screen. */

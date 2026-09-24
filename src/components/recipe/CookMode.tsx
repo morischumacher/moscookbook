@@ -115,7 +115,7 @@ export default function CookMode({
                 }
                 setView(which);
             }}
-            className={`rounded-full px-3 py-1.5 text-sm ${view === which ? 'bg-ink text-page' : 'text-muted'}`}
+            className={`min-h-11 rounded-full px-3 py-1.5 text-sm ${view === which ? 'bg-ink text-page' : 'text-muted'}`}
         >
             {label}
         </button>
@@ -145,7 +145,7 @@ export default function CookMode({
                         <p className="truncate font-bold">{title}</p>
                         <p className="text-xs text-muted">{wakeLockActive ? t('screenStaysOn') : t('screenMayDim')}</p>
                     </div>
-                    <div role="group" className="flex shrink-0 gap-1">
+                    <div role="group" aria-label={t('cookView')} className="flex shrink-0 gap-1">
                         {tab('list', t('cookViewList'))}
                         {steps.length > 0 && tab('step', t('cookViewSteps'))}
                     </div>
@@ -217,7 +217,13 @@ export default function CookMode({
                                 {t('stepOf', { number: current + 1, total: steps.length })}
                                 {checkedSteps.has(current) && <span className="ml-2 text-ink">✓ {t('stepDone')}</span>}
                             </p>
-                            <div className={`markdown-step mt-4 text-2xl leading-relaxed sm:text-3xl ${checkedSteps.has(current) ? 'opacity-50' : ''}`}>
+                            {/* Read out when "next" or a swipe replaces it: the
+                                focus stays on the button, and nothing else said
+                                that the step had changed. */}
+                            <div
+                                aria-live="polite"
+                                className={`markdown-step mt-4 text-2xl leading-relaxed sm:text-3xl ${checkedSteps.has(current) ? 'opacity-50' : ''}`}
+                            >
                                 {steps[current]}
                             </div>
 

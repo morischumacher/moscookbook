@@ -85,7 +85,7 @@ export default function RegisterForm({
     return (
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 {error && (
-                    <p className="rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
+                    <p role="alert" className="rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
                         {error}
                     </p>
                 )}

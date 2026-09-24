@@ -92,12 +92,17 @@ export default function MobileNavbar({ user, profile, otherLocale, invitations =
     // count beside it is how anybody finds out there is one.
     const badge = (section: Section) =>
         section === 'shopping' && invitations > 0 ? (
-            <span
-                className="ml-1.5 inline-block min-w-[1.25rem] rounded-full bg-danger-surface px-1.5 text-center text-xs font-semibold text-danger"
-                aria-label={tShopping('invitationCount', { count: invitations })}
-            >
-                {invitations}
-            </span>
+            <>
+                {/* An aria-label on a plain span is not read: the number is
+                    hidden and said in words instead. */}
+                <span
+                    aria-hidden
+                    className="ml-1.5 inline-block min-w-[1.25rem] rounded-full bg-danger-surface px-1.5 text-center text-xs font-semibold text-danger"
+                >
+                    {invitations}
+                </span>
+                <span className="sr-only">, {tShopping('invitationCount', { count: invitations })}</span>
+            </>
         ) : null;
 
     const currentLabel = sections.find((entry) => entry.section === current)?.label ?? '';

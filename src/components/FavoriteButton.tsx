@@ -10,9 +10,11 @@ interface FavoriteButtonProps {
     recipeId: number;
     initialFavorited: boolean;
     disabled?: boolean;
+    /** The recipe's name: two dozen buttons all called "Zu Favoriten hinzufügen" are one too many to tell apart. */
+    title?: string;
 }
 
-export default function FavoriteButton({ recipeId, initialFavorited, disabled = false }: FavoriteButtonProps) {
+export default function FavoriteButton({ recipeId, initialFavorited, disabled = false, title }: FavoriteButtonProps) {
     const t = useTranslations('Favorite');
     const [isFavorited, setIsFavorited] = useState(initialFavorited);
     const [isLoading, setIsLoading] = useState(false);
@@ -66,7 +68,7 @@ export default function FavoriteButton({ recipeId, initialFavorited, disabled = 
             title={disabled ? t('loginRequired') : isFavorited ? t('remove') : t('add')}
             // A name that is not only a tooltip, and the state a screen
             // reader can say: on the favourites or not.
-            aria-label={disabled ? t('loginRequired') : t('add')}
+            aria-label={disabled ? t('loginRequired') : title ? t('addNamed', { title }) : t('add')}
             aria-pressed={disabled ? undefined : isFavorited}
         >
             <svg

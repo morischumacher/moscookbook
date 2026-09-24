@@ -49,6 +49,26 @@ export interface DuplicateHint {
 }
 
 /**
+ * A recipe's title tokens, worked out once per recipe object.
+ *
+ * The inbox checks every capture against every recipe, so each recipe title
+ * was split and folded once per capture — two hundred times over for a full
+ * inbox. Keyed weakly on the row itself: the rows are read fresh for each
+ * request, so the cache lives exactly as long as the list it belongs to and
+ * cannot hold on to a title that has since changed.
+ */
+const recipeTokens = new WeakMap<ExistingRecipe, string[]>();
+
+function tokensOf(recipe: ExistingRecipe): string[] {
+    let tokens = recipeTokens.get(recipe);
+    if (!tokens) {
+        tokens = titleTokens(recipe.title);
+        recipeTokens.set(recipe, tokens);
+    }
+    return tokens;
+}
+
+/**
  * How much of the shorter title the two have in common.
  *
  * Measured against the shorter one on purpose: "Apfelkuchen" against
@@ -86,7 +106,7 @@ export function findDuplicate(
     if (tokens.length === 0) return null;
 
     for (const recipe of existing) {
-        const other = titleTokens(recipe.title);
+        const other = tokensOf(recipe);
         if (other.length === 0) continue;
 
         const sameLength = Math.abs(tokens.length - other.length) <= 1;

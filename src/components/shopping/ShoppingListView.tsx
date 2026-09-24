@@ -143,7 +143,26 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         };
     }, [base, refresh]);
 
+    /*
+     * A ticked line moves to the trolley and a removed one goes, and the
+     * button that had the focus goes with it: the focus fell to the top of
+     * the page on every tick. When the focus was on that line, it moves to
+     * the line that took its place.
+     */
+    const keepFocusAfter = (id: number) => {
+        const active = document.activeElement;
+        if (!(active instanceof HTMLElement) || active.dataset.line !== String(id)) return;
+        const order = [...items.filter((item) => !item.checked), ...items.filter((item) => item.checked)].map((item) => item.id);
+        const at = order.indexOf(id);
+        const next = order[at + 1] ?? order[at - 1];
+        requestAnimationFrame(() => {
+            const target = next === undefined ? null : document.querySelector<HTMLElement>(`[data-line="${next}"][role="checkbox"]`);
+            target?.focus({ preventScroll: false });
+        });
+    };
+
     const toggle = async (id: number, checked: boolean) => {
+        keepFocusAfter(id);
         setItems((current) => current.map((item) => (item.id === id ? { ...item, checked } : item)));
         const pending = readPending(base);
         if (await sendTick(id, checked)) {
@@ -186,6 +205,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     };
 
     const remove = async (id: number) => {
+        keepFocusAfter(id);
         setItems((current) => current.filter((item) => item.id !== id));
         await fetch(`/api/shopping/${id}`, { method: 'DELETE' }).catch(() => undefined);
     };
@@ -251,6 +271,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                 <button
                     type="button"
                     role="checkbox"
+                    data-line={item.id}
                     aria-checked={item.checked}
                     onClick={() => void toggle(item.id, !item.checked)}
                     aria-label={t(item.checked ? 'untick' : 'tick', { name: item.name })}
@@ -272,6 +293,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                 {mode.kind !== 'shared' && (
                     <button
                         type="button"
+                        data-line={item.id}
                         onClick={() => void remove(item.id)}
                         aria-label={t('remove', { name: item.name })}
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-faint hover:bg-surface hover:text-danger"

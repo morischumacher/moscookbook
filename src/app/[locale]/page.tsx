@@ -145,6 +145,7 @@ export default async function HomePage({
     const locale = await getLocale();
     const tSite = await getTranslations('Site');
     const tBlog = await getTranslations('Blog');
+    const tTags = await getTranslations('Tags');
 
     const {
         sort: sortParam,
@@ -436,9 +437,19 @@ export default async function HomePage({
         }
     }
 
+    /*
+     * Nothing narrowed and nobody who may see "only me" recipes: the list is
+     * every finished recipe that is not an admin's own, which is exactly
+     * what the cached facets' `total` counts (`isDraft: false, onlyMe:
+     * false` in lib/collectionFacets). The busiest view of the busiest page
+     * then does without its count query. Any other key on `where` — a
+     * filter, a search, favourites — or an admin viewer, and it is counted.
+     */
+    const unfiltered = !admin && Object.keys(where).every((key) => key === 'isDraft' || key === 'onlyMe');
+    const facetsQuery = collectionFacets();
     const [total, facets, recipes, myFavorites] = await Promise.all([
-        prisma.recipe.count({ where }),
-        collectionFacets(),
+        unfiltered ? facetsQuery.then((all) => all.total) : prisma.recipe.count({ where }),
+        facetsQuery,
         listRecipes(),
         earlyFavorites ?? favoritesQuery,
     ]);
@@ -478,6 +489,11 @@ export default async function HomePage({
         // Diet, meat or fish and chillies, as their icons: read at a glance
         // on a tile too small for words.
         marks: [...recipe.tags.filter((tag: string) => KNOWN_TAGS.includes(tag)).map((tag: string) => TAG_ICONS[tag]), chillies(recipe.spiciness)].join(' ').trim(),
+        // The same in words, for a screen reader: the icons are hidden from it.
+        marksLabel: [
+            ...recipe.tags.filter((tag: string) => KNOWN_TAGS.includes(tag)).map((tag: string) => tTags(tag)),
+            ...(recipe.spiciness > 0 ? [tTags('spicinessLevel', { level: recipe.spiciness })] : []),
+        ].join(', '),
         imageUrl: recipe.images[0]?.url ?? '',
         rating: averageRating(recipe.ratings),
         isFavorited: favoriteRecipeIds.has(recipe.id),
@@ -522,9 +538,16 @@ export default async function HomePage({
                 )}
             </div>
 
+            {/* Search and filters change the list as one types, and nothing
+                said so to a screen reader. One region, always there, whose
+                words change — one that appears with its text is often not read. */}
+            <p role="status" className="sr-only">
+                {formattedRecipes.length > 0 ? t('resultCount', { count: total }) : t('noResults')}
+            </p>
+
             {formattedRecipes.length > 0 ? (
                 <>
-                    <p className="border-t border-line pt-4 text-xs uppercase tracking-widest text-faint">
+                    <p aria-hidden className="border-t border-line pt-4 text-xs uppercase tracking-widest text-faint">
                         {t('resultCount', { count: total })}
                     </p>
 

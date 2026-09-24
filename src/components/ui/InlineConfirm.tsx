@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 /**
@@ -56,14 +56,27 @@ export default function InlineConfirm({
     const [asking, setAsking] = useState(false);
     const box = useRef<HTMLSpanElement>(null);
     const confirmRef = useRef<HTMLButtonElement>(null);
+    const restingRef = useRef<HTMLButtonElement>(null);
+    // Set when the answer was "no" by keyboard or button: the focus then goes
+    // back where it was, rather than falling to the page when the two
+    // buttons it was on disappear.
+    const returnFocus = useRef(false);
+    const questionId = useId();
 
     useEffect(() => {
-        if (!asking) return;
+        if (!asking) {
+            if (returnFocus.current) restingRef.current?.focus();
+            returnFocus.current = false;
+            return;
+        }
 
         confirmRef.current?.focus();
 
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') setAsking(false);
+            if (event.key === 'Escape') {
+                returnFocus.current = true;
+                setAsking(false);
+            }
         };
 
         document.addEventListener('keydown', onKeyDown);
@@ -73,6 +86,7 @@ export default function InlineConfirm({
     if (!asking) {
         return (
             <button
+                ref={restingRef}
                 type="button"
                 onClick={() => setAsking(true)}
                 disabled={disabled}
@@ -95,17 +109,21 @@ export default function InlineConfirm({
                 if (!box.current?.contains(event.relatedTarget as Node | null)) setAsking(false);
             }}
         >
-            <span className="text-muted">{question ?? t('sure')}</span>
+            <span id={questionId} className="text-muted">
+                {question ?? t('sure')}
+            </span>
 
             <button
                 ref={confirmRef}
                 type="button"
                 disabled={disabled}
+                // The question is read with the button focus lands on.
+                aria-describedby={questionId}
                 onClick={() => {
                     setAsking(false);
                     void onConfirm();
                 }}
-                className={`font-semibold underline underline-offset-4 disabled:opacity-50 ${
+                className={`min-h-11 font-semibold underline underline-offset-4 disabled:opacity-50 ${
                     destructive ? 'text-danger' : 'text-ink'
                 }`}
             >
@@ -114,8 +132,11 @@ export default function InlineConfirm({
 
             <button
                 type="button"
-                onClick={() => setAsking(false)}
-                className="text-muted underline underline-offset-4 hover:text-ink"
+                onClick={() => {
+                    returnFocus.current = true;
+                    setAsking(false);
+                }}
+                className="min-h-11 text-muted underline underline-offset-4 hover:text-ink"
             >
                 {t('cancel')}
             </button>

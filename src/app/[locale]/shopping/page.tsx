@@ -36,7 +36,9 @@ export default async function ShoppingPage({
     const list = (await listFor(user.id, requested)) ?? (await listFor(user.id, null))!;
     const [t, lists, items, household, invitations, settings] = await Promise.all([
         getTranslations('Shopping'),
-        listsOf(user.id),
+        // The list open is this person's main list (their own, unnamed)
+        // whenever none other was asked for: then it is known to exist.
+        listsOf(user.id, list.owner && list.name === null ? list.id : undefined),
         itemsOf(list.id),
         householdOf(list.id),
         invitationsFor(user.id),

@@ -95,13 +95,14 @@ export default function MarkdownEditor({
                 <label htmlFor={id} className="block text-sm font-bold uppercase tracking-widest text-muted">
                     {label}
                 </label>
-                <div role="tablist" className="flex gap-1 text-sm">
+                <div className="flex gap-1 text-sm">
                     {(['write', 'preview'] as const).map((which) => (
                         <button
                             key={which}
                             type="button"
-                            role="tab"
-                            aria-selected={tab === which}
+                            // Two toggle buttons: a tablist without arrow keys
+                            // and panels promised what it did not do.
+                            aria-pressed={tab === which}
                             onClick={() => setTab(which)}
                             className={`rounded-full px-3 py-1 ${tab === which ? 'bg-ink text-page' : 'text-muted hover:text-ink'}`}
                         >
@@ -113,20 +114,20 @@ export default function MarkdownEditor({
 
             {tab === 'write' ? (
                 <div className="rounded-lg border border-control focus-within:border-ink">
-                    <div className="flex flex-wrap items-center gap-0.5 border-b border-line px-1 py-1" aria-label={t('toolbar')}>
-                        <button type="button" className={tool} onClick={() => prefixLines('## ')} title={t('heading')}>
+                    <div role="toolbar" className="flex flex-wrap items-center gap-0.5 border-b border-line px-1 py-1" aria-label={t('toolbar')}>
+                        <button type="button" className={tool} onClick={() => prefixLines('## ')} title={t('heading')} aria-label={t('heading')}>
                             <span className="font-bold">H</span>
                         </button>
-                        <button type="button" className={tool} onClick={() => wrap('**', '**', t('boldText'))} title={t('bold')}>
+                        <button type="button" className={tool} onClick={() => wrap('**', '**', t('boldText'))} title={t('bold')} aria-label={t('bold')}>
                             <span className="font-bold">B</span>
                         </button>
-                        <button type="button" className={tool} onClick={() => wrap('*', '*', t('italicText'))} title={t('italic')}>
+                        <button type="button" className={tool} onClick={() => wrap('*', '*', t('italicText'))} title={t('italic')} aria-label={t('italic')}>
                             <span className="italic">I</span>
                         </button>
-                        <button type="button" className={tool} onClick={() => prefixLines('- ')} title={t('list')}>
+                        <button type="button" className={tool} onClick={() => prefixLines('- ')} title={t('list')} aria-label={t('list')}>
                             •
                         </button>
-                        <button type="button" className={tool} onClick={() => prefixLines('1. ')} title={t('numbered')}>
+                        <button type="button" className={tool} onClick={() => prefixLines('1. ')} title={t('numbered')} aria-label={t('numbered')}>
                             1.
                         </button>
                         <button type="button" className={tool} onClick={() => wrap('[', '](https://)', t('linkText'))} title={t('link')}>

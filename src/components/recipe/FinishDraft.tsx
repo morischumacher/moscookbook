@@ -51,7 +51,7 @@ export default function FinishDraft({ recipeId }: { recipeId: number }) {
             <button type="button" className={buttonPrimarySmall} disabled={busy} onClick={finish}>
                 <BusyLabel busy={busy} busyText={t('finishing')}>{t('finish')}</BusyLabel>
             </button>
-            {failed && <span className="text-sm text-danger">{t('finishFailed')}</span>}
+            {failed && <span role="alert" className="text-sm text-danger">{t('finishFailed')}</span>}
         </span>
     );
 }
