@@ -11,6 +11,7 @@ import { BusyLabel } from '@/components/ui/Busy';
 import MarkdownEditor from '@/components/ui/MarkdownEditor';
 import PictureField from '@/components/ui/PictureField';
 import PickList, { type PickOption } from '@/components/ui/PickList';
+import InlineConfirm from '@/components/ui/InlineConfirm';
 
 const fieldClass =
     'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none transition-colors focus:border-ink';
@@ -102,6 +103,7 @@ export default function PostForm({
     };
 
     const save = async (published: boolean) => {
+        let left = false;
         setBusy(published ? 'publish' : 'draft');
         setError('');
 
@@ -113,7 +115,10 @@ export default function PostForm({
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         title,
-                        slug: slug || slugify(title),
+                        // Editing, an emptied field keeps the address it has (the
+                        // server's fallback): a title turned into a new one moved
+                        // a published entry to another link.
+                        slug: initial.id ? slug : slug || slugify(title),
                         body,
                         imageUrl,
                         recipeIds,
@@ -132,13 +137,15 @@ export default function PostForm({
 
             // Saved, so there is nothing left to recover.
             draft.clear();
-
+            // Saved: the button stays disabled while the page changes. Freed in
+            // `finally`, a second press in that moment saved a copy ("…-2").
+            left = true;
             router.push('/admin/posts');
             router.refresh();
         } catch {
             setError(t('saveFailed'));
         } finally {
-            setBusy(null);
+            if (!left) setBusy(null);
         }
     };
 
@@ -257,14 +264,28 @@ export default function PostForm({
                     </BusyLabel>
                 </button>
 
-                <button
-                    type="button"
-                    onClick={() => void save(false)}
-                    disabled={busy !== null}
-                    className={buttonSecondary}
-                >
-                    <BusyLabel busy={busy === 'draft'}>{t('saveDraft')}</BusyLabel>
-                </button>
+                {initial.published ? (
+                    // On a published entry this takes it offline, with its
+                    // link: said so, and asked first — it was one tap.
+                    <InlineConfirm
+                        label={t('unpublish')}
+                        question={t('unpublishQuestion')}
+                        confirmLabel={t('unpublish')}
+                        destructive
+                        disabled={busy !== null}
+                        onConfirm={() => save(false)}
+                        className={buttonSecondary}
+                    />
+                ) : (
+                    <button
+                        type="button"
+                        onClick={() => void save(false)}
+                        disabled={busy !== null}
+                        className={buttonSecondary}
+                    >
+                        <BusyLabel busy={busy === 'draft'}>{t('saveDraft')}</BusyLabel>
+                    </button>
+                )}
             </div>
         </form>
     );

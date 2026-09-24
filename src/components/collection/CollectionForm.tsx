@@ -51,6 +51,7 @@ export default function CollectionForm({
     const [error, setError] = useState('');
 
     const save = async () => {
+        let left = false;
         setBusy(true);
         setError('');
 
@@ -76,12 +77,15 @@ export default function CollectionForm({
                 return;
             }
 
+            // Saved: the button stays disabled while the page changes. Freed in
+            // `finally`, a second press in that moment saved a copy ("…-2").
+            left = true;
             router.push(`/collections/${data.slug}`);
             router.refresh();
         } catch {
             setError(t('saveFailed'));
         } finally {
-            setBusy(false);
+            if (!left) setBusy(false);
         }
     };
 

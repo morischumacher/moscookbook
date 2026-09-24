@@ -42,7 +42,7 @@ export default async function EditPost({
                 publishedAt: true,
             },
         }) as Promise<PostRecord | null>,
-        recipeOptions(),
+        recipeOptions(true),
         collectionOptions(),
     ]);
 

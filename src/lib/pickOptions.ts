@@ -7,9 +7,14 @@ import type { PickOption } from '@/components/ui/PickList';
  * Drafts are not offered. A draft cannot carry a post, and a collection of
  * drafts would put unfinished recipes on a shared page.
  */
-export async function recipeOptions(): Promise<PickOption[]> {
+/**
+ * `forPost`: a post is read by the household, and the server refuses one
+ * about an "only me" recipe (lib/postLinks) — offered here, it could be
+ * picked and then never saved.
+ */
+export async function recipeOptions(forPost = false): Promise<PickOption[]> {
     const recipes = await prisma.recipe.findMany({
-        where: { isDraft: false },
+        where: { isDraft: false, ...(forPost ? { onlyMe: false } : {}) },
         orderBy: { title: 'asc' },
         select: {
             id: true,

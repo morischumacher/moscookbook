@@ -748,7 +748,9 @@
     "fieldCollections": "Collections in this post",
     "collectionsHint": "The same, for whole collections.",
     "slugHint": "The last part of the post's link. It is made from the title; change it only if you want a different link, and not once the post has been shared.",
-    "readMore": "Read on"
+    "readMore": "Read on",
+    "unpublish": "Unpublish",
+    "unpublishQuestion": "Take it offline? The post becomes a draft again and its shared link stops working."
   },
   "Cooked": {
     "add": "Add a photo",
