@@ -22,7 +22,8 @@ const RECIPE = {
     createdAt: new Date('2026-09-21T10:00:00.000Z'),
     images: [{ url: 'https://example.com/kaesespaetzle.jpg' }],
     ingredients: INGREDIENTS,
-    ratings: [{ value: 5 }, { value: 4 }, { value: 4 }],
+    // Three ratings: 5, 4 and 4.
+    rating: { count: 3, sum: 13 },
     url: 'https://www.moscookbook.com/de/recipe/kaesespaetzle',
 };
 
@@ -89,7 +90,7 @@ export default function recipeJsonLdTests() {
         prepMinutes: null,
         cookMinutes: null,
         images: [],
-        ratings: [],
+        rating: { count: 0, sum: 0 },
     });
 
     check('leaves out an unknown yield', !('recipeYield' in sparse), Object.keys(sparse));

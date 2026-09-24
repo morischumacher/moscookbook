@@ -20,6 +20,7 @@ import { formatMinutes } from '@/lib/amount';
 import { buildRecipeJsonLd } from '@/lib/recipeJsonLd';
 import { formatDate } from '@/lib/formatDate';
 import { inLanguage, type StoredTranslation } from '@/lib/recipeTranslation';
+import { averageOf, type RatingSummary } from '@/lib/ratingSummary';
 
 export interface RecipeRow {
     id: number;
@@ -62,7 +63,13 @@ export interface RecipeRow {
     searchTitle: string;
     searchBody: string;
     images: { url: string }[];
-    ratings: { value: number; userId: number }[];
+    /**
+     * How many ratings and their total, not the ratings themselves: the page
+     * shows an average and a count, and the viewer's own rating is looked up
+     * on its own (lib/ratingSummary). Loaded beside the row, not in
+     * recipeInclude, because Prisma cannot aggregate inside an include.
+     */
+    rating: RatingSummary;
     ingredients: StructuredIngredient[];
     /**
      * The share this recipe was made from, for its link and nothing else.
@@ -79,7 +86,6 @@ export interface RecipeRow {
 /** What the page needs from the database, in one place so both routes agree. */
 export const recipeInclude = {
     images: { orderBy: { position: 'asc' } },
-    ratings: true,
     ingredients: { orderBy: { position: 'asc' } },
     /*
      * The capture this recipe was made from, for the one field worth showing:
@@ -164,11 +170,7 @@ export default async function RecipeArticle({
     const tCategory = await getTranslations('Categories');
     const tCuisine = await getTranslations('Cuisines');
 
-    const averageRating =
-        recipe.ratings.length > 0
-            ? recipe.ratings.reduce((sum: number, rating: { value: number }) => sum + rating.value, 0) /
-              recipe.ratings.length
-            : 0;
+    const averageRating = averageOf(recipe.rating);
 
     // Free text as well as the usual ones, so only the known values are
     // translated. At most three in the head, however many there are: a
@@ -279,7 +281,7 @@ export default async function RecipeArticle({
                     definition list and a rating row, three typographic voices
                     for one paragraph's worth of information.
                 */}
-                {(times.length > 0 || recipe.ratings.length > 0) && (
+                {(times.length > 0 || recipe.rating.count > 0) && (
                     <div className="print:hidden mt-5 flex flex-wrap items-center gap-2">
                         {times.map((entry) => (
                             <span
@@ -342,7 +344,7 @@ export default async function RecipeArticle({
                     <RatingDisplay
                         recipeId={recipe.id}
                         initialAverage={averageRating}
-                        initialCount={recipe.ratings.length}
+                        initialCount={recipe.rating.count}
                         initialUserRating={userRatingValue}
                         isLoggedIn={mode === 'private' && isLoggedIn}
                         views={views}

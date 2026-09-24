@@ -156,14 +156,24 @@ export async function invitationsFor(userId: number) {
 export async function removeSource(listId: number, source: string): Promise<number> {
     return prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM "ShoppingList" WHERE id = ${listId} FOR UPDATE`;
-        const lines = await tx.shoppingItem.findMany({ where: { listId, sources: { has: source } }, select: { id: true, sources: true } });
-        for (const line of lines) {
-            const rest = line.sources.filter((s) => s !== source);
-            if (rest.length === 0) await tx.shoppingItem.delete({ where: { id: line.id } });
-            else await tx.shoppingItem.update({ where: { id: line.id }, data: { sources: rest } });
-        }
+        /*
+         * Two statements rather than a read and one write per line. First the
+         * lines shared with another recipe lose this one's name — every copy
+         * of it, as the filter this replaced did. After that, any line still
+         * naming it was this recipe's alone, so it can go by that test
+         * without being read. The order matters: the other way round, the
+         * delete would need to know which lines had nothing else.
+         */
+        const kept = await tx.$executeRaw`
+            UPDATE "ShoppingItem"
+            SET "sources" = array_remove("sources", ${source})
+            WHERE "listId" = ${listId}
+              AND ${source} = ANY("sources")
+              AND cardinality(array_remove("sources", ${source})) > 0
+        `;
+        const dropped = await tx.shoppingItem.deleteMany({ where: { listId, sources: { has: source } } });
         await tx.shoppingList.update({ where: { id: listId }, data: { updatedAt: new Date() } });
-        return lines.length;
+        return kept + dropped.count;
     });
 }
 
@@ -271,7 +281,8 @@ const recipeForList = {
     instructions: true,
     language: true,
     ingredients: { orderBy: { position: 'asc' as const }, select: { name: true, quantity: true, quantityMax: true, unit: true, raw: true, section: true } },
-    translations: { select: { locale: true, title: true, description: true, instructions: true, ingredients: true } },
+    // `source` too: without it a stale translation never looked stale here.
+    translations: { select: { locale: true, title: true, description: true, instructions: true, ingredients: true, source: true } },
 };
 
 function asRead<T extends Parameters<typeof inLanguage>[0]>(recipe: T, locale: string | undefined) {

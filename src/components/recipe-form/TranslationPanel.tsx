@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { sayable } from '@/lib/apiMessage';
 import { useTranslations } from 'next-intl';
 import { buttonSecondary } from '@/lib/ui';
+import { useConfirm } from '@/components/ui/useConfirm';
 import IngredientEditor from './IngredientEditor';
 import { fieldClass, labelClass } from './formStyles';
 import {
@@ -43,6 +44,7 @@ export default function TranslationPanel({
     const tAi = useTranslations('Ai');
     const [busy, setBusy] = useState(false);
     const [note, setNote] = useState('');
+    const [ask, dialog] = useConfirm();
 
     const target = otherLanguage(language);
     // A translation into the language the recipe is written in is not one.
@@ -51,6 +53,9 @@ export default function TranslationPanel({
     const empty = original.title.trim() === '' || original.ingredients.every((row) => row.item.trim() === '');
 
     const run = async () => {
+        // A translation that is up to date may have been corrected by hand:
+        // translating again replaced that without a word.
+        if (current && !stale && !(await ask({ title: t('translateAgainQuestion'), confirmLabel: t('translateAgain') }))) return;
         setBusy(true);
         setNote('');
         try {
@@ -77,6 +82,7 @@ export default function TranslationPanel({
 
     return (
         <div className="space-y-4 rounded-xl border border-line p-4">
+            {dialog}
             <div>
                 <p className={labelClass}>{t('translationHeading')}</p>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
@@ -86,7 +92,14 @@ export default function TranslationPanel({
                             key={option}
                             type="button"
                             aria-pressed={language === option}
-                            onClick={() => onLanguage(option)}
+                            onClick={async () => {
+                                // Switching the language the recipe is written in
+                                // drops the translation into it on save — a paid
+                                // call, perhaps corrected by hand, and not in the
+                                // history. Asked first.
+                                if (option !== language && current && !(await ask({ title: t('languageSwitchQuestion'), confirmLabel: t('languageSwitch'), destructive: true }))) return;
+                                onLanguage(option);
+                            }}
                             className={
                                 language === option
                                     ? 'rounded-full border border-ink px-3 py-1 font-bold'

@@ -13,16 +13,21 @@ export async function keepRevisionOf(recipeId: number, snapshot: RecipeSnapshot,
             data: { recipeId, snapshot: toJsonObject(snapshot), editedBy },
         });
 
-        const stale = await prisma.recipeRevision.findMany({
-            where: { recipeId },
-            orderBy: { createdAt: 'desc' },
-            skip: KEEP_REVISIONS,
-            select: { id: true },
-        });
-        if (stale.length > 0) {
-            await prisma.recipeRevision.deleteMany({ where: { id: { in: stale.map((row) => row.id) } } });
-        }
+        await trimRevisions(recipeId);
     } catch (error) {
         console.error('Could not keep a recipe revision:', error);
+    }
+}
+
+/** Lets the oldest versions go beyond `KEEP_REVISIONS`. */
+export async function trimRevisions(recipeId: number): Promise<void> {
+    const stale = await prisma.recipeRevision.findMany({
+        where: { recipeId },
+        orderBy: { createdAt: 'desc' },
+        skip: KEEP_REVISIONS,
+        select: { id: true },
+    });
+    if (stale.length > 0) {
+        await prisma.recipeRevision.deleteMany({ where: { id: { in: stale.map((row) => row.id) } } });
     }
 }
