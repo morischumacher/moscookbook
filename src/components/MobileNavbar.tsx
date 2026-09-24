@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Link, usePathname as usePagePath } from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
+import LanguageLink from './LanguageLink';
 import Logo from './brand/Logo';
 import LogoutButton from './LogoutButton';
 import ProfileMenu from './ProfileMenu';
@@ -43,7 +44,6 @@ interface MobileNavbarProps {
  * centred among left-aligned ones for no reason anybody could see.
  */
 export default function MobileNavbar({ user, profile, otherLocale, invitations = 0 }: MobileNavbarProps) {
-    const pagePath = usePagePath();
     const t = useTranslations('Navigation');
     const tBlog = useTranslations('Blog');
     const tCollections = useTranslations('Collections');
@@ -171,16 +171,11 @@ export default function MobileNavbar({ user, profile, otherLocale, invitations =
                     {/* Signed out, the language still needs somewhere to live:
                         there is no profile menu to put it in. */}
                     {!user && (
-                        <Link
-                            // The same page in the other language, not the home page: from a
-                            // recipe, "In English lesen" means this recipe.
-                            href={pagePath}
-                            locale={otherLocale}
-                            lang={otherLocale}
-                            className="text-sm font-medium text-muted transition-colors hover:text-ink"
-                        >
+                        // The same page in the other language, not the home page: from a
+                        // recipe, "In English lesen" means this recipe.
+                        <LanguageLink locale={otherLocale} className="text-sm font-medium text-muted transition-colors hover:text-ink">
                             {otherLocale.toUpperCase()}
-                        </Link>
+                        </LanguageLink>
                     )}
                 </div>
 
@@ -272,18 +267,11 @@ export default function MobileNavbar({ user, profile, otherLocale, invitations =
                             )}
                         </div>
 
-                        <Link
-                            // The same page in the other language, not the home page: from a
-                            // recipe, "In English lesen" means this recipe.
-                            href={pagePath}
-                            locale={otherLocale}
-                            lang={otherLocale}
-                            onClick={close}
-                            className={`${row} mt-3 w-full border-t border-line pt-3 text-muted`}
-                        >
+                        {/* The same page in the other language, not the home page. */}
+                        <LanguageLink locale={otherLocale} onClick={close} className={`${row} mt-3 w-full border-t border-line pt-3 text-muted`}>
                             {/* "Sprache: EN" read as "the language is EN"; this says what pressing does. */}
                             {t('switchLanguage')}
-                        </Link>
+                        </LanguageLink>
                     </div>
                 </>
             )}

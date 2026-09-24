@@ -170,7 +170,9 @@ export function passwordChangedMail(to: string, name: string, forgotUrl: string,
     if (language === 'de') {
         const heading = 'Dein Passwort wurde geändert';
         const body = `Hallo ${name}, das Passwort deines Kontos bei mo'scookbook wurde eben geändert. Alle anderen Geräte wurden dabei abgemeldet.`;
-        const footer = 'Warst du das nicht, setz dein Passwort über den Knopf oben sofort neu.';
+        // Not "the button above": the plain-text mail has no button, and there
+        // its link comes after this sentence.
+        const footer = 'Warst du das nicht, setz dein Passwort sofort über den Link in dieser E-Mail neu.';
 
         return {
             to,
@@ -182,7 +184,7 @@ export function passwordChangedMail(to: string, name: string, forgotUrl: string,
 
     const heading = 'Your password was changed';
     const body = `Hello ${name}, the password on your mo'scookbook account was just changed. Every other device was signed out.`;
-    const footer = 'If that was not you, reset your password with the button above straight away.';
+    const footer = 'If that was not you, reset your password straight away using the link in this email.';
 
     return {
         to,
