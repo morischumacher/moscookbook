@@ -61,16 +61,23 @@ export async function fetchPage(rawUrl: string, options: { json?: boolean } = {}
             },
         });
 
-        // Optional scraping proxy fallback (e.g. ScrapingBee / FlareSolverr / custom proxy) when blocked by WAF.
-        if (!response.ok && (response.status === 403 || response.status === 503) && process.env.SCRAPING_PROXY_URL) {
-            try {
-                const proxyUrl = process.env.SCRAPING_PROXY_URL.includes('{url}')
-                    ? process.env.SCRAPING_PROXY_URL.replace('{url}', encodeURIComponent(url))
-                    : `${process.env.SCRAPING_PROXY_URL}${encodeURIComponent(url)}`;
-                const proxied = await safeFetch(proxyUrl, { signal: controller.signal });
-                if (proxied.ok) response = proxied;
-            } catch {
-                // Fall back to original response if proxy fails
+        let wasProxied = false;
+        // Optional scraping proxy fallback (e.g. ScrapingBee / FlareSolverr / custom proxy or public reader) when blocked by WAF.
+        if (!response.ok && (response.status === 403 || response.status === 503)) {
+            const proxyTemplate = process.env.SCRAPING_PROXY_URL || (!options.json ? 'https://r.jina.ai/{url}' : undefined);
+            if (proxyTemplate) {
+                try {
+                    const proxyUrl = proxyTemplate.includes('{url}')
+                        ? proxyTemplate.replace('{url}', encodeURIComponent(url))
+                        : `${proxyTemplate}${encodeURIComponent(url)}`;
+                    const proxied = await safeFetch(proxyUrl, { signal: controller.signal });
+                    if (proxied.ok) {
+                        response = proxied;
+                        wasProxied = true;
+                    }
+                } catch {
+                    // Fall back to original response if proxy fails
+                }
             }
         }
 
@@ -79,7 +86,9 @@ export async function fetchPage(rawUrl: string, options: { json?: boolean } = {}
         }
 
         const contentType = response.headers.get('content-type') ?? '';
-        const expected = options.json ? contentType.includes('json') : contentType.includes('html') || contentType.includes('xml');
+        const expected = options.json
+            ? contentType.includes('json')
+            : contentType.includes('html') || contentType.includes('xml') || contentType.includes('text/plain') || contentType.includes('text/markdown');
         if (!expected) {
             return { ok: false, failure: 'not-a-page' };
         }
@@ -89,7 +98,7 @@ export async function fetchPage(rawUrl: string, options: { json?: boolean } = {}
             // Cut rather than refused: a recipe is near the top of its page,
             // and what is past four megabytes is comments and scripts.
             html: new TextDecoder().decode((await readCapped(response, MAX_HTML_BYTES)).bytes),
-            finalUrl: response.url || url,
+            finalUrl: wasProxied ? url : (response.url || url),
         };
     } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
