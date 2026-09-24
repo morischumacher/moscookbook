@@ -330,8 +330,13 @@ export function inLanguage<
         title: translation.title,
         description: translation.description || null,
         instructions: translation.instructions || recipe.instructions,
-        // A translation that somehow lost its lines is worse than the original's.
-        ingredients: ingredients.length > 0 ? ingredients : recipe.ingredients,
+        // A translation that somehow lost its lines is worse than the original's
+        // — and so is a stale one whose lines no longer match in number: a
+        // line added to the original since was missing from the list, the
+        // scaling and the shopping list. The original's lines then, in the
+        // original's words.
+        ingredients:
+            ingredients.length > 0 && !(stale && ingredients.length !== recipe.ingredients.length) ? ingredients : recipe.ingredients,
         shownIn: asLanguage(translation.locale),
         translated: true,
         stale,

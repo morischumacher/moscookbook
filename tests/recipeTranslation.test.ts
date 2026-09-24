@@ -111,6 +111,18 @@ export default async function recipeTranslationTests() {
     equal('an English reader gets the original', inLanguage(stored, 'en').title, 'Green Curry');
     equal('a recipe with no translation is itself', inLanguage({ ...stored, translations: [] }, 'de').title, 'Green Curry');
 
+    // A line added to the original after translating: the stale translation
+    // no longer has it, so its lines are not used — the amounts must be right.
+    const grown = {
+        ...stored,
+        ingredients: [...stored.ingredients, { quantity: 1, quantityMax: null, unit: null, name: 'lime', raw: '1', section: null }],
+        translations: [{ ...stored.translations[0], source: 'an older version' }],
+    };
+    const staleGerman = inLanguage(grown, 'de');
+    check('a translation made before an edit is stale', staleGerman.stale);
+    equal('and with a line missing, the original lines are shown', staleGerman.ingredients.map((row) => row.name), ['oil', 'lime']);
+    equal('while its title is still used', staleGerman.title, 'Grünes Curry');
+
     suite('recipeTranslation: saving');
 
     const base = {

@@ -271,7 +271,8 @@ const recipeForList = {
     instructions: true,
     language: true,
     ingredients: { orderBy: { position: 'asc' as const }, select: { name: true, quantity: true, quantityMax: true, unit: true, raw: true, section: true } },
-    translations: { select: { locale: true, title: true, description: true, instructions: true, ingredients: true } },
+    // `source` too: without it a stale translation never looked stale here.
+    translations: { select: { locale: true, title: true, description: true, instructions: true, ingredients: true, source: true } },
 };
 
 function asRead<T extends Parameters<typeof inLanguage>[0]>(recipe: T, locale: string | undefined) {

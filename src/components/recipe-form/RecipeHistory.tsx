@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
 import type { ChangedField, RecipeSnapshot } from '@/lib/revisions';
+import { sayable } from '@/lib/apiMessage';
 
 export interface HistoryEntry {
     id: number;
@@ -24,7 +25,7 @@ export default function RecipeHistory({ recipeId, entries }: { recipeId: number;
     const locale = useLocale();
     const [ask, dialog] = useConfirm();
     const [busy, setBusy] = useState<number | null>(null);
-    const [failed, setFailed] = useState(false);
+    const [failed, setFailed] = useState('');
 
     if (entries.length === 0) return null;
 
@@ -32,11 +33,14 @@ export default function RecipeHistory({ recipeId, entries }: { recipeId: number;
         const when = new Date(entry.createdAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
         if (!(await ask({ title: t('restoreQuestion', { when }), confirmLabel: t('restore') }))) return;
         setBusy(entry.id);
-        setFailed(false);
+        setFailed('');
         try {
             const res = await fetch(`/api/recipes/${recipeId}/revisions/${entry.id}`, { method: 'POST' });
             if (!res.ok) {
-                setFailed(true);
+                // "Try again" did not help a version that is gone or unreadable:
+                // the reason, when there is one to say.
+                const data: { message?: string } = await res.json().catch(() => ({}));
+                setFailed(sayable(data.message, t('restoreFailed')));
                 return;
             }
             // A full reload, not a refresh: the form above keeps what it
@@ -49,7 +53,7 @@ export default function RecipeHistory({ recipeId, entries }: { recipeId: number;
             }
             window.location.reload();
         } catch {
-            setFailed(true);
+            setFailed(t('restoreFailed'));
         } finally {
             setBusy(null);
         }
@@ -60,7 +64,7 @@ export default function RecipeHistory({ recipeId, entries }: { recipeId: number;
             {dialog}
             <h2 className="text-sm font-bold uppercase tracking-widest text-muted">{t('historyTitle')}</h2>
             <p className="mt-1 text-sm text-muted">{t('historyExplain')}</p>
-            {failed && <p role="alert" className="mt-2 text-sm text-danger">{t('restoreFailed')}</p>}
+            {failed && <p role="alert" className="mt-2 text-sm text-danger">{failed}</p>}
 
             <ol className="mt-4 divide-y divide-line">
                 {entries.map((entry) => (

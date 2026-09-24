@@ -381,7 +381,10 @@
     "rowDown": "Move ingredient {number} down",
     "rowRemove": "Remove ingredient {number}",
     "draftFoundStale": "There are unsaved changes from an earlier visit — but the recipe has been saved since. Restoring overwrites that.",
-    "saveConflict": "The recipe was saved elsewhere in the meantime. Reload the page — you will then be offered your changes to restore."
+    "saveConflict": "The recipe was saved elsewhere in the meantime. Reload the page — you will then be offered your changes to restore.",
+    "translateAgainQuestion": "Translate again? Anything corrected by hand in the current translation is lost.",
+    "languageSwitchQuestion": "Switch the language? The saved translation is deleted when you save.",
+    "languageSwitch": "Switch"
   },
   "QuickImport": {
     "heading": "Fill in quickly",

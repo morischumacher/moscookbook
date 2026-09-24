@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { idFrom, refuse, route } from '@/lib/route';
 import { readSnapshot, snapshotOf } from '@/lib/revisions';
-import { keepRevisionOf } from '@/lib/revisionsDb';
+import { trimRevisions } from '@/lib/revisionsDb';
 import { keptTranslation, recipeColumns } from '@/lib/recipeRepo';
 import { splitAmount } from '@/lib/ingredientParts';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
+import { toJsonObject } from '@/lib/json';
 
 /**
  * Puts a recipe back the way an earlier version had it.
@@ -37,11 +38,16 @@ export const POST = route<'admin', undefined, { id: string; revisionId: string }
         const snapshot = readSnapshot(revision.snapshot);
         if (!snapshot) refuse(422, 'That version cannot be read.');
 
-        await keepRevisionOf(recipeId, snapshotOf(current), user.name);
-
         const ingredients = snapshot.ingredients.map((row) => ({ ...splitAmount(row.raw), name: row.name, raw: row.raw, section: row.section }));
 
+        /*
+         * The version being replaced is kept in the same transaction as the
+         * restore: the dialog promises it, and kept beforehand by the helper
+         * that forgives a failure, a restore could overwrite text whose copy
+         * had not been written.
+         */
         await prisma.$transaction([
+            prisma.recipeRevision.create({ data: { recipeId, snapshot: toJsonObject(snapshotOf(current)), editedBy: user.name } }),
             prisma.recipe.update({
                 where: { id: recipeId },
                 // With the translation it keeps, or the search forgets it.
@@ -53,6 +59,7 @@ export const POST = route<'admin', undefined, { id: string; revisionId: string }
             }),
         ]);
 
+        await trimRevisions(recipeId).catch(() => undefined);
         forgetCollectionFacets();
         return NextResponse.json({ restored: true, slug: current.slug });
     }
