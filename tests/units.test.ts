@@ -55,4 +55,6 @@ export default function unitsTests() {
     equal('one can is a Dose', countUnitLabel('Dosen', 1), 'Dose');
     equal('a word that is no unit is left alone', countUnitLabel('große', 3), 'große');
     equal('English stays lower case', countUnitLabel('clove', 2), 'cloves');
+    equal('2 EL and 1 TL on the list', fromBase({ key: 'spoon', amount: 35 }, 'de'), { quantity: 7 / 3, quantityMax: null, unit: 'EL' });
+    equal('3 EL stay 3 EL', fromBase({ key: 'spoon', amount: 45 }, 'de').quantity, 3);
 }

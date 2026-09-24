@@ -243,8 +243,12 @@ export function fromBase(measured: Measured, locale: Locale = 'de'): AmountParts
     if (measured.key === 'volume') return tidy({ quantity: measured.amount, quantityMax: null, unit: 'ml' }, locale);
     if (measured.key === 'spoon') {
         const tablespoons = measured.amount / 15;
-        return tablespoons >= 1 && Math.abs(tablespoons - Math.round(tablespoons * 2) / 2) < 0.01
-            ? { quantity: Math.round(tablespoons * 2) / 2, quantityMax: null, unit: locale === 'de' ? 'EL' : 'tbsp' }
+        // Halves, and thirds below ten: 2 EL and 1 TL is "2 1/3 EL", not
+        // "7 TL". (Above ten a third is not printed, so it stays teaspoons.)
+        const even = (step: number) => Math.abs(tablespoons - Math.round(tablespoons * step) / step) < 0.01;
+        const inTablespoons = tablespoons >= 1 && (even(2) || (tablespoons < 10 && even(3)));
+        return inTablespoons
+            ? { quantity: Math.round(tablespoons * (even(2) ? 2 : 3)) / (even(2) ? 2 : 3), quantityMax: null, unit: locale === 'de' ? 'EL' : 'tbsp' }
             : {
                   // Never "0 TL": a pinch of cinnamon scaled down is still some.
                   quantity: Math.max(0.125, Math.round((measured.amount / 5) * 4) / 4),
