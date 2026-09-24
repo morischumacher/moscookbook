@@ -450,6 +450,14 @@ model Recipe {
   @@index([views])
   @@index([category])
   @@index([nationality])
+  /// Created by hand in migrations and declared here so that a generated
+  /// migration does not drop them: the drafts filter, and the GIN indexes the
+  /// chips' array filters use. (The search vector's GIN index stays in the
+  /// migrations only: Prisma cannot index an Unsupported column.)
+  @@index([isDraft])
+  @@index([tags], type: Gin)
+  @@index([categories], type: Gin)
+  @@index([cuisines], type: Gin)
 }
 
 /// One ingredient line, split into the parts a cook actually uses.
@@ -482,10 +490,11 @@ model Ingredient {
   ///
   /// It cannot serve "what can I make with what I have", which asks
   /// `ILIKE '%zwiebel%'` — a pattern starting with a wildcard. That needs a
-  /// trigram index, which Prisma has no syntax for, so it is created in
-  /// migration 0012 and lives only there. Measured: sequential scan of 32,000
-  /// rows before, bitmap index scan after.
+  /// trigram index, created in migration 0012 and declared below so that a
+  /// generated migration does not drop it. Measured: sequential scan of
+  /// 32,000 rows before, bitmap index scan after.
   @@index([name])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Ingredient_name_trgm_idx")
 }
 
 model Image {
