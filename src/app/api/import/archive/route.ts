@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
                         where: { slug: recipe.slug },
                         select: {
                             id: true, title: true, slug: true, description: true, category: true, nationality: true,
-                            instructions: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true,
+                            instructions: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true, isDraft: true,
                             ingredients: { orderBy: { position: 'asc' }, select: { raw: true, name: true, section: true } },
                         },
                     });
@@ -169,6 +169,9 @@ export async function POST(req: NextRequest) {
                         where: { slug: recipe.slug },
                         data: {
                             ...data,
+                            // Finishing a draft is one-way: an older archive
+                            // must not turn a finished recipe back into one.
+                            ...(current && !current.isDraft ? { isDraft: false } : {}),
                             images: { deleteMany: {}, ...data.images },
                             ingredients: { deleteMany: {}, ...data.ingredients },
                             translations: { deleteMany: {}, ...('translations' in data ? data.translations : {}) },
@@ -207,7 +210,10 @@ export async function POST(req: NextRequest) {
         for (const post of result.archive.posts) {
             const taken = await prisma.post.findUnique({
                 where: { slug: post.slug },
-                select: { id: true },
+                // Its link too: the archive does not carry secret links, and
+                // replacing the entry in place of itself must not end one
+                // somebody was sent.
+                select: { id: true, shareToken: true },
             });
 
             // Same rule as a recipe: what is already here is not overwritten
@@ -224,6 +230,7 @@ export async function POST(req: NextRequest) {
                     ...(taken ? [prisma.post.deleteMany({ where: { slug: post.slug } })] : []),
                     prisma.post.create({
                         data: {
+                            shareToken: taken?.shareToken ?? null,
                             title: post.title,
                             slug: post.slug,
                             body: post.body,
@@ -342,7 +349,7 @@ export async function POST(req: NextRequest) {
             try {
                 const taken = await prisma.collection.findUnique({
                     where: { slug: collection.slug },
-                    select: { id: true },
+                    select: { id: true, shareToken: true },
                 });
 
                 if (taken && !replace) continue;
@@ -353,6 +360,7 @@ export async function POST(req: NextRequest) {
                         : []),
                     prisma.collection.create({
                         data: {
+                            shareToken: taken?.shareToken ?? null,
                             title: collection.title,
                             slug: collection.slug,
                             description: collection.description,
@@ -408,13 +416,14 @@ export async function POST(req: NextRequest) {
         let menus = 0;
         for (const menu of result.archive.menus) {
             try {
-                const taken = await prisma.menu.findUnique({ where: { slug: menu.slug }, select: { id: true } });
+                const taken = await prisma.menu.findUnique({ where: { slug: menu.slug }, select: { id: true, shareToken: true } });
                 if (taken && !replace) continue;
 
                 await prisma.$transaction([
                     ...(taken ? [prisma.menu.deleteMany({ where: { slug: menu.slug } })] : []),
                     prisma.menu.create({
                         data: {
+                            shareToken: taken?.shareToken ?? null,
                             title: menu.title,
                             slug: menu.slug,
                             occasion: menu.occasion,
