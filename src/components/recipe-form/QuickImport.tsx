@@ -423,7 +423,7 @@ export default function QuickImport({
                 {!aiEnabled && <p className="mt-1 text-sm text-faint">{tAi('polishOff')}</p>}
             </div>
 
-            {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+            {error && <p role="alert" className="mt-3 text-sm text-danger">{error}</p>}
             {note && !error && <p className="mt-3 text-sm text-success">{note}</p>}
         </section>
     );

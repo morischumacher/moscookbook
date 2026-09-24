@@ -63,6 +63,9 @@ export default function Lightbox({
         [images.length, onIndex]
     );
 
+    // Once per opening, not per picture: this ran again on every "next",
+    // which put the focus back on the close button each time and remembered
+    // a button inside the dialog as what had opened it.
     useEffect(() => {
         if (!isOpen) return;
 
@@ -74,6 +77,15 @@ export default function Lightbox({
         // that scrolls the article underneath is a picture that jumps.
         const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            if (opener?.isConnected && !opener.closest('[role="dialog"]')) opener.focus();
+        };
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
 
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') onClose();
@@ -99,11 +111,7 @@ export default function Lightbox({
 
         document.addEventListener('keydown', onKeyDown);
 
-        return () => {
-            document.removeEventListener('keydown', onKeyDown);
-            document.body.style.overflow = previousOverflow;
-            if (opener?.isConnected && !opener.closest('[role="dialog"]')) opener.focus();
-        };
+        return () => document.removeEventListener('keydown', onKeyDown);
     }, [isOpen, index, onClose, show]);
 
     if (!isOpen) return null;

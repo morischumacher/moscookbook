@@ -20,6 +20,8 @@ interface RecipeCardProps {
     nationality?: string;
     /** Diet, meat or fish and chillies as icons, e.g. "🌱 🌶️🌶️". */
     marks?: string;
+    /** The marks in words, since the icons are hidden from screen readers. */
+    marksLabel?: string;
     isFavorited?: boolean;
     isLoggedIn?: boolean;
     /**
@@ -78,6 +80,7 @@ export default function RecipeCard({
     rating,
     nationality,
     marks,
+    marksLabel,
     isFavorited = false,
     isLoggedIn = false,
     priority = false,
@@ -131,6 +134,7 @@ export default function RecipeCard({
                             {title}
                         </h2>
                         {marks && <span className="mt-1 block text-sm" aria-hidden="true">{marks}</span>}
+                        {marksLabel && <span className="sr-only">{marksLabel}</span>}
                         {rating > 0 && (
                             <span className="mt-2 block">
                                 <Rating value={rating} readonly size="sm" />
@@ -172,6 +176,7 @@ export default function RecipeCard({
                             {title}
                         </h2>
                         {marks && <p className="mt-0.5 text-sm" aria-hidden="true">{marks}</p>}
+                        {marksLabel && <p className="sr-only">{marksLabel}</p>}
 
                         {rating > 0 && (
                             <span className="mt-1 flex items-center gap-1 text-accent-text">
@@ -219,6 +224,7 @@ export default function RecipeCard({
                 >
                     <FavoriteButton
                         recipeId={id}
+                        title={title}
                         initialFavorited={isFavorited}
                         disabled={!isLoggedIn}
                     />

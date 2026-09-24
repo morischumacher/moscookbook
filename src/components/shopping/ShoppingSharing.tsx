@@ -143,7 +143,7 @@ export default function ShoppingSharing({
             <p className="font-medium">{t('shareTitle')}</p>
 
             <section className="mt-4">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-muted">{t('sharePeople')}</h3>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-muted">{t('sharePeople')}</h2>
                 <p className="mt-1 text-muted">{t('sharePeopleExplain')}</p>
                 {household && (household.members.length > 0 || household.invited.length > 0) && (
                     <ul className="mt-2 divide-y divide-line">
@@ -193,7 +193,7 @@ export default function ShoppingSharing({
             </section>
 
             <section className="mt-5 border-t border-line pt-4">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-muted">{t('shareLinkTitle')}</h3>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-muted">{t('shareLinkTitle')}</h2>
                 <p className="mt-1 text-muted">{t('shareExplain')}</p>
                 {shareLink && (
                     <>
@@ -202,7 +202,9 @@ export default function ShoppingSharing({
                         <button
                             type="button"
                             onClick={() => void navigator.clipboard.writeText(shareLink).then(() => onNote(t('copied')), () => undefined)}
-                            aria-label={t('copyLink')}
+                            // The visible words stay the name (voice control says what it sees);
+                            // the address itself is read after them.
+                            aria-label={`${t('tapToCopy')}: ${shareLink}`}
                             className="mt-3 block w-full break-all rounded-lg bg-surface px-3 py-2 text-left font-mono text-xs hover:bg-line"
                         >
                             {shareLink}

@@ -25,21 +25,24 @@ export default function ResendVerification() {
         }
     };
 
-    if (state === 'sent') {
-        return <span role="status">{t('verifyResent')}</span>;
-    }
-
+    // One region, always there, whose words change: one that appears with
+    // its text is often not read, and "sent" used to replace the very button
+    // the focus was on.
     return (
         <>
-            <button
-                type="button"
-                onClick={resend}
-                disabled={state === 'sending'}
-                className="underline underline-offset-4 disabled:opacity-50"
-            >
-                {t('verifyResend')}
-            </button>
-            {state === 'failed' && <span role="status"> — {t('verifyResendFailed')}</span>}
+            {state !== 'sent' && (
+                <button
+                    type="button"
+                    onClick={resend}
+                    disabled={state === 'sending'}
+                    className="underline underline-offset-4 disabled:opacity-50"
+                >
+                    {t('verifyResend')}
+                </button>
+            )}
+            <span role="status">
+                {state === 'sent' ? t('verifyResent') : state === 'failed' ? ` — ${t('verifyResendFailed')}` : ''}
+            </span>
         </>
     );
 }

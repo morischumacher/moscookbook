@@ -137,7 +137,8 @@
     "cookFinish": "Done cooking",
     "translatedFrom": "Translated from {language, select, de {German} other {English}}",
     "translationStale": "The original has changed since.",
-    "timerDoneSaid": "Timer for {label} is done."
+    "timerDoneSaid": "Timer for {label} is done.",
+    "cookView": "View"
   },
   "Rating": {
     "rate": "Rate",
@@ -155,7 +156,8 @@
     "add": "Add to favourites",
     "remove": "Remove from favourites",
     "loginRequired": "Sign in to save favourites",
-    "notSaved": "The favourite could not be saved."
+    "notSaved": "The favourite could not be saved.",
+    "addNamed": "Add {title} to favourites"
   },
   "Auth": {
     "loginTitle": "Sign in",

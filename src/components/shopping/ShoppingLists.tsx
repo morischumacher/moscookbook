@@ -90,7 +90,7 @@ export default function ShoppingLists({ lists, current }: { lists: ListSummary[]
                     </button>
                 </form>
             )}
-            {failed && <p className="mt-2 text-sm text-danger">{t('failed')}</p>}
+            {failed && <p role="alert" className="mt-2 text-sm text-danger">{t('failed')}</p>}
         </div>
     );
 }

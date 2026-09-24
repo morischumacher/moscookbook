@@ -234,7 +234,9 @@ export default function AccountSettings({
     const note = (panel: Panel | 'devices' | 'delete') =>
         said?.panel === panel ? (
             <p
-                role="status"
+                // A failure is an alert: a status region that appears
+                // together with its words is often not read at all.
+                role={said.good ? 'status' : 'alert'}
                 className={`mt-3 rounded-lg p-3 text-sm ${
                     said.good ? 'bg-surface text-ink' : 'border border-danger-line bg-danger-surface text-danger'
                 }`}

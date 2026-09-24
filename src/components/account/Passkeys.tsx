@@ -164,7 +164,7 @@ export default function Passkeys({ email }: { email: string }) {
 
             {said && (
                 <p
-                    role="status"
+                    role={said.good ? 'status' : 'alert'}
                     className={`mt-3 rounded-lg p-3 text-sm ${said.good ? 'bg-surface text-ink' : 'border border-danger-line bg-danger-surface text-danger'}`}
                 >
                     {said.good && <span aria-hidden="true">✓ </span>}

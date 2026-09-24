@@ -79,7 +79,7 @@ export default function ListSettings({ listId, name }: { listId: number; name: s
                     </button>
                 </div>
             )}
-            {failed && <p className="text-danger">{t('failed')}</p>}
+            {failed && <p role="alert" className="text-danger">{t('failed')}</p>}
         </div>
     );
 }

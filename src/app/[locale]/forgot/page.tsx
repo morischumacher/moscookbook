@@ -60,7 +60,7 @@ export default function ForgotPage() {
                     <p className="text-sm leading-relaxed text-muted">{t('forgotIntro')}</p>
 
                     {error && (
-                        <p className="rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
+                        <p role="alert" className="rounded-lg border border-danger-line bg-danger-surface p-3 text-sm text-danger">
                             {error}
                         </p>
                     )}

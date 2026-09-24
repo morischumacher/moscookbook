@@ -66,7 +66,7 @@ export default function PhotoPicker({
                     </label>
                 )}
             </div>
-            {failed && <p className="mt-2 text-sm text-danger">{failed}</p>}
+            {failed && <p role="alert" className="mt-2 text-sm text-danger">{failed}</p>}
         </div>
     );
 }
