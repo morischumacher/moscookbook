@@ -11,14 +11,16 @@ import {
 } from './authTokens';
 
 /**
- * Mint a token, mail it, and make every earlier one of the same kind useless.
+ * Mint a token and mail it. An earlier verify link is made useless; an
+ * earlier reset link is not.
  *
- * The invalidation is the part worth being deliberate about. Someone who clicks
- * "forgot my password" three times because nothing seems to be happening ends
- * up with three live keys to their account sitting in a mailbox; only the newest
- * should work. Marking the older ones used rather than deleting them also means
- * a second click on an old link says "this link has expired" instead of "unknown
- * link", which is the truth and reads far less alarming.
+ * Reset links used to be replaced too, so that three clicks on "forgot my
+ * password" left one live key in the mailbox rather than three. But anybody
+ * can ask for a reset for any address, so anybody could cancel the link the
+ * owner had just been sent, as often as they liked. Three live links in one
+ * mailbox are no more dangerous than one — whoever reads that mailbox can ask
+ * for another anyway — and redeeming any of them ends the rest. A used or
+ * replaced link still says "this link has expired" rather than "unknown link".
  *
  * The plain token is never returned or logged. It exists inside this function
  * and inside the message, and nowhere else.
@@ -31,10 +33,16 @@ export async function issueToken(
     const token = generateToken();
     const now = new Date();
 
-    await prisma.authToken.updateMany({
-        where: { userId: user.id, purpose, usedAt: null },
-        data: { usedAt: now },
-    });
+    // An earlier reset link stays good until it runs out: requested by
+    // somebody else, a new one used to cancel the one the owner had just
+    // been sent — again and again. Setting a password ends them all (the
+    // reset route). A verify link is still replaced: it has no such race.
+    if (purpose !== 'reset') {
+        await prisma.authToken.updateMany({
+            where: { userId: user.id, purpose, usedAt: null },
+            data: { usedAt: now },
+        });
+    }
 
     await prisma.authToken.create({
         data: {
