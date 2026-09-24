@@ -179,6 +179,7 @@ and the `draft` that came out (title, ingredient lines, instructions,
 servings, times, category).
 
 Where the code is:
+- `src/lib/fetchPage.ts`: safe HTTP fetcher with Chrome headers & automatic reader proxy fallback (`r.jina.ai` or `SCRAPING_PROXY_URL`) for WAF 403/503 resilience.
 - `src/lib/captureProcess.ts`: the pipeline, one path per source
   (`processYoutube`, `processSocial`, `processWebPage`, `processImage`).
 - `src/lib/recipeFromHtml.ts`, `src/lib/recipeParser.ts`: the rule-based
