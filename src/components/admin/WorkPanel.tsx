@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/lib/formatDate';
 import Loading from '@/components/ui/Loading';
@@ -49,17 +49,12 @@ interface Item {
     doneRef: string | null;
 }
 
-/**
- * What has been handed over for fixing, and the public address it is read
- * from. Closing an item keeps it visible there for a month as "recently
- * closed"; removing takes it off altogether.
- */
+const emptySubscribe = () => () => {};
+
 export default function WorkPanel() {
     const t = useTranslations('Work');
     const [items, setItems] = useState<Item[] | null>(null);
-    // Only ever rendered on the client (the tab is opened by a tap), so the
-    // address can be read straight away.
-    const [origin] = useState(() => (typeof window === 'undefined' ? '' : window.location.origin));
+    const origin = useSyncExternalStore(emptySubscribe, () => window.location.origin, () => '');
     const [copied, setCopied] = useState<string | null>(null);
     const [copyFailed, setCopyFailed] = useState(false);
 
