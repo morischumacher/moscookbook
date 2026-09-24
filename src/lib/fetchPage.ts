@@ -47,17 +47,32 @@ export async function fetchPage(rawUrl: string, options: { json?: boolean } = {}
     try {
         // safeFetch, not fetch: a redirect used to be followed by the runtime
         // without anything checking where to. See lib/safeFetch.
-        const response = await safeFetch(url, {
+        let response = await safeFetch(url, {
             signal: controller.signal,
             headers: {
-                // Some sites serve a stripped page to unknown agents.
-                'User-Agent': 'Mozilla/5.0 (compatible; moscookbook-import/1.0)',
-                Accept: options.json ? 'application/json' : 'text/html,application/xhtml+xml',
-                // Recipes shared here are German more often than not, and a
-                // site that localises will otherwise hand back English.
-                'Accept-Language': 'de-DE,de;q=0.9,en;q=0.5',
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                Accept: options.json ? 'application/json' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'Upgrade-Insecure-Requests': '1',
             },
         });
+
+        // Optional scraping proxy fallback (e.g. ScrapingBee / FlareSolverr / custom proxy) when blocked by WAF.
+        if (!response.ok && (response.status === 403 || response.status === 503) && process.env.SCRAPING_PROXY_URL) {
+            try {
+                const proxyUrl = process.env.SCRAPING_PROXY_URL.includes('{url}')
+                    ? process.env.SCRAPING_PROXY_URL.replace('{url}', encodeURIComponent(url))
+                    : `${process.env.SCRAPING_PROXY_URL}${encodeURIComponent(url)}`;
+                const proxied = await safeFetch(proxyUrl, { signal: controller.signal });
+                if (proxied.ok) response = proxied;
+            } catch {
+                // Fall back to original response if proxy fails
+            }
+        }
 
         if (!response.ok) {
             return { ok: false, failure: 'http-error', status: response.status };
