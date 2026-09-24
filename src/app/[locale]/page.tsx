@@ -437,9 +437,19 @@ export default async function HomePage({
         }
     }
 
+    /*
+     * Nothing narrowed and nobody who may see "only me" recipes: the list is
+     * every finished recipe that is not an admin's own, which is exactly
+     * what the cached facets' `total` counts (`isDraft: false, onlyMe:
+     * false` in lib/collectionFacets). The busiest view of the busiest page
+     * then does without its count query. Any other key on `where` — a
+     * filter, a search, favourites — or an admin viewer, and it is counted.
+     */
+    const unfiltered = !admin && Object.keys(where).every((key) => key === 'isDraft' || key === 'onlyMe');
+    const facetsQuery = collectionFacets();
     const [total, facets, recipes, myFavorites] = await Promise.all([
-        prisma.recipe.count({ where }),
-        collectionFacets(),
+        unfiltered ? facetsQuery.then((all) => all.total) : prisma.recipe.count({ where }),
+        facetsQuery,
         listRecipes(),
         earlyFavorites ?? favoritesQuery,
     ]);

@@ -209,7 +209,13 @@ export async function confirmWorkDone(id: number) {
  * - There is no item, and this is an obvious failure (workAuto.ts) → one is
  *   added, marked as automatic.
  */
-export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void> {
+export async function syncWorkItem(
+    kind: WorkKind,
+    refId: number,
+    // From syncAll, which brings hundreds of rows in line in one go: the
+    // names are read once for all of them rather than once per snapshot.
+    known?: { people: string[] }
+): Promise<void> {
     try {
         const item = await prisma.workItem.findUnique({ where: { kind_refId: { kind, refId } } });
         let problem = false;
@@ -268,7 +274,7 @@ export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void>
 
         if (item) {
             if (problem && (item.closedAt || recurred) && !item.dismissedAt && !settling) {
-                const data = await snapshotOf(kind, refId, item.withPhotos);
+                const data = await snapshotOf(kind, refId, item.withPhotos, known);
                 // The report is not thrown away: the next attempt should know
                 // what was tried and did not hold.
                 const tried = item.doneAt
@@ -291,7 +297,7 @@ export async function syncWorkItem(kind: WorkKind, refId: number): Promise<void>
         }
 
         if (obvious) {
-            const data = await snapshotOf(kind, refId);
+            const data = await snapshotOf(kind, refId, false, known);
             if (data) {
                 await prisma.workItem
                     .create({ data: { kind, refId, auto: true, data: data as object } })
@@ -343,7 +349,43 @@ export async function syncAll(): Promise<void> {
         // "Etwas geht nicht" tickets that never got their task.
         prisma.ticket.findMany({ where: { kind: 'problem', resolvedAt: null }, select: { id: true }, take: 500 }),
     ]);
-    for (const row of errors) await syncWorkItem('error', row.id);
-    for (const row of captures) await syncWorkItem('capture', row.id);
-    for (const id of new Set([...tickets.map((row) => row.refId), ...problems.map((row) => row.id)])) await syncWorkItem('ticket', id);
+    // Every snapshot anonymizes against the same names; reading them per row
+    // was two whole-table queries for each item that needed a snapshot.
+    const known = { people: await peopleNames() };
+    for (const row of errors) await syncWorkItem('error', row.id, known);
+    for (const row of captures) await syncWorkItem('capture', row.id, known);
+    for (const id of new Set([...tickets.map((row) => row.refId), ...problems.map((row) => row.id)])) await syncWorkItem('ticket', id, known);
+}
+
+/** Where the time of the last catch-up is kept, in AppSetting. */
+const CAUGHT_UP_KEY = 'workItems.caughtUpAt';
+
+/**
+ * syncAll, but at most once per `everyMs`, across every server instance.
+ *
+ * The time used to be a variable in memory, which on a serverless host is
+ * forgotten with each cold start and never shared between instances — so
+ * the throttle hardly ever held. It lives in the database now.
+ *
+ * The claim is one conditional update, so two admins opening the list at
+ * once do not both walk every open row: only the request that moves the
+ * stored time forward runs it. Stored as an ISO string, which sorts the way
+ * the times do, so the comparison can happen in the database.
+ */
+export async function syncAllAtMostEvery(everyMs: number): Promise<void> {
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - everyMs).toISOString();
+    const claimed = await prisma.appSetting.updateMany({
+        where: { key: CAUGHT_UP_KEY, value: { lt: cutoff } },
+        data: { value: now.toISOString() },
+    });
+    if (claimed.count === 0) {
+        // Either caught up recently, or never: only the first time is there
+        // no row yet, and then whoever creates it runs the catch-up.
+        const made = await prisma.appSetting
+            .create({ data: { key: CAUGHT_UP_KEY, value: now.toISOString() }, select: { key: true } })
+            .catch(() => null);
+        if (!made) return;
+    }
+    await syncAll();
 }

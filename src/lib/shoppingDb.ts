@@ -86,9 +86,16 @@ export interface ListSummary {
     count: number;
 }
 
-/** Every list this person can open: their main list, their other lists, then the ones they joined. */
-export async function listsOf(userId: number): Promise<ListSummary[]> {
-    await mainListOf(userId);
+/**
+ * Every list this person can open: their main list, their other lists, then
+ * the ones they joined.
+ *
+ * The main list is made first when there is none yet, so it is always among
+ * them. A caller that has just read it (the shopping page, through listFor)
+ * passes its id and saves asking the database the same question twice.
+ */
+export async function listsOf(userId: number, mainId?: number): Promise<ListSummary[]> {
+    if (mainId === undefined) await mainListOf(userId);
     const rows = await prisma.shoppingList.findMany({
         where: reachableBy(userId),
         orderBy: { createdAt: 'asc' },

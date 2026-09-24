@@ -3,22 +3,20 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { refuse, route } from '@/lib/route';
 import { WORK_KINDS, workTitle, type WorkKind } from '@/lib/workItems';
-import { publishWorkItem, syncAll } from '@/lib/workItemsDb';
+import { publishWorkItem, syncAllAtMostEvery } from '@/lib/workItemsDb';
 
 /**
  * Catching up walks every open error and capture, a few queries each: worth
- * doing now and then, not on every visit and every click on this page.
+ * doing now and then, not on every visit and every click on this page. When
+ * it last ran is kept in the database (see syncAllAtMostEvery), because a
+ * variable here is gone with every cold start of a serverless function.
  */
 const CATCH_UP_EVERY_MS = 10 * 60 * 1000;
-let caughtUpAt = 0;
 
 /** The admin's view of the work list: everything, with a title per row. */
 export const GET = route({ access: 'admin', label: 'Work list' }, async () => {
     // Catch up what was already there before items were added automatically.
-    if (Date.now() - caughtUpAt > CATCH_UP_EVERY_MS) {
-        caughtUpAt = Date.now();
-        await syncAll();
-    }
+    await syncAllAtMostEvery(CATCH_UP_EVERY_MS);
     const items = await prisma.workItem.findMany({ orderBy: [{ dismissedAt: { sort: 'asc', nulls: 'first' } }, { closedAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'desc' }], take: 200 });
     return NextResponse.json({
         items: items.map((item) => ({

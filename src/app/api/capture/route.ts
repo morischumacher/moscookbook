@@ -271,7 +271,29 @@ export async function GET() {
     // come back as `any`, and an inbox row silently losing its type is how a
     // duplicate hint ends up attached to the wrong capture.
     const [captures, recipes]: [CaptureRow[], ExistingRecipe[]] = await Promise.all([
-        prisma.capture.findMany({ orderBy: { createdAt: 'desc' }, take: 200 }),
+        // What the inbox reads of a row (app/[locale]/admin/inbox), and no
+        // more: this list is asked for every few seconds while something is
+        // being read, and the picture addresses and processing time were
+        // sent along each time for nothing to look at them.
+        prisma.capture.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 200,
+            select: {
+                id: true,
+                kind: true,
+                source: true,
+                sourceUrl: true,
+                rawText: true,
+                note: true,
+                status: true,
+                error: true,
+                readBy: true,
+                aiProvider: true,
+                draft: true,
+                recipeId: true,
+                createdAt: true,
+            },
+        }),
         // The whole list of titles, which for a personal cookbook is a few
         // kilobytes — cheaper than a query per row in the inbox.
         prisma.recipe.findMany({ select: { id: true, title: true, slug: true } }) as Promise<
@@ -321,20 +343,23 @@ export async function GET() {
      * fallbacks. Its own model when one is set, otherwise that provider's
      * default. No key material leaves here, only the name of a model.
      */
-    const ai = await aiCapability();
+    const ids = withHints.map((capture) => capture.id);
+    // Three answers that do not depend on each other, so asked at once.
+    const [ai, work, spent] = await Promise.all([
+        aiCapability(),
+        workStates('capture', ids),
+        // What reading each one cost, summed over its calls; the row shows it
+        // and opens the comparison from it. See lib/tokenUsage.
+        prisma.aiUsage
+            .groupBy({
+                by: ['captureId'],
+                where: { captureId: { in: ids } },
+                _sum: { input: true, output: true },
+            })
+            .catch(() => []),
+    ]);
     const next = ai.keys[0] ?? null;
 
-    const work = await workStates('capture', withHints.map((capture) => capture.id));
-
-    // What reading each one cost, summed over its calls; the row shows it
-    // and opens the comparison from it. See lib/tokenUsage.
-    const spent = await prisma.aiUsage
-        .groupBy({
-            by: ['captureId'],
-            where: { captureId: { in: withHints.map((capture) => capture.id) } },
-            _sum: { input: true, output: true },
-        })
-        .catch(() => []);
     const tokens = new Map(
         spent.map((row: { captureId: number | null; _sum: { input: number | null; output: number | null } }) => [
             row.captureId,
