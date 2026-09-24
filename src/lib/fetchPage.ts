@@ -70,7 +70,10 @@ export async function fetchPage(rawUrl: string, options: { json?: boolean } = {}
                     const proxyUrl = proxyTemplate.includes('{url}')
                         ? proxyTemplate.replace('{url}', encodeURIComponent(url))
                         : `${proxyTemplate}${encodeURIComponent(url)}`;
-                    const proxied = await safeFetch(proxyUrl, { signal: controller.signal });
+                    const proxied = await safeFetch(proxyUrl, {
+                        signal: controller.signal,
+                        headers: proxyUrl.includes('r.jina.ai') ? { 'X-Respond-With': 'html' } : undefined,
+                    });
                     if (proxied.ok) {
                         response = proxied;
                         wasProxied = true;
