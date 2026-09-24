@@ -11,7 +11,9 @@ export function parseQuantity(text: string): number | null {
     const trimmed = text.trim();
     // "1.000 g" and "1,000 g" are a thousand, not one: the German and the
     // English way of grouping thousands. ("1,5" is still one and a half.)
-    const cleaned = /^\d{1,3}([.,])\d{3}(\1\d{3})*$/.test(trimmed) ? trimmed.replace(/[.,]/g, '') : trimmed.replace(',', '.');
+    // Not with a leading zero: "0,250 kg" is a quarter kilo, and was read as
+    // 250 kg — 250,000 g on the shopping list.
+    const cleaned = /^[1-9]\d{0,2}([.,])\d{3}(\1\d{3})*$/.test(trimmed) ? trimmed.replace(/[.,]/g, '') : trimmed.replace(',', '.');
     if (!cleaned) return null;
 
     const mixed = /^(\d+)\s+(\d+)\s*\/\s*(\d+)$/.exec(cleaned);
@@ -45,7 +47,13 @@ export function formatQuantity(value: number, locale: 'en' | 'de' = 'de'): strin
     if (Number.isInteger(rounded)) return String(rounded);
 
     // Large values do not need sub-unit precision: "333 g" beats "333 1/3 g".
-    if (rounded >= 10) return String(Math.round(rounded));
+    // A half still counts below a hundred: 1 1/2 EL for seven is 10 1/2 EL,
+    // not 11 — spoons and cloves are not grams.
+    if (rounded >= 10) {
+        const half = Math.round(rounded * 2) / 2;
+        if (rounded < 100 && !Number.isInteger(half) && Math.abs(rounded - half) < 0.01) return `${Math.floor(half)} 1/2`;
+        return String(Math.round(rounded));
+    }
 
     const whole = Math.floor(rounded);
     const remainder = rounded - whole;

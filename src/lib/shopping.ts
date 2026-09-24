@@ -76,8 +76,28 @@ export function shoppingKey(name: string): string {
     // the plural loses three letters and the singular one, and "Zitrone" and
     // "Zitronen" never meet.
     const last = words[words.length - 1].replace(/(?<=\p{L}{3})nen$/u, 'ne');
-    words[words.length - 1] = singular(last) ?? singular(expandUmlauts(last)) ?? last;
+    words[words.length - 1] = settled(last);
     return words.join(' ');
+}
+
+/**
+ * The ending taken off until none is left. Once was not enough: it also took
+ * one off a word that was singular already, so "onion" became "onio" and
+ * "onions" became "onion", and one onion and two never met on the list.
+ * Taken to the end, both arrive at the same stem.
+ */
+/** Plurals no ending rule reaches: too short to strip safely, or irregular. */
+const IRREGULAR: Record<string, string> = { eier: 'ei', eggs: 'egg' };
+
+function settled(word: string): string {
+    if (IRREGULAR[word]) return IRREGULAR[word];
+    let current = singular(word) ?? singular(expandUmlauts(word)) ?? word;
+    for (let step = 0; step < 3; step += 1) {
+        const next = singular(current);
+        if (next === null || next === current) break;
+        current = next;
+    }
+    return current;
 }
 
 /** The name as a line shows it: without the preparation. */
@@ -133,13 +153,16 @@ export function lineFromText(text: string): PlannedLine | null {
     const trimmed = text
         .trim()
         .slice(0, 200)
-        .replace(/(\d)?([½⅓⅔¼¾])/g, (_, digit: string | undefined, glyph: string) => {
-            const ascii = ({ '½': '1/2', '⅓': '1/3', '⅔': '2/3', '¼': '1/4', '¾': '3/4' } as Record<string, string>)[glyph];
+        .replace(/(\d)?([½⅓⅔¼¾⅛⅜⅝⅞⅕])/g, (_, digit: string | undefined, glyph: string) => {
+            const ascii = ({ '½': '1/2', '⅓': '1/3', '⅔': '2/3', '¼': '1/4', '¾': '3/4', '⅛': '1/8', '⅜': '3/8', '⅝': '5/8', '⅞': '7/8', '⅕': '1/5' } as Record<string, string>)[glyph];
             return digit ? `${digit} ${ascii}` : ascii;
-        });
+        })
+        // "500g Mehl": the unit glued to the number, as it is often typed.
+        .replace(/^(\d+(?:[.,]\d+)?)([a-zA-ZäöüÄÖÜ]+\.?)\s/, '$1 $2 ');
     if (!trimmed) return null;
 
-    const match = /^(\S*\d\S*(?:\s*(?:-|–|bis)\s*\S*\d\S*)?)\s+(\S+)\s+(.+)$/.exec(trimmed);
+    // A mixed number too — "1 1/2 EL Zucker" read "1/2" as the unit.
+    const match = /^(\S*\d\S*(?:\s+\d+\/\d+)?(?:\s*(?:-|–|bis)\s*\S*\d\S*)?)\s+(\S+)\s+(.+)$/.exec(trimmed);
     // "500 g Mehl": number, unit, name. "2 Zitronen": number, name.
     let parts: AmountParts = { quantity: null, quantityMax: null, unit: null };
     let name = trimmed;

@@ -203,7 +203,12 @@ export function toBase(parts: AmountParts, ingredient: string): Measured | null 
     const value = parts.quantityMax ?? parts.quantity;
     const unit = unitOf(parts.unit);
 
-    if (!unit) return { key: `count:${countUnitKey(parts.unit ?? '')}`, amount: value };
+    // "Stück" is no unit at all: "2 Stück Paprika" and "1 Paprika" are three
+    // peppers, and were two lines.
+    if (!unit) {
+        const count = countUnitKey(parts.unit ?? '');
+        return { key: `count:${count === 'stück' ? '' : count}`, amount: value };
+    }
 
     const metric = toMetric({ quantity: value, quantityMax: null, unit: parts.unit }, ingredient, 'en');
     const metricUnit = unitOf(metric.unit);
@@ -229,7 +234,12 @@ export function fromBase(measured: Measured, locale: Locale = 'de'): AmountParts
         const tablespoons = measured.amount / 15;
         return tablespoons >= 1 && Math.abs(tablespoons - Math.round(tablespoons * 2) / 2) < 0.01
             ? { quantity: Math.round(tablespoons * 2) / 2, quantityMax: null, unit: locale === 'de' ? 'EL' : 'tbsp' }
-            : { quantity: Math.round((measured.amount / 5) * 4) / 4, quantityMax: null, unit: locale === 'de' ? 'TL' : 'tsp' };
+            : {
+                  // Never "0 TL": a pinch of cinnamon scaled down is still some.
+                  quantity: Math.max(0.125, Math.round((measured.amount / 5) * 4) / 4),
+                  quantityMax: null,
+                  unit: locale === 'de' ? 'TL' : 'tsp',
+              };
     }
 
     const unit = measured.key.slice('count:'.length);

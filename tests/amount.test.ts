@@ -15,6 +15,11 @@ export default function run() {
     check('formats 2.5', formatQuantity(2.5) === '2 1/2', formatQuantity(2.5));
     check('rounds big values', formatQuantity(333.33) === '333', formatQuantity(333.33));
     check('keeps integers', formatQuantity(6) === '6');
+    check('"0,250" is a quarter, not two hundred and fifty', parseQuantity('0,250') === 0.25, parseQuantity('0,250'));
+    check('"1.000" is still a thousand', parseQuantity('1.000') === 1000, parseQuantity('1.000'));
+    check('a half above ten is kept', formatQuantity(10.5) === '10 1/2', formatQuantity(10.5));
+    check('other fractions above ten round', formatQuantity(12.3) === '12', formatQuantity(12.3));
+    check('and a half above a hundred rounds too', formatQuantity(150.5) === '151', formatQuantity(150.5));
 
     suite('schema.org helpers');
     check('PT1H30M', isoDurationToMinutes('PT1H30M') === 90, isoDurationToMinutes('PT1H30M'));
