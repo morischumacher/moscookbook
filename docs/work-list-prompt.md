@@ -221,6 +221,7 @@ report it done.
 
 ## 3. Rules for your changes
 
+- **Prevent systemic issues, don't just patch symptoms.** Always address the root cause and build guards, defensive validation, or structural improvements that prevent similar problems across the codebase in the future, rather than just fixing a single specific instance.
 - **Run `npm run verify` before every commit.** It runs every check the
   project has (messages, design, backup coverage, Prisma, lint, tests,
   typecheck). It must pass; never skip or disable a check or a test to make

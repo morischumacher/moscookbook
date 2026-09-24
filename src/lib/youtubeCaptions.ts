@@ -93,6 +93,7 @@ function decodeEntities(text: string): string {
  * shapes: `<text start dur>` lines, and the newer `<p t d><s>word</s></p>`.
  */
 export function captionText(xml: string): string {
+    if (/^\s*<!DOCTYPE\s+html/i.test(xml) || /<html\b/i.test(xml)) return '';
     const pieces = [...xml.matchAll(/<(text|p)\b[^>]*>([\s\S]*?)<\/\1>/gi)].map((match) =>
         decodeEntities(match[2].replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim()
     );
