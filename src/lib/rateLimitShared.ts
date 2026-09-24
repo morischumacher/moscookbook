@@ -133,3 +133,20 @@ export function clientKey(req: NextRequest, scope: string): string {
     const ip = forwarded?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
     return `${scope}:${ip}`;
 }
+
+/**
+ * Something to keep for a while in the same table, without counting: "this
+ * address has signed in to this account before". Swept like every other row
+ * once it runs out.
+ */
+export async function rememberShared(key: string, windowMs: number): Promise<void> {
+    const expiresAt = new Date(Date.now() + windowMs);
+    await prisma.rateLimit
+        .upsert({ where: { key }, create: { key, count: 1, expiresAt }, update: { expiresAt } })
+        .catch(() => undefined);
+}
+
+export async function rememberedShared(key: string): Promise<boolean> {
+    const row = await prisma.rateLimit.findUnique({ where: { key }, select: { expiresAt: true } }).catch(() => null);
+    return Boolean(row && row.expiresAt > new Date());
+}

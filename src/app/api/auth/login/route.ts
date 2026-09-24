@@ -3,7 +3,10 @@ import { getIronSession } from 'iron-session';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { sessionOptions, sessionUserFrom, SessionData } from '@/lib/session';
-import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
+import { clientKey, rateLimitShared, rememberShared, rememberedShared } from '@/lib/rateLimitShared';
+
+/** How long an address a person signed in from stays known to their account. */
+const KNOWN_ADDRESS_MS = 90 * 24 * 60 * 60 * 1000;
 import prisma from '@/lib/prisma';
 import { failed } from '@/lib/reportServerError';
 import { DUMMY_HASH } from '@/lib/passwordHash';
@@ -47,7 +50,16 @@ export async function POST(req: NextRequest) {
          * that do not alike, so the count itself does not say which is which.
          */
         const account = await rateLimitShared(`login:account:${email.toLowerCase()}`, 20, 15 * 60 * 1000);
-        if (!account.ok) {
+        /*
+         * That ceiling was also a way to lock somebody out: a few machines
+         * guessing at a known member's address kept it full, and the member
+         * could not sign in with the right password. An address this account
+         * has signed in from before is let through it — the attacker is not
+         * on the member's own network — while the per-address limit above
+         * still applies to it.
+         */
+        const knownHere = clientKey(req, `login:known:${email.toLowerCase()}`);
+        if (!account.ok && !(await rememberedShared(knownHere))) {
             return NextResponse.json(
                 { message: 'Too many login attempts. Please try again later.' },
                 { status: 429, headers: { 'Retry-After': String(account.retryAfterSeconds) } }
@@ -80,6 +92,7 @@ export async function POST(req: NextRequest) {
         session.user = sessionUserFrom(user);
 
         await session.save();
+        await rememberShared(knownHere, KNOWN_ADDRESS_MS);
 
         return res;
     } catch (error) {
