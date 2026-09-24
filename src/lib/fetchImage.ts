@@ -37,15 +37,7 @@ export async function fetchImageAsBase64(url: string): Promise<FetchedImage> {
 
     try {
         // Every hop re-checked; see lib/safeFetch.
-        const response = await safeFetch(url, {
-            signal: controller.signal,
-            headers: {
-                // Use a standard browser User-Agent to prevent bot blocking on sites like Maangchi
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-                'Accept-Language': 'de-DE,de;q=0.9,en;q=0.5',
-            },
-        });
+        const response = await safeFetch(url, { signal: controller.signal });
 
         if (!response.ok) return { ok: false, failure: 'http-error' };
 
@@ -67,3 +59,5 @@ export async function fetchImageAsBase64(url: string): Promise<FetchedImage> {
         clearTimeout(timer);
     }
 }
+
+this is the old, give me the new
