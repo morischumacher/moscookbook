@@ -488,6 +488,11 @@ export default async function HomePage({
         isLoggedIn,
     }));
 
+    // The facets are shared by everybody and so leave out "only me" recipes;
+    // an admin's list includes theirs, and "Alle Kategorien 4" sat above
+    // "6 Rezepte". One count, for an admin only.
+    const allCount = admin ? await prisma.recipe.count({ where: { isDraft: false } }) : facets.total;
+
     return (
         <main className={`${pageContainer} pb-32`}>
             {/*
@@ -513,7 +518,7 @@ export default async function HomePage({
                         quickCount={facets.quick}
                         spicyCount={facets.spicy}
                         isLoggedIn={isLoggedIn}
-                        total={facets.total}
+                        total={allCount}
                     />
                 </Suspense>
 
