@@ -17,7 +17,7 @@ export default async function NewPost({
     const { recipeId } = await searchParams;
     const t = await getTranslations('Blog');
 
-    const [recipes, collections] = await Promise.all([recipeOptions(), collectionOptions()]);
+    const [recipes, collections] = await Promise.all([recipeOptions(true), collectionOptions()]);
 
     // A draft is not in the list, so `?recipeId=` naming one is simply dropped.
     const preselected = Number.parseInt(recipeId ?? '', 10);

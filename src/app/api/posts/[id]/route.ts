@@ -58,6 +58,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
                 imageUrl,
                 ...linkReplacements(recipeIds, collectionIds),
                 publishedAt,
+                // Taken back to a draft, it also loses its secret link and its
+                // place on the open web, as a recipe does: publishing it again
+                // used to bring both back without a word.
+                ...(!published && existing.publishedAt ? { shareToken: null, isPublic: false } : {}),
             },
             select: { id: true, slug: true, publishedAt: true },
         });

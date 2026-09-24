@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 
 /**
  * Keeping what somebody has typed, in case the page goes away.
@@ -108,6 +108,11 @@ export function useLocalDraft<T>(
         () => false
     );
 
+    // The write waiting out its debounce, so that clear() can cancel it: a
+    // save within 800 ms of the last keystroke cleared the draft, and then
+    // the timer wrote it back — offered as unsaved on the next visit.
+    const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     useEffect(() => {
         if (!worthKeeping) return;
 
@@ -120,7 +125,7 @@ export function useLocalDraft<T>(
 
         // Debounced, because this runs on every keystroke and localStorage is
         // synchronous — writing a long entry on every character would be felt.
-        const timer = setTimeout(() => {
+        const timer = (pending.current = setTimeout(() => {
             try {
                 window.localStorage.setItem(key, JSON.stringify(values));
                 // Deliberately not invalidating the cache: this form's own
@@ -130,7 +135,7 @@ export function useLocalDraft<T>(
                 // Full, blocked, or a private window. Nothing to do and nothing
                 // worth saying: the form still works.
             }
-        }, 800);
+        }, 800));
 
         return () => clearTimeout(timer);
     }, [key, values, worthKeeping, found]);
@@ -146,6 +151,7 @@ export function useLocalDraft<T>(
     };
 
     const clear = () => {
+        if (pending.current) clearTimeout(pending.current);
         try {
             window.localStorage.removeItem(key);
         } catch {

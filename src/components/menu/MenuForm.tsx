@@ -78,6 +78,7 @@ export default function MenuForm({ initial, recipes }: { initial: MenuDraft; rec
         }));
 
     const save = async () => {
+        let left = false;
         setBusy(true);
         setError('');
         try {
@@ -99,18 +100,30 @@ export default function MenuForm({ initial, recipes }: { initial: MenuDraft; rec
                 setError(sayable(data?.message, t('saveFailed')));
                 return;
             }
+            // Saved: the button stays disabled while the page changes. Freed in
+            // `finally`, a second press in that moment saved a copy ("…-2").
+            left = true;
             router.push(`/menus/${data.slug}`);
             router.refresh();
         } catch {
             setError(t('saveFailed'));
         } finally {
-            setBusy(false);
+            if (!left) setBusy(false);
         }
     };
 
     const remove = async () => {
         if (!menu.id) return;
-        await fetch(`/api/menus/${menu.id}`, { method: 'DELETE' }).catch(() => null);
+        setBusy(true);
+        setError('');
+        // It went to the list whatever happened, so a menu that was not
+        // deleted looked deleted.
+        const res = await fetch(`/api/menus/${menu.id}`, { method: 'DELETE' }).catch(() => null);
+        if (!res?.ok) {
+            setError(t('saveFailed'));
+            setBusy(false);
+            return;
+        }
         router.push('/menus');
         router.refresh();
     };
@@ -185,6 +198,7 @@ export default function MenuForm({ initial, recipes }: { initial: MenuDraft; rec
                             <div className="flex items-center gap-1">
                                 <input
                                     value={course.name}
+                                    maxLength={60}
                                     onChange={(event) => setCourse(courseIndex, { ...course, name: event.target.value })}
                                     aria-label={t('courseName')}
                                     className={`${field} font-bold`}
@@ -221,6 +235,7 @@ export default function MenuForm({ initial, recipes }: { initial: MenuDraft; rec
                                             </select>
                                             <input
                                                 value={dish.title}
+                                                maxLength={160}
                                                 onChange={(event) => setDish({ ...dish, title: event.target.value })}
                                                 placeholder={chosen ? chosen.title : t('dishTitlePlaceholder')}
                                                 aria-label={t('dishTitle')}
@@ -228,6 +243,7 @@ export default function MenuForm({ initial, recipes }: { initial: MenuDraft; rec
                                             />
                                             <input
                                                 value={dish.description}
+                                                maxLength={240}
                                                 onChange={(event) => setDish({ ...dish, description: event.target.value })}
                                                 placeholder={t('dishDescriptionPlaceholder')}
                                                 aria-label={t('dishDescription')}

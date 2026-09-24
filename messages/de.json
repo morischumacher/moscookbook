@@ -748,7 +748,9 @@
     "fieldCollections": "Sammlungen in diesem Beitrag",
     "collectionsHint": "Dasselbe, für ganze Sammlungen.",
     "slugHint": "Der letzte Teil des Links zum Beitrag. Er entsteht aus dem Titel; ändere ihn nur, wenn du einen anderen Link willst, und nicht mehr, wenn der Beitrag schon geteilt wurde.",
-    "readMore": "Weiterlesen"
+    "readMore": "Weiterlesen",
+    "unpublish": "Zurückziehen",
+    "unpublishQuestion": "Offline nehmen? Der Beitrag wird wieder ein Entwurf, sein geteilter Link hört auf zu funktionieren."
   },
   "Cooked": {
     "add": "Foto hinzufügen",
