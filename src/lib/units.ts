@@ -114,11 +114,12 @@ export function tidy(parts: AmountParts, locale: Locale = 'de'): AmountParts {
 
     const def = (id: string) => UNITS.find((candidate) => candidate.id === id)!;
 
+    // Chosen after rounding: 999 g rounds to 1000, and read "1.000 g".
     if (unit.dimension === 'mass' && unit.metric) {
-        return express(top * unit.base >= 1000 ? def('kg') : def('g'));
+        return express(kitchenRound(top * unit.base, 'g') >= 1000 ? def('kg') : def('g'));
     }
     if (unit.dimension === 'volume' && unit.metric) {
-        return express(top * unit.base >= 1000 ? def('l') : def('ml'));
+        return express(kitchenRound(top * unit.base, 'ml') >= 1000 ? def('l') : def('ml'));
     }
     // Three teaspoons are a tablespoon, but only when it comes out even.
     if (unit.id === 'tsp' && parts.quantity >= 3 && Number.isInteger(parts.quantity / 3) && parts.quantityMax === null) {
@@ -177,6 +178,16 @@ const COUNT_UNITS: Array<[singular: string, plural: string]> = [
 const ENGLISH_COUNT_UNITS = new Set(['clove', 'can', 'slice', 'pinch', 'bunch']);
 const COUNT_ALIASES: Record<string, string> = { stk: 'stück', 'stk.': 'stück', pck: 'packung', 'pck.': 'packung', päckchen: 'packung' };
 
+/**
+ * A named unit agreeing with its number: "1 Zehe" for three is "3 Zehen",
+ * not "3 Zehe". Anything that is not one of the named units comes back as it
+ * was written.
+ */
+export function countUnitLabel(unit: string | null, amount: number): string | null {
+    if (!unit || !isCountUnit(unit)) return unit;
+    return countUnitFor(countUnitKey(unit), amount);
+}
+
 /** A word that is a unit of its own ("Zehe", "Dosen", "Stk"), not part of the name. */
 export function isCountUnit(word: string): boolean {
     const lower = word.trim().toLowerCase();
@@ -203,9 +214,18 @@ export function toBase(parts: AmountParts, ingredient: string): Measured | null 
     const value = parts.quantityMax ?? parts.quantity;
     const unit = unitOf(parts.unit);
 
-    if (!unit) return { key: `count:${countUnitKey(parts.unit ?? '')}`, amount: value };
+    // "Stück" is no unit at all: "2 Stück Paprika" and "1 Paprika" are three
+    // peppers, and were two lines.
+    if (!unit) {
+        const count = countUnitKey(parts.unit ?? '');
+        return { key: `count:${count === 'stück' ? '' : count}`, amount: value };
+    }
 
-    const metric = toMetric({ quantity: value, quantityMax: null, unit: parts.unit }, ingredient, 'en');
+    // A metric amount as it is, not tidied: tidying rounds (1234 g → 1,23 kg),
+    // and the list added up the rounded numbers — 1230 g of flour.
+    const metric = unit.metric
+        ? { quantity: value, quantityMax: null, unit: parts.unit }
+        : toMetric({ quantity: value, quantityMax: null, unit: parts.unit }, ingredient, 'en');
     const metricUnit = unitOf(metric.unit);
     if (!metricUnit || metric.quantity === null) return null;
 
@@ -227,9 +247,18 @@ export function fromBase(measured: Measured, locale: Locale = 'de'): AmountParts
     if (measured.key === 'volume') return tidy({ quantity: measured.amount, quantityMax: null, unit: 'ml' }, locale);
     if (measured.key === 'spoon') {
         const tablespoons = measured.amount / 15;
-        return tablespoons >= 1 && Math.abs(tablespoons - Math.round(tablespoons * 2) / 2) < 0.01
-            ? { quantity: Math.round(tablespoons * 2) / 2, quantityMax: null, unit: locale === 'de' ? 'EL' : 'tbsp' }
-            : { quantity: Math.round((measured.amount / 5) * 4) / 4, quantityMax: null, unit: locale === 'de' ? 'TL' : 'tsp' };
+        // Halves, and thirds below ten: 2 EL and 1 TL is "2 1/3 EL", not
+        // "7 TL". (Above ten a third is not printed, so it stays teaspoons.)
+        const even = (step: number) => Math.abs(tablespoons - Math.round(tablespoons * step) / step) < 0.01;
+        const inTablespoons = tablespoons >= 1 && (even(2) || (tablespoons < 10 && even(3)));
+        return inTablespoons
+            ? { quantity: Math.round(tablespoons * (even(2) ? 2 : 3)) / (even(2) ? 2 : 3), quantityMax: null, unit: locale === 'de' ? 'EL' : 'tbsp' }
+            : {
+                  // Never "0 TL": a pinch of cinnamon scaled down is still some.
+                  quantity: Math.max(0.125, Math.round((measured.amount / 5) * 4) / 4),
+                  quantityMax: null,
+                  unit: locale === 'de' ? 'TL' : 'tsp',
+              };
     }
 
     const unit = measured.key.slice('count:'.length);

@@ -9,7 +9,7 @@ import { buttonFloating, buttonPrimarySmall } from '@/lib/ui';
 import CookMode from './CookMode';
 import { useCookTimers } from './useCookTimers';
 import { clock } from '@/lib/cookSteps';
-import { formatMeasured, hasNonMetric, tidy, toMetric, unitOf, type UnitSystem } from '@/lib/units';
+import { formatMeasured, hasNonMetric, tidy, toMetric, unitOf, type UnitSystem, countUnitLabel } from '@/lib/units';
 import { cookProgressKey, parseCookProgress, worthSaving } from '@/lib/cookProgress';
 import PrintSheet, { type PrintInfo } from './PrintSheet';
 
@@ -130,7 +130,11 @@ export default function RecipeBody({
         const unit = unitOf(row.unit);
         const converts = system === 'metric' && unit !== null && !unit.metric;
         if (factor === 1 && !converts) return row.raw || formatAmount(row, 1, uiLocale);
-        const shown = converts ? toMetric(scaled, row.name, uiLocale) : unit ? tidy(scaled, uiLocale) : scaled;
+        const shown = converts
+            ? toMetric(scaled, row.name, uiLocale)
+            : unit
+              ? tidy(scaled, uiLocale)
+              : { ...scaled, unit: countUnitLabel(scaled.unit, scaled.quantityMax ?? scaled.quantity) };
         // "ca. 200 g" doubled is still about 400 g: the hedge was dropped
         // with the rest of the written amount.
         const hedge = /^(ca\.|circa|etwa|ungefähr|about|approx\.?|~)\s*/i.exec(row.raw ?? '')?.[0] ?? '';

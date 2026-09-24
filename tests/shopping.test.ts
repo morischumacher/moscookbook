@@ -76,6 +76,17 @@ export default function shoppingTests() {
     equal('"500 g Mehl"', lineFromText('500 g Mehl'), { name: 'Mehl', key: 'mehl', measure: 'mass', amount: 500, aisle: 'pantry', source: null });
     equal('"2 Zitronen"', lineFromText('2 Zitronen')?.amount, 2);
     equal('"Klopapier"', lineFromText('Klopapier')?.amount, null);
+    for (const [one, many] of [['onion', 'onions'], ['lemon', 'lemons'], ['tomato', 'tomatoes'], ['Zitrone', 'Zitronen'], ['Ei', 'Eier'], ['egg', 'eggs'], ['Kartoffel', 'Kartoffeln']]) {
+        equal(`"${one}" and "${many}" are one line`, shoppingKey(one), shoppingKey(many));
+    }
+    equal('"500g Mehl", the unit glued on', [lineFromText('500g Mehl')?.name, lineFromText('500g Mehl')?.amount, lineFromText('500g Mehl')?.measure], ['Mehl', 500, 'mass']);
+    equal('"1 1/2 EL Zucker" keeps its unit', [lineFromText('1 1/2 EL Zucker')?.name, lineFromText('1 1/2 EL Zucker')?.measure], ['Zucker', 'spoon']);
+    equal('"⅛ l Sahne"', [lineFromText('⅛ l Sahne')?.name, lineFromText('⅛ l Sahne')?.amount], ['Sahne', 125]);
+    equal(
+        '"2 Stück Paprika" and "1 Paprika" are one line',
+        lineFromText('2 Stück Paprika')?.measure === lineFromText('1 Paprika')?.measure,
+        true
+    );
     equal('which goes under other', lineFromText('Klopapier')?.aisle, 'other');
 
     suite('shopping: read back');
