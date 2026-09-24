@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { messageFrom } from '@/lib/apiMessage';
-import { forgetOfflineCopies } from '@/lib/offlineCopies';
+import { forgetLocalData, forgetOfflineCopies } from '@/lib/offlineCopies';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { buttonPrimarySmall, buttonDanger } from '@/lib/ui';
 import { BusyLabel } from '@/components/ui/Busy';
@@ -189,6 +189,7 @@ export default function AccountSettings({
         );
 
         if (!ok) return;
+        forgetLocalData();
         await forgetOfflineCopies();
 
         /*
@@ -222,6 +223,7 @@ export default function AccountSettings({
         );
         if (!ok) return;
 
+        forgetLocalData();
         await forgetOfflineCopies();
         router.replace('/login');
         router.refresh();

@@ -18,10 +18,54 @@ export async function forgetOfflineCopies(): Promise<void> {
     try {
         const names = await caches.keys();
         await Promise.all(
-            names.filter((name) => name.startsWith('moscookbook-')).map((name) => caches.delete(name))
+            names
+                .filter((name) => name.startsWith('moscookbook-'))
+                .map(async (name) => {
+                    // Everything but the offline page itself: the worker only
+                    // puts that in when it installs, so deleting the whole
+                    // cache left "no signal" as the browser's own error page
+                    // until the next deploy.
+                    const cache = await caches.open(name);
+                    for (const request of await cache.keys()) {
+                        if (new URL(request.url).pathname !== '/offline.html') await cache.delete(request);
+                    }
+                })
         );
     } catch {
         // Nothing to add: a cache that cannot be listed cannot be read either.
+    }
+}
+
+/** What a person leaves in this browser's storage while using the site. */
+const PERSONAL_KEYS = /^(moscookbook:draft:|post-draft-|moscookbook:cooking:|moscookbook:timers:|shopping-pending:|shopping-target$)/;
+
+/**
+ * Throws away what somebody left in this browser: unsaved recipe and post
+ * drafts, cooking progress and timers, shopping ticks still to be sent.
+ *
+ * On a shared tablet the next person was offered the last one's unsaved
+ * recipe — to restore and publish under their own name — and saw their
+ * ticked steps and running timers. Called on signing out and on deleting the
+ * account, not on the login page: somebody whose session ran out comes back
+ * through it, and their unsaved draft is exactly what the draft is for.
+ */
+export function forgetLocalData(): void {
+    for (const store of [safeStorage('local'), safeStorage('session')]) {
+        if (!store) continue;
+        try {
+            const keys = Array.from({ length: store.length }, (_, index) => store.key(index)).filter((key): key is string => key !== null);
+            for (const key of keys) if (PERSONAL_KEYS.test(key)) store.removeItem(key);
+        } catch {
+            // Blocked storage: nothing was kept there either.
+        }
+    }
+}
+
+function safeStorage(kind: 'local' | 'session'): Storage | null {
+    try {
+        return kind === 'local' ? window.localStorage : window.sessionStorage;
+    } catch {
+        return null;
     }
 }
 
