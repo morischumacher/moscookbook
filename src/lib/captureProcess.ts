@@ -96,7 +96,7 @@ async function fromLinkedRecipe(
     options: ProcessOptions
 ): Promise<ProcessedCapture | null> {
     for (const link of recipeLinksIn(text)) {
-        const result = await processWebPage(link, null, ai, options);
+        const result = await processWebPage(link, null, RULES_ONLY, options);
         if (result.status === 'ready' && result.draft) {
             // Filed under what was shared: the video or post is what the
             // inbox and the duplicate check know it by.
@@ -227,7 +227,7 @@ async function processYoutube(
         const spoken = await spokenText(tracks);
         const helped = await fillGapsWithAi(
             merged,
-            [video.title, description, shared, spoken ? `Gesprochen im Video / spoken in the video:\n${spoken}` : '']
+            [video.title, video.description, spoken ? `Gesprochen im Video / spoken in the video:\n${spoken}` : '']
                 .filter(Boolean)
                 .join('\n\n'),
             ai,

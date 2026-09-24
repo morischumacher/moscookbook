@@ -59,5 +59,3 @@ export async function fetchImageAsBase64(url: string): Promise<FetchedImage> {
         clearTimeout(timer);
     }
 }
-
-this is the old, give me the new

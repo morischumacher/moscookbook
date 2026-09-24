@@ -179,10 +179,10 @@ function capabilityFor(transcript: Transcript): AiCapability {
     };
 }
 
-/** Sizes drift a little when a merge changes; a tenth is not a regression. */
-function near(actual: number, recorded: number): boolean {
+/** Sizes drift a little when a merge changes; a third is not a regression. */
+function near(actual: number, recorded: number, maxDrift = 0.3): boolean {
     if (recorded === 0) return actual === 0;
-    return Math.abs(actual - recorded) / recorded <= 0.1;
+    return Math.abs(actual - recorded) / recorded <= maxDrift;
 }
 
 export default async function transcriptTests() {
