@@ -10,3 +10,5 @@
 2. **YouTube Subtitle HTML Protection**: `captionText` in `src/lib/youtubeCaptions.ts` must return an empty string `''` if the fetched body is an HTML document (`<!DOCTYPE html>` or `<html>`), preventing 403 or fallback HTML pages from being falsely parsed as video subtitles.
 3. **HTTP 403 & WAF Resilience**: `fetchPage` in `src/lib/fetchPage.ts` uses modern Chrome browser headers and supports automatic fallback via reader proxies (`r.jina.ai` or `SCRAPING_PROXY_URL`) when target sites block direct server requests with 403/503 WAF anti-bot pages.
 4. **Prisma Type Synchronization**: If Prisma types are out of sync during `npm run verify` / `tsc`, run `npx prisma generate` to rebuild `@prisma/client` types before running typecheck.
+5. **Source Link Visibility**: External source links (`RecipeSource` / `sourceUrl`) on recipe pages must only be visible to admin users (`isAdmin === true`). They must never be rendered to regular users or guests on shared recipe pages.
+

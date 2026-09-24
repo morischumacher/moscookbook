@@ -372,12 +372,10 @@ export default async function RecipeArticle({
                     of it — which is the same kind of fact: something about the
                     recipe rather than part of it.
 
-                    Shown to whoever can see the page, including somebody
-                    holding a shared link: crediting the blog a recipe was
-                    taken from is the right thing to do in front of a guest,
-                    not something to hide from one.
+                    Only visible to admins: non-admin users should never see
+                    the external source link on recipe pages.
                 */}
-                {recipe.captures?.[0]?.sourceUrl && (
+                {isAdmin && recipe.captures?.[0]?.sourceUrl && (
                     <div className="print:hidden mt-4">
                         <RecipeSource url={recipe.captures[0].sourceUrl} />
                     </div>
