@@ -221,7 +221,11 @@ export function toBase(parts: AmountParts, ingredient: string): Measured | null 
         return { key: `count:${count === 'stück' ? '' : count}`, amount: value };
     }
 
-    const metric = toMetric({ quantity: value, quantityMax: null, unit: parts.unit }, ingredient, 'en');
+    // A metric amount as it is, not tidied: tidying rounds (1234 g → 1,23 kg),
+    // and the list added up the rounded numbers — 1230 g of flour.
+    const metric = unit.metric
+        ? { quantity: value, quantityMax: null, unit: parts.unit }
+        : toMetric({ quantity: value, quantityMax: null, unit: parts.unit }, ingredient, 'en');
     const metricUnit = unitOf(metric.unit);
     if (!metricUnit || metric.quantity === null) return null;
 

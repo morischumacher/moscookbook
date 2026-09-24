@@ -57,4 +57,5 @@ export default function unitsTests() {
     equal('English stays lower case', countUnitLabel('clove', 2), 'cloves');
     equal('2 EL and 1 TL on the list', fromBase({ key: 'spoon', amount: 35 }, 'de'), { quantity: 7 / 3, quantityMax: null, unit: 'EL' });
     equal('3 EL stay 3 EL', fromBase({ key: 'spoon', amount: 45 }, 'de').quantity, 3);
+    equal('1234 g reach the list as 1234 g', toBase({ quantity: 1234, quantityMax: null, unit: 'g' }, 'Mehl'), { key: 'mass', amount: 1234 });
 }
