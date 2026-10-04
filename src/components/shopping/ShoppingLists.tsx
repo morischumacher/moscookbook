@@ -58,10 +58,15 @@ export default function ShoppingLists({ lists, current }: { lists: ListSummary[]
                         {list.count > 0 && <span className="text-xs opacity-70">{list.count}</span>}
                     </Link>
                 ))}
-                {!creating && (
+                {!creating && lists.filter((l) => l.owner).length < 3 && (
                     <button type="button" onClick={() => setCreating(true)} className={chip(false)}>
                         {t('newList')}
                     </button>
+                )}
+                {!creating && lists.filter((l) => l.owner).length >= 3 && (
+                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line px-3 py-2 text-xs text-faint">
+                        Max 3 Listen
+                    </span>
                 )}
             </nav>
             {creating && (

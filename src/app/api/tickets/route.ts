@@ -120,37 +120,67 @@ export async function GET(req: NextRequest) {
 }
 
 const resolveSchema = z.object({
-    id: z.number().int().positive().max(2_147_483_647),
+    id: z.number().int().positive().max(2_147_483_647).optional(),
+    ids: z.array(z.number().int().positive().max(2_147_483_647)).optional(),
     resolved: z.boolean().default(false),
 });
 
-/** Marking one dealt with, or putting it back. */
+/** Marking one or many dealt with, or putting them back. */
 export async function PATCH(req: NextRequest) {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    // The file already had a schema for its POST and abandoned it for this,
-    // which made it the one PATCH in the codebase parsed by hand.
     const parsed = resolveSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {
         return NextResponse.json({ message: 'Which one?' }, { status: 400 });
     }
-    const { id, resolved: done } = parsed.data;
+    const { id, ids, resolved: done } = parsed.data;
+    const targetIds = ids ?? (id ? [id] : []);
+
+    if (targetIds.length === 0) {
+        return NextResponse.json({ message: 'Which ones?' }, { status: 400 });
+    }
 
     try {
-        const updated: { count: number } = await prisma.ticket.updateMany({
-            where: { id },
+        await prisma.ticket.updateMany({
+            where: { id: { in: targetIds } },
             data: { resolvedAt: done ? new Date() : null },
         });
 
-        if (updated.count !== 1) {
-            return NextResponse.json({ message: 'That is not there any more.' }, { status: 404 });
+        for (const tid of targetIds) {
+            await syncWorkItem('ticket', tid);
         }
-        await syncWorkItem('ticket', id);
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        failed('Could not update ticket:', error);
+        failed('Could not update tickets:', error);
+        return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
+    }
+}
+
+const deleteSchema = z.object({
+    ids: z.array(z.number().int().positive().max(2_147_483_647)).min(1),
+});
+
+/** Bulk deleting tickets. */
+export async function DELETE(req: NextRequest) {
+    const auth = await requireAdmin();
+    if ('response' in auth) return auth.response;
+
+    const parsed = deleteSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
+        return NextResponse.json({ message: 'Which ones?' }, { status: 400 });
+    }
+    const { ids } = parsed.data;
+
+    try {
+        await prisma.ticket.deleteMany({
+            where: { id: { in: ids } },
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        failed('Could not delete tickets:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
 }

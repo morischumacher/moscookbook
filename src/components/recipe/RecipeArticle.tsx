@@ -255,7 +255,7 @@ export default async function RecipeArticle({
 
                 <p className="text-xs font-semibold uppercase tracking-widest text-faint">
                     {head.shown.join(' · ') || formatDate(recipe.createdAt, locale, 'short')}
-                    {head.more > 0 && <span title={labels.slice(3).join(', ')}> · +{head.more}</span>}
+                    {head.more > 0 && <span title={labels.slice(3).join(', ')} className="whitespace-nowrap"> · +{head.more}</span>}
                 </p>
 
                 <h1 className="mt-2 text-3xl font-extrabold leading-[1.12] tracking-tight text-ink sm:text-4xl">

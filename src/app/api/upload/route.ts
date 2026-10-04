@@ -3,6 +3,7 @@ import { put } from '@vercel/blob';
 import { requireAdmin } from '@/lib/auth';
 import { checkImageUpload, convertHeicToJpeg, normaliseUpload } from '@/lib/uploadImage';
 import { failed } from '@/lib/reportServerError';
+import { slugify } from '@/lib/recipe';
 
 /**
  * The admin form's upload: a recipe's own photography.
@@ -78,8 +79,12 @@ export async function POST(request: Request) {
         }
 
         const { buffer, filename: finalFilename, contentType } = normalised.image;
+        const titleParam = formData.get('title') || formData.get('recipeTitle');
+        const safeTitle = typeof titleParam === 'string' && titleParam.trim() ? slugify(titleParam.trim()) : '';
+        const ext = finalFilename.includes('.') ? finalFilename.split('.').pop() : 'jpg';
+        const cleanName = safeTitle ? `${safeTitle}_${Date.now()}.${ext}` : `${Date.now()}_${finalFilename}`;
 
-        const blob = await put(`${Date.now()}_${finalFilename}`, buffer, {
+        const blob = await put(cleanName, buffer, {
             access: 'public',
             contentType,
         });

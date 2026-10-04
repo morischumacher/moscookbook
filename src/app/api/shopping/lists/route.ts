@@ -14,7 +14,7 @@ import { requestedList } from '@/lib/shoppingRequest';
  * PATCH `?list=<id>` `{name}`: renamed. DELETE `?list=<id>`: gone, with its lines.
  */
 
-const MAX_LISTS = 20;
+const MAX_LISTS = 3;
 const nameBody = z.object({ name: z.string().trim().min(1).max(60) });
 
 export const GET = route({ access: 'user', label: 'Shopping lists' }, async ({ user }) => {
@@ -23,7 +23,7 @@ export const GET = route({ access: 'user', label: 'Shopping lists' }, async ({ u
 
 export const POST = route({ access: 'user', body: nameBody, label: 'Making a shopping list' }, async ({ user, body }) => {
     const count = await prisma.shoppingList.count({ where: { userId: user.id } });
-    if (count >= MAX_LISTS) refuse(409, 'That is a lot of lists. Delete one first.');
+    if (count >= MAX_LISTS) refuse(409, 'Maximum 3 shopping lists per account. Please delete a list first.');
     const list = await prisma.shoppingList.create({ data: { userId: user.id, name: body.name }, select: { id: true } });
     return NextResponse.json({ id: list.id });
 });

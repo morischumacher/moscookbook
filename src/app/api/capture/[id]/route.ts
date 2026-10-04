@@ -200,7 +200,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     try {
         // A retry or a model can leave a foreign picture in the draft, and
         // next/image only shows our own store. Ours stays as it is.
-        const picture = draft.imageUrl ? await mirrorImageToBlob(draft.imageUrl) : '';
+        const picture = draft.imageUrl ? await mirrorImageToBlob(draft.imageUrl, draft.title) : '';
         const recipe = await withFreeSlug(draft.title, (slug) =>
             prisma.recipe.create({
                 data: newRecipeData({
@@ -292,4 +292,49 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     }
 
     return NextResponse.json({ ok: true });
+}
+
+const patchCaptureSchema = z.object({
+    draft: z.record(z.string(), z.unknown()).optional(),
+    note: z.string().nullable().optional(),
+    status: z.string().optional(),
+});
+
+/**
+ * Saves edits to an inbox item's draft or note.
+ */
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+    const auth = await requireAdmin();
+    if ('response' in auth) return auth.response;
+
+    const { id } = await context.params;
+    const captureId = parseId(id);
+    if (captureId === null) {
+        return NextResponse.json({ message: 'Invalid capture id' }, { status: 400 });
+    }
+
+    const parsed = patchCaptureSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
+        return NextResponse.json({ message: 'Invalid edit data' }, { status: 400 });
+    }
+
+    const capture = await prisma.capture.findUnique({ where: { id: captureId } });
+    if (!capture) {
+        return NextResponse.json({ message: 'Capture not found' }, { status: 404 });
+    }
+
+    const currentDraft = (capture.draft && typeof capture.draft === 'object' ? capture.draft : {}) as Record<string, unknown>;
+    const updatedDraft = parsed.data.draft ? { ...currentDraft, ...parsed.data.draft } : currentDraft;
+
+    const updated = await prisma.capture.update({
+        where: { id: captureId },
+        data: {
+            ...(parsed.data.draft ? { draft: toJsonObject(updatedDraft) } : {}),
+            ...(parsed.data.note !== undefined ? { note: parsed.data.note } : {}),
+            ...(parsed.data.status ? { status: parsed.data.status } : {}),
+        },
+    });
+
+    await syncWorkItem('capture', captureId);
+    return NextResponse.json({ capture: updated });
 }

@@ -9,6 +9,8 @@ import {
     saveAiCredential,
     setAssistMode,
     setPrimary,
+    setWritingStyle,
+    writingStyle,
     type AiCredentialView,
 } from '@/lib/aiConfig';
 
@@ -47,21 +49,17 @@ export async function GET() {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    const [credentials, mode]: [AiCredentialView[], string] = await Promise.all([
+    const [credentials, mode, style]: [AiCredentialView[], string, string] = await Promise.all([
         listAiCredentials(),
         assistMode(),
+        writingStyle(),
     ]);
 
     return NextResponse.json({
         credentials,
         mode,
+        writingStyle: style,
         modes: ASSIST_MODES,
-        /**
-         * Whether this deployment can store a key at all. False means no
-         * session secret, which means nothing here would survive being
-         * written — the screen says that rather than accepting a paste and
-         * silently losing it.
-         */
         canStore: canSeal(),
     });
 }
@@ -105,18 +103,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'The key could not be stored.' }, { status: 500 });
     }
 
-    // After the row exists, so that making a brand-new provider primary in the
-    // same request works rather than updating nothing.
     if (primary) await setPrimary(provider);
 
     return NextResponse.json({ credentials: await listAiCredentials() });
 }
 
 const modeSchema = z.object({
-    mode: z.string().refine(isAssistMode, 'Unknown mode'),
+    mode: z.string().refine(isAssistMode, 'Unknown mode').optional(),
+    writingStyle: z.string().max(2000).optional(),
 });
 
-/** The one knob: when the AI is allowed to be asked. */
+/** The knobs: when the AI is allowed to be asked and custom writing style. */
 export async function PATCH(req: NextRequest) {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
@@ -126,6 +123,11 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ message: 'Invalid request.' }, { status: 400 });
     }
 
-    await setAssistMode(parsed.data.mode);
-    return NextResponse.json({ mode: parsed.data.mode });
+    if (parsed.data.mode) await setAssistMode(parsed.data.mode);
+    if (parsed.data.writingStyle !== undefined) await setWritingStyle(parsed.data.writingStyle);
+
+    return NextResponse.json({
+        mode: parsed.data.mode ?? (await assistMode()),
+        writingStyle: parsed.data.writingStyle ?? (await writingStyle()),
+    });
 }

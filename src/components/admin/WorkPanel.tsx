@@ -54,6 +54,7 @@ const emptySubscribe = () => () => {};
 export default function WorkPanel() {
     const t = useTranslations('Work');
     const [items, setItems] = useState<Item[] | null>(null);
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const origin = useSyncExternalStore(emptySubscribe, () => window.location.origin, () => '');
     const [copied, setCopied] = useState<string | null>(null);
     const [copyFailed, setCopyFailed] = useState(false);
@@ -174,17 +175,113 @@ export default function WorkPanel() {
                 <p className="py-12 text-center text-muted">{t('empty')}</p>
             ) : (
                 <>
-                    {[
-                        { heading: t('openHeading'), rows: open },
-                        { heading: t('closedHeading'), rows: rest },
-                    ]
-                        .filter((group) => group.rows.length > 0)
-                        .map((group) => (
-                            <section key={group.heading} className="mt-8">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-muted">{group.heading}</h3>
-                                <ul className="mt-2 divide-y divide-line">
-                                    {group.rows.map((item) => (
-                                        <li key={item.id} className={`py-4 ${item.closedAt || item.dismissed ? 'opacity-60' : ''}`}>
+                    {/* Bulk Selection Bar */}
+                    <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-control bg-surface p-3 text-sm">
+                        <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-2 cursor-pointer font-medium select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedIds.length > 0 && selectedIds.length === (items ?? []).length}
+                                    onChange={(e) => {
+                                        if (e.target.checked) setSelectedIds((items ?? []).map((i) => i.id));
+                                        else setSelectedIds([]);
+                                    }}
+                                    className="h-4 w-4 rounded border-control"
+                                />
+                                {selectedIds.length > 0 ? `${selectedIds.length} ausgewählt` : 'Alle auswählen'}
+                            </label>
+                        </div>
+                        {selectedIds.length > 0 && (
+                            <div className="flex flex-wrap gap-2 text-xs">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        for (const id of selectedIds) {
+                                            await act(id, { method: 'PATCH', body: JSON.stringify({ closed: true }) });
+                                        }
+                                        setSelectedIds([]);
+                                    }}
+                                    className={buttonSecondary}
+                                >
+                                    Ausgewählte schließen
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        for (const id of selectedIds) {
+                                            await act(id, { method: 'DELETE' });
+                                        }
+                                        setSelectedIds([]);
+                                    }}
+                                    className="rounded-lg bg-danger px-3 py-1.5 font-medium text-white hover:bg-danger/90"
+                                >
+                                    Ausgewählte zurückziehen
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Open Work Items */}
+                    {open.length > 0 && (
+                        <section className="mt-8">
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-muted">{t('openHeading')} ({open.length})</h3>
+                            <ul className="mt-2 divide-y divide-line">
+                                {open.map((item) => (
+                                    <li key={item.id} className="flex items-start gap-3 py-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.includes(item.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) setSelectedIds((prev) => [...prev, item.id]);
+                                                else setSelectedIds((prev) => prev.filter((i) => i !== item.id));
+                                            }}
+                                            className="mt-1 h-4 w-4 rounded border-control"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <ItemHead item={item} />
+                                            <div className="mt-2 flex gap-4 text-sm">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void act(item.id, { method: 'PATCH', body: JSON.stringify({ closed: true }) })}
+                                                    className="underline underline-offset-4"
+                                                >
+                                                    {t('close')}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void act(item.id, { method: 'DELETE' })}
+                                                    className="text-muted underline underline-offset-4 hover:text-danger"
+                                                >
+                                                    {t('withdraw')}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
+                    )}
+
+                    {/* Closed / Withdrawn Work Items in a Collapsible Container */}
+                    {rest.length > 0 && (
+                        <details className="group mt-8 rounded-xl border border-line bg-surface/30 p-4">
+                            <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest text-muted hover:text-ink select-none flex items-center justify-between">
+                                <span>{t('closedHeading')} ({rest.length})</span>
+                                <span className="text-xs text-faint group-open:rotate-180 transition-transform">▼</span>
+                            </summary>
+                            <ul className="mt-4 divide-y divide-line">
+                                {rest.map((item) => (
+                                    <li key={item.id} className="flex items-start gap-3 py-4 opacity-75">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.includes(item.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) setSelectedIds((prev) => [...prev, item.id]);
+                                                else setSelectedIds((prev) => prev.filter((i) => i !== item.id));
+                                            }}
+                                            className="mt-1 h-4 w-4 rounded border-control"
+                                        />
+                                        <div className="flex-1 min-w-0">
                                             <ItemHead item={item} />
                                             <div className="mt-2 flex gap-4 text-sm">
                                                 {item.dismissed ? (
@@ -199,10 +296,10 @@ export default function WorkPanel() {
                                                     <>
                                                         <button
                                                             type="button"
-                                                            onClick={() => void act(item.id, { method: 'PATCH', body: JSON.stringify({ closed: !item.closedAt }) })}
+                                                            onClick={() => void act(item.id, { method: 'PATCH', body: JSON.stringify({ closed: false }) })}
                                                             className="underline underline-offset-4"
                                                         >
-                                                            {item.closedAt ? t('reopen') : t('close')}
+                                                            {t('reopen')}
                                                         </button>
                                                         <button
                                                             type="button"
@@ -214,11 +311,12 @@ export default function WorkPanel() {
                                                     </>
                                                 )}
                                             </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </section>
-                        ))}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </details>
+                    )}
                 </>
             )}
         </div>

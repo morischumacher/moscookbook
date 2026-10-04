@@ -38,6 +38,29 @@ import {
  */
 
 const ASSIST_KEY = 'ai.assist';
+const WRITING_STYLE_KEY = 'ai.writingStyle';
+
+export async function writingStyle(): Promise<string> {
+    const settings = table('appSetting');
+    if (!settings) return process.env.AI_WRITING_STYLE ?? '';
+
+    const row = (await settings
+        .findUnique({ where: { key: WRITING_STYLE_KEY }, select: { value: true } })
+        .catch(() => null)) as { value: string } | null;
+
+    return row?.value ?? process.env.AI_WRITING_STYLE ?? '';
+}
+
+export async function setWritingStyle(style: string): Promise<void> {
+    const settings = table('appSetting');
+    if (!settings) return;
+
+    await settings.upsert({
+        where: { key: WRITING_STYLE_KEY },
+        update: { value: style },
+        create: { key: WRITING_STYLE_KEY, value: style },
+    });
+}
 
 /* -------------------------------------------------------------------------- */
 /* A client that may not know about these tables yet — see lib/prismaTable    */

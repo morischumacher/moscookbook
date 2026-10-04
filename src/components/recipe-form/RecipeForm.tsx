@@ -278,7 +278,7 @@ export default function RecipeForm({
         });
     };
 
-    const handleSubmit = async (event: React.FormEvent) => {
+    const handleSubmit = async (event: React.FormEvent, isDraft = false) => {
         event.preventDefault();
         setError('');
 
@@ -320,7 +320,8 @@ export default function RecipeForm({
                     servings: toOptionalNumber(servings),
                     prepMinutes: toOptionalNumber(prepMinutes),
                     cookMinutes: toOptionalNumber(cookMinutes),
-                    language,
+                    isDraft,
+                    language: language ?? undefined,
                     translation: translation && translation.locale !== language ? translation : null,
                     ...(mode === 'create' && captureId ? { captureId } : {}),
                     ...(mode === 'edit' && version ? { baseVersion: version } : {}),
@@ -590,6 +591,14 @@ export default function RecipeForm({
                         <BusyLabel busy={saving} busyText={t('saving')}>
                             {mode === 'create' ? t('create') : t('save')}
                         </BusyLabel>
+                    </button>
+                    <button
+                        type="button"
+                        disabled={saving}
+                        onClick={(event) => void handleSubmit(event, true)}
+                        className="rounded-lg border border-control px-4 py-2 text-sm font-medium hover:bg-surface disabled:opacity-50"
+                    >
+                        {t('saveAsDraft') || 'Als Entwurf speichern'}
                     </button>
                     <button
                         type="button"

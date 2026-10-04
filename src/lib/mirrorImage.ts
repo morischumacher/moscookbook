@@ -2,6 +2,7 @@ import { put } from '@vercel/blob';
 import { isSafePublicUrl } from './privateAddress';
 import { readCapped, safeFetch } from './safeFetch';
 import { isOurs } from './blobCleanup';
+import { slugify } from './recipe';
 
 /**
  * Copies an imported image into our own Blob store.
@@ -34,7 +35,7 @@ const EXTENSIONS: Record<string, string> = {
     'image/gif': 'gif',
 };
 
-export async function mirrorImageToBlob(sourceUrl: string): Promise<string> {
+export async function mirrorImageToBlob(sourceUrl: string, title?: string): Promise<string> {
     // Already ours — a screenshot read by the model is its own picture. Copying
     // it wrote a second file and orphaned the first.
     if (sourceUrl && isOurs(sourceUrl)) return sourceUrl;
@@ -61,7 +62,10 @@ export async function mirrorImageToBlob(sourceUrl: string): Promise<string> {
         const { bytes: buffer, truncated } = await readCapped(response, MAX_IMAGE_BYTES);
         if (buffer.byteLength === 0 || truncated) return '';
 
-        const blob = await put(`imported_${Date.now()}.${EXTENSIONS[contentType]}`, buffer, {
+        const safeTitle = title && title.trim() ? slugify(title.trim()) : '';
+        const filename = safeTitle ? `${safeTitle}_${Date.now()}.${EXTENSIONS[contentType]}` : `imported_${Date.now()}.${EXTENSIONS[contentType]}`;
+
+        const blob = await put(filename, buffer, {
             access: 'public',
             contentType,
         });

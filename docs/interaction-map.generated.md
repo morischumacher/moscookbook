@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-46 screens · 89 endpoints · 85 link edges · 90 call edges
+46 screens · 91 endpoints · 86 link edges · 91 call edges
 
 ## Screens
 
@@ -17,7 +17,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/collections` | admin | requires admin | `POST /api/examples` | `/[locale]/admin/collections/[id]`<br>`/[locale]/admin/collections/new`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/create` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/ai/translate`<br>`POST /api/import/ai`<br>`POST /api/import/url` | `/[locale]/admin` |
 | `/[locale]/admin/devices` | admin | requires admin | `DELETE /api/capture-tokens/[id]`<br>`GET /api/capture-tokens`<br>`POST /api/capture-tokens` | — |
-| `/[locale]/admin/drafts` | admin | requires admin | `POST /api/recipes/[id]/draft` | `/[locale]/recipe/[id]` |
+| `/[locale]/admin/drafts` | admin | requires admin | `DELETE /api/recipes/[id]`<br>`POST /api/recipes/[id]/draft` | `/[locale]/admin/edit/[id]`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`POST /api/ai/polish`<br>`POST /api/ai/translate`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/recipes/[id]/revisions/[id]` | `/[locale]/admin` |
 | `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`DELETE /api/work-items/[id]`<br>`GET /api/capture`<br>`GET /api/capture/[id]/tokens`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge`<br>`POST /api/capture/share`<br>`POST /api/work-items` | `/[locale]/admin/create`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
@@ -28,7 +28,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/posts/[id]` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts/new` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts` | admin | requires admin | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/posts/[id]`<br>`POST /api/examples` | `/[locale]/admin/posts/[id]`<br>`/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/collections/[id]`<br>`/[locale]/recipe/[id]` |
-| `/[locale]/admin/reports` | admin | requires admin | `* /api/report-photos`<br>`* /api/work`<br>`DELETE /api/errors/[id]`<br>`DELETE /api/report-photos/[id]`<br>`DELETE /api/work-items/[id]`<br>`GET /api/errors`<br>`GET /api/tickets`<br>`GET /api/work`<br>`GET /api/work-items`<br>`GET /api/work-items/[id]`<br>`GET /api/work-items/prompt`<br>`GET /api/work-items/token`<br>`PATCH /api/tickets`<br>`POST /api/errors/[id]`<br>`POST /api/errors/[id]/photos`<br>`POST /api/work-items`<br>`POST /api/work-items/token` | — |
+| `/[locale]/admin/reports` | admin | requires admin | `* /api/report-photos`<br>`* /api/work`<br>`DELETE /api/errors/[id]`<br>`DELETE /api/report-photos/[id]`<br>`DELETE /api/tickets`<br>`DELETE /api/work-items/[id]`<br>`GET /api/errors`<br>`GET /api/tickets`<br>`GET /api/work`<br>`GET /api/work-items`<br>`GET /api/work-items/[id]`<br>`GET /api/work-items/prompt`<br>`GET /api/work-items/token`<br>`PATCH /api/tickets`<br>`POST /api/errors/[id]`<br>`POST /api/errors/[id]/photos`<br>`POST /api/work-items`<br>`POST /api/work-items/token` | — |
 | `/[locale]/admin/tickets` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/users` | admin | requires admin | `DELETE /api/invites/[id]`<br>`DELETE /api/users/[id]`<br>`GET /api/invites`<br>`GET /api/invites/name`<br>`GET /api/users`<br>`PATCH /api/users/[id]/role`<br>`POST /api/invites` | — |
 | `/[locale]/blog/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/collections/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
@@ -94,6 +94,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/capture/[id]/merge` | admin | zod | — | `src/app/[locale]/admin/inbox/page.tsx` |
 | POST | `/api/capture/[id]` | admin | zod | — | `src/app/[locale]/admin/inbox/page.tsx` |
 | DELETE | `/api/capture/[id]` | admin | zod | — | `src/app/[locale]/admin/inbox/page.tsx` |
+| PATCH | `/api/capture/[id]` | admin | zod | — | *(nothing in the UI)* |
 | GET | `/api/capture/[id]/tokens` | admin | — | — | `admin/TokenCompare` |
 | POST | `/api/capture` | device token | zod | yes | *(nothing in the UI)* |
 | GET | `/api/capture` | admin | zod | yes | `src/app/[locale]/admin/inbox/page.tsx` |
@@ -143,6 +144,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | POST | `/api/tickets` | user (manual) | zod | yes | `src/app/[locale]/tickets/page.tsx` |
 | GET | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
 | PATCH | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
+| DELETE | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
 | POST | `/api/upload` | admin | — | — | *(nothing in the UI)* |
 | PATCH | `/api/users/[id]/role` | admin | zod | — | `admin/UserList` |
 | DELETE | `/api/users/[id]` | admin | — | — | `admin/UserList` |
@@ -274,6 +276,7 @@ flowchart LR
   n__locale__admin_collections --> n__locale__admin_collections_new
   n__locale__admin_collections --> n__locale__collections__slug_
   n__locale__admin_create --> n__locale__admin
+  n__locale__admin_drafts --> n__locale__admin_edit__id_
   n__locale__admin_drafts --> n__locale__recipe__slug_
   n__locale__admin_edit__id_ --> n__locale__admin
   n__locale__admin_errors --> n__locale__admin_reports
@@ -557,6 +560,8 @@ flowchart LR
   cadmin_TicketsPanel --> eGET_api_tickets
   ePATCH_api_tickets(["PATCH /api/tickets"])
   cadmin_TicketsPanel --> ePATCH_api_tickets
+  eDELETE_api_tickets(["DELETE /api/tickets"])
+  cadmin_TicketsPanel --> eDELETE_api_tickets
   ePATCH_api_users__id__role(["PATCH /api/users/[id]/role"])
   cadmin_UserList["admin/UserList"]
   cadmin_UserList --> ePATCH_api_users__id__role

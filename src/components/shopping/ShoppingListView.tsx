@@ -261,11 +261,33 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         }
     };
 
-    const open = items.filter((item) => !item.checked);
-    const done = items.filter((item) => item.checked);
+    const [search, setSearch] = useState('');
+
+    const toggleBuyer = async (item: ShoppingItemRow, buyerName = 'Ich') => {
+        const tag = `@${buyerName}`;
+        const hasTag = item.sources.includes(tag);
+        const newSources = hasTag ? item.sources.filter((s) => s !== tag) : [...item.sources, tag];
+        setItems((current) => current.map((i) => (i.id === item.id ? { ...i, sources: newSources } : i)));
+    };
+
+    const matchesSearch = (item: ShoppingItemRow) => {
+        if (!search.trim()) return true;
+        const q = search.toLowerCase().trim();
+        return (
+            item.name.toLowerCase().includes(q) ||
+            item.aisle.toLowerCase().includes(q) ||
+            item.sources.some((s) => s.toLowerCase().includes(q))
+        );
+    };
+
+    const open = items.filter((item) => !item.checked && matchesSearch(item));
+    const done = items.filter((item) => item.checked && matchesSearch(item));
 
     const line = (item: ShoppingItemRow) => {
         const amount = amountLabel(item.measure, item.amount, locale);
+        const buyerTag = item.sources.find((s) => s.startsWith('@'))?.slice(1);
+        const recipeSources = item.sources.filter((s) => !s.startsWith('@'));
+
         return (
             <li key={item.id} className="flex items-start gap-3 py-2">
                 <button
@@ -282,14 +304,29 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                     {item.checked ? '✓' : ''}
                 </button>
                 <div className={`min-w-0 flex-1 pt-2 ${item.checked ? 'text-faint line-through' : ''}`}>
-                    <p className="leading-snug">
+                    <p className="leading-snug flex flex-wrap items-center gap-1.5">
                         {amount && <span className="font-semibold">{amount} </span>}
-                        {item.name}
+                        <span>{item.name}</span>
+                        {buyerTag && (
+                            <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent-text">
+                                🛒 {buyerTag}
+                            </span>
+                        )}
                     </p>
-                    {item.sources.length > 0 && !item.checked && (
-                        <p className="mt-0.5 text-xs text-faint">{t('for', { recipes: item.sources.join(', ') })}</p>
+                    {recipeSources.length > 0 && !item.checked && (
+                        <p className="mt-0.5 text-xs text-faint">{t('for', { recipes: recipeSources.join(', ') })}</p>
                     )}
                 </div>
+                {!item.checked && (
+                    <button
+                        type="button"
+                        onClick={() => void toggleBuyer(item, 'Ich')}
+                        title="Einkäufer zuweisen"
+                        className="mt-1 text-xs text-faint hover:text-ink underline underline-offset-4 shrink-0 px-1"
+                    >
+                        {buyerTag ? 'Freigeben' : '+ Käufer'}
+                    </button>
+                )}
                 {mode.kind !== 'shared' && (
                     <button
                         type="button"
@@ -353,6 +390,18 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             <p role="status" className={note ? 'mt-3 text-sm text-muted' : 'sr-only'}>
                 {note}
             </p>
+
+            {items.length > 0 && (
+                <div className="mb-4">
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Einkaufsliste durchsuchen..."
+                        className="w-full rounded-full border border-control bg-transparent px-4 py-2 text-sm outline-none focus:border-ink placeholder:text-muted/70"
+                    />
+                </div>
+            )}
 
             {items.length === 0 ? (
                 <div className="py-12 text-center text-muted">

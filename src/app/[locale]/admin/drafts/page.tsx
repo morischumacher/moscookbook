@@ -1,8 +1,8 @@
 import { getTranslations } from 'next-intl/server';
-
 import prisma from '@/lib/prisma';
 import { Link } from '@/i18n/routing';
 import FinishDraft from '@/components/recipe/FinishDraft';
+import DeleteRecipeButton from '@/components/DeleteRecipeButton';
 import { pageContainer } from '@/lib/ui';
 import { formatDate } from '@/lib/formatDate';
 import PageHeader from '@/components/admin/PageHeader';
@@ -28,16 +28,6 @@ export default async function DraftsPage({ params }: { params: Promise<{ locale:
     const { locale } = await params;
     const t = await getTranslations('Drafts');
 
-    /*
-     * No `mayFinish` any more. The page used to sit at /drafts, outside the
-     * admin, so it had to work out for itself whether the person reading it
-     * was allowed to finish a draft — and for everybody else it drew a list
-     * with no button, which is a room with nothing in it. Under /admin the
-     * layout has already answered that question, and everyone who gets here
-     * can finish.
-     */
-    // Annotated rather than inferred: without a generated Prisma client this
-    // comes back as `any` and nothing below would be checked.
     const drafts: {
         id: number;
         title: string;
@@ -53,8 +43,6 @@ export default async function DraftsPage({ params }: { params: Promise<{ locale:
             title: true,
             slug: true,
             createdAt: true,
-            // Where it came from, which is most of what tells two drafts apart
-            // three weeks later.
             captures: { select: { sourceUrl: true }, take: 1 },
             images: { orderBy: { position: 'asc' }, take: 1, select: { url: true } },
         },
@@ -108,7 +96,16 @@ export default async function DraftsPage({ params }: { params: Promise<{ locale:
                                     </p>
                                 </div>
 
-                                <FinishDraft recipeId={draft.id} />
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Link
+                                        href={`/admin/edit/${draft.id}`}
+                                        className="rounded-lg border border-control px-3 py-1.5 text-sm font-medium hover:bg-surface"
+                                    >
+                                        {t('edit')}
+                                    </Link>
+                                    <FinishDraft recipeId={draft.id} />
+                                    <DeleteRecipeButton recipeId={draft.id} />
+                                </div>
                             </li>
                         );
                     })}

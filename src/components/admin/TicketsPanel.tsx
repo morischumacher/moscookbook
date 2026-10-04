@@ -43,6 +43,7 @@ export default function TicketsPanel() {
     const locale = useLocale();
 
     const [entries, setEntries] = useState<TicketRow[]>([]);
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showResolved, setShowResolved] = useState(false);
@@ -57,6 +58,7 @@ export default function TicketsPanel() {
             if (!res.ok) throw new Error(t('loadFailed'));
             const data = await res.json();
             setEntries(data.entries);
+            setSelectedIds([]);
         } catch {
             setEntries([]);
             setError(t('loadFailed'));
@@ -68,6 +70,40 @@ export default function TicketsPanel() {
     useEffect(() => {
         void load();
     }, [load]);
+
+    const setResolvedBulk = async (ids: number[], resolved: boolean) => {
+        try {
+            const res = await fetch('/api/tickets', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids, resolved }),
+            });
+            if (!res.ok) {
+                setError(t('failed'));
+                return;
+            }
+            await load();
+        } catch {
+            setError(t('failed'));
+        }
+    };
+
+    const deleteBulk = async (ids: number[]) => {
+        try {
+            const res = await fetch('/api/tickets', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids }),
+            });
+            if (!res.ok) {
+                setError(t('failed'));
+                return;
+            }
+            await load();
+        } catch {
+            setError(t('failed'));
+        }
+    };
 
     /**
      * The ticket as a block of text, ready to paste wherever it gets fixed.
@@ -179,47 +215,95 @@ export default function TicketsPanel() {
             ) : entries.length === 0 ? (
                 <p className="mt-8 text-muted">{showResolved ? t('noneResolved') : t('noneOpen')}</p>
             ) : (
-                <ul className="mt-8 flex flex-col divide-y divide-line">
-                    {entries.map((entry) => (
-                        <li key={entry.id} className="py-5 first:pt-0">
-                            <p className="text-xs uppercase tracking-widest text-faint">
-                                {t(`kind_${entry.kind}`)} · {entry.user?.name ?? t('someone')} ·{' '}
-                                {formatDateTime(new Date(entry.createdAt), locale)}
-                            </p>
+                <>
+                    {/* Bulk Selection Bar */}
+                    <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-control bg-surface p-3 text-sm">
+                        <label className="flex items-center gap-2 cursor-pointer font-medium select-none">
+                            <input
+                                type="checkbox"
+                                checked={selectedIds.length > 0 && selectedIds.length === entries.length}
+                                onChange={(e) => {
+                                    if (e.target.checked) setSelectedIds(entries.map((item) => item.id));
+                                    else setSelectedIds([]);
+                                }}
+                                className="h-4 w-4 rounded border-control"
+                            />
+                            {selectedIds.length > 0 ? `${selectedIds.length} ausgewählt` : 'Alle auswählen'}
+                        </label>
 
-                            <p className="mt-2 whitespace-pre-wrap font-serif leading-relaxed text-ink">
-                                {entry.body}
-                            </p>
-
-                            <ReportPhotos photos={entry.photos} />
-
-                            {entry.path && (
-                                <p className="mt-2 font-mono text-xs text-muted">{entry.path}</p>
-                            )}
-
-                            <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                        {selectedIds.length > 0 && (
+                            <div className="flex flex-wrap gap-2 text-xs">
                                 <button
                                     type="button"
-                                    onClick={() => void copy(asTicket(entry), entry.id)}
-                                    title={t('ticketHint')}
-                                    className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+                                    onClick={() => void setResolvedBulk(selectedIds, !showResolved)}
+                                    className={buttonSecondary}
                                 >
-                                    {copied === entry.id ? t('copied') : t('copyTicket')}
+                                    {showResolved ? 'Ausgewählte wieder öffnen' : 'Ausgewählte als erledigt markieren'}
                                 </button>
-
-                                <ShareToWorkList kind="ticket" id={entry.id} work={entry.work} photoCount={entry.photos.length} key={`w-${entry.id}-${entry.work?.id ?? 0}`} className="text-xs text-muted" />
-
                                 <button
                                     type="button"
-                                    onClick={() => void setResolved(entry.id, !entry.resolvedAt)}
-                                    className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+                                    onClick={() => void deleteBulk(selectedIds)}
+                                    className="rounded-lg bg-danger px-3 py-1.5 font-medium text-white hover:bg-danger/90"
                                 >
-                                    {entry.resolvedAt ? t('reopen') : t('markDone')}
+                                    Ausgewählte löschen
                                 </button>
-                            </p>
-                        </li>
-                    ))}
-                </ul>
+                            </div>
+                        )}
+                    </div>
+
+                    <ul className="mt-6 flex flex-col divide-y divide-line">
+                        {entries.map((entry) => (
+                            <li key={entry.id} className="flex items-start gap-3 py-5 first:pt-0">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedIds.includes(entry.id)}
+                                    onChange={(e) => {
+                                        if (e.target.checked) setSelectedIds((prev) => [...prev, entry.id]);
+                                        else setSelectedIds((prev) => prev.filter((id) => id !== entry.id));
+                                    }}
+                                    className="mt-1 h-4 w-4 rounded border-control"
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs uppercase tracking-widest text-faint">
+                                        {t(`kind_${entry.kind}`)} · {entry.user?.name ?? t('someone')} ·{' '}
+                                        {formatDateTime(new Date(entry.createdAt), locale)}
+                                    </p>
+
+                                    <p className="mt-2 whitespace-pre-wrap font-serif leading-relaxed text-ink">
+                                        {entry.body}
+                                    </p>
+
+                                    <ReportPhotos photos={entry.photos} />
+
+                                    {entry.path && (
+                                        <p className="mt-2 font-mono text-xs text-muted">{entry.path}</p>
+                                    )}
+
+                                    <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => void copy(asTicket(entry), entry.id)}
+                                            title={t('ticketHint')}
+                                            className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+                                        >
+                                            {copied === entry.id ? t('copied') : t('copyTicket')}
+                                        </button>
+
+                                        <ShareToWorkList kind="ticket" id={entry.id} work={entry.work} photoCount={entry.photos.length} key={`w-${entry.id}-${entry.work?.id ?? 0}`} className="text-xs text-muted" />
+
+                                        <button
+                                            type="button"
+                                            onClick={() => void setResolved(entry.id, !entry.resolvedAt)}
+                                            className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+                                        >
+                                            {entry.resolvedAt ? t('reopen') : t('markDone')}
+                                        </button>
+                                    </p>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </>
             )}
         </div>
     );

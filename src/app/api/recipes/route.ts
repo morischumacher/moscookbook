@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
                     cuisines: parsed.data.cuisines,
                     spiciness: parsed.data.spiciness,
                     language: parsed.data.language,
+                    isDraft: parsed.data.isDraft,
                     onlyMe: parsed.data.onlyMe,
                     translation: parsed.data.translation,
                     imageUrls,
