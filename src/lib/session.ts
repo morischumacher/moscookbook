@@ -73,6 +73,8 @@ export interface SessionUser {
      * versions existed, and read as 0, which is what every row started at.
      */
     v?: number;
+    /** A new account that has not chosen a picture yet: asked before anything else (proxy.ts). */
+    needsPicture?: boolean;
 }
 
 export interface SessionData {
@@ -97,6 +99,7 @@ export interface SessionSource {
     name: string;
     admin: boolean;
     sessionVersion: number;
+    avatarChosenAt: Date | null;
 }
 
 /** The one way a signed-in session is written, so none of them forgets the version. */
@@ -107,6 +110,7 @@ export function sessionUserFrom(user: SessionSource): SessionUser {
         name: user.name,
         admin: user.admin,
         v: user.sessionVersion,
+        ...(user.avatarChosenAt === null ? { needsPicture: true } : {}),
     };
 }
 

@@ -88,10 +88,29 @@ export default function ShoppingLists({ lists, current }: { lists: ListSummary[]
                         maxLength={60}
                         onChange={(event) => setName(event.target.value)}
                         placeholder={t('listNamePlaceholder')}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Escape') {
+                                setCreating(false);
+                                setName('');
+                            }
+                        }}
                         className="min-w-0 flex-1 rounded-full border border-control bg-transparent px-4 py-2 outline-none focus:border-ink"
                     />
                     <button type="submit" disabled={busy || !name.trim()} className={buttonPrimarySmall}>
                         <BusyLabel busy={busy}>{t('createList')}</BusyLabel>
+                    </button>
+                    {/* Changed their mind: the field goes again. */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setCreating(false);
+                            setName('');
+                            setFailed(false);
+                        }}
+                        aria-label={t('cancelNewList')}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl text-muted hover:bg-surface hover:text-ink"
+                    >
+                        ×
                     </button>
                 </form>
             )}

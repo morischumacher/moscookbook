@@ -2,7 +2,7 @@ import { blobName } from '@/lib/blobName';
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import prisma from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, getSession } from '@/lib/auth';
 import { rateLimitShared } from '@/lib/rateLimitShared';
 import { checkImageUpload, convertHeicToJpeg, normaliseUpload } from '@/lib/uploadImage';
 import { deleteBlobs } from '@/lib/blobCleanup';
@@ -97,8 +97,9 @@ export async function POST(req: NextRequest) {
 
         await prisma.user.update({
             where: { id: user.id },
-            data: { avatarUrl: blob.url },
+            data: { avatarUrl: blob.url, avatarChosenAt: new Date() },
         });
+        await pictureChosen();
 
         if (before?.avatarUrl && before.avatarUrl !== blob.url) {
             await deleteBlobs([before.avatarUrl]);
@@ -135,4 +136,32 @@ export async function DELETE() {
         failed('Avatar removal failed:', error);
         return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
     }
+}
+
+/**
+ * "My initials will do": the choice a new account is asked for (proxy.ts),
+ * made without a photo. Any picture there was goes.
+ */
+export async function PATCH() {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+
+    try {
+        const before = await prisma.user.findUnique({ where: { id: user.id }, select: { avatarUrl: true } });
+        await prisma.user.update({ where: { id: user.id }, data: { avatarUrl: null, avatarChosenAt: new Date() } });
+        await pictureChosen();
+        if (before?.avatarUrl) await deleteBlobs([before.avatarUrl]);
+        return NextResponse.json({ avatarUrl: null });
+    } catch (error) {
+        failed('Choosing initials failed:', error);
+        return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
+    }
+}
+
+/** The cookie stops asking at once, not only at the proxy's next check. */
+async function pictureChosen() {
+    const session = await getSession();
+    if (!session.user?.needsPicture) return;
+    delete session.user.needsPicture;
+    await session.save();
 }

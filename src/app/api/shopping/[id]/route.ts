@@ -24,7 +24,11 @@ export const PATCH = route<'user', typeof patchBody, { id: string }>(
         const item = await prisma.shoppingItem.findFirst({ where: { id, list: reachableBy(user.id) }, select: { listId: true } });
         if (!item) refuse(404, 'That item is gone.');
         if (body.buyerId) {
-            const onList = await prisma.shoppingList.count({ where: { id: item.listId, ...reachableBy(body.buyerId) } });
+            // Its owner, somebody who joined — or somebody invited and not
+            // yet answered: the shop can be split before everybody has said yes.
+            const onList = await prisma.shoppingList.count({
+                where: { id: item.listId, OR: [{ userId: body.buyerId }, { members: { some: { userId: body.buyerId } } }] },
+            });
             if (onList !== 1) refuse(400, 'That person is not on this list.');
         }
         const updated = await prisma.shoppingItem.updateMany({

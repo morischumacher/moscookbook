@@ -6,10 +6,12 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useConfirm } from '@/components/ui/useConfirm';
 import InlineConfirm from '@/components/ui/InlineConfirm';
 import { formatDate } from '@/lib/formatDate';
+import Avatar from '@/components/Avatar';
 
 interface User {
     id: number;
     name?: string;
+    avatarUrl?: string | null;
     email: string;
     admin: boolean;
     /** Whether they have confirmed their address. */
@@ -118,11 +120,14 @@ export default function UserList() {
                         >
                             {/* The whole first line on a phone, the badge and the
                                 actions under it: beside them the name was "Mi…". */}
-                            <div className="min-w-0 flex-1 basis-full sm:basis-0">
-                                <p className="truncate font-medium">{user.name || user.email}</p>
-                                {user.name && (
-                                    <p className="truncate text-sm text-muted">{user.email}</p>
-                                )}
+                            <div className="flex min-w-0 flex-1 basis-full items-center gap-3 sm:basis-0">
+                                <Avatar name={user.name || user.email} url={user.avatarUrl ?? null} size={40} />
+                                <div className="min-w-0">
+                                    <p className="truncate font-medium">{user.name || user.email}</p>
+                                    {user.name && (
+                                        <p className="truncate text-sm text-muted">{user.email}</p>
+                                    )}
+                                </div>
 
                                 {/*
                                     Where the spent invitations went.

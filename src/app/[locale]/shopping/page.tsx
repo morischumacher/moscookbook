@@ -48,6 +48,8 @@ export default async function ShoppingPage({
     // Everybody on this list, owner first; and everybody but the person looking at it.
     const everybody = household ? [household.owner, ...household.members] : [];
     const others = everybody.filter((person) => person.id !== user.id).map((person) => person.name);
+    // Who can be given a line to buy: everybody on it, and those invited too.
+    const buyers = household ? [...everybody, ...household.invited.map((person) => ({ ...person, invited: true }))] : [];
 
     return (
         <main className={`${pageContainer} pb-32`}>
@@ -71,7 +73,7 @@ export default async function ShoppingPage({
                     // The link is the owner's to hand out: not even in a member's page data.
                     shareToken: list.owner ? (settings?.shareToken ?? null) : null,
                     canAdd: settings?.shareCanAdd ?? true,
-                    people: everybody,
+                    people: buyers,
                     me: user.id,
                     ownerName: household?.owner.name ?? '',
                 }}
