@@ -6,6 +6,7 @@ import { Link, useRouter } from '@/i18n/routing';
 import { AISLES, amountLabel, listAsText, type Aisle } from '@/lib/shopping';
 import { displayName, itemName } from '@/lib/ingredientNames';
 import type { ShoppingItemRow } from '@/lib/shoppingDb';
+import { partsOf } from '@/lib/shoppingParts';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
 import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
@@ -298,6 +299,23 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         else setNote(t('failed'));
     };
 
+    /**
+     * One ingredient in several units — "14 Frühlingszwiebeln" and "2 Bund" —
+     * made one line in the unit it is bought in. How much is for which recipe
+     * goes along, so taking a recipe off later still takes off just its share.
+     */
+    const [simplifying, setSimplifying] = useState(false);
+    const simplify = async () => {
+        setSheet(null);
+        setSimplifying(true);
+        const res = await fetch(`/api/shopping/simplify?${listQuery}`, { method: 'POST' }).catch(() => null);
+        setSimplifying(false);
+        if (!res?.ok) return setNote(t('failed'));
+        const answer = (await res.json()) as { items: ShoppingItemRow[]; merged: number; unresolved: string[] };
+        setItems(answer.items);
+        setNote(answer.unresolved.length > 0 ? t('simplifyOpen', { names: answer.unresolved.join(', ') }) : t('simplified', { count: answer.merged }));
+    };
+
     const leave = async () => {
         setSheet(null);
         if (mode.kind !== 'account' || !(await ask({ title: t('leaveQuestion'), confirmLabel: t('leave') }))) return;
@@ -350,7 +368,29 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
 
     const open = items.filter((item) => !item.checked);
     const checked = items.filter((item) => item.checked);
+    // The ingredients that are on the list in more than one unit.
+    const severalUnits = useMemo(() => {
+        const measures = new Map<number, { item: ShoppingItemRow; units: Set<string> }>();
+        for (const item of items) {
+            if (item.checked || item.itemId === null || item.measure === null) continue;
+            const group = measures.get(item.itemId) ?? { item, units: new Set<string>() };
+            group.units.add(item.measure);
+            measures.set(item.itemId, group);
+        }
+        return [...measures.values()].filter((group) => group.units.size > 1).map(({ item }) => (item.item && itemName(item.item, locale, null, null)) || displayName(item.name, locale, null, null));
+    }, [items, locale]);
     const visible = items.filter(shown);
+
+    /** "Agedashi Tofu (1 Bund), Chili-Öl (½ Bund)" — each recipe's share, when there are several and they are known. */
+    const forWhom = (item: ShoppingItemRow) => {
+        const parts = partsOf(item).filter((part) => part.s !== null);
+        if (item.sources.length < 2 || parts.some((part) => part.a === null)) return item.sources.join(', ');
+        return item.sources.map((source) => {
+            const share = parts.filter((part) => part.s === source).reduce((sum, part) => sum + (part.a ?? 0), 0);
+            const label = share > 0 ? amountLabel(item.measure, share, locale) : '';
+            return label ? `${source} (${label})` : source;
+        }).join(', ');
+    };
 
     const line = (item: ShoppingItemRow) => {
         const amount = amountLabel(item.measure, item.amount, locale);
@@ -390,7 +430,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                     </p>
                     {(item.sources.length > 0 || (together && (buyer || !item.checked))) && (
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-faint">
-                            {item.sources.length > 0 && !item.checked && <span>{t('for', { recipes: item.sources.join(', ') })}</span>}
+                            {item.sources.length > 0 && !item.checked && <span>{t('for', { recipes: forWhom(item) })}</span>}
                             {together &&
                                 (item.checked ? (
                                     buyerPerson && (
@@ -573,6 +613,14 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                 </div>
             ) : (
                 <>
+                    {mode.kind === 'account' && severalUnits.length > 0 && (
+                        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg bg-surface px-4 py-3 text-sm">
+                            <p className="min-w-0 flex-1">{t('severalUnits', { names: severalUnits.join(', ') })}</p>
+                            <button type="button" onClick={() => void simplify()} disabled={simplifying} className={buttonPrimarySmall}>
+                                <BusyLabel busy={simplifying}>{t('simplify')}</BusyLabel>
+                            </button>
+                        </div>
+                    )}
                     {AISLES.map((aisle) => {
                         const here = visible.filter((item) => item.aisle === aisle);
                         if (here.length === 0) return null;
@@ -625,6 +673,13 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                                 <span aria-hidden className="text-faint">›</span>
                             </button>
                         </li>
+                        {severalUnits.length > 0 && (
+                            <li>
+                                <button type="button" onClick={() => void simplify()} className={sheetItem}>
+                                    {t('simplify')}
+                                </button>
+                            </li>
+                        )}
                         {open.length > 0 && (
                             <li>
                                 <button type="button" onClick={() => void sendText()} className={sheetItem}>

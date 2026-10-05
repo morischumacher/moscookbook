@@ -7,6 +7,8 @@ import { findDoubles, pairKey } from '@/lib/ingredientDoubles';
 import { aiCapability } from '@/lib/aiConfig';
 import { canUseAi, completeWithKey, extractJson } from '@/lib/aiImport';
 import { usageRecorder } from '@/lib/tokenUsageDb';
+import { commonIngredient } from '@/lib/ingredientNames';
+import { isMeasure, unitsOf } from '@/lib/shoppingParts';
 
 /**
  * The ingredient catalogue for admin → Zutaten (lib/ingredientCatalog).
@@ -37,9 +39,19 @@ async function notDoubles(): Promise<Set<string>> {
 async function catalogue() {
     const items = await prisma.ingredientItem.findMany({
         orderBy: [{ de: 'asc' }, { en: 'asc' }],
-        select: { id: true, de: true, en: true, aliases: true, _count: { select: { ingredients: true } } },
+        select: { id: true, de: true, en: true, aliases: true, buyMeasure: true, factors: true, createdAt: true, _count: { select: { ingredients: true } } },
     });
-    return items.map((item) => ({ id: item.id, de: item.de, en: item.en, aliases: item.aliases, uses: item._count.ingredients }));
+    return items.map((item) => ({
+        id: item.id,
+        de: item.de,
+        en: item.en,
+        aliases: item.aliases,
+        uses: item._count.ingredients,
+        // What the shopping list converts with (lib/shoppingParts): its own, or the defaults for a common one.
+        units: unitsOf(item, commonIngredient(item.de)?.id ?? commonIngredient(item.en)?.id ?? null),
+        ownUnits: item.buyMeasure !== null,
+        createdAt: item.createdAt.toISOString(),
+    }));
 }
 
 export const GET = route({ access: 'admin', label: 'The ingredient catalogue' }, async () => {
@@ -58,13 +70,27 @@ const patchBody = z.object({
     de: name,
     en: name,
     aliases: z.array(name).max(30).transform((list) => [...new Set(list.filter(Boolean))]),
+    // The units it is bought in; null puts it back to the defaults. Left out: unchanged.
+    units: z
+        .object({
+            buy: z.string().max(40).refine(isMeasure),
+            factors: z.record(z.string().max(40).refine(isMeasure), z.number().positive().max(100_000)),
+        })
+        .nullable()
+        .optional(),
 });
 
 export const PATCH = route({ access: 'admin', body: patchBody, label: 'Correcting an ingredient' }, async ({ body }) => {
     if (!body.de && !body.en) refuse(400, 'An ingredient needs a name.');
     const updated = await prisma.ingredientItem.updateMany({
         where: { id: body.id },
-        data: { de: body.de, en: body.en, aliases: body.aliases, keys: itemKeys(body) },
+        data: {
+            de: body.de,
+            en: body.en,
+            aliases: body.aliases,
+            keys: itemKeys(body),
+            ...(body.units === undefined ? {} : body.units === null ? { buyMeasure: null, factors: {} } : { buyMeasure: body.units.buy, factors: body.units.factors }),
+        },
     });
     if (updated.count !== 1) refuse(404, 'That ingredient is gone.');
     return NextResponse.json({ ok: true });

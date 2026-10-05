@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { linkRecipe } from '@/lib/ingredientCatalog';
 import prisma from '@/lib/prisma';
 import { idFrom, refuse, route } from '@/lib/route';
 import { readSnapshot, snapshotOf } from '@/lib/revisions';
@@ -60,6 +61,8 @@ export const POST = route<'admin', undefined, { id: string; revisionId: string }
         ]);
 
         await trimRevisions(recipeId).catch(() => undefined);
+        // The restored rows are new rows: pointed at their ingredients again.
+        await linkRecipe(recipeId).catch(() => 0);
         forgetCollectionFacets();
         return NextResponse.json({ restored: true, slug: current.slug });
     }

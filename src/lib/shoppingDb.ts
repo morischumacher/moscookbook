@@ -1,6 +1,8 @@
 import prisma from './prisma';
 import { linesFor, mergeInto, removeFrom, type PlannedLine } from './shopping';
-import { ingredientKey } from './ingredientNames';
+import { commonIngredient, ingredientKey } from './ingredientNames';
+import { converted, simplified, unitsOf, withoutSource, partsOf, type Part, type Units } from './shoppingParts';
+import type { Prisma } from '@prisma/client';
 import { linkRecipe, matchItem } from './ingredientCatalog';
 import { inLanguage } from './recipeTranslation';
 import { visibleTo } from './recipeVisibility';
@@ -19,6 +21,8 @@ export const shoppingItemSelect = {
     sources: true,
     checked: true,
     buyerId: true,
+    itemId: true,
+    parts: true,
     item: { select: { de: true, en: true } },
 } as const;
 
@@ -32,6 +36,9 @@ export interface ShoppingItemRow {
     checked: boolean;
     /** Who on the list is buying it; null when nobody said. */
     buyerId: number | null;
+    itemId: number | null;
+    /** How much is for which recipe (lib/shoppingParts). */
+    parts: Prisma.JsonValue;
     /** The catalogue's ingredient, named in both languages; null for a line that is none. */
     item: { de: string; en: string } | null;
 }
@@ -158,32 +165,82 @@ export async function invitationsFor(userId: number) {
 
 /**
  * A recipe taken off the list as a whole: its lines go, and a line it shares
- * with another recipe stays for that one. The shared line keeps its amount —
- * how much of it was this recipe's is not kept once merged, and a little too
- * much in the trolley is better than too little.
+ * with another recipe keeps the others' share — exactly, from the parts the
+ * line keeps (lib/shoppingParts), also after it was simplified into another
+ * unit. A line from before parts were kept keeps its amount: how much was
+ * this recipe's is not known, and a little too much beats too little.
  */
 export async function removeSource(listId: number, source: string): Promise<number> {
     return prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM "ShoppingList" WHERE id = ${listId} FOR UPDATE`;
-        /*
-         * Two statements rather than a read and one write per line. First the
-         * lines shared with another recipe lose this one's name — every copy
-         * of it, as the filter this replaced did. After that, any line still
-         * naming it was this recipe's alone, so it can go by that test
-         * without being read. The order matters: the other way round, the
-         * delete would need to know which lines had nothing else.
-         */
-        const kept = await tx.$executeRaw`
-            UPDATE "ShoppingItem"
-            SET "sources" = array_remove("sources", ${source})
-            WHERE "listId" = ${listId}
-              AND ${source} = ANY("sources")
-              AND cardinality(array_remove("sources", ${source})) > 0
-        `;
-        const dropped = await tx.shoppingItem.deleteMany({ where: { listId, sources: { has: source } } });
+        const lines = await tx.shoppingItem.findMany({ where: { listId, sources: { has: source } }, select: { id: true, amount: true, sources: true, parts: true } });
+        const gone: number[] = [];
+        for (const line of lines) {
+            const next = withoutSource(line, source);
+            if (next.gone) gone.push(line.id);
+            else await tx.shoppingItem.update({ where: { id: line.id }, data: { amount: next.amount, sources: next.sources, parts: next.parts as unknown as Prisma.InputJsonValue } });
+        }
+        if (gone.length) await tx.shoppingItem.deleteMany({ where: { listId, id: { in: gone } } });
         await tx.shoppingList.update({ where: { id: listId }, data: { updatedAt: new Date() } });
-        return kept + dropped.count;
+        return lines.length;
     });
+}
+
+type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+const asJson = (parts: Part[]) => parts as unknown as Prisma.InputJsonValue;
+
+/** The units each ingredient is bought in, as far as known without asking anybody. */
+export async function knownUnits(client: Pick<Tx, 'ingredientItem'>, itemIds: number[]): Promise<Map<number, { name: string; units: Units | null }>> {
+    const items = await client.ingredientItem.findMany({ where: { id: { in: itemIds } }, select: { id: true, de: true, en: true, buyMeasure: true, factors: true } });
+    return new Map(items.map((item) => [item.id, { name: item.de || item.en, units: unitsOf(item, commonIngredient(item.de)?.id ?? commonIngredient(item.en)?.id ?? null) }]));
+}
+
+export interface SimplifyResult {
+    /** Lines that went into another. */
+    merged: number;
+    /** Ingredients still in several units: how one is in the other is not known. */
+    unresolved: { itemId: number; name: string; measures: (string | null)[] }[];
+}
+
+/**
+ * One ingredient's open lines in different units made one, in the unit it is
+ * bought in — for the ingredients in `only`, or all. `unitsFor` says how; it
+ * may learn them (the AI, asked once). The parts go along, converted, so a
+ * recipe taken off later still takes exactly its share.
+ */
+export async function simplifyLines(
+    tx: Tx,
+    listId: number,
+    only: number[] | null,
+    unitsFor: (itemId: number, measures: (string | null)[], known: Units | null) => Promise<Units | null>
+): Promise<SimplifyResult> {
+    const lines = await tx.shoppingItem.findMany({
+        where: { listId, checked: false, itemId: only ? { in: only } : { not: null } },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true, itemId: true, measure: true, amount: true, sources: true, parts: true },
+    });
+    const groups = new Map<number, typeof lines>();
+    for (const line of lines) groups.set(line.itemId!, [...(groups.get(line.itemId!) ?? []), line]);
+
+    const many = [...groups].filter(([, group]) => new Set(group.map((line) => line.measure)).size > 1);
+    if (many.length === 0) return { merged: 0, unresolved: [] };
+    const known = await knownUnits(tx, many.map(([itemId]) => itemId));
+
+    let merged = 0;
+    const unresolved: SimplifyResult['unresolved'] = [];
+    for (const [itemId, group] of many) {
+        const measures = [...new Set(group.map((line) => line.measure))];
+        const units = await unitsFor(itemId, measures, known.get(itemId)?.units ?? null);
+        const plan = units ? simplified(group.map((line) => ({ ...line, parts: partsOf(line) })), units) : null;
+        if (!plan) {
+            unresolved.push({ itemId, name: known.get(itemId)?.name ?? '', measures });
+            continue;
+        }
+        await tx.shoppingItem.update({ where: { id: plan.keep }, data: { measure: plan.measure, amount: plan.amount, sources: plan.sources, parts: asJson(plan.parts) } });
+        await tx.shoppingItem.deleteMany({ where: { listId, id: { in: plan.drop } } });
+        merged += plan.drop.length;
+    }
+    return { merged, unresolved };
 }
 
 export async function itemsOf(listId: number): Promise<ShoppingItemRow[]> {
@@ -228,7 +285,7 @@ export async function addLines(listId: number, planned: PlannedLine[]): Promise<
 
         const existing = await tx.shoppingItem.findMany({
             where: { listId, checked: false },
-            select: { id: true, key: true, name: true, itemId: true, measure: true, amount: true, sources: true, checked: true },
+            select: { id: true, key: true, name: true, itemId: true, measure: true, amount: true, sources: true, checked: true, parts: true },
         });
 
         // Lines made before the catalogue meet the new ones by the name they show.
@@ -238,7 +295,7 @@ export async function addLines(listId: number, planned: PlannedLine[]): Promise<
         for (const update of plan.updates) {
             await tx.shoppingItem.update({
                 where: { id: update.id },
-                data: { amount: update.amount, sources: update.sources },
+                data: { amount: update.amount, sources: update.sources, parts: asJson(update.parts) },
             });
         }
         await tx.shoppingItem.createMany({
@@ -251,11 +308,40 @@ export async function addLines(listId: number, planned: PlannedLine[]): Promise<
                 amount: line.amount,
                 aisle: line.aisle,
                 sources: line.sources,
+                parts: asJson(line.parts),
             })),
         });
+
+        // The same ingredient now in two units — "2 Bund" and "7" spring
+        // onions: made one where it is known how, without asking anybody.
+        const items = [...new Set(resolved.map((line) => line.itemId).filter((id): id is number => id !== null))];
+        if (items.length) await simplifyLines(tx, listId, items, async (_, __, units) => units);
         await tx.shoppingList.update({ where: { id: listId }, data: { updatedAt: new Date() } });
 
         return plan.updates.length + plan.creates.length;
+    });
+}
+
+/**
+ * Lines to take off, in the unit the list now has them in: added as "7
+ * Frühlingszwiebeln" and since made "1 Bund" (by the simplifying), they are
+ * taken off as 1 Bund.
+ */
+async function inListUnits<L extends PlannedLine & { key: string; itemId: number | null }>(
+    tx: Tx,
+    current: { key: string; measure: string | null }[],
+    lines: L[]
+): Promise<L[]> {
+    const there = new Set(current.map((line) => `${line.key}\u0000${line.measure ?? ''}`));
+    const moved = lines.filter((line) => line.itemId !== null && !there.has(`${line.key}\u0000${line.measure ?? ''}`));
+    if (moved.length === 0) return lines;
+    const units = await knownUnits(tx, [...new Set(moved.map((line) => line.itemId!))]);
+    return lines.map((line) => {
+        if (!moved.includes(line)) return line;
+        const own = units.get(line.itemId!)?.units;
+        if (!own || !there.has(`${line.key}\u0000${own.buy}`)) return line;
+        const next = converted({ measure: line.measure, amount: line.amount, parts: [] }, own);
+        return next ? { ...line, measure: next.measure, amount: next.amount } : line;
     });
 }
 
@@ -267,14 +353,15 @@ export async function removeLines(listId: number, planned: PlannedLine[]): Promi
         await tx.$queryRaw`SELECT id FROM "ShoppingList" WHERE id = ${listId} FOR UPDATE`;
         const existing = await tx.shoppingItem.findMany({
             where: { listId, checked: false },
-            select: { id: true, key: true, name: true, itemId: true, measure: true, amount: true, sources: true, checked: true },
+            select: { id: true, key: true, name: true, itemId: true, measure: true, amount: true, sources: true, checked: true, parts: true },
         });
         const keyOf = catalogKeys();
         const current = await Promise.all(existing.map(async (row) => ({ ...row, ...(await keyOf(row.name, row.itemId)) })));
-        const wanted = await Promise.all(planned.map(async (line) => ({ ...line, ...(await keyOf(line.name)) })));
+        const resolved = await Promise.all(planned.map(async (line) => ({ ...line, ...(await keyOf(line.name)) })));
+        const wanted = await inListUnits(tx, current, resolved);
         const plan = removeFrom(current, wanted);
         for (const update of plan.updates) {
-            await tx.shoppingItem.update({ where: { id: update.id }, data: { amount: update.amount, sources: update.sources } });
+            await tx.shoppingItem.update({ where: { id: update.id }, data: { amount: update.amount, sources: update.sources, parts: asJson(update.parts) } });
         }
         await tx.shoppingItem.deleteMany({ where: { id: { in: plan.deletes }, listId } });
         return plan.updates.length + plan.deletes.length;
@@ -346,7 +433,6 @@ export async function collectionLines(collectionId: number, locale?: string): Pr
     });
 }
 
-type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 /**
  * Before an account goes: every list somebody else shops on passes to the

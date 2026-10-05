@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { linkRecipe } from '@/lib/ingredientCatalog';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { route } from '@/lib/route';
@@ -77,7 +78,7 @@ export const POST = route({ access: 'admin', body, label: 'Importing recipes' },
 
         const source = recipe.sourceUrl ? `\n\n[${recipe.sourceUrl}](${recipe.sourceUrl})` : '';
 
-        await withFreeSlug(recipe.title, (slug) =>
+        const made = await withFreeSlug(recipe.title, (slug) =>
             prisma.recipe.create({
                 data: newRecipeData({
                     isDraft: true,
@@ -98,6 +99,7 @@ export const POST = route({ access: 'admin', body, label: 'Importing recipes' },
                 select: { id: true },
             })
         );
+        await linkRecipe(made.id).catch(() => 0);
         created += 1;
     }
 

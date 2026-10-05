@@ -917,6 +917,9 @@ model ShoppingItem {
   /// The catalogue's ingredient, when the line is one: merged on, and named in the reader's language.
   itemId     Int?
   item       IngredientItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  /// How much of it is for which recipe, in the line's unit: [{ s, a }]
+  /// (lib/shoppingParts). Empty for a line from before they were kept.
+  parts      Json         @default("[]")
   createdAt  DateTime     @default(now())
 
   @@index([listId, checked])
@@ -1135,6 +1138,11 @@ model IngredientItem {
   /// The folded names (lib/shopping shoppingKey) of de, en and the aliases:
   /// what a new name is matched against.
   keys        String[]     @default([])
+  /// The shopping measure it is bought in ("count:bund", "mass" …), and what
+  /// one of each other measure is in it ({ "count:": 0.14 }). Null/empty: the
+  /// defaults in lib/shoppingParts, or the AI asked once.
+  buyMeasure  String?
+  factors     Json         @default("{}")
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   ingredients Ingredient[]

@@ -35,7 +35,9 @@ import { adminSectionFor } from '@/lib/navigation';
  * ## A tab strip on a phone
  *
  * One row that scrolls sideways, like an app's tab bar, rather than two or
- * three rows of links pushing the page down; on a laptop it wraps. Three
+ * three rows of links pushing the page down — on a laptop too, where it fits
+ * when it can (tighter spacing) and scrolls when it cannot: a second row
+ * looked like a second menu. Three
  * things make the strip behave like a native one, and each was a complaint:
  *
  *   - it only scrolls sideways. `overflow-x: auto` quietly makes the other
@@ -112,7 +114,7 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
                 <div
                     ref={strip}
                     onScroll={measure}
-                    className={`-mx-4 flex touch-pan-x items-center gap-x-1 overflow-x-auto overflow-y-hidden overscroll-x-contain px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:[mask-image:none] [&::-webkit-scrollbar]:hidden ${
+                    className={`-mx-4 flex touch-pan-x items-center gap-x-1 overflow-x-auto overflow-y-hidden overscroll-x-contain px-4 [scrollbar-width:none] md:mx-0 md:gap-x-0 md:px-0 [&::-webkit-scrollbar]:hidden ${
                         moreRight ? '[mask-image:linear-gradient(to_right,black_85%,transparent)]' : ''
                     }`}
                 >
@@ -121,11 +123,11 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
                             {index > 0 && (
                                 <span
                                     aria-hidden="true"
-                                    className="mx-2 h-4 w-px shrink-0 bg-line"
+                                    className="mx-2 h-4 w-px shrink-0 bg-line md:mx-1"
                                 />
                             )}
 
-                            <ul className="flex items-center gap-1">
+                            <ul className="flex items-center gap-1 md:gap-0">
                                 {group.map((link) => {
                                     const here = current === link.href;
 
@@ -136,7 +138,7 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
                                                 // Read out as the current page,
                                                 // not only drawn as one.
                                                 aria-current={here ? 'page' : undefined}
-                                                className={`inline-block whitespace-nowrap md:-mb-px border-b-2 px-2 py-3 text-sm transition-colors ${
+                                                className={`inline-block whitespace-nowrap border-b-2 px-2 py-3 md:px-1.5 text-sm transition-colors ${
                                                     here
                                                         ? 'border-ink font-semibold text-ink'
                                                         : 'border-transparent text-muted hover:text-ink'

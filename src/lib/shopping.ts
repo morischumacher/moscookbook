@@ -2,6 +2,7 @@ import { splitAmount, formatAmount, type AmountParts } from './ingredientParts';
 import { displayName, ingredientKey, itemName } from './ingredientNames';
 import { singular, expandUmlauts } from './searchText';
 import { fromBase, isCountUnit, toBase, unitOf, unitSpelling, type Measured } from './units';
+import { lessPart, partsOf, settled as settledAmount, withPart, type Part } from './shoppingParts';
 
 /**
  * The shopping list's thinking, apart from its storage.
@@ -198,26 +199,31 @@ export interface ExistingLine {
     amount: number | null;
     sources: string[];
     checked: boolean;
+    /** How much is for which recipe (lib/shoppingParts); none on a line from before. */
+    parts?: unknown;
 }
 
+type Touched = { id: number; measure?: string | null; amount: number | null; sources: string[]; parts: Part[] };
+
 export interface MergePlan {
-    creates: (PlannedLine & { sources: string[] })[];
-    updates: { id: number; amount: number | null; sources: string[] }[];
+    creates: (PlannedLine & { sources: string[]; parts: Part[] })[];
+    updates: Touched[];
 }
 
 /**
  * How new lines join a list: onto an open line for the same thing measured
  * the same way, or as new lines. A line already ticked off is not added to —
- * what was bought was bought, and the extra is a new thing to buy.
+ * what was bought was bought, and the extra is a new thing to buy. Each line
+ * keeps how much of it is for which recipe.
  */
 export function mergeInto(existing: ExistingLine[], planned: PlannedLine[]): MergePlan {
-    const open = new Map<string, { id: number; amount: number | null; sources: string[] }>();
+    const open = new Map<string, Touched>();
     for (const line of existing) {
-        if (!line.checked) open.set(`${line.key}\u0000${line.measure ?? ''}`, { id: line.id, amount: line.amount, sources: line.sources });
+        if (!line.checked) open.set(`${line.key}\u0000${line.measure ?? ''}`, { id: line.id, amount: line.amount, sources: line.sources, parts: partsOf(line) });
     }
 
-    const created = new Map<string, PlannedLine & { sources: string[] }>();
-    const touched = new Map<number, { id: number; amount: number | null; sources: string[] }>();
+    const created = new Map<string, PlannedLine & { sources: string[]; parts: Part[] }>();
+    const touched = new Map<number, Touched>();
 
     const add = (amount: number | null, extra: number | null) =>
         amount === null && extra === null ? null : (amount ?? 0) + (extra ?? 0);
@@ -227,9 +233,10 @@ export function mergeInto(existing: ExistingLine[], planned: PlannedLine[]): Mer
     for (const line of planned) {
         const id = `${line.key}\u0000${line.measure ?? ''}`;
         const target = touched.get(open.get(id)?.id ?? -1) ?? open.get(id);
+        const part = { s: line.source, a: line.amount };
 
         if (target) {
-            const next = { id: target.id, amount: add(target.amount, line.amount), sources: withSource(target.sources, line.source) };
+            const next = { id: target.id, amount: add(target.amount, line.amount), sources: withSource(target.sources, line.source), parts: withPart(target.parts, part) };
             touched.set(target.id, next);
             open.set(id, next);
             continue;
@@ -239,17 +246,18 @@ export function mergeInto(existing: ExistingLine[], planned: PlannedLine[]): Mer
         if (pending) {
             pending.amount = add(pending.amount, line.amount);
             pending.sources = withSource(pending.sources, line.source);
+            pending.parts = withPart(pending.parts, part);
             continue;
         }
 
-        created.set(id, { ...line, sources: line.source ? [line.source] : [] });
+        created.set(id, { ...line, sources: line.source ? [line.source] : [], parts: [part] });
     }
 
     return { creates: [...created.values()], updates: [...touched.values()] };
 }
 
 export interface RemovalPlan {
-    updates: { id: number; amount: number | null; sources: string[] }[];
+    updates: Touched[];
     deletes: number[];
 }
 
@@ -262,19 +270,22 @@ export interface RemovalPlan {
  * recipe put there goes. Ticked lines are left alone: those are bought.
  */
 export function removeFrom(existing: ExistingLine[], planned: PlannedLine[]): RemovalPlan {
-    const open = new Map<string, { id: number; amount: number | null; sources: string[] }>();
+    const open = new Map<string, Touched>();
     for (const line of existing) {
-        if (!line.checked) open.set(`${line.key}\u0000${line.measure ?? ''}`, { id: line.id, amount: line.amount, sources: [...line.sources] });
+        if (!line.checked) open.set(`${line.key}\u0000${line.measure ?? ''}`, { id: line.id, measure: line.measure, amount: line.amount, sources: [...line.sources], parts: partsOf(line) });
     }
 
-    const touched = new Map<number, { id: number; amount: number | null; sources: string[] }>();
+    const touched = new Map<number, Touched>();
     for (const line of planned) {
         const target = open.get(`${line.key}\u0000${line.measure ?? ''}`);
         if (!target) continue;
         if (target.amount !== null && line.amount !== null) {
             target.amount = Math.round((target.amount - line.amount) * 1000) / 1000;
         }
-        if (line.source) target.sources = target.sources.filter((source) => source !== line.source);
+        target.parts = lessPart(target.parts, line.source, line.amount);
+        if (target.amount !== null) target.amount = settledAmount(target.measure ?? null, target.amount, target.parts);
+        // The name goes once none of the recipe's share is left (half the servings taken off keeps it).
+        if (line.source && !target.parts.some((part) => part.s === line.source)) target.sources = target.sources.filter((source) => source !== line.source);
         touched.set(target.id, target);
     }
 

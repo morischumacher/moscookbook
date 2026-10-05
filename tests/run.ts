@@ -52,6 +52,7 @@ import recipeRepo, { recipeRoutesPassTags, storedDraftTests } from './recipeRepo
 import examples from './examples.test';
 import units from './units.test';
 import shopping from './shopping.test';
+import shoppingParts from './shoppingParts.test';
 import cookSteps from './cookSteps.test';
 import tags from './tags.test';
 import offline from './offline.test';
@@ -161,6 +162,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['examples', examples],
     ['units', units],
     ['shopping', shopping],
+    ['shoppingParts', shoppingParts],
     ['cookSteps', cookSteps],
     ['tags', tags],
     ['offline', offline],
