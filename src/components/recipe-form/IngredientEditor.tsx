@@ -1,12 +1,13 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useEffect, useRef, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import type { Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
 import { sectionHeading } from '@/lib/ingredientParts';
 import { fieldBase, fieldClass, labelClass } from './formStyles';
 import AmountInput from './AmountInput';
+import ItemInput from './ItemInput';
 
 export const EMPTY_ROW: Ingredient = { amount: '', item: '' };
 
@@ -26,6 +27,19 @@ export default function IngredientEditor({
     const [bulk, setBulk] = useState('');
     const [showBulk, setShowBulk] = useState(false);
     const itemRefs = useRef<(HTMLInputElement | null)[]>([]);
+    // The names already in the cookbook, for the suggestions (ItemInput).
+    const locale = useLocale();
+    const [names, setNames] = useState<string[]>([]);
+    useEffect(() => {
+        let gone = false;
+        fetch(`/api/ingredients/names?locale=${locale}`)
+            .then((res) => (res.ok ? res.json() : { names: [] }))
+            .then((data: { names: string[] }) => !gone && setNames(data.names))
+            .catch(() => undefined);
+        return () => {
+            gone = true;
+        };
+    }, [locale]);
 
     const update = (index: number, field: keyof Ingredient, value: string) => {
         const next = ingredients.map((row, position) =>
@@ -135,22 +149,17 @@ export default function IngredientEditor({
                     // then its amount, unit and the row's buttons.
                     <div key={index} className="flex flex-wrap items-center gap-2 border-b border-line pb-2 sm:border-0 sm:pb-0">
                         <AmountInput amount={row.amount} number={index + 1} onChange={(next) => update(index, 'amount', next)} />
-                        <input
-                            ref={(element) => {
+                        <ItemInput
+                            inputRef={(element) => {
                                 itemRefs.current[index] = element;
                             }}
-                            type="text"
                             value={row.item}
-                            onChange={(event) => update(index, 'item', event.target.value)}
-                            onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                    event.preventDefault();
-                                    addRow(index);
-                                }
-                            }}
+                            names={names}
+                            onChange={(next) => update(index, 'item', next)}
+                            onEnter={() => addRow(index)}
                             placeholder={t('itemPlaceholder')}
-                            aria-label={t('itemLabel', { number: index + 1 })}
-                            className={fieldBase + ' order-first w-full sm:order-none sm:w-0 sm:flex-1'}
+                            label={t('itemLabel', { number: index + 1 })}
+                            className={fieldBase}
                         />
                         <div className="ml-auto flex shrink-0 items-center gap-0.5">
                             <button

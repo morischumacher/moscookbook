@@ -183,3 +183,8 @@ export function displayName(name: string, locale: 'de' | 'en', amount: number | 
     const one = measure === 'count:' && amount !== null && amount <= 1;
     return ingredientLabel(ingredientKey(name), locale, one ? 1 : 2) ?? name;
 }
+
+/** Every common ingredient's name in a language, in the plural a recipe usually writes. */
+export function commonNames(locale: 'de' | 'en'): string[] {
+    return ENTRIES.map((entry) => entry[locale][1]);
+}
