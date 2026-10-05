@@ -1,4 +1,5 @@
 import { after, NextRequest, NextResponse } from 'next/server';
+import { notOurs } from '@/lib/errorNoise';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { requireAdmin, getCurrentUser } from '@/lib/auth';
@@ -41,6 +42,8 @@ export async function POST(req: NextRequest) {
 
     const parsed = reportSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return new NextResponse(null, { status: 204 });
+    // A browser extension's error, from a page that still reports them (lib/errorNoise).
+    if (notOurs(parsed.data.message, parsed.data.stack)) return new NextResponse(null, { status: 204 });
 
     const report = prepareErrorReport({
         source: 'client',
