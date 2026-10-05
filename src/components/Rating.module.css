@@ -34,12 +34,11 @@
     cursor: pointer;
     line-height: 0;
     border-radius: 4px;
-    transition: transform 0.15s ease;
 }
 
-.button:hover:not(:disabled) {
-    transform: scale(1.12);
-}
+/* No growing on hover: a shell that got bigger pushed its neighbours and
+   the text after them, and the row jumped under the pointer. The fill
+   following the pointer says enough. */
 
 .button:disabled {
     cursor: default;

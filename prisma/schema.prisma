@@ -49,6 +49,8 @@ model User {
   /// picture column it does not know about is a picture column whose files are
   /// deleted on the next run — silently, and a week later.
   avatarUrl      String?
+  /// When they chose a picture or their initials; null asks them once (see proxy.ts).
+  avatarChosenAt DateTime?
 
   tokens         AuthToken[]
   shoppingLists  ShoppingList[]

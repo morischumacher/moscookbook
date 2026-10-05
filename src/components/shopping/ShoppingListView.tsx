@@ -9,8 +9,10 @@ import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
 import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 import Sheet, { sheetItem } from '@/components/ui/Sheet';
+import Avatar from '@/components/Avatar';
 import ShoppingSharing from './ShoppingSharing';
 import ListSettings from './ListSettings';
+import AddRecipeSearch from './AddRecipeSearch';
 
 /**
  * The list, in the shop.
@@ -37,6 +39,9 @@ import ListSettings from './ListSettings';
 interface Person {
     id: number;
     name: string;
+    avatarUrl?: string | null;
+    /** Invited and not yet answered: can be given lines already. */
+    invited?: boolean;
 }
 
 type Mode =
@@ -47,7 +52,7 @@ type Mode =
           owner: boolean;
           shareToken: string | null;
           canAdd: boolean;
-          /** Everybody on the list, owner first. */
+          /** Everybody on the list, owner first, then those invited. */
           people: Person[];
           me: number;
           /** For somebody who joined: whose list it is. */
@@ -102,7 +107,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     const people = useMemo(() => (mode.kind === 'account' ? mode.people : []), [mode]);
     // Splitting the shop only means something with somebody to split it with.
     const together = people.length > 1;
-    const nameOf = useCallback((id: number | null) => people.find((person) => person.id === id)?.name ?? null, [people]);
+    const personOf = useCallback((id: number | null) => people.find((person) => person.id === id) ?? null, [people]);
     const [who, setWho] = useState<'all' | 'nobody' | number>('all');
 
     /** Sends one tick. Returns false when it could not be sent. */
@@ -348,7 +353,8 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
 
     const line = (item: ShoppingItemRow) => {
         const amount = amountLabel(item.measure, item.amount, locale);
-        const buyer = nameOf(item.buyerId);
+        const buyerPerson = personOf(item.buyerId);
+        const buyer = buyerPerson ? (mode.kind === 'account' && buyerPerson.id === mode.me ? t('me') : buyerPerson.name) : null;
 
         return (
             <li key={item.id} className="flex items-start gap-3 py-2">
@@ -384,12 +390,20 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                             {item.sources.length > 0 && !item.checked && <span>{t('for', { recipes: item.sources.join(', ') })}</span>}
                             {together &&
                                 (item.checked ? (
-                                    buyer && <span>{t('boughtBy', { name: buyer })}</span>
+                                    buyerPerson && (
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <Avatar name={buyerPerson.name} url={buyerPerson.avatarUrl ?? null} size={18} />
+                                            {t('boughtBy', { name: buyer ?? '' })}
+                                        </span>
+                                    )
                                 ) : (
                                     // A native picker: on a phone it opens the system's own list.
                                     <label
-                                        className={`relative inline-flex min-h-8 items-center rounded-full px-2.5 ${buyer ? 'bg-surface font-semibold text-ink' : 'text-faint hover:text-ink'}`}
+                                        className={`relative inline-flex min-h-8 items-center gap-1.5 rounded-full py-0.5 ${
+                                            buyerPerson ? 'bg-surface pl-0.5 pr-2.5 font-semibold text-ink' : 'border border-line px-2.5 text-muted hover:border-ink hover:text-ink'
+                                        }`}
                                     >
+                                        {buyerPerson && <Avatar name={buyerPerson.name} url={buyerPerson.avatarUrl ?? null} size={22} />}
                                         <span aria-hidden>{buyer ?? t('whoBuys')}</span>
                                         <select
                                             value={item.buyerId ?? ''}
@@ -467,7 +481,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         }`;
     const countFor = (match: (item: ShoppingItemRow) => boolean) => open.filter(match).length;
 
-    const others = people.filter((person) => mode.kind === 'account' && person.id !== mode.me).map((person) => person.name);
+    const others = people.filter((person) => !person.invited && mode.kind === 'account' && person.id !== mode.me).map((person) => person.name);
 
     return (
         <div>
@@ -529,7 +543,8 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                         {t('filterAll')}
                     </button>
                     {people.map((person) => (
-                        <button key={person.id} type="button" aria-pressed={who === person.id} onClick={() => setWho(person.id)} className={filterChip(who === person.id)}>
+                        <button key={person.id} type="button" aria-pressed={who === person.id} onClick={() => setWho(person.id)} className={`${filterChip(who === person.id)} pl-1`}>
+                            <Avatar name={person.name} url={person.avatarUrl ?? null} size={26} />
                             {mode.kind === 'account' && person.id === mode.me ? t('me') : person.name}
                             <span className="text-xs opacity-70">{countFor((item) => item.buyerId === person.id)}</span>
                         </button>
@@ -599,16 +614,14 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                                 </button>
                             </li>
                         ) : (
-                            <li className="px-3 pb-2 text-sm text-muted">{t('memberExplain', { name: mode.ownerName, names: people.map((p) => p.name).join(', ') })}</li>
+                            <li className="px-3 pb-2 text-sm text-muted">{t('memberExplain', { name: mode.ownerName, names: people.filter((p) => !p.invited).map((p) => p.name).join(', ') })}</li>
                         )}
-                        {recipes.length > 0 && (
-                            <li>
-                                <button type="button" onClick={() => setSheet('recipes')} className={sheetItem}>
-                                    <span>{t('recipesOnListCount', { count: recipes.length })}</span>
-                                    <span aria-hidden className="text-faint">›</span>
-                                </button>
-                            </li>
-                        )}
+                        <li>
+                            <button type="button" onClick={() => setSheet('recipes')} className={sheetItem}>
+                                <span>{t('recipesOnListCount', { count: recipes.length })}</span>
+                                <span aria-hidden className="text-faint">›</span>
+                            </button>
+                        </li>
                         {open.length > 0 && (
                             <li>
                                 <button type="button" onClick={() => void sendText()} className={sheetItem}>
@@ -672,7 +685,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             {mode.kind === 'account' && sheet === 'recipes' && (
                 <Sheet title={t('recipesOnList')} onClose={() => setSheet(null)}>
                     {recipes.length === 0 ? (
-                        <p className="text-muted">{t('noRecipes')}</p>
+                        <p className="text-muted">{t('noRecipesYet')}</p>
                     ) : (
                         <ul className="divide-y divide-line">
                             {recipes.map((recipe) => (
@@ -685,6 +698,13 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                             ))}
                         </ul>
                     )}
+                    <AddRecipeSearch
+                        listId={mode.listId}
+                        onAdded={(next, title) => {
+                            setItems(next);
+                            setNote(t('recipeAdded', { recipe: title }));
+                        }}
+                    />
                 </Sheet>
             )}
 

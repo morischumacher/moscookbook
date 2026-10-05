@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-46 screens · 95 endpoints · 92 link edges · 97 call edges
+47 screens · 96 endpoints · 93 link edges · 99 call edges
 
 ## Screens
 
@@ -50,18 +50,20 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/recipe/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/favorite`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/recipes/[id]/cooked`<br>`DELETE /api/recipes/[id]/cooked/photos`<br>`GET /api/shopping/lists`<br>`PATCH /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked/photos`<br>`POST /api/recipes/[id]/draft`<br>`POST /api/recipes/[id]/rate`<br>`POST /api/recipes/[id]/view`<br>`POST /api/shopping`<br>`POST /api/shopping/remove` | `/[locale]`<br>`/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]`<br>`/[locale]/shopping` |
 | `/[locale]/register` | open | steps aside | `POST /api/auth/register` | `/[locale]/login` |
 | `/[locale]/reset` | open | steps aside | `POST /api/auth/reset` | `/[locale]/forgot` |
-| `/[locale]/s/[token]` | open | steps aside | `* /api/shopping`<br>`* /api/shopping/share`<br>`* /api/shopping/shared/[id]`<br>`DELETE /api/shopping`<br>`DELETE /api/shopping/[id]`<br>`DELETE /api/shopping/lists`<br>`DELETE /api/shopping/members`<br>`GET /api/shopping/members`<br>`PATCH /api/shopping/[id]`<br>`PATCH /api/shopping/lists`<br>`PATCH /api/shopping/share`<br>`POST /api/shopping/members`<br>`POST /api/shopping/remove` | `/[locale]`<br>`/[locale]/login`<br>`/[locale]/shopping` |
+| `/[locale]/s/[token]` | open | steps aside | `* /api/shopping`<br>`* /api/shopping/share`<br>`* /api/shopping/shared/[id]`<br>`DELETE /api/shopping`<br>`DELETE /api/shopping/[id]`<br>`DELETE /api/shopping/lists`<br>`DELETE /api/shopping/members`<br>`GET /api/shopping/members`<br>`GET /api/shopping/recipes`<br>`PATCH /api/shopping/[id]`<br>`PATCH /api/shopping/lists`<br>`PATCH /api/shopping/share`<br>`POST /api/shopping`<br>`POST /api/shopping/members`<br>`POST /api/shopping/remove` | `/[locale]`<br>`/[locale]/login`<br>`/[locale]/shopping` |
 | `/[locale]/share` | account | requires session | `POST /api/capture/share` | `/[locale]/admin/inbox` |
-| `/[locale]/shopping` | account | requires session | `* /api/shopping`<br>`* /api/shopping/share`<br>`* /api/shopping/shared/[id]`<br>`DELETE /api/shopping`<br>`DELETE /api/shopping/[id]`<br>`DELETE /api/shopping/lists`<br>`DELETE /api/shopping/members`<br>`GET /api/shopping/members`<br>`PATCH /api/shopping/[id]`<br>`PATCH /api/shopping/lists`<br>`PATCH /api/shopping/share`<br>`POST /api/shopping/invitations`<br>`POST /api/shopping/lists`<br>`POST /api/shopping/members`<br>`POST /api/shopping/remove` | `/[locale]`<br>`/[locale]/login`<br>`/[locale]/shopping` |
+| `/[locale]/shopping` | account | requires session | `* /api/shopping`<br>`* /api/shopping/share`<br>`* /api/shopping/shared/[id]`<br>`DELETE /api/shopping`<br>`DELETE /api/shopping/[id]`<br>`DELETE /api/shopping/lists`<br>`DELETE /api/shopping/members`<br>`GET /api/shopping/members`<br>`GET /api/shopping/recipes`<br>`PATCH /api/shopping/[id]`<br>`PATCH /api/shopping/lists`<br>`PATCH /api/shopping/share`<br>`POST /api/shopping`<br>`POST /api/shopping/invitations`<br>`POST /api/shopping/lists`<br>`POST /api/shopping/members`<br>`POST /api/shopping/remove` | `/[locale]`<br>`/[locale]/login`<br>`/[locale]/shopping` |
 | `/[locale]/tickets` | account | requires session | `* /api/report-photos`<br>`POST /api/tickets` | `/[locale]` |
 | `/[locale]/verify` | open | steps aside | `POST /api/auth/verify` | `/[locale]` |
+| `/[locale]/welcome` | account | requires session | `PATCH /api/account/avatar`<br>`POST /api/account/avatar` | `/[locale]/login` |
 
 ## Endpoints
 
 | Method | Path | Gate | Validated | Rate-limited | Called from |
 |---|---|---|---|---|---|
-| POST | `/api/account/avatar` | user (manual) | — | yes | `account/AvatarForm` |
+| POST | `/api/account/avatar` | user (manual) | — | yes | `account/AvatarForm`<br>`account/WelcomePicture` |
 | DELETE | `/api/account/avatar` | user (manual) | — | yes | `account/AvatarForm` |
+| PATCH | `/api/account/avatar` | user (manual) | — | yes | `account/WelcomePicture` |
 | POST | `/api/account/email` | user | zod | yes | `account/AccountSettings` |
 | PUT | `/api/account/email` | user | zod | yes | `account/AccountSettings` |
 | DELETE | `/api/account/email` | user | zod | yes | `account/AccountSettings` |
@@ -178,6 +180,7 @@ Calls the map could not match to an endpoint (a URL built elsewhere, or a path t
 - `GET /api/favorites  (from home/OfflineFavorites)`
 - `GET /api/shopping/lists  (from shopping/AddToShopping)`
 - `GET /api/shopping/members  (from shopping/ShoppingSharing)`
+- `GET /api/shopping/recipes  (from shopping/AddRecipeSearch)`
 - `GET /api/work-items  (from admin/WorkPanel)`
 - `GET /api/work-items/[id]  (from admin/WorkPanel)`
 - `GET /api/work-items/prompt  (from admin/WorkPanel)`
@@ -193,6 +196,7 @@ Calls the map could not match to an endpoint (a URL built elsewhere, or a path t
 - `POST /api/import/recipes  (from admin/ForeignImport)`
 - `POST /api/recipes/[id]/cooked  (from recipe/Cooked)`
 - `POST /api/recipes/[id]/revisions/[id]  (from recipe-form/RecipeHistory)`
+- `POST /api/shopping  (from shopping/AddRecipeSearch)`
 - `POST /api/shopping  (from shopping/AddToShopping)`
 - `POST /api/shopping/invitations  (from shopping/ShoppingInvitations)`
 - `POST /api/shopping/lists  (from shopping/ShoppingLists)`
@@ -229,6 +233,7 @@ flowchart LR
     n__locale__share["/[locale]/share"]
     n__locale__shopping["/[locale]/shopping"]
     n__locale__tickets["/[locale]/tickets"]
+    n__locale__welcome["/[locale]/welcome"]
   end
   subgraph admin
     n__locale__admin_ai["/[locale]/admin/ai"]
@@ -360,6 +365,7 @@ flowchart LR
   n__locale__shopping --> n__locale__login
   n__locale__tickets --> n__locale_
   n__locale__verify --> n__locale_
+  n__locale__welcome --> n__locale__login
 ```
 
 ## Who calls what
@@ -369,8 +375,12 @@ flowchart LR
   ePOST_api_account_avatar(["POST /api/account/avatar"])
   caccount_AvatarForm["account/AvatarForm"]
   caccount_AvatarForm --> ePOST_api_account_avatar
+  caccount_WelcomePicture["account/WelcomePicture"]
+  caccount_WelcomePicture --> ePOST_api_account_avatar
   eDELETE_api_account_avatar(["DELETE /api/account/avatar"])
   caccount_AvatarForm --> eDELETE_api_account_avatar
+  ePATCH_api_account_avatar(["PATCH /api/account/avatar"])
+  caccount_WelcomePicture --> ePATCH_api_account_avatar
   ePOST_api_account_email(["POST /api/account/email"])
   caccount_AccountSettings["account/AccountSettings"]
   caccount_AccountSettings --> ePOST_api_account_email

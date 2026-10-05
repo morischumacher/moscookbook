@@ -128,15 +128,16 @@ export async function householdOf(listId: number) {
     const list = await prisma.shoppingList.findUnique({
         where: { id: listId },
         select: {
-            user: { select: { id: true, firstName: true, name: true } },
-            members: { orderBy: { createdAt: 'asc' }, select: { acceptedAt: true, user: { select: { id: true, firstName: true, name: true } } } },
+            user: { select: { id: true, firstName: true, name: true, avatarUrl: true } },
+            members: { orderBy: { createdAt: 'asc' }, select: { acceptedAt: true, user: { select: { id: true, firstName: true, name: true, avatarUrl: true } } } },
         },
     });
     if (!list) return null;
+    const person = (user: { id: number; firstName: string; name: string; avatarUrl: string | null }) => ({ id: user.id, name: personName(user), avatarUrl: user.avatarUrl });
     return {
-        owner: { id: list.user.id, name: personName(list.user) },
-        members: list.members.filter((m) => m.acceptedAt).map((m) => ({ id: m.user.id, name: personName(m.user) })),
-        invited: list.members.filter((m) => !m.acceptedAt).map((m) => ({ id: m.user.id, name: personName(m.user) })),
+        owner: person(list.user),
+        members: list.members.filter((m) => m.acceptedAt).map((m) => person(m.user)),
+        invited: list.members.filter((m) => !m.acceptedAt).map((m) => person(m.user)),
     };
 }
 
@@ -145,9 +146,9 @@ export async function invitationsFor(userId: number) {
     const rows = await prisma.shoppingListMember.findMany({
         where: { userId, acceptedAt: null },
         orderBy: { createdAt: 'asc' },
-        select: { listId: true, list: { select: { name: true, user: { select: { firstName: true, name: true } } } } },
+        select: { listId: true, list: { select: { name: true, user: { select: { firstName: true, name: true, avatarUrl: true } } } } },
     });
-    return rows.map((row) => ({ listId: row.listId, name: row.list.name, owner: personName(row.list.user) }));
+    return rows.map((row) => ({ listId: row.listId, name: row.list.name, owner: personName(row.list.user), ownerAvatar: row.list.user.avatarUrl }));
 }
 
 /**

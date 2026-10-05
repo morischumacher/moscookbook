@@ -169,8 +169,10 @@ export default function accountTests() {
 export function sessionVersionTests() {
     suite('account: a session can be ended');
 
-    const row = { id: 7, email: 'a@b.c', name: 'Ann', admin: false, sessionVersion: 3 };
+    const row = { id: 7, email: 'a@b.c', name: 'Ann', admin: false, sessionVersion: 3, avatarChosenAt: new Date() };
     const cookie = sessionUserFrom(row);
+    check('somebody who chose a picture is not asked', cookie.needsPicture === undefined);
+    check('a new account is asked once', sessionUserFrom({ ...row, avatarChosenAt: null }).needsPicture === true);
 
     equal('the version is sealed into the cookie', cookie.v, 3);
     check('a matching version is still valid', sessionStillValid(cookie, { sessionVersion: 3 }));

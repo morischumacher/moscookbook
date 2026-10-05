@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
+import Avatar from '@/components/Avatar';
 
 interface Person {
     id: number;
     name: string;
+    avatarUrl?: string | null;
 }
 
 interface Household {
@@ -94,6 +96,8 @@ export default function ShoppingSharing({
             setQuery('');
             onNote(t('invitedNote', { name: person.name }));
             await load();
+            // They can be given lines to buy straight away.
+            onChanged();
         } else onNote(t('failed'));
     };
 
@@ -104,7 +108,7 @@ export default function ShoppingSharing({
         setBusy(null);
         if (res?.ok) {
             await load();
-            if (joined) onChanged();
+            onChanged();
         } else onNote(t('failed'));
     };
 
@@ -154,7 +158,10 @@ export default function ShoppingSharing({
                     <ul className="mt-2 divide-y divide-line">
                         {household.members.map((person) => (
                             <li key={person.id} className={row}>
-                                <span>{person.name}</span>
+                                <span className="flex items-center gap-2">
+                                    <Avatar name={person.name} url={person.avatarUrl ?? null} size={32} />
+                                    {person.name}
+                                </span>
                                 <button type="button" disabled={busy === person.id} onClick={() => void takeOff(person, true)} className={quiet}>
                                     {t('takeOff')}
                                 </button>
@@ -162,8 +169,11 @@ export default function ShoppingSharing({
                         ))}
                         {household.invited.map((person) => (
                             <li key={person.id} className={row}>
-                                <span>
-                                    {person.name} <span className="text-faint">· {t('invitedPending')}</span>
+                                <span className="flex items-center gap-2">
+                                    <Avatar name={person.name} url={person.avatarUrl ?? null} size={32} />
+                                    <span>
+                                        {person.name} <span className="text-faint">· {t('invitedPending')}</span>
+                                    </span>
                                 </span>
                                 <button type="button" disabled={busy === person.id} onClick={() => void takeOff(person, false)} className={quiet}>
                                     {t('withdraw')}
@@ -190,7 +200,10 @@ export default function ShoppingSharing({
                         {matches.length === 0 && <li className="py-3 text-sm text-faint">{t('inviteNoMatch')}</li>}
                         {matches.map((person) => (
                             <li key={person.id} className={row}>
-                                <span>{person.name}</span>
+                                <span className="flex items-center gap-2">
+                                    <Avatar name={person.name} url={person.avatarUrl ?? null} size={32} />
+                                    {person.name}
+                                </span>
                                 <button type="button" disabled={busy === person.id} onClick={() => void invite(person)} className={buttonSecondary}>
                                     {t('inviteOne')}
                                 </button>

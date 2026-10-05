@@ -42,6 +42,14 @@ export default async function proxy(req: NextRequest) {
 
     const allowed = access === 'admin' ? Boolean(session.user?.admin) : Boolean(session.user);
 
+    // A new account chooses its picture — a photo or its initials — before
+    // anything else; everybody is shown with it wherever people appear.
+    if (allowed && session.user?.needsPicture && !WELCOME.test(pathname)) {
+        const welcome = new URL(`/${pathname.split('/')[1]}/welcome`, req.url);
+        welcome.searchParams.set('next', pathname + req.nextUrl.search);
+        return NextResponse.redirect(welcome);
+    }
+
     if (allowed) return res;
 
     const login = loginUrl(req, pathname);
@@ -56,6 +64,8 @@ export default async function proxy(req: NextRequest) {
 
     return NextResponse.redirect(login);
 }
+
+const WELCOME = /^\/(?:en|de)\/welcome\/?$/;
 
 function loginUrl(req: NextRequest, pathname: string): URL {
     const locale = pathname.split('/')[1];
@@ -95,13 +105,14 @@ async function revoked(session: IronSession<SessionData>): Promise<boolean> {
     if (session.checkedAt && Date.now() - session.checkedAt < SESSION_RECHECK_MS) return false;
 
     const row = await prisma.user
-        .findUnique({ where: { id: user.id }, select: { admin: true, sessionVersion: true } })
+        .findUnique({ where: { id: user.id }, select: { admin: true, sessionVersion: true, avatarChosenAt: true } })
         .catch(() => undefined);
 
     if (row === undefined) return false;
     if (!sessionStillValid(user, row)) return true;
 
-    session.user = { ...user, admin: row!.admin };
+    // A picture chosen on another device stops the asking here too.
+    session.user = { ...user, admin: row!.admin, needsPicture: row!.avatarChosenAt === null ? true : undefined };
     session.checkedAt = Date.now();
     await session.save();
     return false;

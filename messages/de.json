@@ -142,8 +142,6 @@
     "cookView": "Ansicht"
   },
   "Rating": {
-    "rate": "Bewerten",
-    "editRating": "Bewertung ändern",
     "summary": "{count, plural, =0 {Noch nicht bewertet} one {# Person bewertete dies mit {average}} other {# Personen bewerteten dies mit {average}}}",
     "submitYours": "Deine Bewertung abgeben",
     "screenReader": "Durchschnitt {average} von {max}",
@@ -151,7 +149,9 @@
     "failed": "Die Bewertung konnte nicht gespeichert werden.",
     "error": "Beim Speichern der Bewertung ist etwas schiefgegangen.",
     "rateN": "{value, number} von {max}",
-    "cancel": "Abbrechen"
+    "yours": "Deine Bewertung: {value} – tippen zum Ändern",
+    "tapToRate": "Auf eine Auster tippen zum Bewerten",
+    "saved": "Gespeichert: {value} von 5"
   },
   "Favorite": {
     "add": "Zu Favoriten hinzufügen",
@@ -1272,7 +1272,6 @@
     "menuShare": "Teilen & Personen",
     "menuShareNone": "Nur du",
     "recipesOnListCount": "Rezepte auf der Liste ({count})",
-    "noRecipes": "Auf dieser Liste steht nichts aus einem Rezept.",
     "clearCheckedCount": "Abgehakte entfernen ({count})",
     "nothingMatches": "Nichts passt dazu.",
     "isTicked": "abgehakt",
@@ -1284,7 +1283,14 @@
     "filterLabel": "Nach Person zeigen",
     "filterAll": "Alle",
     "filterNobody": "Noch offen",
-    "maxLists": "Höchstens {count} Listen"
+    "maxLists": "Höchstens {count} Listen",
+    "cancelNewList": "Doch keine neue Liste",
+    "addRecipeTitle": "Rezept hinzufügen",
+    "addRecipeSearch": "Rezept suchen …",
+    "addRecipeNone": "Kein Rezept mit diesem Namen.",
+    "addRecipeOne": "Hinzufügen",
+    "recipeAdded": "„{recipe}“ steht jetzt auf der Liste.",
+    "noRecipesYet": "Noch kein Rezept auf dieser Liste."
   },
   "Tags": {
     "vegetarian": "Vegetarisch",
@@ -1577,5 +1583,17 @@
     "failed": "Das hat nicht geklappt. Die Liste ist neu geladen.",
     "reopen": "Wieder öffnen",
     "markDone": "Als erledigt markieren"
+  },
+  "Welcome": {
+    "title": "Willkommen!",
+    "intro": "Noch eine Sache: Wie sollen dich die anderen sehen? Dein Bild steht überall, wo Personen auftauchen – auf geteilten Einkaufslisten, bei „wer kauft was“, unter „Gekocht“.",
+    "preview": "So sieht es mit deinen Initialen aus.",
+    "looksGood": "So sehen dich die anderen.",
+    "choosePhoto": "Foto wählen",
+    "otherPhoto": "Anderes Foto",
+    "useInitials": "Meine Initialen verwenden",
+    "continue": "Weiter",
+    "later": "Ändern kannst du es jederzeit unter Konto.",
+    "failed": "Das hat nicht geklappt. Versuch es bitte noch einmal."
   }
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import Avatar from '@/components/Avatar';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
@@ -11,7 +12,7 @@ import { sayable } from '@/lib/apiMessage';
  * "Ann möchte die Liste „Grillparty“ mit dir teilen": joining is the invited
  * person's choice — the list then appears among theirs.
  */
-export default function ShoppingInvitations({ invitations }: { invitations: { listId: number; name: string | null; owner: string }[] }) {
+export default function ShoppingInvitations({ invitations }: { invitations: { listId: number; name: string | null; owner: string; ownerAvatar: string | null }[] }) {
     const t = useTranslations('Shopping');
     const router = useRouter();
     const [busy, setBusy] = useState<number | null>(null);
@@ -44,7 +45,10 @@ export default function ShoppingInvitations({ invitations }: { invitations: { li
         <div className="mb-8 flex flex-col gap-3">
             {invitations.map((invitation) => (
                 <div key={invitation.listId} className="rounded-xl border border-ink p-4">
-                    <p className="font-medium">{invitation.name ? t('invitedToList', { name: invitation.owner, list: invitation.name }) : t('invitedBy', { name: invitation.owner })}</p>
+                    <p className="flex items-center gap-2 font-medium">
+                        <Avatar name={invitation.owner} url={invitation.ownerAvatar} size={32} />
+                        <span>{invitation.name ? t('invitedToList', { name: invitation.owner, list: invitation.name }) : t('invitedBy', { name: invitation.owner })}</span>
+                    </p>
                     <p className="mt-1 text-sm text-muted">{t('invitedExplain')}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-4">
                         <button type="button" disabled={busy !== null} onClick={() => void answer(invitation.listId, true)} className={buttonPrimarySmall}>

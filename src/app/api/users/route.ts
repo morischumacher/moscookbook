@@ -10,6 +10,7 @@ interface UserRow {
     name: string;
     email: string;
     admin: boolean;
+    avatarUrl: string | null;
     emailVerifiedAt: Date | null;
     invitesUsed: { usedAt: Date | null; createdBy: { name: string } | null }[];
 }
@@ -25,6 +26,7 @@ export async function GET() {
                 name: true,
                 email: true,
                 admin: true,
+                avatarUrl: true,
                 emailVerifiedAt: true,
                 /*
                  * Who let this person in, and when.
@@ -56,6 +58,7 @@ export async function GET() {
                 protectedAs: user.admin ? protectionOf(user.id, auth.user.id, owner, admins) : user.id === auth.user.id ? 'self' : null,
                 id: user.id,
                 name: user.name,
+                avatarUrl: user.avatarUrl,
                 email: user.email,
                 admin: user.admin,
                 verified: user.emailVerifiedAt !== null,

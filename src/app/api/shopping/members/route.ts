@@ -23,7 +23,7 @@ export const GET = route({ access: 'user', label: 'Shopping list members' }, asy
     const household = await householdOf(list.id);
     if (!household) refuse(404, 'This list is not there.');
 
-    let people: { id: number; name: string }[] = [];
+    let people: { id: number; name: string; avatarUrl: string | null }[] = [];
     const q = (new URL(req.url).searchParams.get('q') ?? '').trim().slice(0, 60);
     if (list.owner && q) {
         const taken = new Set([household.owner.id, ...household.members.map((m) => m.id), ...household.invited.map((m) => m.id)]);
@@ -33,10 +33,10 @@ export const GET = route({ access: 'user', label: 'Shopping list members' }, asy
                 OR: [{ name: { contains: q, mode: 'insensitive' } }, { firstName: { contains: q, mode: 'insensitive' } }],
             },
             orderBy: { name: 'asc' },
-            select: { id: true, name: true, firstName: true },
+            select: { id: true, name: true, firstName: true, avatarUrl: true },
             take: 8,
         });
-        people = everyone.map((p) => ({ id: p.id, name: p.firstName || p.name }));
+        people = everyone.map((p) => ({ id: p.id, name: p.firstName || p.name, avatarUrl: p.avatarUrl }));
     }
     return NextResponse.json({ owner: list.owner, household, people });
 });

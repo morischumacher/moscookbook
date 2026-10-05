@@ -142,8 +142,6 @@
     "cookView": "View"
   },
   "Rating": {
-    "rate": "Rate",
-    "editRating": "Edit rating",
     "summary": "{count, plural, =0 {Not rated yet} one {# person rated this {average}} other {# people rated this {average}}}",
     "submitYours": "Submit your rating",
     "screenReader": "Average {average} out of {max}",
@@ -151,7 +149,9 @@
     "failed": "Rating could not be saved.",
     "error": "Something went wrong while saving your rating.",
     "rateN": "{value, number} of {max}",
-    "cancel": "Cancel"
+    "yours": "Your rating: {value} – tap to change",
+    "tapToRate": "Tap an oyster to rate",
+    "saved": "Saved: {value} of 5"
   },
   "Favorite": {
     "add": "Add to favourites",
@@ -1272,7 +1272,6 @@
     "menuShare": "Sharing & people",
     "menuShareNone": "Only you",
     "recipesOnListCount": "Recipes on the list ({count})",
-    "noRecipes": "Nothing on this list came from a recipe.",
     "clearCheckedCount": "Remove ticked ({count})",
     "nothingMatches": "Nothing matches.",
     "isTicked": "ticked",
@@ -1284,7 +1283,14 @@
     "filterLabel": "Show by person",
     "filterAll": "All",
     "filterNobody": "Unassigned",
-    "maxLists": "At most {count} lists"
+    "maxLists": "At most {count} lists",
+    "cancelNewList": "No new list after all",
+    "addRecipeTitle": "Add a recipe",
+    "addRecipeSearch": "Search a recipe …",
+    "addRecipeNone": "No recipe by that name.",
+    "addRecipeOne": "Add",
+    "recipeAdded": "“{recipe}” is on the list now.",
+    "noRecipesYet": "No recipe on this list yet."
   },
   "Tags": {
     "vegetarian": "Vegetarian",
@@ -1577,5 +1583,17 @@
     "failed": "That did not work. The list has been reloaded.",
     "reopen": "Reopen",
     "markDone": "Mark done"
+  },
+  "Welcome": {
+    "title": "Welcome!",
+    "intro": "One more thing: how should the others see you? Your picture appears wherever people do – on shared shopping lists, next to who buys what, under “Cooked”.",
+    "preview": "This is how it looks with your initials.",
+    "looksGood": "This is how the others see you.",
+    "choosePhoto": "Choose a photo",
+    "otherPhoto": "Another photo",
+    "useInitials": "Use my initials",
+    "continue": "Continue",
+    "later": "You can change it any time under Account.",
+    "failed": "That did not work. Please try again."
   }
 }
