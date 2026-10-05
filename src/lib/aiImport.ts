@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CONVENTION_RULE } from './ingredientShape';
+import { GERMAN_VOICE } from './writingVoice';
 import type { ParsedRecipe } from './recipeParser';
 import { scrub } from './secretBox';
 import { DEFAULT_MODEL, PROVIDER_LABEL, isValidModel, modelsFor, type AiKey, type AiProvider } from './aiProviders';
@@ -91,6 +92,7 @@ Rules:
 - "item" is the ingredient alone, without the quantity.
 ${CONVENTION_RULE}
 - "instructions" is markdown: one numbered list item per step, separated by blank lines.
+${GERMAN_VOICE}
 - "category" is one of Breakfast, Lunch, Dinner, Starter, Main, Side, Soup, Salad,
   Dessert, Baking, Bread, Snack, Sauce, Seasoning, Drink — or "" if unclear.
 - "nationality" is the cuisine, e.g. Italian, German — or "" if unclear.

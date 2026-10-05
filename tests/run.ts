@@ -56,6 +56,7 @@ import shoppingParts from './shoppingParts.test';
 import ingredientShape from './ingredientShape.test';
 import smallFirst from './smallFirst.test';
 import errorNoise from './errorNoise.test';
+import recipeVoice from './recipeVoice.test';
 import cookSteps from './cookSteps.test';
 import tags from './tags.test';
 import offline from './offline.test';
@@ -169,6 +170,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['ingredientShape', ingredientShape],
     ['smallFirst', smallFirst],
     ['errorNoise', errorNoise],
+    ['recipeVoice', recipeVoice],
     ['cookSteps', cookSteps],
     ['tags', tags],
     ['offline', offline],

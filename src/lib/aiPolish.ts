@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { GERMAN_VOICE } from './writingVoice';
 import type { AiKey } from './aiImport';
 import { scrub } from './secretBox';
 
@@ -93,7 +94,8 @@ You MUST NOT:
 - translate, or change the language in any way
 - add a heading, an introduction, a closing line, or a note of your own
 
-Return ONLY the numbered list, with no explanation and no code fences.`;
+Return ONLY the numbered list, with no explanation and no code fences.
+${GERMAN_VOICE}`;
 
 /**
  * Generating a method from a list of ingredients.
@@ -106,7 +108,8 @@ Rules:
 - Write in the SAME language as the ingredients provided.
 - Do NOT invent exotic or unlisted main ingredients; stick to the provided ingredients and standard cooking techniques.
 - Do NOT add an introduction, chitchat, or notes of your own.
-- Return ONLY the numbered markdown list of steps.`;
+- Return ONLY the numbered markdown list of steps.
+${GERMAN_VOICE}`;
 
 const PROMPTS: Record<PolishMode, string> = {
     spelling: SPELLING_PROMPT,

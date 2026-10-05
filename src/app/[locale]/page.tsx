@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { canonicalCategory, canonicalCuisine } from '@/lib/recipeLabels';
 import { after } from 'next/server';
 import { ensureConvention } from '@/lib/ingredientConventionDb';
+import { ensureVoice } from '@/lib/recipeVoiceDb';
 import { failed } from '@/lib/reportServerError';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { visibleTo } from '@/lib/recipeVisibility';
@@ -146,7 +147,13 @@ export default async function HomePage({
     params: Promise<{ locale: string }>;
 }) {
     // Once after a deploy: every recipe written the cookbook's way (lib/ingredientConventionDb).
-    after(() => ensureConvention().catch((error) => failed('ingredient convention', error)));
+    after(() =>
+        ensureConvention()
+            .catch((error) => failed('ingredient convention', error))
+            // And the German method and tips in the du voice (lib/recipeVoiceDb).
+            .then(() => ensureVoice())
+            .catch((error) => failed('recipe voice', error))
+    );
     const t = await getTranslations('Home');
     const locale = await getLocale();
     const tSite = await getTranslations('Site');

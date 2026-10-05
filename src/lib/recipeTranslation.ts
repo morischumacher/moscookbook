@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CONVENTION_RULE } from './ingredientShape';
+import { GERMAN_VOICE } from './writingVoice';
 import type { AiKey } from './aiImport';
 import { scrub } from './secretBox';
 import { sectionHeading, toStructuredIngredients, withHeadingRows, type StructuredIngredient } from './ingredientParts';
@@ -205,6 +206,7 @@ Rules:
 ${CONVENTION_RULE}
 - "amount" is only the quantity and unit.
 ${UNIT_RULES[to]}
+${to === 'de' ? GERMAN_VOICE : '- English text uses the plain imperative ("Add the onions").'}
 - "instructions": keep the markdown exactly as it is — the same numbered or
   bulleted list, one step for one step, the same line breaks and headings.
   Times stay as they are.

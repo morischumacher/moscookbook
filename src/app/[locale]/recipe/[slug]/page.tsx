@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { after } from 'next/server';
 import { ensureConvention } from '@/lib/ingredientConventionDb';
+import { ensureVoice } from '@/lib/recipeVoiceDb';
 import { failed } from '@/lib/reportServerError';
 import { cache } from 'react';
 import { notFound, redirect } from 'next/navigation';
@@ -101,7 +102,13 @@ export default async function RecipePage({
     params: Promise<{ slug: string; locale: string }>;
 }) {
     // Once after a deploy: every recipe written the cookbook's way (lib/ingredientConventionDb).
-    after(() => ensureConvention().catch((error) => failed('ingredient convention', error)));
+    after(() =>
+        ensureConvention()
+            .catch((error) => failed('ingredient convention', error))
+            // And the German method and tips in the du voice (lib/recipeVoiceDb).
+            .then(() => ensureVoice())
+            .catch((error) => failed('recipe voice', error))
+    );
     const { slug, locale } = await params;
 
     // Side by side: neither needs the other, and every round trip saved here is
