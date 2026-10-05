@@ -16,6 +16,7 @@ export const shoppingItemSelect = {
     aisle: true,
     sources: true,
     checked: true,
+    buyerId: true,
 } as const;
 
 export interface ShoppingItemRow {
@@ -26,6 +27,8 @@ export interface ShoppingItemRow {
     aisle: string;
     sources: string[];
     checked: boolean;
+    /** Who on the list is buying it; null when nobody said. */
+    buyerId: number | null;
 }
 
 /** This person's main list, made the first time it is asked for. */
@@ -180,7 +183,8 @@ export async function removeSource(listId: number, source: string): Promise<numb
 export async function itemsOf(listId: number): Promise<ShoppingItemRow[]> {
     return prisma.shoppingItem.findMany({
         where: { listId },
-        orderBy: [{ checked: 'asc' }, { createdAt: 'asc' }],
+        // In the order they came: a ticked line keeps its place (work #38).
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         select: shoppingItemSelect,
     });
 }

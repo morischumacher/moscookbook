@@ -10,7 +10,9 @@ import { requestedList } from '@/lib/shoppingRequest';
  * people of the cookbook, who get it among their lists once they accept
  * (/api/shopping/invitations).
  *
- * GET: who is on it, and for the owner everybody who could be invited.
+ * GET: who is on it, and for the owner up to eight people who could be
+ *   invited whose name matches `&q=` (nobody without a search: with a
+ *   hundred people in the cookbook a full list is a wall).
  * POST `{userId}`: the owner invites somebody.
  * DELETE `&userId=`: the owner takes somebody off (or withdraws an invitation).
  * DELETE `&leave=1`: somebody who joined leaves it.
@@ -22,13 +24,17 @@ export const GET = route({ access: 'user', label: 'Shopping list members' }, asy
     if (!household) refuse(404, 'This list is not there.');
 
     let people: { id: number; name: string }[] = [];
-    if (list.owner) {
+    const q = (new URL(req.url).searchParams.get('q') ?? '').trim().slice(0, 60);
+    if (list.owner && q) {
         const taken = new Set([household.owner.id, ...household.members.map((m) => m.id), ...household.invited.map((m) => m.id)]);
         const everyone = await prisma.user.findMany({
-            where: { id: { notIn: [...taken] } },
+            where: {
+                id: { notIn: [...taken] },
+                OR: [{ name: { contains: q, mode: 'insensitive' } }, { firstName: { contains: q, mode: 'insensitive' } }],
+            },
             orderBy: { name: 'asc' },
             select: { id: true, name: true, firstName: true },
-            take: 200,
+            take: 8,
         });
         people = everyone.map((p) => ({ id: p.id, name: p.firstName || p.name }));
     }
@@ -57,13 +63,20 @@ export const DELETE = route({ access: 'user', label: 'Taking somebody off a shop
     if (query.get('leave')) {
         const list = await requestedList(req, user.id);
         if (list.owner) refuse(400, 'This is your own list.');
-        await prisma.shoppingListMember.deleteMany({ where: { listId: list.id, userId: user.id } });
+        await prisma.$transaction([
+            prisma.shoppingListMember.deleteMany({ where: { listId: list.id, userId: user.id } }),
+            // What they had said they would buy is open again.
+            prisma.shoppingItem.updateMany({ where: { listId: list.id, buyerId: user.id }, data: { buyerId: null } }),
+        ]);
         return NextResponse.json({ left: true });
     }
 
     const list = await requestedList(req, user.id, 'owner');
     const userId = Number(query.get('userId'));
     if (!Number.isInteger(userId) || userId <= 0 || userId > 2_147_483_647) refuse(400, 'Take off whom?');
-    await prisma.shoppingListMember.deleteMany({ where: { listId: list.id, userId } });
+    await prisma.$transaction([
+        prisma.shoppingListMember.deleteMany({ where: { listId: list.id, userId } }),
+        prisma.shoppingItem.updateMany({ where: { listId: list.id, buyerId: userId }, data: { buyerId: null } }),
+    ]);
     return NextResponse.json({ removed: userId });
 });

@@ -45,8 +45,9 @@ export default async function ShoppingPage({
         prisma.shoppingList.findUnique({ where: { id: list.id }, select: { shareToken: true, shareCanAdd: true } }),
     ]);
 
-    // Everybody on this list but the person looking at it.
-    const others = household ? [household.owner, ...household.members].filter((person) => person.id !== user.id).map((person) => person.name) : [];
+    // Everybody on this list, owner first; and everybody but the person looking at it.
+    const everybody = household ? [household.owner, ...household.members] : [];
+    const others = everybody.filter((person) => person.id !== user.id).map((person) => person.name);
 
     return (
         <main className={`${pageContainer} pb-32`}>
@@ -70,6 +71,9 @@ export default async function ShoppingPage({
                     // The link is the owner's to hand out: not even in a member's page data.
                     shareToken: list.owner ? (settings?.shareToken ?? null) : null,
                     canAdd: settings?.shareCanAdd ?? true,
+                    people: everybody,
+                    me: user.id,
+                    ownerName: household?.owner.name ?? '',
                 }}
             />
         </main>

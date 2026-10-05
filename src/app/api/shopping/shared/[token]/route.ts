@@ -7,9 +7,10 @@ import { lineFromText } from '@/lib/shopping';
 import { addLines, itemsOf } from '@/lib/shoppingDb';
 
 /**
- * A shared shopping list, for somebody with the link and no account: read it,
- * tick a line, and — when the owner allows it — add a line ("we are out of
- * milk"). Nothing can be deleted from
+ * A shared shopping list, for somebody with the link. Anybody holding it can
+ * read it. Ticking and adding ("we are out of milk") need an account as well,
+ * and the owner's leave (`shareCanAdd`): a link travels further than meant,
+ * and changes should have a name behind them. Nothing can be deleted from
  * here, and nothing else of the owner's is reachable — the token opens this
  * one list.
  */
@@ -23,17 +24,21 @@ async function sharedList(token: string | undefined) {
 
 type Params = { token: string };
 
-export const GET = route<'public', undefined, Params>({ access: 'public', label: 'Shared shopping list' }, async ({ params }) => {
+/** Whether this visitor may change the list through the link. */
+const mayEdit = (list: { shareCanAdd: boolean }, user: unknown) => list.shareCanAdd && Boolean(user);
+
+export const GET = route<'public', undefined, Params>({ access: 'public', label: 'Shared shopping list' }, async ({ params, user }) => {
     const list = await sharedList(params.token);
-    return NextResponse.json({ items: await itemsOf(list.id), canAdd: list.shareCanAdd });
+    return NextResponse.json({ items: await itemsOf(list.id), canAdd: mayEdit(list, user) });
 });
 
 const patchBody = z.object({ itemId: z.number().int().positive().max(2_147_483_647), checked: z.boolean() });
 
 export const PATCH = route<'public', typeof patchBody, Params>(
     { access: 'public', body: patchBody, label: 'Ticking a shared shopping item' },
-    async ({ params, body }) => {
+    async ({ params, body, user }) => {
         const list = await sharedList(params.token);
+        if (!mayEdit(list, user)) refuse(403, 'This link can only show the list.');
         const updated = await prisma.shoppingItem.updateMany({
             where: { id: body.itemId, listId: list.id },
             data: { checked: body.checked },
@@ -47,14 +52,14 @@ const addBody = z.object({ text: z.string().trim().min(1).max(200) });
 
 export const POST = route<'public', typeof addBody, Params>(
     { access: 'public', body: addBody, label: 'Adding to a shared shopping list' },
-    async ({ req, params, body }) => {
+    async ({ req, params, body, user }) => {
         // Without an account, so limited by address: a link passed around
         // further than meant should not become a way to fill the list.
         const limit = await rateLimitShared(clientKey(req, 'shopping-shared'), 60, 10 * 60 * 1000);
         if (!limit.ok) refuse(429, 'Too many at once. Please wait a moment.');
 
         const list = await sharedList(params.token);
-        if (!list.shareCanAdd) refuse(403, 'This link can only tick things off.');
+        if (!mayEdit(list, user)) refuse(403, 'This link can only show the list.');
         const line = lineFromText(body.text);
         if (line) await addLines(list.id, [line]);
         return NextResponse.json({ items: await itemsOf(list.id) });
