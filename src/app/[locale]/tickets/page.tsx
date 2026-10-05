@@ -72,6 +72,8 @@ function TicketForm() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [sent, setSent] = useState(false);
+    // A "something is broken" ticket goes onto the task list at once; say so.
+    const [onTaskList, setOnTaskList] = useState(false);
 
     const send = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -91,6 +93,8 @@ function TicketForm() {
                 return;
             }
 
+            const answer = (await res.json().catch(() => null)) as { onTaskList?: boolean } | null;
+            setOnTaskList(answer?.onTaskList === true);
             setSent(true);
         } catch {
             setError(t('failed'));
@@ -104,6 +108,7 @@ function TicketForm() {
             <main className={`${pageContainer} ${pageTop} pb-32`}>
                 <h1 className={pageHeading}>{t('thanksTitle')}</h1>
                 <p className="mt-8 font-serif text-lg leading-relaxed text-muted">{t('thanksBody')}</p>
+                {onTaskList && <p className="mt-3 font-serif text-lg leading-relaxed text-muted">{t('thanksTask')}</p>}
                 <div className="mt-8 flex flex-wrap items-center gap-4">
                     <button
                         type="button"

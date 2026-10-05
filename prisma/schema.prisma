@@ -53,6 +53,7 @@ model User {
   tokens         AuthToken[]
   shoppingLists  ShoppingList[]
   shoppingShares ShoppingListMember[]
+  shoppingBuys   ShoppingItem[] @relation("ShoppingBuyer")
   posts          Post[]
   cookEntries    CookEntry[]
   tickets        Ticket[]
@@ -901,6 +902,8 @@ model ShoppingItem {
   /// The recipes it is for, as titles — shown under the line.
   sources    String[]     @default([])
   checked    Boolean      @default(false)
+  buyerId    Int?
+  buyer      User?        @relation("ShoppingBuyer", fields: [buyerId], references: [id], onDelete: SetNull)
   createdAt  DateTime     @default(now())
 
   @@index([listId, checked])

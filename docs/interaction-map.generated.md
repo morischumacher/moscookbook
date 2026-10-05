@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-46 screens · 91 endpoints · 87 link edges · 91 call edges
+46 screens · 93 endpoints · 87 link edges · 93 call edges
 
 ## Screens
 
@@ -28,7 +28,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/posts/[id]` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts/new` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts` | admin | requires admin | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/posts/[id]`<br>`POST /api/examples` | `/[locale]/admin/posts/[id]`<br>`/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/collections/[id]`<br>`/[locale]/recipe/[id]` |
-| `/[locale]/admin/reports` | admin | requires admin | `* /api/report-photos`<br>`* /api/work`<br>`DELETE /api/errors/[id]`<br>`DELETE /api/report-photos/[id]`<br>`DELETE /api/tickets`<br>`DELETE /api/work-items/[id]`<br>`GET /api/errors`<br>`GET /api/tickets`<br>`GET /api/work`<br>`GET /api/work-items`<br>`GET /api/work-items/[id]`<br>`GET /api/work-items/prompt`<br>`GET /api/work-items/token`<br>`PATCH /api/tickets`<br>`POST /api/errors/[id]`<br>`POST /api/errors/[id]/photos`<br>`POST /api/work-items`<br>`POST /api/work-items/token` | — |
+| `/[locale]/admin/reports` | admin | requires admin | `* /api/errors`<br>`* /api/report-photos`<br>`* /api/tickets`<br>`* /api/work`<br>`DELETE /api/report-photos/[id]`<br>`DELETE /api/work-items`<br>`DELETE /api/work-items/[id]`<br>`GET /api/work`<br>`GET /api/work-items`<br>`GET /api/work-items/[id]`<br>`GET /api/work-items/prompt`<br>`GET /api/work-items/token`<br>`POST /api/errors/[id]/photos`<br>`POST /api/work-items`<br>`POST /api/work-items/token` | — |
 | `/[locale]/admin/tickets` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/users` | admin | requires admin | `DELETE /api/invites/[id]`<br>`DELETE /api/users/[id]`<br>`GET /api/invites`<br>`GET /api/invites/name`<br>`GET /api/users`<br>`PATCH /api/users/[id]/role`<br>`POST /api/invites` | — |
 | `/[locale]/blog/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/collections/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
@@ -106,10 +106,12 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | GET | `/api/collections` | user (manual) | zod | — | `collection/CollectionForm` |
 | POST | `/api/collections` | admin | zod | — | `collection/CollectionForm` |
 | GET | `/api/cron/backup` | cron secret | — | — | *(nothing in the UI)* |
-| POST | `/api/errors/[id]` | admin | — | — | `admin/ErrorsPanel` |
-| DELETE | `/api/errors/[id]` | admin | — | — | `admin/ErrorsPanel` |
-| POST | `/api/errors` | user (manual) | zod | yes | `ErrorReporter`<br>`GlobalErrorReporter` |
+| POST | `/api/errors/[id]` | admin | — | — | *(nothing in the UI)* |
+| DELETE | `/api/errors/[id]` | admin | — | — | *(nothing in the UI)* |
+| POST | `/api/errors` | user (manual) | zod | yes | `ErrorReporter`<br>`GlobalErrorReporter`<br>`admin/ErrorsPanel` |
 | GET | `/api/errors` | admin | zod | yes | `admin/ErrorsPanel` |
+| PATCH | `/api/errors` | admin | zod | yes | `admin/ErrorsPanel` |
+| DELETE | `/api/errors` | admin | zod | yes | `admin/ErrorsPanel` |
 | GET | `/api/export` | admin | — | — | `admin/BackupPanel` |
 | POST | `/api/import/ai` | admin | zod | yes | `recipe-form/QuickImport` |
 | POST | `/api/import/archive` | admin | — | — | `admin/BackupPanel` |
@@ -141,7 +143,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | DELETE | `/api/site-profiles/[host]` | admin | — | — | `admin/SiteProfiles` |
 | GET | `/api/site-profiles` | admin | zod | yes | `admin/SiteProfiles` |
 | POST | `/api/site-profiles` | admin | zod | yes | `admin/SiteProfiles` |
-| POST | `/api/tickets` | user (manual) | zod | yes | `src/app/[locale]/tickets/page.tsx` |
+| POST | `/api/tickets` | user (manual) | zod | yes | `admin/TicketsPanel`<br>`src/app/[locale]/tickets/page.tsx` |
 | GET | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
 | PATCH | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
 | DELETE | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
@@ -168,6 +170,7 @@ Calls the map could not match to an endpoint (a URL built elsewhere, or a path t
 - `DELETE /api/shopping/[id]  (from shopping/ShoppingListView)`
 - `DELETE /api/shopping/lists  (from shopping/ListSettings)`
 - `DELETE /api/shopping/members  (from shopping/ShoppingSharing)`
+- `DELETE /api/work-items  (from admin/WorkPanel)`
 - `DELETE /api/work-items/[id]  (from admin/ShareToWorkList)`
 - `GET /api/favorites  (from home/OfflineFavorites)`
 - `GET /api/shopping/lists  (from shopping/AddToShopping)`
@@ -462,18 +465,19 @@ flowchart LR
   ccollection_CollectionForm --> eGET_api_collections
   ePOST_api_collections(["POST /api/collections"])
   ccollection_CollectionForm --> ePOST_api_collections
-  ePOST_api_errors__id_(["POST /api/errors/[id]"])
-  cadmin_ErrorsPanel["admin/ErrorsPanel"]
-  cadmin_ErrorsPanel --> ePOST_api_errors__id_
-  eDELETE_api_errors__id_(["DELETE /api/errors/[id]"])
-  cadmin_ErrorsPanel --> eDELETE_api_errors__id_
   ePOST_api_errors(["POST /api/errors"])
   cErrorReporter["ErrorReporter"]
   cErrorReporter --> ePOST_api_errors
   cGlobalErrorReporter["GlobalErrorReporter"]
   cGlobalErrorReporter --> ePOST_api_errors
+  cadmin_ErrorsPanel["admin/ErrorsPanel"]
+  cadmin_ErrorsPanel --> ePOST_api_errors
   eGET_api_errors(["GET /api/errors"])
   cadmin_ErrorsPanel --> eGET_api_errors
+  ePATCH_api_errors(["PATCH /api/errors"])
+  cadmin_ErrorsPanel --> ePATCH_api_errors
+  eDELETE_api_errors(["DELETE /api/errors"])
+  cadmin_ErrorsPanel --> eDELETE_api_errors
   eGET_api_export(["GET /api/export"])
   cadmin_BackupPanel["admin/BackupPanel"]
   cadmin_BackupPanel --> eGET_api_export
@@ -555,10 +559,11 @@ flowchart LR
   ePOST_api_site_profiles(["POST /api/site-profiles"])
   cadmin_SiteProfiles --> ePOST_api_site_profiles
   ePOST_api_tickets(["POST /api/tickets"])
+  cadmin_TicketsPanel["admin/TicketsPanel"]
+  cadmin_TicketsPanel --> ePOST_api_tickets
   csrc_app__locale__tickets_page_tsx["src/app/[locale]/tickets/page.tsx"]
   csrc_app__locale__tickets_page_tsx --> ePOST_api_tickets
   eGET_api_tickets(["GET /api/tickets"])
-  cadmin_TicketsPanel["admin/TicketsPanel"]
   cadmin_TicketsPanel --> eGET_api_tickets
   ePATCH_api_tickets(["PATCH /api/tickets"])
   cadmin_TicketsPanel --> ePATCH_api_tickets

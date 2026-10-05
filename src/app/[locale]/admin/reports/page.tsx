@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import Reports from '@/components/admin/Reports';
+import { needsYouCount } from '@/lib/workItemsDb';
 
 /**
  * Everything that has been reported, from either side.
@@ -20,8 +21,9 @@ import Reports from '@/components/admin/Reports';
  */
 export default async function AdminReportsPage() {
     const [openErrors, openTickets, toConfirm]: [number, number, number] = await Promise.all([
-        prisma.errorLog.count({ where: { resolvedAt: null } }).catch(() => 0),
-        prisma.ticket.count({ where: { resolvedAt: null } }).catch(() => 0),
+        // What needs you: open, and not with the AI (that is the task list's).
+        needsYouCount('error'),
+        needsYouCount('ticket'),
         // Tasks an AI reported done: the one thing on the list only you can do.
         prisma.workItem.count({ where: { doneAt: { not: null }, closedAt: null, dismissedAt: null } }).catch(() => 0),
     ]);

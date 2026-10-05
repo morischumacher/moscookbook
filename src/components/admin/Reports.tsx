@@ -81,10 +81,10 @@ export default function Reports({
                 a list that has not changed.
             */}
             <div hidden={side !== 'errors'}>
-                <ErrorsPanel />
+                <ErrorsPanel onShowWork={() => setSide('work')} />
             </div>
             <div hidden={side !== 'tickets'}>
-                <TicketsPanel />
+                <TicketsPanel onShowWork={() => setSide('work')} />
             </div>
             {/* Only mounted when opened: it is the list least often looked at. */}
             {side === 'work' && <WorkPanel />}
