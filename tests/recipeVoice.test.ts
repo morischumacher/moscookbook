@@ -1,6 +1,6 @@
 /** German texts in one voice: "Gib …", not "Geben Sie …" (the owner's wish) */
 import { suite, check } from './harness';
-import { needsVoice, sameContent } from '../src/lib/recipeVoiceDb';
+import { needsVoice, sameContent } from '../src/lib/writingVoice';
 
 export default function recipeVoiceTests() {
     suite('voice: what is rewritten');

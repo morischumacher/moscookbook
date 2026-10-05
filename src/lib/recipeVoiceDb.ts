@@ -7,7 +7,9 @@ import { aiCapability } from './aiConfig';
 import { canUseAi, smallModelFor } from './aiProviders';
 import { completeWithKey } from './aiImport';
 import { usageRecorder } from './tokenUsageDb';
-import { GERMAN_VOICE } from './writingVoice';
+import { GERMAN_VOICE, needsVoice, sameContent } from './writingVoice';
+import { keptTranslation, recipeColumns } from './recipeRepo';
+import { forgetCollectionFacets } from './collectionFacets';
 
 /**
  * The recipes written before the cookbook's German voice (lib/writingVoice)
@@ -25,22 +27,6 @@ const KEPT = 'recipes.voice.kept';
 const VERSION = '1';
 const PER_RUN = 12;
 let settled = false;
-
-/** Whether a German text is not yet in the du voice: a polite "Sie", or steps ending in an infinitive. */
-export function needsVoice(text: string): boolean {
-    if (!text.trim()) return false;
-    if (/\b\p{L}+(?:en|ern|eln)\s+Sie\b/u.test(text) || /[^.!?:\n]\s(?:Sie|Ihnen|Ihre[nmrs]?)\b/u.test(text)) return true;
-    const infinitives = text.split('\n').filter((line) => /\s\p{Ll}+(?:en|ern|eln)\.?\s*$/u.test(line.trim()) && /\s/.test(line.trim()));
-    return infinitives.length >= 2;
-}
-
-/** A rewrite that changed only the voice: the same numbers, the same steps, about the same length. */
-export function sameContent(before: string, after: string): boolean {
-    const numbers = (text: string) => (text.match(/\d+(?:[.,]\d+)?/g) ?? []).sort().join(' ');
-    const steps = (text: string) => (text.match(/^\s*\d+\./gm) ?? []).length;
-    const ratio = after.length / Math.max(1, before.length);
-    return after.trim() !== '' && numbers(before) === numbers(after) && steps(before) === steps(after) && ratio > 0.6 && ratio < 1.6;
-}
 
 const PROMPT = `You rewrite a German recipe text (a method or tips) into the cookbook's one voice.
 
@@ -101,7 +87,7 @@ async function rewriteSome(): Promise<number> {
         select: {
             id: true, title: true, slug: true, description: true, category: true, nationality: true, instructions: true, tips: true,
             servings: true, prepMinutes: true, cookMinutes: true, tags: true, language: true,
-            ingredients: { orderBy: { position: 'asc' }, select: { raw: true, name: true, section: true } },
+            ingredients: { orderBy: { position: 'asc' }, select: { raw: true, name: true, section: true, quantity: true, quantityMax: true, unit: true } },
             translations: { select: { id: true, locale: true, instructions: true, tips: true, source: true } },
         },
     });
@@ -126,6 +112,7 @@ async function rewriteSome(): Promise<number> {
     const small = { ...key, model: key.small ?? smallModelFor(key) ?? key.model };
     const usage = usageRecorder('polish');
 
+    let changed = false;
     try {
         for (const target of todo.slice(0, PER_RUN)) {
             const answer = (await completeWithKey(small, { kind: 'raw', system: PROMPT, text: target.text }, usage.report).catch(() => '')).trim();
@@ -148,17 +135,24 @@ async function rewriteSome(): Promise<number> {
                 const next = { instructions: recipe.instructions, tips: recipe.tips ?? '', [target.field]: answer };
                 const after = keyWith(next);
                 await keepRevisionOf(recipe.id, snapshotOf({ ...recipe, tips: recipe.tips ?? '' }), null);
-                await prisma.$transaction([
-                    prisma.recipe.update({ where: { id: recipe.id }, data: { [target.field]: answer } }),
-                    ...recipe.translations.filter((row) => row.source === before).map((row) => prisma.recipeTranslation.update({ where: { id: row.id }, data: { source: after } })),
-                ]);
+                await prisma.$transaction(
+                    recipe.translations.filter((row) => row.source === before).map((row) => prisma.recipeTranslation.update({ where: { id: row.id }, data: { source: after } }))
+                );
                 recipe[target.field] = answer;
                 for (const row of recipe.translations) if (row.source === before) row.source = after;
             } else {
                 await prisma.recipeTranslation.update({ where: { id: target.translationId }, data: { [target.field]: answer } });
             }
+            // The text with its search columns, as every writer of a recipe (lib/recipeRepo).
+            await prisma.recipe.update({
+                where: { id: recipe.id },
+                data: recipeColumns({ ...recipe, tips: recipe.tips ?? '', ingredients: recipe.ingredients, translation: await keptTranslation(recipe.id) }),
+            });
+            changed = true;
         }
     } finally {
+        // Text only — no category moves; the cached filter rail is cleared all the same, as every writer does.
+        if (changed) forgetCollectionFacets();
         await usage.flush();
         const value = JSON.stringify([...kept].slice(-2000));
         await prisma.appSetting.upsert({ where: { key: KEPT }, update: { value }, create: { key: KEPT, value } });
