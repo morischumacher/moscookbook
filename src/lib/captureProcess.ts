@@ -6,7 +6,7 @@ import { fetchPage } from './fetchPage';
 import { youtubeVideoId, extractYoutubePage, cleanYoutubeDescription } from './youtube';
 import { fetchImageAsBase64 } from './fetchImage';
 import { readableText } from './readableText';
-import { assessDraft, worthAsking } from './draftQuality';
+import { assessDraft, nameFromParagraph, worthAsking } from './draftQuality';
 import { assistsText, canUseAi, capabilityFromEnv, completeWithKey, extractRecipeWithAi, type AiCapability } from './aiImport';
 import { applyProfile, hostOf, NO_PROFILES } from './siteProfile';
 import { learnSiteProfile } from './siteLearn';
@@ -472,9 +472,12 @@ async function processWebPage(
     /*
      * And learning, which happens only when a model actually read the page and
      * actually helped. Learning from a failed call would store a map of a
-     * recipe nobody found.
+     * recipe nobody found. And not when the rules read it on their own: a
+     * site with recipe markup needs no map, and learning one cost a model
+     * call on every new site for nothing (work #41). Photographs of a book
+     * are no site at all — there is no address to remember a layout under.
      */
-    if (host && !known && options.learnWith && status === 'ready') {
+    if (host && !known && options.learnWith && trace.asked && !trace.failed && status === 'ready') {
         await rememberThisSite(page.html, draft, host, page.finalUrl, options).catch(() => undefined);
     }
 
@@ -622,6 +625,26 @@ export async function processCapture(
     ai: AiCapability = capabilityFromEnv(),
     options: ProcessOptions = {}
 ): Promise<ProcessedCapture> {
+    return withAName(await readCapture(capture, ai, options));
+}
+
+/**
+ * Whatever read it, the title is a name: a caption or a page read whole
+ * into it is cut to the dish's name, and the paragraph kept as the
+ * description when there is none (work #42). For every source at once,
+ * rather than in each reader that might do it.
+ */
+function withAName(result: ProcessedCapture): ProcessedCapture {
+    if (!result.draft) return result;
+    const name = nameFromParagraph(result.draft.title);
+    if (name === result.draft.title) return result;
+    return {
+        ...result,
+        draft: { ...result.draft, title: name, description: result.draft.description || result.draft.title.trim() },
+    };
+}
+
+async function readCapture(capture: ProcessableCapture, ai: AiCapability, options: ProcessOptions): Promise<ProcessedCapture> {
     try {
         if (capture.kind === 'image') {
             return await processImage(capture.imageUrl ?? null, ai, options, { more: capture.moreImageUrls ?? [] });

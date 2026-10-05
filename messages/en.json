@@ -1065,7 +1065,7 @@
     "learn": "Learn this site",
     "learning": "Learning…",
     "failed": "That did not work.",
-    "none": "Nothing learned yet. That happens on the next import from a site without recipe markup.",
+    "none": "Nothing learned yet. That happens on the next import from a website without recipe markup where the AI helped. Photos from a cookbook never appear here: a photo has no address to remember a page layout under – it is read afresh every time.",
     "learnedOn": "learned {date} by {by}",
     "stale": "Set aside: three imports in a row fell short. The next import will learn the site again.",
     "failures": "{count, plural, one {# recent import} other {# recent imports}} below the threshold.",
@@ -1348,7 +1348,8 @@
     "saveFailed": "The menu could not be saved.",
     "delete": "Delete",
     "confirmDelete": "Delete this menu?",
-    "shareFailed": "That did not work. Please try again."
+    "shareFailed": "That did not work. Please try again.",
+    "deleteFailed": "The menu could not be deleted."
   },
   "Work": {
     "tab": "Tasks",

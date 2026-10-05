@@ -155,6 +155,35 @@ export function titleProblem(title: string): string | null {
 }
 
 /**
+ * A name for the dish out of a title that is a paragraph (work #42).
+ *
+ * A caption read whole into the title — "Le Tofu Poilu (máo dòufǔ 毛豆腐)
+ * Recette traduite du chinois par @ferment_nation 👈 Le Máo Dòufǔ, …" — is
+ * cut where the name plainly ends: after a closing bracket, at the end of the
+ * first sentence or line, before a dash, a bar, a mention, a hashtag or an
+ * emoji. What is left too long still is cut at a word, with an ellipsis.
+ * A title that is not a paragraph comes back as it was.
+ */
+export function nameFromParagraph(title: string): string {
+    const text = title.trim();
+    if (titleProblem(text) !== 'the title is a paragraph, not a name') return title;
+
+    const firstLine = text.split(/\n/)[0].trim();
+    const cuts = [
+        /\)/.exec(firstLine) && firstLine.indexOf(')') + 1,
+        /[.!?](\s|$)/.exec(firstLine)?.index,
+        / [-–—|:] /.exec(firstLine)?.index,
+        /\s[@#]/.exec(firstLine)?.index,
+        /\s\p{Extended_Pictographic}/u.exec(firstLine)?.index,
+    ].filter((at): at is number => typeof at === 'number' && at >= 3);
+    const at = cuts.length > 0 ? Math.min(...cuts) : firstLine.length;
+    const name = firstLine.slice(0, at).trim();
+    if (name.length <= 100) return name;
+    const cut = name.slice(0, 80);
+    return `${cut.slice(0, cut.lastIndexOf(' ') > 20 ? cut.lastIndexOf(' ') : 80).trim()}…`;
+}
+
+/**
  * The verdict.
  *
  * Damage points, not merit points. Zero is clean, one is a single soft

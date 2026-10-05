@@ -661,44 +661,49 @@ function CaptureRow({
                 do *before* deciding, or instead of it, and they live under
                 "More". The legend above the list says what each one does.
             */}
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-                {canPublish && !decision && (
-                    <button type="button" onClick={onPublish} disabled={busy} className={buttonPrimarySmall}>
-                        <BusyLabel busy={busy && busyAction === 'publish'} busyText={t('working')}>
-                            {t('accept')}
-                        </BusyLabel>
-                    </button>
-                )}
+            {/* The decisions wrap among themselves; "More" keeps its place at
+                the end of the first line instead of dropping to one of its own
+                (work #18). */}
+            <div className="mt-4 flex items-start gap-2">
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                    {canPublish && !decision && (
+                        <button type="button" onClick={onPublish} disabled={busy} className={buttonPrimarySmall}>
+                            <BusyLabel busy={busy && busyAction === 'publish'} busyText={t('working')}>
+                                {t('accept')}
+                            </BusyLabel>
+                        </button>
+                    )}
 
-                {/* The same act, one step short: the recipe is taken in but
-                    does not count yet. Beside the direct one rather than
-                    replacing it, because sometimes you already know — a recipe
-                    you have cooked for years and are only typing up does not
-                    need a probation period. */}
-                {canPublish && !decision && (
-                    <button
-                        type="button"
-                        onClick={onStage}
-                        disabled={busy}
-                        title={tDrafts('stageHint')}
-                        className={buttonSecondary}
-                    >
-                        <BusyLabel busy={busy && busyAction === 'stage'}>{tDrafts('stage')}</BusyLabel>
-                    </button>
-                )}
+                    {/* The same act, one step short: the recipe is taken in but
+                        does not count yet. Beside the direct one rather than
+                        replacing it, because sometimes you already know — a recipe
+                        you have cooked for years and are only typing up does not
+                        need a probation period. */}
+                    {canPublish && !decision && (
+                        <button
+                            type="button"
+                            onClick={onStage}
+                            disabled={busy}
+                            title={tDrafts('stageHint')}
+                            className={buttonSecondary}
+                        >
+                            <BusyLabel busy={busy && busyAction === 'stage'}>{tDrafts('stage')}</BusyLabel>
+                        </button>
+                    )}
 
-                {/* In the box above when the row needs a decision. */}
-                {!decision && (
-                    <Link
-                        href={`/admin/create?capture=${capture.id}`}
-                        className={canPublish ? 'px-3 text-sm underline underline-offset-4' : buttonPrimarySmall}
-                    >
-                        {t('finish')}
-                    </Link>
-                )}
+                    {/* In the box above when the row needs a decision. */}
+                    {!decision && (
+                        <Link
+                            href={`/admin/create?capture=${capture.id}`}
+                            className={canPublish ? 'inline-flex min-h-11 items-center px-3 text-sm underline underline-offset-4' : buttonPrimarySmall}
+                        >
+                            {t('finish')}
+                        </Link>
+                    )}
+                </div>
 
-                <details ref={menu} className="relative">
-                    <summary className="flex min-h-11 cursor-pointer list-none items-center px-3 text-sm text-muted underline underline-offset-4 [&::-webkit-details-marker]:hidden">
+                <details ref={menu} className="relative shrink-0">
+                    <summary className="flex min-h-11 cursor-pointer list-none items-center whitespace-nowrap px-3 text-sm text-muted underline underline-offset-4 [&::-webkit-details-marker]:hidden">
                         {t('more')}
                     </summary>
 

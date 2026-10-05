@@ -33,7 +33,7 @@ export default async function MenuPage({ params }: { params: Promise<{ locale: s
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                     <PrintButton label={t('print')} />
                     {user && menu.recipes.length > 0 && <AddToShopping menuId={menu.id} guests={menu.guests} />}
-                    {user?.admin && <MenuActions menuId={menu.id} />}
+                    {user?.admin && <MenuActions menuId={menu.id} onItsPage />}
                 </div>
 
                 {menu.recipes.length > 0 && (

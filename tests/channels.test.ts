@@ -800,7 +800,8 @@ Gesendet von meinem iPhone`,
 
     const reelUrl = 'https://www.instagram.com/reel/DdgWLGaMvdx/';
 
-    // With no AI: the rules keep what they can, and the title is the caption.
+    // With no AI: the rules keep what they can, and the caption is cut to a
+    // name — the whole caption was the title before (work #42).
     restore = stubFetch({ [reelUrl]: { html: REEL } });
 
     const bare = await processCapture(
@@ -808,11 +809,8 @@ Gesendet von meinem iPhone`,
         { mode: 'off', keys: [] }
     );
 
-    check(
-        'without a model the caption is still the title',
-        (bare.draft?.title ?? '').length > 120,
-        (bare.draft?.title ?? '').slice(0, 60)
-    );
+    equal('without a model the title is the caption cut to a name', bare.draft?.title, 'PORCHETTA & POLENTA');
+    check('and the caption is kept as the description', (bare.draft?.description ?? '').length > 120);
     restore();
 
     // With one: it is asked, because the input now includes what the rules

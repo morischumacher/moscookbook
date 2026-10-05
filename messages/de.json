@@ -1065,7 +1065,7 @@
     "learn": "Seite lernen",
     "learning": "Wird gelernt…",
     "failed": "Das hat nicht geklappt.",
-    "none": "Noch nichts gelernt. Das passiert beim nächsten Import von einer Seite ohne Rezept-Markup.",
+    "none": "Noch nichts gelernt. Das passiert beim nächsten Import von einer Webseite ohne Rezept-Markup, bei der die KI geholfen hat. Fotos aus einem Kochbuch erscheinen hier nie: Ein Foto hat keine Adresse, unter der sich ein Seitenlayout merken ließe – es wird jedes Mal neu gelesen.",
     "learnedOn": "gelernt am {date} von {by}",
     "stale": "Zurückgestellt: drei Importe hintereinander waren zu schlecht. Der nächste Import lernt die Seite neu.",
     "failures": "{count, plural, one {# Import} other {# Importe}} zuletzt unter der Schwelle.",
@@ -1348,7 +1348,8 @@
     "saveFailed": "Das Menü konnte nicht gespeichert werden.",
     "delete": "Löschen",
     "confirmDelete": "Dieses Menü löschen?",
-    "shareFailed": "Das hat nicht geklappt. Versuch es bitte noch einmal."
+    "shareFailed": "Das hat nicht geklappt. Versuch es bitte noch einmal.",
+    "deleteFailed": "Das Menü konnte nicht gelöscht werden."
   },
   "Work": {
     "tab": "Aufgaben",
