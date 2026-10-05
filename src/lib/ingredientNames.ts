@@ -15,14 +15,14 @@ import { shoppingKey } from './shopping';
  * `de` and `en` are [one, many]; `also` are further names in either
  * language, written in the singular — plurals are folded by `shoppingKey`.
  */
-interface Entry {
+export interface Entry {
     id: string;
     de: [string, string];
     en: [string, string];
     also?: string[];
 }
 
-const ENTRIES: Entry[] = [
+export const COMMON_INGREDIENTS: Entry[] = [
     { id: 'spring-onion', de: ['Frühlingszwiebel', 'Frühlingszwiebeln'], en: ['spring onion', 'spring onions'], also: ['green onion', 'scallion', 'lauchzwiebel', 'salad onion'] },
     { id: 'onion', de: ['Zwiebel', 'Zwiebeln'], en: ['onion', 'onions'], also: ['yellow onion', 'gelbe zwiebel', 'brown onion'] },
     { id: 'red-onion', de: ['rote Zwiebel', 'rote Zwiebeln'], en: ['red onion', 'red onions'] },
@@ -120,7 +120,7 @@ const ENTRIES: Entry[] = [
 ];
 
 /** A preparation or a size, not the thing: dropped before the name is looked up. */
-const NOISE = /\b(fresh|frisch(e|er|es|en)?|chopped|gehackt(e|er|es)?|fein|finely|grated|gerieben(e|er|es)?|minced|sliced|diced|gewürfelt(e|er|es)?|small|large|medium|klein(e|er|es)?|groß(e|er|es)?|mittelgroß(e|er|es)?|ripe|reif(e|er|es)?|bio|organic)\b/gi;
+export const NOISE = /\b(fresh|frisch(e|er|es|en)?|chopped|gehackt(e|er|es)?|fein|finely|grated|gerieben(e|er|es)?|minced|sliced|diced|gewürfelt(e|er|es)?|small|large|medium|klein(e|er|es)?|groß(e|er|es)?|mittelgroß(e|er|es)?|ripe|reif(e|er|es)?|bio|organic|cooked|gekocht(e|er|es)?|melted|geschmolzen(e|er|es)?|softened|weich(e|er|es)?|zerlassen(e|er|es)?|peeled|geschält(e|er|es)?)\b/gi;
 
 // Built on first use: lib/shopping imports this file and this file uses its
 // `shoppingKey`, so nothing may run at load time.
@@ -128,7 +128,7 @@ let byKey: Map<string, Entry> | null = null;
 function keys(): Map<string, Entry> {
     if (byKey) return byKey;
     byKey = new Map();
-    for (const entry of ENTRIES) {
+    for (const entry of COMMON_INGREDIENTS) {
         for (const name of [entry.de[0], entry.de[1], entry.en[0], entry.en[1], ...(entry.also ?? [])]) {
             const key = shoppingKey(name);
             if (key && !byKey.has(key)) byKey.set(key, entry);
@@ -136,7 +136,7 @@ function keys(): Map<string, Entry> {
     }
     return byKey;
 }
-const BY_ID = new Map(ENTRIES.map((entry) => [entry.id, entry]));
+const BY_ID = new Map(COMMON_INGREDIENTS.map((entry) => [entry.id, entry]));
 
 function lookUp(part: string): Entry | null {
     const BY_KEY = keys();
@@ -184,7 +184,12 @@ export function displayName(name: string, locale: 'de' | 'en', amount: number | 
     return ingredientLabel(ingredientKey(name), locale, one ? 1 : 2) ?? name;
 }
 
-/** Every common ingredient's name in a language, in the plural a recipe usually writes. */
-export function commonNames(locale: 'de' | 'en'): string[] {
-    return ENTRIES.map((entry) => entry[locale][1]);
+/**
+ * A catalogue item's name for a reader: their language, else the other one
+ * (lib/ingredientCatalog). One piece in the singular, where the common list
+ * knows it: "1 Zitrone", not "1 Zitronen".
+ */
+export function itemName(item: { de: string; en: string }, locale: 'de' | 'en', amount: number | null = null, measure: string | null = null): string {
+    const name = (locale === 'de' ? item.de || item.en : item.en || item.de).trim();
+    return measure === 'count:' && amount !== null && amount <= 1 ? displayName(name, locale, amount, measure) : name;
 }

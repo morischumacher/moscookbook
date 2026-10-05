@@ -180,6 +180,13 @@ const UNIT_RULES: Record<RecipeLanguage, string> = {
 - use a decimal point (1.5) and keep fractions like 1/2 as they are`,
 };
 
+/** The cookbook's own names for ingredients, as a rule the translation follows. */
+export function glossaryRule(glossary: Record<string, string>): string {
+    const pairs = Object.entries(glossary).filter(([from, to]) => from.trim() && to.trim()).slice(0, 200);
+    if (pairs.length === 0) return '';
+    return `\n\nThe cookbook already names these ingredients so; use exactly these names in "item" (keep any preparation after them, e.g. ", fein gehackt"):\n${pairs.map(([from, to]) => `- ${from} → ${to}`).join('\n')}`;
+}
+
 export function translatePrompt(from: RecipeLanguage | string, to: RecipeLanguage): string {
     const fromName = LANGUAGE_NAME[from as RecipeLanguage] ?? FOREIGN[from]?.name ?? 'its language';
     return `You translate a recipe from ${fromName} into ${LANGUAGE_NAME[to]} for a personal cookbook.
@@ -281,7 +288,13 @@ export async function translateRecipe(
     call: (key: AiKey, system: string, user: string) => Promise<string>,
     parse: (text: string) => unknown,
     /** The other of the two by default; German for a recipe in a third language. */
-    target?: RecipeLanguage
+    target?: RecipeLanguage,
+    /**
+     * Ingredient names the cookbook already has in the target language
+     * (lib/ingredientCatalog): "Frühlingszwiebeln" → "spring onions", so the
+     * translation names an ingredient as every other recipe does.
+     */
+    glossary: Record<string, string> = {}
 ): Promise<TranslateOutcome> {
     if (keys.length === 0) return { ok: false, reason: 'no-keys', message: 'No AI key is configured.' };
 
@@ -298,7 +311,7 @@ export async function translateRecipe(
 
     for (const key of keys) {
         try {
-            const answer = await call(key, translatePrompt(from, to), payload);
+            const answer = await call(key, translatePrompt(from, to) + glossaryRule(glossary), payload);
             const translation = readTranslation(parse(answer), original, to, source);
             if (translation) return { ok: true, translation };
             failures.push('an answer that did not match the recipe');

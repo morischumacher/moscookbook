@@ -488,8 +488,12 @@ model Ingredient {
   /// The heading this ingredient is listed under ("Für den Teig"), or null
   /// for a recipe with one list. Ingredients of one section are consecutive.
   section     String?
+  /// Which ingredient of the cookbook's catalogue this is (lib/ingredientCatalog).
+  itemId      Int?
+  item        IngredientItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
 
   @@unique([recipeId, position])
+  @@index([itemId])
 
   /// A B-tree on the name, for exact and prefix lookups.
   ///
@@ -910,6 +914,9 @@ model ShoppingItem {
   /// Only the owner or somebody who joined; cleared when they leave.
   buyerId    Int?
   buyer      User?        @relation("ShoppingBuyer", fields: [buyerId], references: [id], onDelete: SetNull)
+  /// The catalogue's ingredient, when the line is one: merged on, and named in the reader's language.
+  itemId     Int?
+  item       IngredientItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
   createdAt  DateTime     @default(now())
 
   @@index([listId, checked])
@@ -1115,3 +1122,24 @@ model AccountSite {
 
   @@unique([platform, handle])
 }
+
+/// One ingredient of the cookbook, once, by its name in both languages: what
+/// the recipes' rows point at, what the shopping list merges on, what the
+/// ingredient field suggests. See lib/ingredientCatalog and admin → Zutaten.
+model IngredientItem {
+  id          Int          @id @default(autoincrement())
+  de          String       @default("")
+  en          String       @default("")
+  /// Further names, either language: "Lauchzwiebel", "scallion".
+  aliases     String[]     @default([])
+  /// The folded names (lib/shopping shoppingKey) of de, en and the aliases:
+  /// what a new name is matched against.
+  keys        String[]     @default([])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  ingredients Ingredient[]
+  shopping    ShoppingItem[]
+
+  @@index([keys], type: Gin)
+}
+

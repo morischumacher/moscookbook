@@ -265,7 +265,8 @@
     "listPage": "Page {page} of {pages}",
     "backupCounts": "{recipes, plural, one {# recipe} other {# recipes}}, {posts, plural, one {# post} other {# posts}}, {cooks, plural, one {cooked once} other {cooked # times}}",
     "backupFailedWith": "failed: {detail}",
-    "openCount": "{count} open"
+    "openCount": "{count} open",
+    "ingredients": "Ingredients"
   },
   "RecipeForm": {
     "newRecipe": "New recipe",
@@ -1559,7 +1560,8 @@
       "import": "Import in the form",
       "polish": "Revising text",
       "translate": "Translating",
-      "picture": "Picture for a recipe"
+      "picture": "Picture for a recipe",
+      "ingredients": "Tidying ingredients"
     }
   },
   "ReportList": {
@@ -1595,5 +1597,49 @@
     "continue": "Continue",
     "later": "You can change it any time under Account.",
     "failed": "That did not work. Please try again."
+  },
+  "Ingredients": {
+    "intro": "Every ingredient of the cookbook once, in German and English. Recipes point at them, the shopping list merges on them, and the ingredient field suggests them. New ones are added by themselves when a recipe is saved; doubles you merge here.",
+    "loading": "Loading …",
+    "loadFailed": "The ingredients could not be loaded.",
+    "failed": "That did not work.",
+    "linkAll": "{count, plural, one {Match # recipe ingredient} other {Match # recipe ingredients}}",
+    "linked": "{count, plural, =0 {Nothing left to match.} one {# recipe ingredient matched.} other {# recipe ingredients matched.}}",
+    "aiCheck": "Check for doubles with AI",
+    "aiTranslate": "{count, plural, one {Fill # missing translation with AI} other {Fill # missing translations with AI}}",
+    "translated": "{count, plural, =0 {Nothing filled.} one {# ingredient filled.} other {# ingredients filled.}}",
+    "noAi": "Without AI: the list below finds doubles anyway, and missing translations you type into the fields.",
+    "aiProposals": "The AI's proposals",
+    "aiNothing": "The AI found nothing.",
+    "take": "Take it",
+    "close": "Close",
+    "doubles": "{count, plural, one {# possible double} other {# possible doubles}}",
+    "doublesExplain": "Found without AI: the same name, the same but for words like “fresh” or “grated”, a typo apart.",
+    "reason_sameName": "the same name",
+    "reason_contained": "the same but for “fresh”, “grated” or the like",
+    "reason_typo": "a typo apart",
+    "mergeOne": "Merge",
+    "notDouble": "Not the same",
+    "search": "Search an ingredient",
+    "onlyMissing": "Without translation ({count})",
+    "count": "{count} of {total}",
+    "more": "Show more",
+    "selected": "{count} selected",
+    "cancel": "Cancel",
+    "mergeSelected": "Merge",
+    "mergeTitle": "Which one stays?",
+    "mergeExplain": "The others are taken into this one: recipes and shopping lists then point at it, and their names become further names.",
+    "keepThis": "Keep this one",
+    "uses": "{count, plural, =0 {in no recipe} one {in # recipe line} other {in # recipe lines}}",
+    "merged": "Merged into “{name}”.",
+    "deleteQuestion": "Delete “{name}”?",
+    "delete": "Delete",
+    "german": "German",
+    "english": "English",
+    "missing": "missing",
+    "aliases": "Further names, separated by commas",
+    "aliasesPlaceholder": "e.g. scallion, Lauchzwiebel",
+    "select": "Select",
+    "save": "Save"
   }
 }

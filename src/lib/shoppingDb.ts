@@ -1,6 +1,7 @@
 import prisma from './prisma';
 import { linesFor, mergeInto, removeFrom, type PlannedLine } from './shopping';
 import { ingredientKey } from './ingredientNames';
+import { linkRecipe, matchItem } from './ingredientCatalog';
 import { inLanguage } from './recipeTranslation';
 import { visibleTo } from './recipeVisibility';
 
@@ -18,6 +19,7 @@ export const shoppingItemSelect = {
     sources: true,
     checked: true,
     buyerId: true,
+    item: { select: { de: true, en: true } },
 } as const;
 
 export interface ShoppingItemRow {
@@ -30,6 +32,8 @@ export interface ShoppingItemRow {
     checked: boolean;
     /** Who on the list is buying it; null when nobody said. */
     buyerId: number | null;
+    /** The catalogue's ingredient, named in both languages; null for a line that is none. */
+    item: { de: string; en: string } | null;
 }
 
 /** This person's main list, made the first time it is asked for. */
@@ -192,8 +196,26 @@ export async function itemsOf(listId: number): Promise<ShoppingItemRow[]> {
 }
 
 /** New lines onto a list, merged with what is already there. Returns how many lines changed. */
+/**
+ * What a line merges on: the catalogue's ingredient when its name is one
+ * (lib/ingredientCatalog) — so "Frühlingszwiebeln" and "green onions" meet,
+ * from any recipe in either language — else its folded name.
+ */
+function catalogKeys() {
+    const known = new Map<string, Promise<number | null>>();
+    return async (name: string, itemId: number | null = null) => {
+        if (itemId === null) {
+            if (!known.has(name)) known.set(name, matchItem(name).catch(() => null));
+            itemId = await known.get(name)!;
+        }
+        return { itemId, key: itemId !== null ? `item:${itemId}` : ingredientKey(name) };
+    };
+}
+
 export async function addLines(listId: number, planned: PlannedLine[]): Promise<number> {
     if (planned.length === 0) return 0;
+    const keyOf = catalogKeys();
+    const resolved = await Promise.all(planned.map(async (line) => ({ ...line, ...(await keyOf(line.name)) })));
 
     /*
      * Read and write under one lock on the list. The merge adds to what it
@@ -206,12 +228,12 @@ export async function addLines(listId: number, planned: PlannedLine[]): Promise<
 
         const existing = await tx.shoppingItem.findMany({
             where: { listId, checked: false },
-            select: { id: true, key: true, name: true, measure: true, amount: true, sources: true, checked: true },
+            select: { id: true, key: true, name: true, itemId: true, measure: true, amount: true, sources: true, checked: true },
         });
 
-        // Lines made before the common names were known meet the new ones
-        // by the name they show (lib/ingredientNames).
-        const plan = mergeInto(existing.map((row) => ({ ...row, key: ingredientKey(row.name) })), planned);
+        // Lines made before the catalogue meet the new ones by the name they show.
+        const current = await Promise.all(existing.map(async (row) => ({ ...row, ...(await keyOf(row.name, row.itemId)) })));
+        const plan = mergeInto(current, resolved);
 
         for (const update of plan.updates) {
             await tx.shoppingItem.update({
@@ -224,6 +246,7 @@ export async function addLines(listId: number, planned: PlannedLine[]): Promise<
                 listId,
                 name: line.name,
                 key: line.key,
+                itemId: (line as { itemId?: number | null }).itemId ?? null,
                 measure: line.measure,
                 amount: line.amount,
                 aisle: line.aisle,
@@ -244,9 +267,12 @@ export async function removeLines(listId: number, planned: PlannedLine[]): Promi
         await tx.$queryRaw`SELECT id FROM "ShoppingList" WHERE id = ${listId} FOR UPDATE`;
         const existing = await tx.shoppingItem.findMany({
             where: { listId, checked: false },
-            select: { id: true, key: true, name: true, measure: true, amount: true, sources: true, checked: true },
+            select: { id: true, key: true, name: true, itemId: true, measure: true, amount: true, sources: true, checked: true },
         });
-        const plan = removeFrom(existing.map((row) => ({ ...row, key: ingredientKey(row.name) })), planned);
+        const keyOf = catalogKeys();
+        const current = await Promise.all(existing.map(async (row) => ({ ...row, ...(await keyOf(row.name, row.itemId)) })));
+        const wanted = await Promise.all(planned.map(async (line) => ({ ...line, ...(await keyOf(line.name)) })));
+        const plan = removeFrom(current, wanted);
         for (const update of plan.updates) {
             await tx.shoppingItem.update({ where: { id: update.id }, data: { amount: update.amount, sources: update.sources } });
         }
@@ -272,6 +298,9 @@ export async function recipeLines(
         select: recipeForList,
     });
     if (!recipe) return null;
+    // A recipe from before the catalogue, or written past it: its rows are
+    // pointed at their ingredients now, so its lines merge with the others.
+    if (await prisma.ingredient.count({ where: { recipeId, itemId: null } })) await linkRecipe(recipeId).catch(() => 0);
 
     const factor = servings && recipe.servings ? servings / recipe.servings : 1;
     const shown = asRead(recipe, locale);

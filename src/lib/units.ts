@@ -245,8 +245,14 @@ const SPELLED: Record<string, { de: [string, string]; en: [string, string] }> = 
     quart: { de: ['Quart', 'Quarts'], en: ['quart', 'quarts'] },
     prise: { de: ['Prise', 'Prisen'], en: ['pinch', 'pinches'] },
     zehe: { de: ['Zehe', 'Zehen'], en: ['clove', 'cloves'] },
+    bund: { de: ['Bund', 'Bund'], en: ['bunch', 'bunches'] },
+    dose: { de: ['Dose', 'Dosen'], en: ['can', 'cans'] },
+    scheibe: { de: ['Scheibe', 'Scheiben'], en: ['slice', 'slices'] },
 };
-const SPELLED_COUNT: Record<string, string> = { prise: 'prise', pinch: 'prise', zehe: 'zehe', clove: 'zehe' };
+const SPELLED_COUNT: Record<string, string> = {
+    prise: 'prise', pinch: 'prise', zehe: 'zehe', clove: 'zehe',
+    bund: 'bund', bunch: 'bund', dose: 'dose', can: 'dose', scheibe: 'scheibe', slice: 'scheibe',
+};
 
 export function unitSpelling(unit: string | null, amount: number, locale: Locale): string | null {
     if (!unit) return unit;
@@ -281,7 +287,12 @@ const COUNT_UNITS: Array<[singular: string, plural: string]> = [
     ['clove', 'cloves'], ['can', 'cans'], ['slice', 'slices'], ['pinch', 'pinches'], ['bunch', 'bunches'],
 ];
 const ENGLISH_COUNT_UNITS = new Set(['clove', 'can', 'slice', 'pinch', 'bunch']);
-const COUNT_ALIASES: Record<string, string> = { stk: 'stück', 'stk.': 'stück', pck: 'packung', 'pck.': 'packung', päckchen: 'packung' };
+// English units meet their German twins on the shopping list ("1 bunch" and
+// "2 Bund" are 3 Bund) and are spelled in the reader's language (unitSpelling).
+const COUNT_ALIASES: Record<string, string> = {
+    stk: 'stück', 'stk.': 'stück', pck: 'packung', 'pck.': 'packung', päckchen: 'packung',
+    clove: 'zehe', cloves: 'zehe', can: 'dose', cans: 'dose', slice: 'scheibe', slices: 'scheibe', pinch: 'prise', pinches: 'prise', bunch: 'bund', bunches: 'bund',
+};
 
 /**
  * A named unit agreeing with its number: "1 Zehe" for three is "3 Zehen",
@@ -290,7 +301,10 @@ const COUNT_ALIASES: Record<string, string> = { stk: 'stück', 'stk.': 'stück',
  */
 export function countUnitLabel(unit: string | null, amount: number): string | null {
     if (!unit || !isCountUnit(unit)) return unit;
-    return countUnitFor(countUnitKey(unit), amount);
+    const word = countUnitFor(countUnitKey(unit), amount);
+    // An English unit stays English here: its key is the German twin's.
+    const english = /^(clove|can|slice|pinch|bunch)(e?s)?$/i.test(unit.trim());
+    return english ? (unitSpelling(word, amount, 'en') ?? word) : word;
 }
 
 /** A word that is a unit of its own ("Zehe", "Dosen", "Stk"), not part of the name. */

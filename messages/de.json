@@ -265,7 +265,8 @@
     "listPage": "Seite {page} von {pages}",
     "backupCounts": "{recipes, plural, one {# Rezept} other {# Rezepte}}, {posts, plural, one {# Beitrag} other {# Beiträge}}, {cooks, plural, one {einmal gekocht} other {#-mal gekocht}}",
     "backupFailedWith": "fehlgeschlagen: {detail}",
-    "openCount": "{count, plural, one {# offen} other {# offen}}"
+    "openCount": "{count, plural, one {# offen} other {# offen}}",
+    "ingredients": "Zutaten"
   },
   "RecipeForm": {
     "newRecipe": "Neues Rezept",
@@ -1559,7 +1560,8 @@
       "import": "Import im Formular",
       "polish": "Text überarbeiten",
       "translate": "Übersetzen",
-      "picture": "Bild zum Rezept"
+      "picture": "Bild zum Rezept",
+      "ingredients": "Zutaten ordnen"
     }
   },
   "ReportList": {
@@ -1595,5 +1597,49 @@
     "continue": "Weiter",
     "later": "Ändern kannst du es jederzeit unter Konto.",
     "failed": "Das hat nicht geklappt. Versuch es bitte noch einmal."
+  },
+  "Ingredients": {
+    "intro": "Jede Zutat des Kochbuchs einmal, auf Deutsch und Englisch. Rezepte zeigen auf sie, die Einkaufsliste führt über sie zusammen, und das Zutatenfeld schlägt sie vor. Neue Zutaten kommen beim Speichern eines Rezepts von selbst dazu; doppelte führst du hier zusammen.",
+    "loading": "Wird geladen …",
+    "loadFailed": "Die Zutaten konnten nicht geladen werden.",
+    "failed": "Das hat nicht geklappt.",
+    "linkAll": "{count, plural, one {# Rezeptzutat zuordnen} other {# Rezeptzutaten zuordnen}}",
+    "linked": "{count, plural, =0 {Nichts mehr zuzuordnen.} one {# Rezeptzutat zugeordnet.} other {# Rezeptzutaten zugeordnet.}}",
+    "aiCheck": "Mit KI auf Doppelungen prüfen",
+    "aiTranslate": "{count, plural, one {# fehlende Übersetzung mit KI ergänzen} other {# fehlende Übersetzungen mit KI ergänzen}}",
+    "translated": "{count, plural, =0 {Nichts ergänzt.} one {# Zutat ergänzt.} other {# Zutaten ergänzt.}}",
+    "noAi": "Ohne KI: Doppelungen findet die Liste unten auch so, fehlende Übersetzungen trägst du direkt in die Felder ein.",
+    "aiProposals": "Vorschläge der KI",
+    "aiNothing": "Die KI hat nichts gefunden.",
+    "take": "Übernehmen",
+    "close": "Schließen",
+    "doubles": "{count, plural, one {# mögliche Doppelung} other {# mögliche Doppelungen}}",
+    "doublesExplain": "Gefunden ohne KI: gleicher Name, gleich bis auf Wörter wie „frisch“ oder „gerieben“, ein Tippfehler auseinander.",
+    "reason_sameName": "gleicher Name",
+    "reason_contained": "gleich bis auf „frisch“, „gerieben“ o. ä.",
+    "reason_typo": "ein Tippfehler auseinander",
+    "mergeOne": "Zusammenführen",
+    "notDouble": "Ist nicht dasselbe",
+    "search": "Zutat suchen",
+    "onlyMissing": "Ohne Übersetzung ({count})",
+    "count": "{count} von {total}",
+    "more": "Mehr zeigen",
+    "selected": "{count} ausgewählt",
+    "cancel": "Abbrechen",
+    "mergeSelected": "Zusammenführen",
+    "mergeTitle": "Welche bleibt?",
+    "mergeExplain": "Die anderen werden in diese übernommen: Rezepte und Einkaufslisten zeigen dann auf sie, ihre Namen werden weitere Namen.",
+    "keepThis": "Diese behalten",
+    "uses": "{count, plural, =0 {in keinem Rezept} one {in # Rezeptzeile} other {in # Rezeptzeilen}}",
+    "merged": "Zusammengeführt in „{name}“.",
+    "deleteQuestion": "„{name}“ löschen?",
+    "delete": "Löschen",
+    "german": "Deutsch",
+    "english": "Englisch",
+    "missing": "fehlt",
+    "aliases": "Weitere Namen, mit Komma getrennt",
+    "aliasesPlaceholder": "z. B. Lauchzwiebel, scallion",
+    "select": "Auswählen",
+    "save": "Speichern"
   }
 }
