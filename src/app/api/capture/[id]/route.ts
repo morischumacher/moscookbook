@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { conventionalRows } from '@/lib/ingredientShape';
 import { linkRecipe } from '@/lib/ingredientCatalog';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
@@ -215,7 +216,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
                     servings: draft.servings,
                     prepMinutes: draft.prepMinutes,
                     cookMinutes: draft.cookMinutes,
-                    ingredients: toStructuredIngredients(draft.ingredients),
+                    ingredients: toStructuredIngredients(conventionalRows(draft.ingredients)),
                     imageUrls: picture ? [picture] : [],
                 }),
                 select: { id: true, slug: true, title: true },

@@ -1,5 +1,5 @@
 import prisma from './prisma';
-import { linesFor, mergeInto, removeFrom, type PlannedLine } from './shopping';
+import { keyFor, linesFor, mergeInto, removeFrom, type PlannedLine } from './shopping';
 import { commonIngredient, ingredientKey } from './ingredientNames';
 import { converted, simplified, unitsOf, withoutSource, partsOf, type Part, type Units } from './shoppingParts';
 import type { Prisma } from '@prisma/client';
@@ -217,12 +217,16 @@ export async function simplifyLines(
     const lines = await tx.shoppingItem.findMany({
         where: { listId, checked: false, itemId: only ? { in: only } : { not: null } },
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        select: { id: true, itemId: true, measure: true, amount: true, sources: true, parts: true },
+        select: { id: true, itemId: true, measure: true, amount: true, sources: true, parts: true, aisle: true },
     });
-    const groups = new Map<number, typeof lines>();
-    for (const line of lines) groups.set(line.itemId!, [...(groups.get(line.itemId!) ?? []), line]);
+    // Per ingredient, and an optional one apart from the one that is needed.
+    const groups = new Map<string, typeof lines>();
+    for (const line of lines) {
+        const id = `${line.itemId}:${line.aisle === 'optional'}`;
+        groups.set(id, [...(groups.get(id) ?? []), line]);
+    }
 
-    const many = [...groups].filter(([, group]) => new Set(group.map((line) => line.measure)).size > 1);
+    const many = [...groups.values()].filter((group) => new Set(group.map((line) => line.measure)).size > 1).map((group) => [group[0].itemId!, group] as const);
     if (many.length === 0) return { merged: 0, unresolved: [] };
     const known = await knownUnits(tx, many.map(([itemId]) => itemId));
 
@@ -269,10 +273,13 @@ function catalogKeys() {
     };
 }
 
+/** A line with its catalogue key — kept apart when it is optional. */
+const withKey = <L extends { aisle: string }>(line: L, found: { itemId: number | null; key: string }) => ({ ...line, itemId: found.itemId, key: keyFor(found.key, line.aisle) });
+
 export async function addLines(listId: number, planned: PlannedLine[]): Promise<number> {
     if (planned.length === 0) return 0;
     const keyOf = catalogKeys();
-    const resolved = await Promise.all(planned.map(async (line) => ({ ...line, ...(await keyOf(line.name)) })));
+    const resolved = await Promise.all(planned.map(async (line) => withKey(line, await keyOf(line.name))));
 
     /*
      * Read and write under one lock on the list. The merge adds to what it
@@ -285,17 +292,17 @@ export async function addLines(listId: number, planned: PlannedLine[]): Promise<
 
         const existing = await tx.shoppingItem.findMany({
             where: { listId, checked: false },
-            select: { id: true, key: true, name: true, itemId: true, measure: true, amount: true, sources: true, checked: true, parts: true },
+            select: { id: true, key: true, name: true, itemId: true, measure: true, amount: true, sources: true, checked: true, parts: true, aisle: true },
         });
 
         // Lines made before the catalogue meet the new ones by the name they show.
-        const current = await Promise.all(existing.map(async (row) => ({ ...row, ...(await keyOf(row.name, row.itemId)) })));
+        const current = await Promise.all(existing.map(async (row) => withKey(row, await keyOf(row.name, row.itemId))));
         const plan = mergeInto(current, resolved);
 
         for (const update of plan.updates) {
             await tx.shoppingItem.update({
                 where: { id: update.id },
-                data: { amount: update.amount, sources: update.sources, parts: asJson(update.parts) },
+                data: { measure: update.measure ?? null, amount: update.amount, sources: update.sources, parts: asJson(update.parts) },
             });
         }
         await tx.shoppingItem.createMany({
@@ -353,11 +360,11 @@ export async function removeLines(listId: number, planned: PlannedLine[]): Promi
         await tx.$queryRaw`SELECT id FROM "ShoppingList" WHERE id = ${listId} FOR UPDATE`;
         const existing = await tx.shoppingItem.findMany({
             where: { listId, checked: false },
-            select: { id: true, key: true, name: true, itemId: true, measure: true, amount: true, sources: true, checked: true, parts: true },
+            select: { id: true, key: true, name: true, itemId: true, measure: true, amount: true, sources: true, checked: true, parts: true, aisle: true },
         });
         const keyOf = catalogKeys();
-        const current = await Promise.all(existing.map(async (row) => ({ ...row, ...(await keyOf(row.name, row.itemId)) })));
-        const resolved = await Promise.all(planned.map(async (line) => ({ ...line, ...(await keyOf(line.name)) })));
+        const current = await Promise.all(existing.map(async (row) => withKey(row, await keyOf(row.name, row.itemId))));
+        const resolved = await Promise.all(planned.map(async (line) => withKey(line, await keyOf(line.name))));
         const wanted = await inListUnits(tx, current, resolved);
         const plan = removeFrom(current, wanted);
         for (const update of plan.updates) {

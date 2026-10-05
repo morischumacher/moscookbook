@@ -1,4 +1,7 @@
 import { Suspense } from 'react';
+import { after } from 'next/server';
+import { ensureConvention } from '@/lib/ingredientConventionDb';
+import { failed } from '@/lib/reportServerError';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { visibleTo } from '@/lib/recipeVisibility';
 import { Link } from '@/i18n/routing';
@@ -141,6 +144,8 @@ export default async function HomePage({
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
     params: Promise<{ locale: string }>;
 }) {
+    // Once after a deploy: every recipe written the cookbook's way (lib/ingredientConventionDb).
+    after(() => ensureConvention().catch((error) => failed('ingredient convention', error)));
     const t = await getTranslations('Home');
     const locale = await getLocale();
     const tSite = await getTranslations('Site');

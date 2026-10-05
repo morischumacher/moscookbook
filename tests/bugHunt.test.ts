@@ -43,7 +43,8 @@ export default function bugHuntTests() {
     equal('nor rice vinegar rice', toBase({ quantity: 1, quantityMax: null, unit: 'cup' }, 'Reisessig')?.key, 'volume');
 
     suite('bug hunt: round 5');
-    equal('"große" is part of the name, not a unit', lineFromText('3 große Zwiebeln')?.name, 'große Zwiebeln');
+    // Not a unit: a size, which the list does not buy by (lib/ingredientShape) — three onions.
+    equal('"große" is no unit', [lineFromText('3 große Zwiebeln')?.name, lineFromText('3 große Zwiebeln')?.measure, lineFromText('3 große Zwiebeln')?.amount], ['Zwiebeln', 'count:', 3]);
     equal('½ Zitrone is half a lemon', lineFromText('½ Zitrone')?.amount, 0.5);
     equal('2-3 Äpfel has an amount', lineFromText('2-3 Äpfel')?.name, 'Äpfel');
     equal('Zehen stay a unit', amountLabel(lineFromText('2 Zehen Knoblauch')!.measure, lineFromText('2 Zehen Knoblauch')!.amount, 'de'), '2 Zehen');

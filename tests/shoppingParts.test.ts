@@ -26,6 +26,18 @@ export default function shoppingPartsTests() {
     const undo = removeFrom([{ id: 1, ...both, key: tofu[0].key, checked: false }], oil);
     equal('"Wieder entfernen" takes the part too', undo.updates[0].parts, [{ s: 'Agedashi Tofu', a: 7 }]);
 
+    suite('shopping parts: an amount and no amount');
+    const salt = linesFor([row('Salz', 1, 'TL')], 1, 'A');
+    const pinch = linesFor([row('Salz', null, null)], 1, 'B');
+    const salted = mergeInto([{ id: 4, key: salt[0].key, measure: salt[0].measure, amount: salt[0].amount, sources: ['A'], parts: [{ s: 'A', a: salt[0].amount }], checked: false }], pinch);
+    equal('"Salz" joins "1 TL Salz" rather than standing beside it', [salted.creates.length, salted.updates[0]?.sources], [0, ['A', 'B']]);
+    const later = mergeInto([{ id: 5, key: pinch[0].key, measure: null, amount: null, sources: ['B'], parts: [{ s: 'B', a: null }], checked: false }], salt);
+    equal('and "1 TL Salz" gives "Salz" its amount', [later.creates.length, later.updates[0]?.measure, later.updates[0]?.amount], [0, 'spoon', 5]);
+    const back = removeFrom([{ id: 5, key: pinch[0].key, measure: 'spoon', amount: 5, sources: ['B', 'A'], parts: later.updates[0].parts, checked: false }], salt);
+    equal('taking the teaspoon off leaves the salt for B', [back.deletes, back.updates[0]?.amount, back.updates[0]?.sources], [[], null, ['B']]);
+    const typed = removeFrom([{ id: 6, key: salt[0].key, measure: 'spoon', amount: 10, sources: ['A'], parts: [{ s: null, a: 5 }, { s: 'A', a: 5 }], checked: false }], salt);
+    equal('a line also typed by hand keeps the typed part', [typed.deletes, typed.updates[0]?.amount], [[], 5]);
+
     suite('shopping parts: one unit');
     const units = DEFAULT_UNITS['spring-onion'];
     const merged = simplified(

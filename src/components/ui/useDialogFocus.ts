@@ -25,6 +25,10 @@ export function useDialogFocus(container: RefObject<HTMLElement | null>, onClose
         (initial?.current ?? container.current)?.focus();
 
         const onKey = (event: KeyboardEvent) => {
+            // Another dialog open over this one (a confirmation asked from a
+            // sheet) has the keys: Escape there must not close this too.
+            const over = document.activeElement?.closest('[aria-modal="true"]');
+            if (over && container.current && over !== container.current && !container.current.contains(over)) return;
             if (event.key === 'Escape') {
                 close.current();
                 return;

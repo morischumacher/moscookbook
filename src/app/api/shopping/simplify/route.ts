@@ -16,20 +16,20 @@ import { usageRecorder } from '@/lib/tokenUsageDb';
  * line, in the unit it is bought in. How much is for which recipe goes along
  * (lib/shoppingParts), so taking a recipe off later needs nobody.
  *
- * How one unit is in another comes from the ingredient (admin → Zutaten), the
- * defaults for the common ones, or — for an admin, when the AI is on — the AI,
- * asked once per ingredient and remembered on it. Whatever is still not known
+ * Only for the admin. How one unit is in another comes from the ingredient
+ * (admin → Zutaten), the defaults for the common ones, or the AI when it is
+ * on, asked once per ingredient and remembered on it. (Adding to a list
+ * combines what is already known for everybody — that asks nobody.) Whatever is still not known
  * stays as it is and is named in the answer.
  */
-export const POST = route({ access: 'user', label: 'Simplifying the shopping list' }, async ({ req, user }) => {
+export const POST = route({ access: 'admin', label: 'Simplifying the shopping list' }, async ({ req, user }) => {
     const list = await requestedList(req, user.id);
 
     // What is missing, asked before the list is locked: the AI takes seconds.
+    // Admins only (the route's access): the AI is paid for by the admin.
     let learned = 0;
-    if (user.admin) {
-        const missing = await missingUnits(list.id);
-        if (missing.length > 0) learned = await learn(missing);
-    }
+    const missing = await missingUnits(list.id);
+    if (missing.length > 0) learned = await learn(missing);
 
     const result = await prisma.$transaction(
         async (tx) => {

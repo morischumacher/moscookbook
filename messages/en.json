@@ -291,7 +291,7 @@
     "pasteList": "Paste a list",
     "closeList": "Close list",
     "appendIngredients": "Append ingredients",
-    "itemPlaceholder": "Flour",
+    "itemPlaceholder": "e.g. garlic, minced (optional)",
     "amountLabel": "Amount {number}",
     "itemLabel": "Ingredient {number}",
     "moveUp": "Move up",
@@ -1218,7 +1218,8 @@
       "frozen": "Frozen",
       "drinks": "Drinks",
       "other": "Other",
-      "basics": "Probably at home"
+      "basics": "Probably at home",
+      "optional": "Optional"
     },
     "addMenuGuests": "Shopping list for {count, plural, one {# guest} other {# guests}}",
     "undoAdd": "Take it off again",

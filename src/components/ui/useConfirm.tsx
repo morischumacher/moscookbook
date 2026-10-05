@@ -153,7 +153,10 @@ export function useConfirm(): [(request: ConfirmRequest) => Promise<boolean>, Re
             // would have been the wrong colour for it anyway: in dark mode it
             // is near-white, and lightening the page to say "attend to this
             // card" is not a thing any interface does.
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-scrim/40 p-6"
+            // Above every sheet, dialog and lightbox: a question is always
+            // about something already open, and asked under it, it was not
+            // seen at all ("Rezept entfernen" from the list's recipes sheet).
+            className="fixed inset-0 z-[400] flex items-center justify-center bg-scrim/40 p-6"
             // A tap outside is a cancel, which is what people expect of a
             // sheet on a phone. Keyboard users have Escape; this is not the
             // only way out, so it needs no role of its own.

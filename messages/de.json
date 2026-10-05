@@ -291,7 +291,7 @@
     "pasteList": "Liste einfügen",
     "closeList": "Liste schließen",
     "appendIngredients": "Zutaten anhängen",
-    "itemPlaceholder": "Mehl",
+    "itemPlaceholder": "z. B. Knoblauch, gehackt (optional)",
     "amountLabel": "Menge {number}",
     "itemLabel": "Zutat {number}",
     "moveUp": "Nach oben",
@@ -1218,7 +1218,8 @@
       "frozen": "Tiefkühl",
       "drinks": "Getränke",
       "other": "Sonstiges",
-      "basics": "Wahrscheinlich zu Hause"
+      "basics": "Wahrscheinlich zu Hause",
+      "optional": "Optional"
     },
     "addMenuGuests": "Einkaufsliste für {count, plural, one {# Gast} other {# Gäste}}",
     "undoAdd": "Wieder entfernen",

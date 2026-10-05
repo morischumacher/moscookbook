@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CONVENTION_RULE } from './ingredientShape';
 import type { AiKey } from './aiImport';
 import { scrub } from './secretBox';
 import { sectionHeading, toStructuredIngredients, withHeadingRows, type StructuredIngredient } from './ingredientParts';
@@ -201,6 +202,7 @@ Rules:
   heading and keep the "## " and the empty amount.
 - "item" is the ingredient with its preparation ("Zwiebel, gewürfelt" → "onion, diced").
   Use the name a cook in the target language would use.
+${CONVENTION_RULE}
 - "amount" is only the quantity and unit.
 ${UNIT_RULES[to]}
 - "instructions": keep the markdown exactly as it is — the same numbered or

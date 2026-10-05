@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type KeyboardEvent, type Ref } from 'react';
+import { conventional } from '@/lib/ingredientShape';
 
 /**
  * The ingredient field, suggesting the names the cookbook already uses
@@ -78,7 +79,12 @@ export default function ItemInput({
                 }}
                 onFocus={() => setOpen(true)}
                 // After a tap on a suggestion has landed.
-                onBlur={() => setTimeout(() => setOpen(false), 150)}
+                onBlur={() => {
+                    // Written the cookbook's way on leaving the field: "frischer Ingwer" → "Ingwer, frisch" (lib/ingredientShape).
+                    const tidy = conventional(value);
+                    if (tidy !== value.trim() && tidy) onChange(tidy);
+                    setTimeout(() => setOpen(false), 150);
+                }}
                 onKeyDown={onKeyDown}
                 placeholder={placeholder}
                 aria-label={label}
