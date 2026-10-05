@@ -290,7 +290,6 @@
     "pasteList": "Paste a list",
     "closeList": "Close list",
     "appendIngredients": "Append ingredients",
-    "amountPlaceholder": "200 g",
     "itemPlaceholder": "Flour",
     "amountLabel": "Amount {number}",
     "itemLabel": "Ingredient {number}",
@@ -394,7 +393,13 @@
     "translateAgainQuestion": "Translate again? Anything corrected by hand in the current translation is lost.",
     "languageSwitchQuestion": "Switch the language? The saved translation is deleted when you save.",
     "languageSwitch": "Switch",
-    "saveToInbox": "Save in the inbox"
+    "saveToInbox": "Save in the inbox",
+    "quantityPlaceholder": "Qty",
+    "unitLabel": "Unit for ingredient {number}",
+    "unitNone": "–",
+    "unitCustom": "Own …",
+    "unitCustomPlaceholder": "e.g. can, bunch",
+    "unitCustomLabel": "Own unit for ingredient {number}"
   },
   "QuickImport": {
     "heading": "Fill in quickly",

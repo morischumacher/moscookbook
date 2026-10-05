@@ -1,6 +1,6 @@
 import { splitAmount, formatAmount, type AmountParts } from './ingredientParts';
 import { singular, expandUmlauts } from './searchText';
-import { fromBase, isCountUnit, toBase, unitOf, type Measured } from './units';
+import { fromBase, isCountUnit, toBase, unitOf, unitSpelling, type Measured } from './units';
 
 /**
  * The shopping list's thinking, apart from its storage.
@@ -297,7 +297,8 @@ export function amountLabel(measure: string | null, amount: number | null, local
         const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(parts.quantity);
         return `${number} ${parts.unit ?? ''}`.trim();
     }
-    return formatAmount(parts, 1, locale);
+    // "3 Zehen" on the German list, "3 cloves" on the English one.
+    return formatAmount({ ...parts, unit: unitSpelling(parts.unit, parts.quantity ?? 0, locale) }, 1, locale);
 }
 
 /** The whole list as text, for sending: grouped, ticked lines left out. */

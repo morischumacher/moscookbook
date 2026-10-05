@@ -81,7 +81,10 @@ Return ONLY a JSON object, no prose and no code fences, with exactly these keys:
  "links": [string]}
 
 Rules:
-- Keep the language of the source. Do not translate.
+- Keep the language of the source when it is German or English. A recipe in
+  any other language (Spanish, French, Italian …) is translated into German:
+  every field, units the German way (EL, TL, Prise, Zehe), quantities as
+  they are.
 - "amount" holds the quantity and unit together, e.g. "200 g", "2 EL", "1/2".
   Leave it as an empty string when the source gives no quantity.
 - "item" is the ingredient alone, without the quantity.

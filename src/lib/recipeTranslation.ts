@@ -126,6 +126,42 @@ export function guessLanguage(text: string): RecipeLanguage {
 
 const LANGUAGE_NAME: Record<RecipeLanguage, string> = { de: 'German', en: 'English' };
 
+/**
+ * The other languages a shared recipe arrives in, by their common words —
+ * enough to say "this is Spanish, translate it" (the owner's wish: a recipe
+ * that is neither German nor English comes into the cookbook in German).
+ */
+const FOREIGN: Record<string, { name: string; words: Set<string> }> = {
+    es: { name: 'Spanish', words: new Set(['y', 'el', 'la', 'los', 'las', 'de', 'del', 'con', 'para', 'una', 'un', 'minutos', 'cucharada', 'cucharadas', 'cucharadita', 'sal', 'aceite', 'cebolla', 'ajo', 'agua', 'hasta', 'añadir', 'cocinar', 'que', 'en', 'al']) },
+    fr: { name: 'French', words: new Set(['et', 'le', 'la', 'les', 'de', 'des', 'du', 'avec', 'pour', 'une', 'un', 'minutes', 'cuillère', 'cuillères', 'sel', 'huile', 'oignon', 'ail', 'eau', 'jusqu', 'ajouter', 'faire', 'cuire', 'dans', 'est', 'au', 'aux']) },
+    it: { name: 'Italian', words: new Set(['e', 'il', 'la', 'le', 'di', 'del', 'della', 'con', 'per', 'una', 'un', 'minuti', 'cucchiaio', 'cucchiai', 'sale', 'olio', 'cipolla', 'aglio', 'acqua', 'fino', 'aggiungere', 'cuocere', 'nel', 'nella', 'al']) },
+    pt: { name: 'Portuguese', words: new Set(['e', 'o', 'a', 'os', 'as', 'de', 'do', 'da', 'com', 'para', 'uma', 'um', 'minutos', 'colher', 'colheres', 'sal', 'azeite', 'cebola', 'alho', 'água', 'até', 'adicionar', 'cozinhar', 'no', 'na']) },
+    nl: { name: 'Dutch', words: new Set(['en', 'de', 'het', 'een', 'met', 'voor', 'van', 'minuten', 'eetlepel', 'eetlepels', 'theelepel', 'zout', 'olie', 'ui', 'knoflook', 'water', 'tot', 'toevoegen', 'koken', 'in', 'op']) },
+};
+
+/**
+ * A language that is neither German nor English, when the text plainly is
+ * one: more of its common words than of German's or English's, and enough of
+ * them to be sure. Null for German, English, or too little to tell.
+ */
+export function foreignLanguage(text: string): { code: string; name: string } | null {
+    const words = text.toLowerCase().split(/[^a-zà-ÿœæ]+/).filter(Boolean);
+    let german = 0;
+    let english = 0;
+    for (const word of words) {
+        if (GERMAN_WORDS.has(word)) german += 1;
+        if (ENGLISH_WORDS.has(word)) english += 1;
+    }
+    if (/[äöüß]/i.test(text)) german += 2;
+    let best: { code: string; name: string; hits: number } | null = null;
+    for (const [code, language] of Object.entries(FOREIGN)) {
+        const hits = words.filter((word) => language.words.has(word)).length;
+        if (!best || hits > best.hits) best = { code, name: language.name, hits };
+    }
+    if (!best || best.hits < 6 || best.hits <= Math.max(german, english) * 1.5) return null;
+    return { code: best.code, name: best.name };
+}
+
 const UNIT_RULES: Record<RecipeLanguage, string> = {
     de: `Amounts, for a German kitchen:
 - write units the German way: tbsp → EL, tsp → TL, pinch → Prise, clove → Zehe,
@@ -144,8 +180,9 @@ const UNIT_RULES: Record<RecipeLanguage, string> = {
 - use a decimal point (1.5) and keep fractions like 1/2 as they are`,
 };
 
-export function translatePrompt(from: RecipeLanguage, to: RecipeLanguage): string {
-    return `You translate a recipe from ${LANGUAGE_NAME[from]} into ${LANGUAGE_NAME[to]} for a personal cookbook.
+export function translatePrompt(from: RecipeLanguage | string, to: RecipeLanguage): string {
+    const fromName = LANGUAGE_NAME[from as RecipeLanguage] ?? FOREIGN[from]?.name ?? 'its language';
+    return `You translate a recipe from ${fromName} into ${LANGUAGE_NAME[to]} for a personal cookbook.
 
 You receive the recipe as JSON and return the translation as JSON of exactly the same shape:
 {"title": "...", "description": "...", "ingredients": [{"amount": "...", "item": "..."}], "instructions": "...", "tips": "..."}
@@ -239,14 +276,16 @@ export type TranslateOutcome =
  */
 export async function translateRecipe(
     original: TranslatableRecipe,
-    from: RecipeLanguage,
+    from: RecipeLanguage | string,
     keys: AiKey[],
     call: (key: AiKey, system: string, user: string) => Promise<string>,
-    parse: (text: string) => unknown
+    parse: (text: string) => unknown,
+    /** The other of the two by default; German for a recipe in a third language. */
+    target?: RecipeLanguage
 ): Promise<TranslateOutcome> {
     if (keys.length === 0) return { ok: false, reason: 'no-keys', message: 'No AI key is configured.' };
 
-    const to = otherLanguage(from);
+    const to = target ?? otherLanguage(from as RecipeLanguage);
     const payload = JSON.stringify({
         title: original.title.trim(),
         description: original.description.trim(),
