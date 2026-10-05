@@ -1233,14 +1233,13 @@
       "produce": "Fruit & vegetables",
       "bakery": "Bread",
       "meat": "Meat & fish",
-      "dairy": "Dairy & eggs",
+      "dairy": "Fridge",
       "pantry": "Pantry",
-      "spices": "Spices & baking",
       "frozen": "Frozen",
-      "drinks": "Drinks",
       "other": "Other",
       "basics": "Probably at home",
-      "optional": "Optional"
+      "optional": "Optional",
+      "special": "Hard to find (e.g. Asian shop)"
     },
     "addMenuGuests": "Shopping list for {count, plural, one {# guest} other {# guests}}",
     "undoAdd": "Take it off again",
@@ -1690,6 +1689,8 @@
     "selectName": "Select “{name}”",
     "germanMissing": "German missing",
     "englishMissing": "English missing",
-    "usesShort": "{count, plural, =0 {unused} one {# recipe line} other {# recipe lines}}"
+    "usesShort": "{count, plural, =0 {unused} one {# recipe line} other {# recipe lines}}",
+    "aisle": "Aisle on the shopping list",
+    "aisleAuto": "Automatic ({aisle})"
   }
 }

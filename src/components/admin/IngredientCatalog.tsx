@@ -8,6 +8,7 @@ import { BusyLabel } from '@/components/ui/Busy';
 import Sheet from '@/components/ui/Sheet';
 import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 import type { Units } from '@/lib/shoppingParts';
+import { CHOOSABLE_AISLES } from '@/lib/shopping';
 import { buyLabel, conversionLines, readConversion } from '@/lib/unitConversion';
 
 interface Item {
@@ -20,6 +21,9 @@ interface Item {
     units: Units | null;
     /** Set here (or learned from the AI), rather than the defaults. */
     ownUnits: boolean;
+    /** The shop aisle set by hand, or null for the rules' one (`ruleAisle`). */
+    aisle: string | null;
+    ruleAisle: string;
     createdAt: string;
 }
 
@@ -486,10 +490,11 @@ function ItemRow({
     detail: 'uses' | 'date';
     selected: boolean;
     onSelect: () => void;
-    onSave: (next: { de: string; en: string; aliases: string[]; units?: Units | null }) => Promise<void>;
+    onSave: (next: { de: string; en: string; aliases: string[]; units?: Units | null; aisle?: string | null }) => Promise<void>;
     onDelete: () => void;
 }) {
     const t = useTranslations('Ingredients');
+    const tShop = useTranslations('Shopping');
     const [open, setOpen] = useState(false);
     const [de, setDe] = useState(item.de);
     const [en, setEn] = useState(item.en);
@@ -557,6 +562,22 @@ function ItemRow({
             </div>
             <div className="pl-11">
                 <UnitsEditor units={item.units} own={item.ownUnits} locale={locale} onSave={(units) => onSave({ de: item.de, en: item.en, aliases: item.aliases, units })} />
+                {/* Where it goes on the shopping list; beats every rule. */}
+                <label className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+                    {t('aisle')}
+                    <select
+                        value={item.aisle ?? ''}
+                        onChange={(event) => void onSave({ de: item.de, en: item.en, aliases: item.aliases, aisle: event.target.value || null })}
+                        className="min-h-9 rounded-lg border border-control bg-transparent px-2 text-sm text-ink"
+                    >
+                        <option value="">{t('aisleAuto', { aisle: tShop(`aisle.${item.ruleAisle}`) })}</option>
+                        {CHOOSABLE_AISLES.map((aisle) => (
+                            <option key={aisle} value={aisle}>
+                                {tShop(`aisle.${aisle}`)}
+                            </option>
+                        ))}
+                    </select>
+                </label>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 pl-11">
                 <span className="text-xs text-faint">{t('uses', { count: item.uses })}</span>

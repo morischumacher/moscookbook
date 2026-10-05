@@ -1,5 +1,5 @@
 import prisma from './prisma';
-import { keyFor, linesFor, mergeInto, removeFrom, type PlannedLine } from './shopping';
+import { aisleOf, isAisle, keyFor, linesFor, mergeInto, removeFrom, type PlannedLine } from './shopping';
 import { commonIngredient, ingredientKey } from './ingredientNames';
 import { converted, simplified, unitsOf, withoutSource, partsOf, type Part, type Units } from './shoppingParts';
 import type { Prisma } from '@prisma/client';
@@ -23,7 +23,7 @@ export const shoppingItemSelect = {
     buyerId: true,
     itemId: true,
     parts: true,
-    item: { select: { de: true, en: true } },
+    item: { select: { de: true, en: true, aisle: true } },
 } as const;
 
 export interface ShoppingItemRow {
@@ -42,7 +42,7 @@ export interface ShoppingItemRow {
     /** How much is for which recipe (lib/shoppingParts). */
     parts: Prisma.JsonValue;
     /** The catalogue's ingredient, named in both languages; null for a line that is none. */
-    item: { de: string; en: string } | null;
+    item: { de: string; en: string; aisle: string | null } | null;
 }
 
 /** This person's main list, made the first time it is asked for. */
@@ -257,7 +257,13 @@ export async function itemsOf(listId: number): Promise<ShoppingItemRow[]> {
         select: shoppingItemSelect,
     });
     const titles = await titlesOf([...new Set(rows.flatMap((row) => row.sources))]);
-    return rows.map((row) => ({ ...row, titles: Object.fromEntries(row.sources.flatMap((source) => (titles.has(source) ? [[source, titles.get(source)!]] : []))) }));
+    return rows.map((row) => ({
+        ...row,
+        // The aisle as it is now: the ingredient's own (admin → Zutaten), else the
+        // rules — so a line added before either changed moves too. Optional stays optional.
+        aisle: row.aisle === 'optional' ? 'optional' : isAisle(row.item?.aisle) ? row.item!.aisle! : aisleOf(row.item?.de || row.name),
+        titles: Object.fromEntries(row.sources.flatMap((source) => (titles.has(source) ? [[source, titles.get(source)!]] : []))),
+    }));
 }
 
 /**

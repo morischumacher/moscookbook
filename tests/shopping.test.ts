@@ -19,7 +19,17 @@ export default function shoppingTests() {
 
     suite('shopping: where it is in the shop');
     equal('onions with the vegetables', aisleOf('Zwiebeln'), 'produce');
-    equal('paprika powder with the spices, not the peppers', aisleOf('Paprikapulver'), 'spices');
+    equal('paprika powder in the store cupboard, not with the peppers', aisleOf('Paprikapulver'), 'pantry');
+    // The owner's list, as it was sorted wrong.
+    equal('fish sauce is no fish', aisleOf('Fischsauce'), 'special');
+    equal('lime juice is limes', aisleOf('Limettensaft'), 'produce');
+    equal('"Wasser oder Hühnerbrühe" by what is bought', aisleOf('Wasser oder ungesalzene Hühnerbrühe'), 'pantry');
+    equal('shallots are vegetables', aisleOf('Schalotten'), 'produce');
+    equal('Thai basil is hard to get', aisleOf('Thai Basilikum'), 'special');
+    equal('so is sticky rice', aisleOf('Klebreis'), 'special');
+    equal('tofu in the fridge', aisleOf('Seidentofu'), 'dairy');
+    equal('tomato paste is no tomato', aisleOf('Tomatenmark'), 'pantry');
+    equal('coconut milk is no milk', aisleOf('Kokosmilch'), 'pantry');
     equal('cheese in the fridge', aisleOf('Bergkäse'), 'dairy');
     equal('eggs too', aisleOf('Eier'), 'dairy');
     equal('flour on the shelf', aisleOf('Mehl'), 'pantry');

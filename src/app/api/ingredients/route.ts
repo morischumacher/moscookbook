@@ -9,6 +9,7 @@ import { canUseAi, completeWithKey, extractJson } from '@/lib/aiImport';
 import { usageRecorder } from '@/lib/tokenUsageDb';
 import { commonIngredient, germanName } from '@/lib/ingredientNames';
 import { isMeasure, unitsOf } from '@/lib/shoppingParts';
+import { aisleOf, CHOOSABLE_AISLES, isAisle } from '@/lib/shopping';
 
 /**
  * The ingredient catalogue for admin → Zutaten (lib/ingredientCatalog).
@@ -39,7 +40,7 @@ async function notDoubles(): Promise<Set<string>> {
 async function catalogue() {
     const items = await prisma.ingredientItem.findMany({
         orderBy: [{ de: 'asc' }, { en: 'asc' }],
-        select: { id: true, de: true, en: true, aliases: true, buyMeasure: true, factors: true, createdAt: true, _count: { select: { ingredients: true } } },
+        select: { id: true, de: true, en: true, aliases: true, buyMeasure: true, factors: true, aisle: true, createdAt: true, _count: { select: { ingredients: true } } },
     });
     return items.map((item) => ({
         id: item.id,
@@ -51,6 +52,9 @@ async function catalogue() {
         units: unitsOf(item, commonIngredient(item.de)?.id ?? commonIngredient(item.en)?.id ?? null),
         ownUnits: item.buyMeasure !== null,
         createdAt: item.createdAt.toISOString(),
+        // Set by hand, or null; and where the rules would put it, to show beside "automatic".
+        aisle: isAisle(item.aisle) ? item.aisle : null,
+        ruleAisle: aisleOf(item.de || item.en),
     }));
 }
 
@@ -78,6 +82,8 @@ const patchBody = z.object({
         })
         .nullable()
         .optional(),
+    // The shop aisle by hand; null puts it back to the rules. Left out: unchanged.
+    aisle: z.string().refine((value) => (CHOOSABLE_AISLES as string[]).includes(value)).nullable().optional(),
 });
 
 export const PATCH = route({ access: 'admin', body: patchBody, label: 'Correcting an ingredient' }, async ({ body }) => {
@@ -90,6 +96,7 @@ export const PATCH = route({ access: 'admin', body: patchBody, label: 'Correctin
             aliases: body.aliases,
             keys: itemKeys(body),
             ...(body.units === undefined ? {} : body.units === null ? { buyMeasure: null, factors: {} } : { buyMeasure: body.units.buy, factors: body.units.factors }),
+            ...(body.aisle === undefined ? {} : { aisle: body.aisle }),
         },
     });
     if (updated.count !== 1) refuse(404, 'That ingredient is gone.');

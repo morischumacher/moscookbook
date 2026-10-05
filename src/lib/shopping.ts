@@ -23,43 +23,63 @@ import { lessPart, partsOf, settled as settledAmount, withPart, type Part } from
 
 export type Aisle =
     | 'produce'
-    | 'dairy'
     | 'meat'
+    | 'dairy'
     | 'bakery'
     | 'pantry'
-    | 'spices'
+    /** Hard to get: the Asian shop, a delicatessen ("Gochugaru", "Kaffirlimettenblätter"). */
+    | 'special'
     | 'frozen'
-    | 'drinks'
-    | 'basics'
     | 'other'
+    | 'basics'
     /** What a recipe marks "(optional)" (lib/ingredientShape): last, under its own heading. */
     | 'optional';
 
-/** In the order a shop is usually walked. */
-export const AISLES: Aisle[] = ['produce', 'bakery', 'meat', 'dairy', 'pantry', 'spices', 'frozen', 'drinks', 'other', 'basics', 'optional'];
+/**
+ * In the order a shop is usually walked, then what needs another shop, then
+ * what is probably at home. "Getränke" and "Gewürze & Backen" are gone (the
+ * owner's wish): lime juice is limes, stock and spices are the store cupboard.
+ */
+export const AISLES: Aisle[] = ['produce', 'meat', 'dairy', 'bakery', 'pantry', 'frozen', 'special', 'other', 'basics', 'optional'];
+
+/** Every aisle a line can be given by hand (admin → Zutaten), "optional" being the recipe's to say. */
+export const CHOOSABLE_AISLES: Aisle[] = ['produce', 'meat', 'dairy', 'bakery', 'pantry', 'frozen', 'special', 'other', 'basics'];
+
+export const isAisle = (value: string | null | undefined): value is Aisle => (AISLES as string[]).includes(value ?? '');
 
 /** An optional line is its own line: "Chili (optional)" is not added to the chili the dish needs. */
 export const OPTIONAL_KEY = 'opt:';
 export const keyFor = (key: string, aisle: string) => (aisle === 'optional' && !key.startsWith(OPTIONAL_KEY) ? OPTIONAL_KEY + key : key);
 
+/*
+ * The first rule that matches decides, so the order matters: what is hard to
+ * get before the produce it would otherwise be ("Thai-Basilikum"), sauces and
+ * pastes before the meat or fish in their name ("Fischsauce", "Hühnerbrühe"),
+ * fresh citrus juice with the fruit it is squeezed from.
+ */
 const AISLE_RULES: Array<[Aisle, RegExp]> = [
-    // Things almost every kitchen has. They are still listed — at the end,
-    // under their own heading — so nobody is caught out, but they do not
-    // clutter the part of the list that is actually shopping.
-    ['basics', /^(salz|pfeffer|salt|pepper|black pepper|schwarzer pfeffer|öl|oil|olivenöl|olive oil|zucker|sugar)$/i],
-    ['frozen', /tiefkühl|tiefgekühlt|frozen|tk-|erbsen tk/i],
-    ['spices', /paprikapulver|pulver|gewürz|zimt|cinnamon|kreuzkümmel|cumin|kurkuma|turmeric|curry(paste|pulver)?\b|chili(flocken|pulver)|oregano|thymian getrocknet|muskat|nutmeg|lorbeer|bay lea|vanille|vanilla|paprika edelsüß|garam masala|brühe|bouillon|stock cube|hefe|yeast|backpulver|baking (powder|soda)|natron/i],
-    ['meat', /fleisch|hähnchen|huhn|chicken|rind|beef|schwein|pork|hack|mince|speck|bacon|schinken|\bham\b|wurst|sausage|lamm|lamb|pute|turkey|fisch|fish|lachs|salmon|thunfisch|tuna|garnelen|shrimp|prawn|scampi|rollmops|hering|forelle|kabeljau/i],
-    ['dairy', /milch|milk|sahne|cream|butter|joghurt|yogurt|yoghurt|quark|käse|cheese|parmesan|mozzarella|feta|ricotta|mascarpone|schmand|crème|creme fraiche|\bei\b|eier|\beggs?\b/i],
+    // Things almost every kitchen has: still listed, at the end, under their own heading.
+    ['basics', /^(salz|meersalz|pfeffer|schwarzer pfeffer|salt|sea salt|pepper|black pepper|öl|oil|neutrales öl|pflanzenöl|sonnenblumenöl|rapsöl|olivenöl|olive oil|vegetable oil|neutral oil|zucker|sugar|essig|vinegar)$/i],
+    ['special', /gochugaru|gochujang|doenjang|kimchi|saeujeot|miso|dashi|kombu|nori|wakame|bonito|katsuobushi|mirin|\bsake\b|shaoxing|shao ?hsing|klebreis|sticky rice|glutinous|reispapier|rice paper|thai[- ]?basilikum|thai basil|thai[- ]?chili|bird'?s eye|kaffir|makrut|limettenbl|lime lea|zitronengras|lemongrass|galgant|galangal|tamarinde|tamarind|palmzucker|palm sugar|pandan|shiso|perilla|yuzu|szechuan|sichuan|szechuanpfeffer|doubanjiang|black bean sauce|hoisin|sambal|sriracha|tteok|udon|soba|ramen|reisnudel|rice noodle|glasnudel|glass noodle|enoki|shiitake|wood ear|mu-?err|bean sprout|sojasprossen|bohnensprossen|pak ?choi|bok ?choy|daikon|furikake|panko|kecap|fischsoße|fish sauce|fischsauce|austernsauce|oyster sauce/i],
+    ['frozen', /tiefkühl|tiefgekühlt|gefroren|frozen|\btk\b|tk-/i],
+    // A sauce, a paste, a stock or a powder is the store cupboard, whatever its name says it is made of.
+    ['pantry', /(sauce|soße|sosse|brühe|fond|stock|broth|bouillon|paste|pulver|powder|gewürz|mischung|extrakt|extract)\b|sojasauce|soy sauce|worcester|ketchup|mayonnaise|senf|mustard|tomatenmark|tomato paste|passata|dosentomate|canned|konserve|\bdose\b|kokosmilch|coconut milk|kokoscreme|getrocknet|dried|tomatenmark/i],
+    ['produce', /(zitronen|limetten|orangen)saft|(lemon|lime|orange) juice|zwiebel|onion|schalott|shallot|knoblauch|garlic|tomate|tomato|kartoffel|potato|karotte|möhre|carrot|paprika(?!pulver)|bell pepper|zucchini|courgette|aubergine|eggplant|gurke|cucumber|salat|lettuce|spinat|spinach|kohl|cabbage|brokkoli|broccoli|lauch|leek|sellerie|celery|pilz|champignon|mushroom|ingwer|ginger|chili|jalape|zitrone|lemon|limette|\blimes?\b|apfel|apple|banane|banana|beere|berr|orange|birne|pfirsich|peach|aprikose|pflaume|kirsche|mango|ananas|\bpears?\b|kürbis|pumpkin|squash|avocado|\bmais|\bcorn\b|bohne|bean|erbse|\bpeas?\b|kräuter|herb|petersilie|parsley|basilikum|basil|koriander(?!samen|pulver)|cilantro|coriander|schnittlauch|chives|dill|minze|\bmint\b|rosmarin|rosemary|thymian|thyme|frühlingszwiebel|spring onion|scallion|rucola|rocket|radieschen|radish|rettich|fenchel|fennel|rote bete|beet|süßkartoffel|sweet potato|spargel|asparagus|artischocke|obst|fruit|gemüse|vegetable/i],
+    ['meat', /fleisch|hähnchen|huhn|chicken|rind|beef|schwein|pork|hack|mince|speck|bacon|schinken|\bham\b|wurst|sausage|lamm|lamb|pute|turkey|ente|duck|fisch|fish|lachs|salmon|thunfisch|tuna|garnele|shrimp|prawn|scampi|hering|forelle|kabeljau|dorade|muschel|mussel|tintenfisch|squid|oktopus/i],
+    ['dairy', /milch|milk|sahne|cream|butter|joghurt|yogurt|yoghurt|quark|käse|cheese|parmesan|mozzarella|feta|ricotta|mascarpone|schmand|crème|creme fraiche|\bei\b|eier|\beggs?\b|tofu|tempeh/i],
     ['bakery', /brot|bread|brötchen|\brolls?\b|baguette|toast|tortilla|wrap|pita|blätterteig|puff pastry|pizzateig/i],
-    ['drinks', /wein|wine|bier|beer|saft|juice|sprudel|mineralwasser|sparkling/i],
-    ['produce', /zwiebel|onion|knoblauch|garlic|tomate|tomato|kartoffel|potato|karotte|möhre|carrot|paprika|pepper|zucchini|courgette|aubergine|eggplant|gurke|cucumber|salat|lettuce|spinat|spinach|kohl|cabbage|brokkoli|broccoli|blumenkohl|cauliflower|lauch|leek|sellerie|celery|pilz|champignon|mushroom|ingwer|ginger|chili|zitrone|lemon|limette|\blimes?\b|apfel|apple|banane|banana|beere|berr|orange|birne|pfirsich|peach|aprikose|pflaume|kirsche|mango|ananas|\bpears?\b|kürbis|pumpkin|squash|avocado|\bmais|\bcorn\b|bohne|bean|erbse|\bpeas?\b|kräuter|herb|petersilie|parsley|basilikum|basil|koriander|cilantro|coriander|schnittlauch|chives|dill|minze|\bmint\b|rosmarin|rosemary|thymian|thyme|frühlingszwiebel|spring onion|scallion|rucola|rocket|obst|fruit|gemüse|vegetable/i],
-    ['pantry', /mehl|flour|zucker|sugar|reis|rice|nudel|pasta|spaghetti|penne|spätzle|spaetzle|gnocchi|tortellini|ravioli|lasagne|linsen|lentil|kichererbse|chickpea|\bdosen?\b|\bcans?\b|konserve|passata|tomatenmark|tomato paste|öl|oil|essig|vinegar|sojasauce|soy sauce|senf|mustard|honig|honey|nüsse|nuts|mandel|almond|haferflocken|oats|schokolade|chocolate|kakao|cocoa|kokosmilch|coconut milk|brühe|stock|sirup|syrup|couscous|bulgur|quinoa|polenta|grieß|semolina/i],
+    ['pantry', /mehl|flour|stärke|starch|zucker|sugar|reis|rice|nudel|pasta|spaghetti|penne|spätzle|spaetzle|gnocchi|tortellini|ravioli|lasagne|linsen|lentil|kichererbse|chickpea|\bdosen?\b|\bcans?\b|konserve|passata|tomatenmark|öl|oil|essig|vinegar|honig|honey|nüsse|nuts|mandel|almond|sesam|sesame|erdnuss|peanut|haferflocken|oats|schokolade|chocolate|kakao|cocoa|kokosmilch|coconut milk|sirup|syrup|couscous|bulgur|quinoa|polenta|grieß|semolina|hefe|yeast|backpulver|baking (powder|soda)|natron|vanille|vanilla|zimt|cinnamon|kreuzkümmel|cumin|kurkuma|turmeric|curry|oregano|muskat|nutmeg|lorbeer|bay lea|garam masala|chiliflocken|chili flakes|saft|juice|wein|wine/i],
 ];
 
+/**
+ * Where a line goes in the shop. "Wasser oder Hühnerbrühe": by the part that
+ * is bought. A name the rules do not know is "other" — and any ingredient can
+ * be given its aisle by hand on admin → Zutaten, which beats every rule.
+ */
 export function aisleOf(name: string): Aisle {
-    const plain = name.trim().toLowerCase();
-    for (const [aisle, pattern] of AISLE_RULES) if (pattern.test(plain)) return aisle;
+    const parts = name.trim().toLowerCase().split(/\s+(?:oder|or)\s+|\s*\/\s*/);
+    const bought = parts.find((part) => !NEVER_BOUGHT.test(part.trim())) ?? parts[0];
+    for (const [aisle, pattern] of AISLE_RULES) if (pattern.test(bought)) return aisle;
     return 'other';
 }
 
