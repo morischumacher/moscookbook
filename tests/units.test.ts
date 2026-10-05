@@ -1,6 +1,6 @@
 /** Units: metric by default, tidy after scaling, addable for the shopping list */
 import { suite, check, equal } from './harness';
-import { countUnitLabel, fromBase, hasMeasures, hasNonMetric, tidy, toBase, toMetric, toUS, unitOf } from '../src/lib/units';
+import { countUnitLabel, fromBase, hasMeasures, hasNonMetric, tidy, toBase, toMetric, toUS, unitOf, unitSpelling } from '../src/lib/units';
 
 const amount = (quantity: number | null, unit: string | null, quantityMax: number | null = null) => ({
     quantity,
@@ -45,6 +45,18 @@ export default function unitsTests() {
     equal('a range stays a range', toUS(amount(240, 'ml', 480), 'water', 'en'), amount(1, 'cups', 2));
     check('a German recipe has something to switch', hasMeasures([amount(200, 'g'), amount(2, 'EL')]));
     check('spoons alone do not', !hasMeasures([amount(2, 'EL'), amount(2, 'Zehen')]));
+
+    suite('units: one spelling per language');
+    equal('Tbsp on the German page', unitSpelling('Tbsp', 2, 'de'), 'EL');
+    equal('Essl. on the English page', unitSpelling('Esslöffel', 1, 'en'), 'tbsp');
+    equal('TL', unitSpelling('teaspoon', 1, 'de'), 'TL');
+    equal('cups agree with their number', unitSpelling('cup', 2, 'en'), 'cups');
+    equal('Tassen too', unitSpelling('cups', 1, 'de'), 'Tasse');
+    equal('grams are g', unitSpelling('Gramm', 200, 'de'), 'g');
+    equal('a pinch in German', unitSpelling('pinch', 2, 'de'), 'Prisen');
+    equal('cloves', unitSpelling('Zehen', 3, 'en'), 'cloves');
+    equal('a Dose stays a Dose', unitSpelling('Dose', 1, 'de'), 'Dose');
+    equal('ounces', unitSpelling('ounces', 8, 'en'), 'oz');
 
     suite('units: tidy after scaling');
     equal('1000 g is a kilo', tidy(amount(1000, 'g')), amount(1, 'kg'));

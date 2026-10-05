@@ -225,6 +225,43 @@ export function hasMeasures(rows: AmountParts[]): boolean {
     });
 }
 
+/**
+ * One spelling per unit and page language, whatever the source wrote: "Tbsp",
+ * "Essl." and "tablespoon" are "EL" on the German page and "tbsp" on the
+ * English one; a cup agrees with its number. Units nobody listed ("Dose",
+ * "Bund", "kleine") come back as they were written.
+ *
+ *   de: g, kg, ml, l, EL, TL, Tasse/Tassen, Prise/Prisen, Zehe/Zehen
+ *   en: g, kg, ml, l, tbsp, tsp, cup/cups, oz, lb, pinch/pinches, clove/cloves
+ */
+const SPELLED: Record<string, { de: [string, string]; en: [string, string] }> = {
+    tbsp: { de: ['EL', 'EL'], en: ['tbsp', 'tbsp'] },
+    tsp: { de: ['TL', 'TL'], en: ['tsp', 'tsp'] },
+    cup: { de: ['Tasse', 'Tassen'], en: ['cup', 'cups'] },
+    oz: { de: ['oz', 'oz'], en: ['oz', 'oz'] },
+    lb: { de: ['lb', 'lb'], en: ['lb', 'lb'] },
+    floz: { de: ['fl oz', 'fl oz'], en: ['fl oz', 'fl oz'] },
+    pint: { de: ['Pint', 'Pints'], en: ['pint', 'pints'] },
+    quart: { de: ['Quart', 'Quarts'], en: ['quart', 'quarts'] },
+    prise: { de: ['Prise', 'Prisen'], en: ['pinch', 'pinches'] },
+    zehe: { de: ['Zehe', 'Zehen'], en: ['clove', 'cloves'] },
+};
+const SPELLED_COUNT: Record<string, string> = { prise: 'prise', pinch: 'prise', zehe: 'zehe', clove: 'zehe' };
+
+export function unitSpelling(unit: string | null, amount: number, locale: Locale): string | null {
+    if (!unit) return unit;
+    const def = unitOf(unit);
+    const many = amount > 1;
+    if (def) {
+        const spelled = SPELLED[def.id];
+        if (spelled) return spelled[locale][many ? 1 : 0];
+        // g, kg, ml, l and the rest of the metric ones: their symbol.
+        return def.metric ? def.label[locale] : unit;
+    }
+    const counted = SPELLED_COUNT[countUnitKey(unit)];
+    return counted ? SPELLED[counted][locale][many ? 1 : 0] : unit;
+}
+
 /** What the shopping list adds up: a dimension and an amount in its base, or a named unit. */
 export interface Measured {
     /** 'mass' in g, 'volume' in ml, 'spoon' in ml, or `count:<unit>` for named units. */

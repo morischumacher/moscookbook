@@ -7,7 +7,8 @@ import { youtubeVideoId, extractYoutubePage, cleanYoutubeDescription } from './y
 import { fetchImageAsBase64 } from './fetchImage';
 import { readableText } from './readableText';
 import { assessDraft, nameFromParagraph, worthAsking } from './draftQuality';
-import { assistsText, canUseAi, capabilityFromEnv, completeWithKey, extractRecipeWithAi, type AiCapability } from './aiImport';
+import { assistsText, canUseAi, capabilityFromEnv, completeWithKey, extractJson, extractRecipeWithAi, type AiCapability } from './aiImport';
+import { foreignLanguage, translateRecipe } from './recipeTranslation';
 import { applyProfile, hostOf, NO_PROFILES } from './siteProfile';
 import { learnSiteProfile } from './siteLearn';
 import type { AiTrace, ProcessableCapture, ProcessedCapture, ProcessOptions } from './captureTypes';
@@ -625,7 +626,44 @@ export async function processCapture(
     ai: AiCapability = capabilityFromEnv(),
     options: ProcessOptions = {}
 ): Promise<ProcessedCapture> {
-    return withAName(await readCapture(capture, ai, options));
+    return withAName(await inGerman(await readCapture(capture, ai, options), ai, options));
+}
+
+/**
+ * A recipe in neither German nor English — a Spanish blog, a French reel —
+ * comes into the cookbook in German (the owner's choice). A model reading it
+ * already writes German (lib/aiImport's prompt); this is for what the rules
+ * read on their own, asked of a model only when one may be asked about text.
+ * Without one, or when it fails, the recipe stays as it was read.
+ */
+async function inGerman(result: ProcessedCapture, ai: AiCapability, options: ProcessOptions): Promise<ProcessedCapture> {
+    const draft = result.draft;
+    if (!draft || !mayAskAboutText(ai, options)) return result;
+    const text = [draft.title, draft.description, draft.instructions, ...draft.ingredients.map((row) => row.item)].join('\n');
+    const language = foreignLanguage(text);
+    if (!language) return result;
+
+    const outcome = await translateRecipe(
+        { title: draft.title, description: draft.description, instructions: draft.instructions, ingredients: draft.ingredients },
+        language.code,
+        ai.keys,
+        (key, system, text) => completeWithKey(key, { kind: 'raw', system, text }, options.onModel),
+        extractJson,
+        'de'
+    ).catch(() => null);
+    if (!outcome?.ok) return result;
+
+    const translated = outcome.translation;
+    return {
+        ...result,
+        draft: {
+            ...draft,
+            title: translated.title,
+            description: translated.description,
+            instructions: translated.instructions,
+            ingredients: translated.ingredients.map((row) => ({ amount: row.amount, item: row.item })),
+        },
+    };
 }
 
 /**

@@ -1,5 +1,6 @@
 import { suite, check, equal } from './harness';
 import {
+    foreignLanguage,
     guessLanguage,
     inLanguage,
     readTranslation,
@@ -166,4 +167,18 @@ export default async function recipeTranslationTests() {
     check('a translation into another language is written', translationRow(translation, 'en') !== null);
     check('a "translation" into its own language is not', translationRow(translation, 'de') === null);
     equal('a translation without tips stores none', translationRow(translation, 'en')?.tips, '');
+
+    suite('recipeTranslation: a third language comes in German');
+    const spanish =
+        'Tortilla de patatas. Pelar las patatas y la cebolla, cortar en láminas finas. Freír en aceite de oliva a fuego medio hasta que estén tiernas, unos 20 minutos. Batir los huevos con la sal y mezclar con las patatas. Cuajar la tortilla en la sartén con una cucharada de aceite.';
+    equal('Spanish is seen', foreignLanguage(spanish)?.code, 'es');
+    equal(
+        'French too',
+        foreignLanguage("Éplucher les oignons et l'ail. Faire revenir dans l'huile avec le sel pendant 10 minutes, puis ajouter les tomates et laisser cuire à feu doux avec une cuillère de sucre jusqu'à épaississement.")?.code,
+        'fr'
+    );
+    equal('German is not foreign', foreignLanguage('Die Zwiebel schälen und in Öl mit etwas Salz anbraten, dann das Wasser dazugeben und 10 Minuten kochen lassen.'), null);
+    equal('English is not', foreignLanguage('Peel the onion and fry it in the oil with a pinch of salt, then add the water and let it cook for 10 minutes until soft.'), null);
+    equal('a few words are too few to tell', foreignLanguage('Paella de la casa'), null);
+    check('the prompt names the language and asks for German', translatePrompt('es', 'de').includes('from Spanish into German'));
 }

@@ -290,7 +290,6 @@
     "pasteList": "Liste einfügen",
     "closeList": "Liste schließen",
     "appendIngredients": "Zutaten anhängen",
-    "amountPlaceholder": "200 g",
     "itemPlaceholder": "Mehl",
     "amountLabel": "Menge {number}",
     "itemLabel": "Zutat {number}",
@@ -394,7 +393,13 @@
     "translateAgainQuestion": "Neu übersetzen? Von Hand korrigierte Stellen der jetzigen Übersetzung gehen verloren.",
     "languageSwitchQuestion": "Sprache wechseln? Die gespeicherte Übersetzung wird beim Speichern gelöscht.",
     "languageSwitch": "Wechseln",
-    "saveToInbox": "Im Eingang speichern"
+    "saveToInbox": "Im Eingang speichern",
+    "quantityPlaceholder": "Menge",
+    "unitLabel": "Einheit für Zutat {number}",
+    "unitNone": "–",
+    "unitCustom": "Eigene …",
+    "unitCustomPlaceholder": "z. B. Dose, Bund",
+    "unitCustomLabel": "Eigene Einheit für Zutat {number}"
   },
   "QuickImport": {
     "heading": "Schnell befüllen",

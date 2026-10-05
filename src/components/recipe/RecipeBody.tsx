@@ -9,7 +9,7 @@ import { buttonFloating, buttonPrimarySmall } from '@/lib/ui';
 import CookMode from './CookMode';
 import { useCookTimers } from './useCookTimers';
 import { clock } from '@/lib/cookSteps';
-import { formatMeasured, hasMeasures, tidy, toMetric, toUS, unitOf, type UnitSystem, countUnitLabel } from '@/lib/units';
+import { formatMeasured, hasMeasures, tidy, toMetric, toUS, unitOf, unitSpelling, type UnitSystem, countUnitLabel } from '@/lib/units';
 import { cookProgressKey, parseCookProgress, worthSaving } from '@/lib/cookProgress';
 import PrintSheet, { type PrintInfo } from './PrintSheet';
 
@@ -126,8 +126,9 @@ export default function RecipeBody({
 
     /**
      * An amount as this cook wants to read it: scaled, in their units, tidied
-     * (1500 g → 1,5 kg). Written exactly as the recipe had it when nothing
-     * about it changed.
+     * (1500 g → 1,5 kg), and the unit spelled one way for the page's language
+     * ("Tbsp", "Essl." → "EL"; lib/units unitSpelling). Written exactly as the
+     * recipe had it when nothing about it changed.
      */
     const amountOf = (row: StructuredIngredient): string => {
         if (row.quantity === null) return row.raw || row.unit || '';
@@ -141,14 +142,16 @@ export default function RecipeBody({
         // A written amount with a long tail of decimals ("472,23524 g", from a
         // conversion somebody else did) is worked out again rather than shown (work #28).
         const messy = /\d[.,]\d{3,}/.test(row.raw ?? '');
-        if (factor === 1 && !converts && !messy) return row.raw || formatAmount(row, 1, uiLocale);
-        const shown = converts
+        const respelled = unitSpelling(row.unit, row.quantityMax ?? row.quantity, uiLocale) !== row.unit;
+        if (factor === 1 && !converts && !messy && !respelled) return row.raw || formatAmount(row, 1, uiLocale);
+        const worked = converts
             ? system === 'metric'
                 ? toMetric(scaled, row.name, uiLocale)
                 : toUS(scaled, row.name, uiLocale)
             : unit
               ? tidy(scaled, uiLocale)
               : { ...scaled, unit: countUnitLabel(scaled.unit, scaled.quantityMax ?? scaled.quantity) };
+        const shown = { ...worked, unit: unitSpelling(worked.unit, worked.quantityMax ?? worked.quantity ?? 0, uiLocale) };
         // "ca. 200 g" doubled is still about 400 g: the hedge was dropped
         // with the rest of the written amount.
         const hedge = /^(ca\.|circa|etwa|ungefähr|about|approx\.?|~)\s*/i.exec(row.raw ?? '')?.[0] ?? '';

@@ -192,6 +192,11 @@ export default function accessTests() {
         '/api/errors',
         '/api/recipes/42/view',
         '/api/cron/backup',
+        // The task list's own key is the permission (lib/workToken): the
+        // list, reporting done, and a task's screenshots.
+        '/api/work',
+        '/api/work/33/done',
+        '/api/work/33/photos',
     ]) {
         equal(`${open} works without a session`, apiAccess(open), 'open');
     }

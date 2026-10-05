@@ -6,6 +6,7 @@ import type { Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
 import { sectionHeading } from '@/lib/ingredientParts';
 import { fieldBase, fieldClass, labelClass } from './formStyles';
+import AmountInput from './AmountInput';
 
 export const EMPTY_ROW: Ingredient = { amount: '', item: '' };
 
@@ -130,15 +131,10 @@ export default function IngredientEditor({
                             </button>
                         </div>
                     ) : (
-                    <div key={index} className="flex items-center gap-2">
-                        <input
-                            type="text"
-                            value={row.amount}
-                            onChange={(event) => update(index, 'amount', event.target.value)}
-                            placeholder={t('amountPlaceholder')}
-                            aria-label={t('amountLabel', { number: index + 1 })}
-                            className={fieldBase + ' w-[5.5rem] shrink-0 sm:w-32'}
-                        />
+                    // On a phone two lines: the ingredient across the width,
+                    // then its amount, unit and the row's buttons.
+                    <div key={index} className="flex flex-wrap items-center gap-2 border-b border-line pb-2 sm:border-0 sm:pb-0">
+                        <AmountInput amount={row.amount} number={index + 1} onChange={(next) => update(index, 'amount', next)} />
                         <input
                             ref={(element) => {
                                 itemRefs.current[index] = element;
@@ -154,9 +150,9 @@ export default function IngredientEditor({
                             }}
                             placeholder={t('itemPlaceholder')}
                             aria-label={t('itemLabel', { number: index + 1 })}
-                            className={fieldBase + ' w-0 flex-1'}
+                            className={fieldBase + ' order-first w-full sm:order-none sm:w-0 sm:flex-1'}
                         />
-                        <div className="flex shrink-0 items-center gap-0.5">
+                        <div className="ml-auto flex shrink-0 items-center gap-0.5">
                             <button
                                 type="button"
                                 onClick={() => move(index, -1)}
