@@ -26,7 +26,7 @@ const prisma = new PrismaClient();
 // Kept in step with src/lib/archive.ts by hand, and checked by
 // scripts/check-backup.mjs — this file had quietly stayed at 1 while the
 // application moved to 2, which is exactly the drift that guard is for.
-const ARCHIVE_VERSION = 11;
+const ARCHIVE_VERSION = 12;
 
 function outputDir() {
     const flag = process.argv.indexOf('--out');
@@ -53,7 +53,7 @@ async function main() {
     const recipes = await prisma.recipe.findMany({
         orderBy: { createdAt: 'asc' },
         select: {
-            title: true, slug: true, description: true, instructions: true,
+            title: true, slug: true, description: true, instructions: true, tips: true,
             category: true, nationality: true, servings: true, prepMinutes: true,
             cookMinutes: true, views: true, createdAt: true,
             /*
@@ -79,7 +79,7 @@ async function main() {
             language: true,
             translations: {
                 orderBy: { locale: 'asc' },
-                select: { locale: true, title: true, description: true, instructions: true, ingredients: true, source: true },
+                select: { locale: true, title: true, description: true, instructions: true, tips: true, ingredients: true, source: true },
             },
         },
     });

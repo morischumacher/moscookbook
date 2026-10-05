@@ -86,6 +86,7 @@
     "loadingRecipe": "Rezept wird geladen…",
     "ingredients": "Zutaten",
     "instructions": "Zubereitung",
+    "tips": "Tipps & Hinweise",
     "noIngredients": "Für dieses Rezept sind keine Zutaten hinterlegt.",
     "servings": "Portionen",
     "oneMore": "Eine Portion mehr",
@@ -300,6 +301,9 @@
     "enterHint": "Enter in einem Zutatenfeld legt direkt die nächste Zeile an.",
     "instructions": "Zubereitung",
     "instructionsPlaceholder": "1. Zwiebeln schneiden.\n\n2. In Butter anbraten.",
+    "tips": "Tipps & Hinweise",
+    "tipsPlaceholder": "Was hilft: am Vortag vorbereiten, Zutaten austauschen, wie man es aufbewahrt…",
+    "tipsHint": "Optional. Erscheint nach der Zubereitung.",
     "preview": "Vorschau",
     "backToEdit": "Bearbeiten",
     "previewEmpty": "_Noch nichts geschrieben._",
@@ -320,6 +324,9 @@
     "moveImageLater": "Bild {number} nach hinten",
     "removeImageNumber": "Bild {number} entfernen",
     "uploadTooLarge": "Dieses Bild ist auch verkleinert noch zu groß. Bitte ein kleineres wählen.",
+    "aiPicture": "Bild mit KI erzeugen",
+    "aiPictureBusy": "Bild wird gemalt…",
+    "aiPictureNeedsTitle": "Gib dem Rezept zuerst einen Titel.",
     "servingsHint": "Schaltet den Portionsrechner frei.",
     "tags": "Tags",
     "tagsPlaceholder": "grillen, weihnachten, vorkochen…",
@@ -345,6 +352,7 @@
     "field_servings": "Portionen",
     "field_ingredients": "Zutaten",
     "field_instructions": "Zubereitung",
+    "field_tips": "Tipps",
     "field_tags": "Tags",
     "needIngredient": "Ein Rezept braucht mindestens eine Zutat.",
     "labelsAdd": "Eigene hinzufügen (Enter)",
@@ -1535,7 +1543,8 @@
       "learn": "Seite lernen",
       "import": "Import im Formular",
       "polish": "Text überarbeiten",
-      "translate": "Übersetzen"
+      "translate": "Übersetzen",
+      "picture": "Bild zum Rezept"
     }
   },
   "ReportList": {

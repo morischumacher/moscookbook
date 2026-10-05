@@ -55,6 +55,12 @@ export const recipeInputSchema = z.object({
     ingredients: z.array(ingredientSchema).min(1, 'Add at least one ingredient').max(200),
     tags: z.array(z.string().max(60)).max(30).default([]).transform(normaliseTags),
     instructions: z.string().trim().min(1, 'Instructions are required').max(50_000),
+    /**
+     * Tips & notes, markdown like the method. Optional, and left as they are
+     * when not given: the inbox and older clients do not know about them and
+     * must not empty them by saving.
+     */
+    tips: z.string().trim().max(10_000).optional(),
     // Optional: an existing recipe without these simply does not show them.
     servings: z.number().int().min(1).max(100).nullable().optional(),
     prepMinutes: z.number().int().min(0).max(10_000).nullable().optional(),

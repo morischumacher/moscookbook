@@ -97,6 +97,7 @@ export default function RecipeHistory({ recipeId, entries }: { recipeId: number;
                                     </ul>
                                 )}
                                 <p className="mt-3 whitespace-pre-line text-muted">{entry.snapshot.instructions}</p>
+                                {entry.snapshot.tips && <p className="mt-3 whitespace-pre-line text-muted">{entry.snapshot.tips}</p>}
                                 <button
                                     type="button"
                                     onClick={() => void restore(entry)}

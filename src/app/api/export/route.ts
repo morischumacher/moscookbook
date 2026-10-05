@@ -118,6 +118,7 @@ export async function GET() {
                                 slug: true,
                                 description: true,
                                 instructions: true,
+                                tips: true,
                                 category: true,
                                 nationality: true,
                                 servings: true,

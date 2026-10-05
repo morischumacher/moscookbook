@@ -37,6 +37,7 @@ const webUrl = z
 
 /**
  * 10: whether a recipe is only the admins'.
+ * 12: a recipe's tips & notes, and its translation's.
  * 11: whether an entry and a collection are on the open web (they came back
  * private, and every link handed out stopped working).
  * 9: the language a recipe is written in, and its translation.
@@ -50,7 +51,7 @@ const webUrl = z
  * every new field to the safe value — and an archive from a newer version is
  * refused with the numbers in the message rather than half-read.
  */
-export const ARCHIVE_VERSION = 11;
+export const ARCHIVE_VERSION = 12;
 
 /** A recipe in its other language, as the form's rows. Version 9. */
 const archiveTranslationSchema = z.object({
@@ -58,6 +59,8 @@ const archiveTranslationSchema = z.object({
     title: z.string().min(1),
     description: z.string().default(''),
     instructions: z.string().default(''),
+    /** Version 12. */
+    tips: z.string().default(''),
     ingredients: z.array(z.object({ amount: z.string().default(''), item: z.string().default('') })).default([]),
     source: z.string().default(''),
 });
@@ -78,6 +81,8 @@ const archiveRecipeSchema = z.object({
     slug: z.string().min(1),
     description: z.string().nullable().default(null),
     instructions: z.string().default(''),
+    /** Version 12. */
+    tips: z.string().default(''),
     category: z.string().nullable().default(null),
     nationality: z.string().nullable().default(null),
     servings: z.number().int().nullable().default(null),
@@ -317,6 +322,7 @@ export interface ExportableRecipe {
     slug: string;
     description: string | null;
     instructions: string;
+    tips: string;
     category: string | null;
     nationality: string | null;
     servings: number | null;
@@ -344,6 +350,7 @@ export interface ExportableRecipe {
         title: string;
         description: string;
         instructions: string;
+        tips: string;
         ingredients: unknown;
         source: string;
     }[];
@@ -352,7 +359,7 @@ export interface ExportableRecipe {
 /** What an export selects for `translations`. */
 export const translationArchiveSelect = {
     orderBy: { locale: 'asc' as const },
-    select: { locale: true, title: true, description: true, instructions: true, ingredients: true, source: true },
+    select: { locale: true, title: true, description: true, instructions: true, tips: true, ingredients: true, source: true },
 };
 
 export interface ExportablePost {
@@ -429,6 +436,7 @@ export function toArchiveRecipe(recipe: ExportableRecipe): ArchiveRecipe {
         slug: recipe.slug,
         description: recipe.description,
         instructions: recipe.instructions,
+        tips: recipe.tips,
         category: recipe.category,
         nationality: recipe.nationality,
         servings: recipe.servings,

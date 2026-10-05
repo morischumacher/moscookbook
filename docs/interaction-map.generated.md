@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-46 screens · 93 endpoints · 92 link edges · 96 call edges
+46 screens · 94 endpoints · 92 link edges · 97 call edges
 
 ## Screens
 
@@ -15,10 +15,10 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/collections/[id]` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/admin/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections/new` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/admin/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections` | admin | requires admin | `POST /api/examples` | `/[locale]/admin/collections/[id]`<br>`/[locale]/admin/collections/new`<br>`/[locale]/collections/[id]` |
-| `/[locale]/admin/create` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`* /api/upload`<br>`PATCH /api/capture/[id]`<br>`POST /api/ai/polish`<br>`POST /api/ai/translate`<br>`POST /api/import/ai`<br>`POST /api/import/url` | `/[locale]/admin`<br>`/[locale]/admin/inbox` |
+| `/[locale]/admin/create` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`* /api/upload`<br>`PATCH /api/capture/[id]`<br>`POST /api/ai/picture`<br>`POST /api/ai/polish`<br>`POST /api/ai/translate`<br>`POST /api/import/ai`<br>`POST /api/import/url` | `/[locale]/admin`<br>`/[locale]/admin/inbox` |
 | `/[locale]/admin/devices` | admin | requires admin | `DELETE /api/capture-tokens/[id]`<br>`GET /api/capture-tokens`<br>`POST /api/capture-tokens` | — |
 | `/[locale]/admin/drafts` | admin | requires admin | `DELETE /api/recipes/[id]`<br>`POST /api/recipes/[id]/draft` | `/[locale]/admin/edit/[id]`<br>`/[locale]/recipe/[id]` |
-| `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`* /api/upload`<br>`PATCH /api/capture/[id]`<br>`POST /api/ai/polish`<br>`POST /api/ai/translate`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/recipes/[id]/revisions/[id]` | `/[locale]/admin`<br>`/[locale]/admin/inbox` |
+| `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`* /api/upload`<br>`PATCH /api/capture/[id]`<br>`POST /api/ai/picture`<br>`POST /api/ai/polish`<br>`POST /api/ai/translate`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/recipes/[id]/revisions/[id]` | `/[locale]/admin`<br>`/[locale]/admin/inbox` |
 | `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`DELETE /api/work-items/[id]`<br>`GET /api/capture`<br>`GET /api/capture/[id]/tokens`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge`<br>`POST /api/capture/share`<br>`POST /api/work-items` | `/[locale]/admin/create`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
 | `/[locale]/admin/invites` | admin | requires admin | — | `/[locale]/admin/users` |
@@ -77,6 +77,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | GET | `/api/ai-keys` | admin | zod | — | `admin/AiKeys` |
 | POST | `/api/ai-keys` | admin | zod | — | `admin/AiKeys` |
 | PATCH | `/api/ai-keys` | admin | zod | — | `admin/AiKeys` |
+| POST | `/api/ai/picture` | admin | zod | yes | `recipe-form/GalleryField` |
 | POST | `/api/ai/polish` | admin | zod | yes | `recipe-form/PolishPanel` |
 | POST | `/api/ai/translate` | admin | zod | yes | `recipe-form/TranslationPanel` |
 | POST | `/api/auth/forgot` | none (open by design) | zod | yes | `src/app/[locale]/forgot/page.tsx` |
@@ -402,6 +403,9 @@ flowchart LR
   cadmin_AiKeys --> ePOST_api_ai_keys
   ePATCH_api_ai_keys(["PATCH /api/ai-keys"])
   cadmin_AiKeys --> ePATCH_api_ai_keys
+  ePOST_api_ai_picture(["POST /api/ai/picture"])
+  crecipe_form_GalleryField["recipe-form/GalleryField"]
+  crecipe_form_GalleryField --> ePOST_api_ai_picture
   ePOST_api_ai_polish(["POST /api/ai/polish"])
   crecipe_form_PolishPanel["recipe-form/PolishPanel"]
   crecipe_form_PolishPanel --> ePOST_api_ai_polish
@@ -579,7 +583,6 @@ flowchart LR
   ePOST_api_upload(["POST /api/upload"])
   cadmin_ForeignImport["admin/ForeignImport"]
   cadmin_ForeignImport --> ePOST_api_upload
-  crecipe_form_GalleryField["recipe-form/GalleryField"]
   crecipe_form_GalleryField --> ePOST_api_upload
   ePATCH_api_users__id__role(["PATCH /api/users/[id]/role"])
   cadmin_UserList["admin/UserList"]

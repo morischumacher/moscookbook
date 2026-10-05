@@ -79,6 +79,24 @@ export default async function recipeTranslationTests() {
     check('an edited amount changes it',
         sourceKey(curry) !== sourceKey({ ...curry, ingredients: [{ amount: '3 tbsp', item: 'vegetable oil' }] }));
 
+    suite('recipeTranslation: tips');
+
+    const withTips: TranslatableRecipe = { ...curry, tips: 'Use fresh basil.' };
+    check('the prompt asks for tips in the same shape', translatePrompt('en', 'de').includes('"tips": "..."'));
+    const tipsRead = readTranslation({ ...answer, tips: 'Frisches Basilikum nehmen.' }, withTips, 'de', 'k');
+    equal('translated tips are taken', tipsRead?.tips, 'Frisches Basilikum nehmen.');
+    check('tips that went missing are refused', readTranslation(answer, withTips, 'de', 'k') === null);
+    equal('tips the original does not have are dropped', readTranslation({ ...answer, tips: 'Erfunden.' }, curry, 'de', 'k')?.tips, '');
+    equal('no tips leave the fingerprint as it was', sourceKey({ ...curry, tips: '  ' }), sourceKey(curry));
+    check('edited tips change it', sourceKey(withTips) !== sourceKey(curry));
+
+    let sent = '';
+    await translateRecipe(withTips, 'en', [key], async (_key, _system, text) => {
+        sent = text;
+        return JSON.stringify({ ...answer, tips: 'Frisches Basilikum nehmen.' });
+    }, extractJson);
+    equal('the tips are sent to be translated', (JSON.parse(sent) as { tips?: string }).tips, 'Use fresh basil.');
+
     suite('recipeTranslation: the call');
 
     const good = await translateRecipe(curry, 'en', [key], async () => '```json\n' + JSON.stringify(answer) + '\n```', extractJson);
@@ -124,6 +142,15 @@ export default async function recipeTranslationTests() {
     equal('and with a line missing, the original lines are shown', staleGerman.ingredients.map((row) => row.name), ['oil', 'lime']);
     equal('while its title is still used', staleGerman.title, 'Grünes Curry');
 
+    const tipsStored = {
+        ...stored,
+        tips: 'Use fresh basil.',
+        translations: [{ ...stored.translations[0], tips: 'Frisches Basilikum nehmen.' }],
+    };
+    equal('a German reader gets the German tips', inLanguage(tipsStored, 'de').tips, 'Frisches Basilikum nehmen.');
+    equal('an older translation without them shows the original tips',
+        inLanguage({ ...tipsStored, translations: [stored.translations[0]] }, 'de').tips, 'Use fresh basil.');
+
     suite('recipeTranslation: saving');
 
     const base = {
@@ -138,4 +165,5 @@ export default async function recipeTranslationTests() {
     const translation = withTranslation.success ? withTranslation.data.translation : null;
     check('a translation into another language is written', translationRow(translation, 'en') !== null);
     check('a "translation" into its own language is not', translationRow(translation, 'de') === null);
+    equal('a translation without tips stores none', translationRow(translation, 'en')?.tips, '');
 }

@@ -86,7 +86,7 @@ export async function PUT(
                 where: { id: recipeId },
                 select: {
                     title: true, slug: true, description: true, category: true, nationality: true,
-                    instructions: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true,
+                    instructions: true, tips: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true,
                     ingredients: { orderBy: { position: 'asc' }, select: { raw: true, name: true, section: true } },
                 },
             }),
@@ -121,6 +121,8 @@ export async function PUT(
         }
         const next = snapshotOf({
             title, slug, description, category, nationality, instructions,
+            // Not sent is not changed (see recipeSchema).
+            tips: parsed.data.tips ?? before?.tips ?? '',
             servings: servings ?? null, prepMinutes: prepMinutes ?? null, cookMinutes: cookMinutes ?? null,
             tags: parsed.data.tags,
             ingredients: structured.map((row) => ({ raw: row.raw, name: row.name, section: row.section ?? null })),
@@ -144,6 +146,7 @@ export async function PUT(
                         category,
                         nationality,
                         instructions,
+                        tips: parsed.data.tips,
                         servings,
                         prepMinutes,
                         cookMinutes,

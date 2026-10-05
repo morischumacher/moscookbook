@@ -29,6 +29,8 @@ export interface RecipeFields {
     category: string | null;
     nationality: string | null;
     instructions: string;
+    /** Tips & notes. Left as they are when not given. */
+    tips?: string;
     servings: number | null | undefined;
     prepMinutes: number | null | undefined;
     cookMinutes: number | null | undefined;
@@ -69,6 +71,7 @@ export function recipeColumns(fields: RecipeFields) {
             : { nationality: fields.nationality }),
         ...(fields.spiciness !== undefined ? { spiciness: fields.spiciness } : {}),
         instructions: fields.instructions,
+        ...(fields.tips !== undefined ? { tips: fields.tips } : {}),
         servings: fields.servings ?? null,
         prepMinutes: fields.prepMinutes ?? null,
         cookMinutes: fields.cookMinutes ?? null,
@@ -104,6 +107,7 @@ export function translationRow(translation: RecipeTranslationInput | null | unde
         title: translation.title,
         description: translation.description,
         instructions: translation.instructions,
+        tips: translation.tips,
         ingredients: translation.ingredients,
         source: translation.source,
     };

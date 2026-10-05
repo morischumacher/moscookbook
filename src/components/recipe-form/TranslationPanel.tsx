@@ -185,6 +185,21 @@ export default function TranslationPanel({
                         />
                     </div>
 
+                    {/* Only when there is something to translate, or something translated. */}
+                    {((original.tips ?? '').trim() !== '' || (current.tips ?? '') !== '') && (
+                        <div>
+                            <label htmlFor="translation-tips" className={labelClass}>{t('tips')}</label>
+                            <textarea
+                                id="translation-tips"
+                                lang={target}
+                                rows={4}
+                                value={current.tips ?? ''}
+                                onChange={(event) => edit({ tips: event.target.value })}
+                                className={fieldClass + ' text-sm'}
+                            />
+                        </div>
+                    )}
+
                     <div className="flex flex-wrap gap-4 text-sm">
                         {!stale && (
                             <button

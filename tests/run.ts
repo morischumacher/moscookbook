@@ -88,6 +88,7 @@ import publicPages from './publicPages.test';
 import shareStage from './shareStage.test';
 import aiProviders from './aiProviders.test';
 import aiPolish from './aiPolish.test';
+import aiPicture from './aiPicture.test';
 import draftQuality from './draftQuality.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
@@ -147,6 +148,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['siteProfile', siteProfile],
     ['aiProviders', aiProviders],
     ['aiPolish', aiPolish],
+    ['aiPicture', aiPicture],
     ['clientMessages', clientMessages],
     ['recipeRepo', recipeRepo],
     ['storedDraftTests', storedDraftTests],

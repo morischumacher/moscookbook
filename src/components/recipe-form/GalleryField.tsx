@@ -7,6 +7,8 @@ import Image from 'next/image';
 import { looksLikeImage } from '@/lib/imageCompression';
 import { uploadPicture } from '@/lib/uploadClient';
 import { labelClass } from './formStyles';
+import { buttonSecondary } from '@/lib/ui';
+import { BusyLabel } from '@/components/ui/Busy';
 
 /** As many as a recipe may have: see `imageUrls` in lib/recipeSchema. */
 const MAX_PICTURES = 12;
@@ -16,12 +18,18 @@ export default function GalleryField({
     title,
     onChange,
     onError,
+    ai,
 }: {
     imageUrls: string[];
     /** The recipe's name: the stored files are named after it. */
     title?: string;
     onChange: (next: string[]) => void;
     onError: (message: string) => void;
+    /**
+     * What a picture painted by the AI is of (work #32). Absent when the AI
+     * is off: then there is no button at all.
+     */
+    ai?: { title: string; ingredients: string[] };
 }) {
     const t = useTranslations('RecipeForm');
     const [uploading, setUploading] = useState(0);
@@ -100,6 +108,32 @@ export default function GalleryField({
     };
 
     const remove = (index: number) => onChange(imageUrls.filter((_, i) => i !== index));
+
+    const [painting, setPainting] = useState(false);
+    const paint = async () => {
+        if (!ai || !ai.title.trim()) return;
+        if (current.current.length >= MAX_PICTURES) return onError(t('tooManyPictures', { max: MAX_PICTURES }));
+        setPainting(true);
+        onError('');
+        try {
+            const res = await fetch('/api/ai/picture', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: ai.title.trim().slice(0, 200), ingredients: ai.ingredients.slice(0, 100) }),
+            });
+            const data: { url?: string; message?: string } = await res.json().catch(() => ({}));
+            if (!res.ok || !data.url) return onError(sayable(data.message, t('uploadFailed')));
+            // Read again: an upload may have finished while this was painting.
+            if (current.current.length >= MAX_PICTURES) return onError(t('tooManyPictures', { max: MAX_PICTURES }));
+            const next = [...current.current, data.url];
+            current.current = next;
+            onChange(next);
+        } catch {
+            onError(t('uploadFailed'));
+        } finally {
+            setPainting(false);
+        }
+    };
 
     return (
         <div>
@@ -223,6 +257,22 @@ export default function GalleryField({
                 </label>
                 {uploading > 0 && <span className="text-muted">{t('imageUploading')}</span>}
             </div>
+
+            {ai && (
+                <div className="mt-3">
+                    <button
+                        type="button"
+                        onClick={() => void paint()}
+                        disabled={painting || !ai.title.trim() || imageUrls.length >= MAX_PICTURES}
+                        className={buttonSecondary}
+                    >
+                        <BusyLabel busy={painting} busyText={t('aiPictureBusy')}>
+                            {t('aiPicture')}
+                        </BusyLabel>
+                    </button>
+                    {!ai.title.trim() && <p className="mt-1 text-xs text-muted">{t('aiPictureNeedsTitle')}</p>}
+                </div>
+            )}
         </div>
     );
 }

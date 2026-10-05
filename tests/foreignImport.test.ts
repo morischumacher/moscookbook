@@ -32,7 +32,8 @@ export default function foreignImportTests() {
     equal('the servings', kuchen?.servings, 12);
     equal('the times', [kuchen?.prepMinutes, kuchen?.cookMinutes], [30, 40]);
     equal('categories become tags', kuchen?.tags, ['kuchen', 'herbst']);
-    check('the notes follow the method', /Mit Sahne/.test(kuchen?.instructions ?? ''));
+    equal('the notes become tips', kuchen?.tips, 'Mit Sahne.');
+    check('and are not a step of the method', !/Mit Sahne/.test(kuchen?.instructions ?? ''));
     check('the photo comes along', (kuchen?.image?.data.length ?? 0) > 0);
 
     suite('import: a Mealie export');
@@ -48,6 +49,7 @@ export default function foreignImportTests() {
                 ],
                 recipeInstructions: [{ text: 'Zwiebel anschwitzen.' }, { text: 'Linsen 20 Minuten kochen.' }],
                 tags: [{ name: 'Vegan' }],
+                notes: [{ title: 'Tipp', text: 'Mit Zitrone abschmecken.' }, { title: '', text: 'Hält sich drei Tage.' }],
             })
         ),
         'recipes/linsen/images/original.webp': new Uint8Array([1, 2, 3]),
@@ -56,6 +58,7 @@ export default function foreignImportTests() {
     equal('structured ingredients', soup?.ingredients, [{ amount: '250 g', item: 'Linsen, rot' }, { amount: '1', item: 'Zwiebel' }]);
     equal('numbered steps', soup?.instructions, '1. Zwiebel anschwitzen.\n2. Linsen 20 Minuten kochen.');
     equal('the diet tag in its own key', soup?.tags, ['vegan']);
+    equal('its notes as tips', soup?.tips, '**Tipp:** Mit Zitrone abschmecken.\n\nHält sich drei Tage.');
     equal('the picture beside it', soup?.image?.type, 'image/webp');
 
     suite('import: a Tandoor export');

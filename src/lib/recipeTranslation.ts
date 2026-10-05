@@ -44,6 +44,8 @@ export const translationSchema = z.object({
     title: z.string().trim().min(1).max(200),
     description: z.string().trim().max(4000).default(''),
     instructions: z.string().trim().max(50_000).default(''),
+    /** The recipe's tips & notes, translated. */
+    tips: z.string().trim().max(10_000).default(''),
     ingredients: z.array(editorRow).max(260).default([]),
     /** `sourceKey` of the original at the time it was translated. */
     source: z.string().max(64).default(''),
@@ -55,6 +57,8 @@ export interface TranslatableRecipe {
     title: string;
     description: string;
     instructions: string;
+    /** Tips & notes; absent and empty mean the same. */
+    tips?: string;
     ingredients: Ingredient[];
 }
 
@@ -78,6 +82,9 @@ export function sourceKey(recipe: TranslatableRecipe): string {
         // As stored, not as typed: "Für den Teig:" comes back from the
         // database as "## Für den Teig", and that is not a change.
         toStructuredIngredients(recipe.ingredients).map((row) => [row.section ?? '', row.raw, row.name]),
+        // Only when there are any: every translation made before recipes had
+        // tips would otherwise have turned stale on the day they arrived.
+        ...((recipe.tips ?? '').trim() !== '' ? [(recipe.tips ?? '').trim()] : []),
     ]);
 
     let hash = 0x811c9dc5;
@@ -141,7 +148,7 @@ export function translatePrompt(from: RecipeLanguage, to: RecipeLanguage): strin
     return `You translate a recipe from ${LANGUAGE_NAME[from]} into ${LANGUAGE_NAME[to]} for a personal cookbook.
 
 You receive the recipe as JSON and return the translation as JSON of exactly the same shape:
-{"title": "...", "description": "...", "ingredients": [{"amount": "...", "item": "..."}], "instructions": "..."}
+{"title": "...", "description": "...", "ingredients": [{"amount": "...", "item": "..."}], "instructions": "...", "tips": "..."}
 
 Rules:
 - "ingredients" must have EXACTLY as many entries as the input, in the same order.
@@ -155,6 +162,8 @@ ${UNIT_RULES[to]}
 - "instructions": keep the markdown exactly as it is — the same numbered or
   bulleted list, one step for one step, the same line breaks and headings.
   Times stay as they are.
+- "tips" are the cook's own tips and notes for the recipe: translate them like
+  the instructions, keeping their markdown.
 - Translate faithfully. Do not add, drop, explain or improve anything; do not
   add tips, notes or a heading of your own.
 - An empty field stays empty.
@@ -180,6 +189,7 @@ export function readTranslation(
             title: z.string(),
             description: z.string().default(''),
             instructions: z.string().default(''),
+            tips: z.string().default(''),
             ingredients: z.array(z.object({ amount: z.string().default(''), item: z.string() })).default([]),
         })
         .safeParse(answer);
@@ -192,6 +202,8 @@ export function readTranslation(
     if (translated.length !== rows.length) return null;
     if (parsed.data.title.trim() === '') return null;
     if (original.instructions.trim() !== '' && parsed.data.instructions.trim() === '') return null;
+    const hasTips = (original.tips ?? '').trim() !== '';
+    if (hasTips && parsed.data.tips.trim() === '') return null;
 
     for (let index = 0; index < rows.length; index += 1) {
         const wasHeading = sectionHeading(rows[index]) !== null;
@@ -208,6 +220,8 @@ export function readTranslation(
         title: parsed.data.title,
         description: original.description.trim() === '' ? '' : parsed.data.description,
         instructions: parsed.data.instructions,
+        // Nothing to translate is nothing in the answer, whatever the model made up.
+        tips: hasTips ? parsed.data.tips : '',
         ingredients: translated,
         source,
     });
@@ -238,6 +252,7 @@ export async function translateRecipe(
         description: original.description.trim(),
         ingredients: filled(original.ingredients),
         instructions: original.instructions.trim(),
+        tips: (original.tips ?? '').trim(),
     });
     const source = sourceKey(original);
     const failures: string[] = [];
@@ -265,6 +280,7 @@ export const translateRequestSchema = z.object({
     title: z.string().trim().min(1).max(200),
     description: z.string().trim().max(4000).default(''),
     instructions: z.string().trim().max(50_000).default(''),
+    tips: z.string().trim().max(10_000).default(''),
     ingredients: z.array(editorRow).max(260).default([]),
 });
 
@@ -279,6 +295,7 @@ export interface StoredTranslation {
     title: string;
     description: string;
     instructions: string;
+    tips?: string;
     ingredients: unknown;
     /** `sourceKey` of the original when it was translated; '' when unknown. */
     source?: string;
@@ -296,6 +313,7 @@ export function inLanguage<
         title: string;
         description: string | null;
         instructions: string;
+        tips?: string;
         ingredients: StructuredIngredient[];
         language?: string | null;
         translations?: StoredTranslation[];
@@ -318,6 +336,7 @@ export function inLanguage<
                 title: recipe.title,
                 description: recipe.description ?? '',
                 instructions: recipe.instructions,
+                tips: recipe.tips,
                 ingredients: withHeadingRows(
                     recipe.ingredients.map((row) => ({ amount: row.raw, item: row.name, section: row.section }))
                 ),
@@ -330,6 +349,8 @@ export function inLanguage<
         title: translation.title,
         description: translation.description || null,
         instructions: translation.instructions || recipe.instructions,
+        // Like the method: an older translation without them shows the original's.
+        ...(recipe.tips !== undefined ? { tips: translation.tips || recipe.tips } : {}),
         // A translation that somehow lost its lines is worse than the original's
         // — and so is a stale one whose lines no longer match in number: a
         // line added to the original since was missing from the list, the

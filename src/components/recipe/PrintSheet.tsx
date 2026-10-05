@@ -39,6 +39,8 @@ export default function PrintSheet({
     ingredientsHeading,
     steps,
     stepsHeading,
+    tips,
+    tipsHeading,
     scaledNote,
 }: {
     title: string;
@@ -49,6 +51,9 @@ export default function PrintSheet({
     ingredientsHeading: string;
     steps: ReactNode[];
     stepsHeading: string;
+    /** Tips & notes, rendered; left out when there are none. */
+    tips?: ReactNode;
+    tipsHeading?: string;
     scaledNote: string | null;
 }) {
     const facts = [...(servings ? [{ label: servingsLabel, value: String(servings) }] : []), ...info.facts];
@@ -112,6 +117,16 @@ export default function PrintSheet({
                             </li>
                         ))}
                     </ol>
+                    {/* Under the method, in its column and a size smaller:
+                        a note beside the steps, not a second page. */}
+                    {tips && (
+                        <div className="mt-4 break-inside-avoid">
+                            <h2>{tipsHeading}</h2>
+                            {/* Its list items are list items: the method's rule above
+                                makes every li in this column a flex row. */}
+                            <div className="markdown-step text-xs leading-snug [&_li]:!list-item">{tips}</div>
+                        </div>
+                    )}
                 </section>
             </div>
         </div>

@@ -20,6 +20,8 @@ export interface ForeignRecipe {
     description: string;
     ingredients: Ingredient[];
     instructions: string;
+    /** The app's own notes, when it keeps them apart from the method. */
+    tips?: string;
     servings: number | null;
     prepMinutes: number | null;
     cookMinutes: number | null;
@@ -70,14 +72,15 @@ export function fromPaprika(json: Record<string, unknown>): ForeignRecipe | null
     const title = typeof json.name === 'string' ? json.name.trim() : '';
     if (!title) return null;
 
-    const notes = typeof json.notes === 'string' && json.notes.trim() ? `\n\n${json.notes.trim()}` : '';
     const categories = Array.isArray(json.categories) ? json.categories.filter((entry): entry is string => typeof entry === 'string') : [];
 
     return {
         title,
         description: typeof json.description === 'string' ? json.description.trim() : '',
         ingredients: ingredientsFromLines(linesOf(json.ingredients)),
-        instructions: toMarkdownSteps([...linesOf(json.directions), ...(notes ? ['', notes.trim()] : [])]),
+        instructions: toMarkdownSteps(linesOf(json.directions)),
+        // Notes are tips, not another step of the method.
+        tips: typeof json.notes === 'string' ? json.notes.trim() : '',
         servings: parseServings(json.servings),
         prepMinutes: minutesFrom(json.prep_time),
         cookMinutes: minutesFrom(json.cook_time),
@@ -130,6 +133,7 @@ export function fromMealie(json: Record<string, unknown>, image: ForeignRecipe['
         description: typeof json.description === 'string' ? json.description.trim() : '',
         ingredients,
         instructions: steps.map((step, index) => `${index + 1}. ${step.trim()}`).join('\n'),
+        tips: mealieNotes(json.notes),
         servings: parseServings(json.recipeServings ?? json.recipeYield),
         prepMinutes: minutesFrom(json.prepTime),
         cookMinutes: minutesFrom(json.performTime ?? json.cookTime),
@@ -139,6 +143,20 @@ export function fromMealie(json: Record<string, unknown>, image: ForeignRecipe['
         image,
         from: 'Mealie',
     };
+}
+
+/** Mealie's notes, `[{title, text}]`, as markdown: a bold title, then its text. */
+function mealieNotes(value: unknown): string {
+    if (!Array.isArray(value)) return '';
+    return value
+        .map((note: { title?: unknown; text?: unknown } | null) => {
+            const title = typeof note?.title === 'string' ? note.title.trim() : '';
+            const text = typeof note?.text === 'string' ? note.text.trim() : '';
+            if (!text) return title;
+            return title ? `**${title}:** ${text}` : text;
+        })
+        .filter(Boolean)
+        .join('\n\n');
 }
 
 /* ------------------------------------------------------------------ Tandoor */
