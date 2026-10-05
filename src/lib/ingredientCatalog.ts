@@ -35,7 +35,6 @@ export interface CatalogItem {
 export function coreName(name: string): string {
     return shapeOf(name)
         .base.replace(/\([^)]*\)/g, ' ')
-        .split(/[,;]/)[0]
         .replace(/\s+/g, ' ')
         .trim();
 }

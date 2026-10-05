@@ -1,4 +1,5 @@
 import { unstable_cache, revalidateTag } from 'next/cache';
+import { CATEGORY_PRESETS } from './recipeLabels';
 import prisma from '@/lib/prisma';
 import { QUICK_MINUTES } from '@/lib/tags';
 
@@ -86,8 +87,14 @@ async function readFacets(): Promise<CollectionFacets> {
             .filter((entry) => entry.value !== '')
             .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
 
+    // Categories in the order of a meal (lib/recipeLabels), then any of their own, busiest first.
+    const place = (value: string) => {
+        const at = (CATEGORY_PRESETS as readonly string[]).indexOf(value);
+        return at === -1 ? CATEGORY_PRESETS.length : at;
+    };
+
     return {
-        categories: named(categoryGroups),
+        categories: named(categoryGroups).sort((a, b) => place(a.value) - place(b.value)),
         cuisines: named(cuisineGroups),
         tags: tagRows.map((row) => ({ value: row.value, count: Number(row.count) })),
         quick: Number(quickRows[0]?.count ?? 0),

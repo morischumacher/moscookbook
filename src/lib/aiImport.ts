@@ -91,7 +91,8 @@ Rules:
 - "item" is the ingredient alone, without the quantity.
 ${CONVENTION_RULE}
 - "instructions" is markdown: one numbered list item per step, separated by blank lines.
-- "category" is a single word like Breakfast, Lunch, Dinner, Dessert — or "" if unclear.
+- "category" is one of Breakfast, Lunch, Dinner, Starter, Main, Side, Soup, Salad,
+  Dessert, Baking, Bread, Snack, Sauce, Seasoning, Drink — or "" if unclear.
 - "nationality" is the cuisine, e.g. Italian, German — or "" if unclear.
 - "servings", "prepMinutes" and "cookMinutes" are numbers taken from the source,
   or null when the source does not state them. Never estimate them.

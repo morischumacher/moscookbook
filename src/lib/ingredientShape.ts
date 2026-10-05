@@ -78,6 +78,19 @@ function kindOf(word: string): { kind: 'form' | 'note'; word: string } | null {
 const clean = (text: string) => text.replace(/\s+/g, ' ').trim();
 const joined = (parts: string[]) => [...new Set(parts.map(clean).filter(Boolean))].join(', ');
 
+/**
+ * Whether the words before a comma only describe what comes after it: German
+ * ones all lower case while a noun (capitalised) follows, English ones
+ * participles ("smoked", "salted") or known forms.
+ */
+function onlyAdjectives(head: string, rest: string): boolean {
+    const words = head.split(' ').filter(Boolean);
+    if (words.length === 0 || words.length > 3) return false;
+    const german = /[A-ZÄÖÜ]/.test(rest) && words.every((word) => /^[a-zäöüß-]+$/.test(word));
+    const english = words.every((word) => /^[a-z-]+ed$/.test(word) || FORM_WORDS.has(word));
+    return german || english;
+}
+
 /** A name read into its parts. Headings ("## Für den Teig") and empty names come back as they are, in `base`. */
 export function shapeOf(name: string): IngredientShape {
     let text = clean(name);
@@ -109,9 +122,13 @@ export function shapeOf(name: string): IngredientShape {
     text = clean(text);
 
     // After the first comma: how it is prepared — or "optional".
-    const comma = text.search(/[,;]/);
-    let head = comma === -1 ? text : text.slice(0, comma);
-    const tail = comma === -1 ? [] : text.slice(comma + 1).split(/[,;]/).map(clean).filter(Boolean);
+    const parts = text.split(/[,;]/).map(clean).filter(Boolean);
+    // "fermentierte, gesalzene Garnelen …", "smoked, salted bacon": a comma
+    // between adjectives before the ingredient is not the one after it (work #49).
+    let first = 1;
+    while (first < parts.length && onlyAdjectives(parts.slice(0, first).join(' '), parts.slice(first).join(' '))) first += 1;
+    let head = parts.slice(0, first).join(', ');
+    const tail = parts.slice(first);
     const tailForms: string[] = [];
     for (const part of tail) {
         if (OPTIONAL_PHRASE.test(part)) optional = true;
@@ -169,4 +186,20 @@ export const CONVENTION_RULE = `- "item" follows the cookbook's convention: "Ing
 /** A recipe's rows with every ingredient written the convention's way; headings as they are. */
 export function conventionalRows<T extends { amount: string; item: string }>(rows: T[]): T[] {
     return rows.map((row) => (sectionHeading(row) !== null ? row : { ...row, item: conventional(row.item) }));
+}
+
+/**
+ * Whether the rules cannot vouch for a name being written the convention's
+ * way, so it is worth one look by the AI: a long ingredient, one with a
+ * comma or a "mit"/"with" in it, or one starting with a lower-case word in
+ * German ("fermentierte, gesalzene Garnelen mit der salzigen Lauge").
+ */
+export function needsReading(name: string): boolean {
+    const shape = shapeOf(name);
+    const base = shape.base;
+    if (!base || base.startsWith('#')) return false;
+    const count = base.split(' ').filter(Boolean).length;
+    if (base.includes(',') || count > 3) return true;
+    if (/\b(mit|with|von|aus|from|in)\b/i.test(base)) return true;
+    return /^[a-zäöüß]/.test(base) && /[A-ZÄÖÜ]/.test(base);
 }

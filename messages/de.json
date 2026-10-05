@@ -61,7 +61,8 @@
     "Salad": "Salat",
     "Baking": "Backen",
     "Bread": "Brot",
-    "Sauce": "Soße & Dip"
+    "Sauce": "Soße & Dip",
+    "Seasoning": "Würze & Gewürzmischung"
   },
   "Cuisines": {
     "German": "Deutsch",
@@ -139,7 +140,8 @@
     "translatedFrom": "Übersetzt aus dem {language, select, en {Englischen} other {Deutschen}}",
     "translationStale": "Das Original wurde seitdem geändert.",
     "timerDoneSaid": "Timer für {label} ist abgelaufen.",
-    "cookView": "Ansicht"
+    "cookView": "Ansicht",
+    "edit": "Bearbeiten"
   },
   "Rating": {
     "summary": "{count, plural, =0 {Noch nicht bewertet} one {# Person bewertete dies mit {average}} other {# Personen bewerteten dies mit {average}}}",
