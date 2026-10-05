@@ -19,8 +19,19 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
     const locale = new URL(req.url).searchParams.get('locale') === 'en' ? 'en' : 'de';
     await linkAllUnlinked(100).catch(() => undefined);
     const items = await prisma.ingredientItem.findMany({
-        select: { de: true, en: true, aliases: true, _count: { select: { ingredients: true } } },
+        select: { id: true, de: true, en: true, aliases: true, _count: { select: { ingredients: true } } },
     });
+    // The unit each is usually written with ("Minze" → "Bund"), offered when a row has none yet.
+    // Rows with no unit count too: onions usually counted are not offered the one "1 kg".
+    const used = await prisma.ingredient.groupBy({ by: ['itemId', 'unit'], where: { itemId: { not: null } }, _count: { _all: true } });
+    const usual = new Map<number, { unit: string; count: number }>();
+    for (const row of used) {
+        const unit = (row.unit ?? '').trim();
+        if (row.itemId === null) continue;
+        const best = usual.get(row.itemId);
+        if (!best || row._count._all > best.count) usual.set(row.itemId, { unit, count: row._count._all });
+    }
+    const units: Record<string, string> = {};
     items.sort((a, b) => b._count.ingredients - a._count.ingredients);
     const seen = new Set<string>();
     const names: string[] = [];
@@ -33,5 +44,9 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
     // Each in the page's language first, else the other; then every other name it goes by.
     for (const item of items) add(locale === 'de' ? item.de || item.en : item.en || item.de);
     for (const item of items) for (const alias of item.aliases) add(alias);
-    return NextResponse.json({ names }, { headers: { 'Cache-Control': 'private, max-age=60' } });
+    for (const item of items) {
+        const unit = usual.get(item.id)?.unit;
+        if (unit) for (const name of [item.de, item.en, ...item.aliases]) if (name.trim()) units[name.trim().toLowerCase()] = unit;
+    }
+    return NextResponse.json({ names, units }, { headers: { 'Cache-Control': 'private, max-age=60' } });
 });

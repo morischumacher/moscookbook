@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
-import { conventionalRows } from '@/lib/ingredientShape';
+import { conventionalRows, shapeOf } from '@/lib/ingredientShape';
+import { choiceFor, joinFromEditor, splitForEditor } from '@/lib/unitChoice';
 import { sectionHeading } from '@/lib/ingredientParts';
 import { fieldBase, fieldClass, labelClass } from './formStyles';
 import AmountInput from './AmountInput';
@@ -40,11 +41,17 @@ export default function IngredientEditor({
     // The names already in the cookbook, for the suggestions (ItemInput).
     const locale = useLocale();
     const [names, setNames] = useState<string[]>([]);
+    // name → the unit it is usually written with in this cookbook.
+    const [units, setUnits] = useState<Record<string, string>>({});
     useEffect(() => {
         let gone = false;
         fetch(`/api/ingredients/names?locale=${locale}`)
             .then((res) => (res.ok ? res.json() : { names: [] }))
-            .then((data: { names: string[] }) => !gone && setNames(data.names))
+            .then((data: { names: string[]; units?: Record<string, string> }) => {
+                if (gone) return;
+                setNames(data.names);
+                setUnits(data.units ?? {});
+            })
             .catch(() => undefined);
         return () => {
             gone = true;
@@ -52,10 +59,26 @@ export default function IngredientEditor({
     }, [locale]);
 
     const update = (index: number, field: keyof Ingredient, value: string) => {
-        const next = ingredients.map((row, position) =>
-            position === index ? { ...row, [field]: value } : row
-        );
+        const next = ingredients.map((row, position) => {
+            if (position !== index) return row;
+            const changed = { ...row, [field]: value };
+            return field === 'item' ? withUsualUnit(changed) : changed;
+        });
         onChange(next);
+    };
+
+    /*
+     * A row with no unit yet takes the one this ingredient is usually written
+     * with ("Minze" → "Bund"); one chosen by hand is never replaced, and
+     * whatever is saved becomes the usual one for next time.
+     */
+    const withUsualUnit = (row: Ingredient): Ingredient => {
+        const fields = splitForEditor(row.amount);
+        if (fields.choice !== '') return row;
+        const usual = units[shapeOf(row.item).base.trim().toLowerCase()];
+        if (!usual) return row;
+        const choice = choiceFor(usual);
+        return { ...row, amount: joinFromEditor({ quantity: fields.quantity, choice, custom: choice === 'custom' ? usual : '' }, locale === 'en' ? 'en' : 'de') };
     };
 
     const addRow = (afterIndex?: number) => {

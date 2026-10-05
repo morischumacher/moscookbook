@@ -9,7 +9,10 @@ import { unitOf, unitSpelling, isCountUnit } from './units';
  * read from an import is matched to the list where it can be, and can be
  * changed afterwards (the owner's wish).
  */
-export const UNIT_CHOICES = ['', 'g', 'kg', 'ml', 'l', 'tbsp', 'tsp', 'cup', 'pinch', 'clove', 'oz', 'lb'] as const;
+// European only (the owner's wish): grams and millilitres, spoons, and the
+// counted units a German kitchen uses. A cup or an ounce from an import is
+// kept as written, under "Eigene …".
+export const UNIT_CHOICES = ['', 'g', 'kg', 'ml', 'l', 'tbsp', 'tsp', 'pinch', 'clove', 'bunch'] as const;
 export type UnitChoice = (typeof UNIT_CHOICES)[number] | 'custom';
 
 export interface AmountFields {
@@ -36,6 +39,7 @@ export function choiceFor(unit: string): UnitChoice {
         const lower = text.toLowerCase();
         if (/^(prise|prisen|pinch|pinches)$/.test(lower)) return 'pinch';
         if (/^(zehe|zehen|clove|cloves)$/.test(lower)) return 'clove';
+        if (/^(bund|bunde|bünde|bunch|bunches)$/.test(lower)) return 'bunch';
     }
     return 'custom';
 }
@@ -53,7 +57,7 @@ export function splitForEditor(amount: string): AmountFields {
 /** The unit's word in the form, as it is stored: "EL", "Tassen", "cups". */
 export function choiceLabel(choice: UnitChoice, locale: 'de' | 'en', plural = false): string {
     if (choice === '' || choice === 'custom') return '';
-    const word = choice === 'pinch' ? 'Prise' : choice === 'clove' ? 'Zehe' : choice;
+    const word = choice === 'pinch' ? 'Prise' : choice === 'clove' ? 'Zehe' : choice === 'bunch' ? 'Bund' : choice;
     return unitSpelling(word, plural ? 2 : 1, locale) ?? choice;
 }
 
