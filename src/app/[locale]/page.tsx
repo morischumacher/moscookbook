@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { canonicalCategory, canonicalCuisine } from '@/lib/recipeLabels';
 import { after } from 'next/server';
 import { ensureConvention } from '@/lib/ingredientConventionDb';
 import { failed } from '@/lib/reportServerError';
@@ -170,8 +171,9 @@ export default async function HomePage({
     const text = (value: string | string[] | undefined) =>
         typeof value === 'string' ? value.replace(/\u0000/g, '').slice(0, 200) : '';
     const sort = text(sortParam) || 'recent';
-    const category = text(categoryParam);
-    const nationality = text(nationalityParam);
+    // An old link ("?category=Appetizer") finds what is now filed under its key.
+    const category = text(categoryParam) ? canonicalCategory(text(categoryParam)!) : text(categoryParam);
+    const nationality = text(nationalityParam) ? canonicalCuisine(text(nationalityParam)!) : text(nationalityParam);
     const search = text(searchParam);
     const have = text(haveParam);
     const tag = text(tagParam).trim().toLowerCase();

@@ -376,9 +376,13 @@ export default async function RecipeArticle({
                     Only visible to admins: non-admin users should never see
                     the external source link on recipe pages.
                 */}
-                {isAdmin && recipe.captures?.[0]?.sourceUrl && (
-                    <div className="print:hidden mt-4">
-                        <RecipeSource url={recipe.captures[0].sourceUrl} />
+                {/* The admin edits from the recipe itself, not only from the list. */}
+                {isAdmin && mode === 'private' && (
+                    <div className="print:hidden mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+                        <Link href={`/admin/edit/${recipe.id}`} className="inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4 hover:text-ink">
+                            {t('edit')}
+                        </Link>
+                        {recipe.captures?.[0]?.sourceUrl && <RecipeSource url={recipe.captures[0].sourceUrl} />}
                     </div>
                 )}
 

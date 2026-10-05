@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import { canonicalCategory, canonicalCuisine } from '@/lib/recipeLabels';
 import { useTranslations } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
@@ -63,8 +64,9 @@ export default function FilterChips({
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') ?? '');
     const [haveTerm, setHaveTerm] = useState(searchParams.get('have') ?? '');
 
-    const activeCategory = searchParams.get('category') ?? '';
-    const activeCuisine = searchParams.get('nationality') ?? '';
+    // By their keys, as the list filters: an old "?category=Appetizer" lights up "Vorspeise".
+    const activeCategory = canonicalCategory(searchParams.get('category') ?? '');
+    const activeCuisine = canonicalCuisine(searchParams.get('nationality') ?? '');
     // A search is sorted by how well each recipe matches until another order
     // is picked — which "Zuletzt hinzugefügt" could not be, since it already
     // looked picked.

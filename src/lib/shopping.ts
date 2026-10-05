@@ -135,7 +135,8 @@ export function linesFor(ingredients: IngredientForList[], factor: number, sourc
     return ingredients.flatMap((ingredient) => {
         // "Ingwer, frisch gerieben (optional)": the ingredient is what is bought.
         const shape = shapeOf(ingredient.name);
-        const name = shoppingName(shape.base);
+        // Its base as it is: a comma left in it is one between adjectives ("fermentierte, gesalzene Garnelen").
+        const name = shape.base.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
         if (!name || NEVER_BOUGHT.test(name)) return [];
         const aisle: Aisle = shape.optional ? 'optional' : aisleOf(name);
 

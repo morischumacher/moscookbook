@@ -1,4 +1,5 @@
 import prisma from './prisma';
+import { canonicalCategory, canonicalCuisine, canonicalList } from './recipeLabels';
 import { isPrismaError } from './prismaErrors';
 import { slugify } from './recipe';
 import { searchFields } from './searchText';
@@ -63,12 +64,19 @@ export function recipeColumns(fields: RecipeFields) {
         description: fields.description,
         // The lists win when given; the single columns are their first entry
         // (and a trigger keeps the two in step for every other writer).
+        // By their one key: "Vorspeise" and "Appetizer" are one filter chip (lib/recipeLabels).
         ...(fields.categories !== undefined
-            ? { categories: fields.categories, category: fields.categories[0] ?? null }
-            : { category: fields.category }),
+            ? (() => {
+                  const categories = canonicalList(fields.categories, canonicalCategory);
+                  return { categories, category: categories[0] ?? null };
+              })()
+            : { category: fields.category ? canonicalCategory(fields.category) : fields.category }),
         ...(fields.cuisines !== undefined
-            ? { cuisines: fields.cuisines, nationality: fields.cuisines[0] ?? null }
-            : { nationality: fields.nationality }),
+            ? (() => {
+                  const cuisines = canonicalList(fields.cuisines, canonicalCuisine);
+                  return { cuisines, nationality: cuisines[0] ?? null };
+              })()
+            : { nationality: fields.nationality ? canonicalCuisine(fields.nationality) : fields.nationality }),
         ...(fields.spiciness !== undefined ? { spiciness: fields.spiciness } : {}),
         instructions: fields.instructions,
         ...(fields.tips !== undefined ? { tips: fields.tips } : {}),
