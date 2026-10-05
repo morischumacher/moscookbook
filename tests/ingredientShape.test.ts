@@ -3,6 +3,7 @@ import { suite, equal, check } from './harness';
 import { conventional, conventionalRows, needsReading, shapeOf } from '../src/lib/ingredientShape';
 import { linesFor } from '../src/lib/shopping';
 import { coreName } from '../src/lib/ingredientCatalog';
+import { germanName } from '../src/lib/ingredientNames';
 
 export default function ingredientShapeTests() {
     suite('ingredient convention: read');
@@ -45,4 +46,10 @@ export default function ingredientShapeTests() {
     equal('an optional ingredient goes under "Optional"', chili.aisle, 'optional');
     const [needed] = linesFor([{ name: 'Chiliflocken', quantity: 1, quantityMax: null, unit: 'TL' }], 1, 'B');
     equal('and is not added to the one the dish needs', chili.key === needed.key, false);
+
+    suite('ingredient names: German ones as a German list writes them');
+    equal('a capital first letter', germanName('lauchzwiebel'), 'Lauchzwiebel');
+    equal('an adjective first too', germanName('rote Zwiebeln'), 'Rote Zwiebeln');
+    equal('an umlaut', germanName('öl'), 'Öl');
+    equal('nothing stays nothing', germanName('  '), '');
 }

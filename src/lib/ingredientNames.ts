@@ -193,3 +193,13 @@ export function itemName(item: { de: string; en: string }, locale: 'de' | 'en', 
     const name = (locale === 'de' ? item.de || item.en : item.en || item.de).trim();
     return measure === 'count:' && amount !== null && amount <= 1 ? displayName(name, locale, amount, measure) : name;
 }
+
+/**
+ * A German ingredient name as a German ingredient list writes it: the first
+ * letter capital ("Rote Zwiebeln", "Frühlingszwiebeln"). Names from English
+ * recipes, from aliases ("lauchzwiebel") or from an AI came in lower case.
+ */
+export function germanName(name: string): string {
+    const trimmed = name.trim();
+    return trimmed ? trimmed.charAt(0).toLocaleUpperCase('de') + trimmed.slice(1) : trimmed;
+}

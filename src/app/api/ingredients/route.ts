@@ -7,7 +7,7 @@ import { findDoubles, pairKey } from '@/lib/ingredientDoubles';
 import { aiCapability } from '@/lib/aiConfig';
 import { canUseAi, completeWithKey, extractJson } from '@/lib/aiImport';
 import { usageRecorder } from '@/lib/tokenUsageDb';
-import { commonIngredient } from '@/lib/ingredientNames';
+import { commonIngredient, germanName } from '@/lib/ingredientNames';
 import { isMeasure, unitsOf } from '@/lib/shoppingParts';
 
 /**
@@ -85,7 +85,7 @@ export const PATCH = route({ access: 'admin', body: patchBody, label: 'Correctin
     const updated = await prisma.ingredientItem.updateMany({
         where: { id: body.id },
         data: {
-            de: body.de,
+            de: germanName(body.de),
             en: body.en,
             aliases: body.aliases,
             keys: itemKeys(body),
@@ -157,7 +157,7 @@ export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the
                 doubles: answer.data.doubles.map((group) => [...new Set(group.filter((id) => known.has(id)))]).filter((group) => group.length > 1),
                 translations: answer.data.translations
                     .filter((row) => known.has(row.id))
-                    .map((row) => ({ id: row.id, de: (row.de ?? '').trim().slice(0, 120), en: (row.en ?? '').trim().slice(0, 120) })),
+                    .map((row) => ({ id: row.id, de: germanName((row.de ?? '').slice(0, 120)), en: (row.en ?? '').trim().slice(0, 120) })),
             });
         }
 
@@ -172,7 +172,7 @@ export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the
         for (const row of answer.data.translations) {
             const item = missing.find((candidate) => candidate.id === row.id);
             if (!item) continue;
-            const next = { ...item, de: item.de || (row.de ?? '').trim().slice(0, 120), en: item.en || (row.en ?? '').trim().slice(0, 120) };
+            const next = { ...item, de: item.de || germanName((row.de ?? '').slice(0, 120)), en: item.en || (row.en ?? '').trim().slice(0, 120) };
             if (next.de === item.de && next.en === item.en) continue;
             await prisma.ingredientItem.update({ where: { id: item.id }, data: { de: next.de, en: next.en, keys: itemKeys(next) } });
             filled += 1;
@@ -194,7 +194,7 @@ async function merge(into: number, from: number[]) {
         const kept = await tx.ingredientItem.findUnique({ where: { id: into }, select: { de: true, en: true, aliases: true } });
         const gone = await tx.ingredientItem.findMany({ where: { id: { in: from } }, select: { de: true, en: true, aliases: true } });
         if (!kept || gone.length === 0) refuse(404, 'That ingredient is gone.');
-        const de = kept.de || gone.find((item) => item.de)?.de || '';
+        const de = germanName(kept.de || gone.find((item) => item.de)?.de || '');
         const en = kept.en || gone.find((item) => item.en)?.en || '';
         const aliases = [...new Set([...kept.aliases, ...gone.flatMap((item) => [item.de, item.en, ...item.aliases])].filter((alias) => alias && alias !== de && alias !== en))].slice(0, 60);
         await tx.ingredient.updateMany({ where: { itemId: { in: from } }, data: { itemId: into } });
