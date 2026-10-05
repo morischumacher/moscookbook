@@ -1,6 +1,7 @@
 import { asLanguage } from '@/lib/recipeTranslation';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { linkAllUnlinked } from '@/lib/ingredientCatalog';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { menuStyle } from '@/lib/menu';
 import { requireAdmin } from '@/lib/auth';
@@ -194,6 +195,9 @@ export async function POST(req: NextRequest) {
                 reportFailure(`Archive import: recipe ${recipe.slug} failed`, error);
             }
         }
+
+        // Every recipe's ingredients into the catalogue (lib/ingredientCatalog), as a save by hand does.
+        await linkAllUnlinked(5000).catch(() => undefined);
 
         // Entries and photographs come after every recipe exists, because both
         // point at one by slug. A slug the archive does not carry — a note
