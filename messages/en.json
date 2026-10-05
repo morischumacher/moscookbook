@@ -931,7 +931,9 @@
     "nextIdea": "decide — have the AI build it, or mark it done if it is settled.",
     "nextProblem": "taken back from the AI — fix it yourself and mark it done, or hand it over again.",
     "doneCard": "Done {date}",
-    "thanksTask": "It is on the task list to be fixed."
+    "thanksTask": "It is on the task list to be fixed.",
+    "toAi": "Straight to the AI",
+    "toAiExplain": "Goes onto the AI's task list at once. Without the tick it lands with you first, like everybody else's tickets."
   },
   "Account": {
     "devicesTitle": "Devices",
@@ -1379,11 +1381,11 @@
     "notePlaceholder": "What should the AI do or look out for? (optional)",
     "publicHint": "Goes onto the public task list, anonymised — without names, e-mail addresses or links with keys.",
     "failed": "That did not work.",
-    "explain": "Tasks for an AI, or whoever you have working on the code. On it by itself: every error the server sees or a signed-in person runs into, and every \"Something is broken\" ticket. You add ideas and other tickets (\"Have AI implement it\") and inbox items (\"Have AI improve reading this\"). When a task is done, the AI reports it — it then sits at the top under “Done by the AI – please confirm”, and your tap closes it along with its error or ticket. If an error happens again afterwards, the task reopens by itself. The list is public and anonymised at this address; the brief for the AI is in the repository at docs/work-list-prompt.md.",
+    "explain": "Tasks for an AI, or whoever you have working on the code. On it by itself: every error the server sees or a signed-in person runs into. You add tickets (\"Have AI implement it\", your own also straight away with “Straight to the AI”) and inbox items (\"Have AI improve reading this\"). When a task is done, the AI reports it — it then sits at the top under “Done by the AI – please confirm”, and your tap closes it along with its error or ticket. If an error happens again afterwards, the task reopens by itself. The list is public and anonymised at this address; the brief for the AI is in the repository at docs/work-list-prompt.md.",
     "copy": "Copy",
     "copied": "Copied",
     "loading": "Loading…",
-    "empty": "No tasks. Errors and “Something is broken” tickets are added by themselves; everything else is added with the button on each.",
+    "empty": "No tasks. Errors are added by themselves; tickets and inbox items you add with the button on each – or write a ticket with “Straight to the AI”.",
     "closed": "done",
     "close": "Done",
     "reopen": "Reopen",
@@ -1438,7 +1440,7 @@
     "tokenTapToCopy": "Tap to copy",
     "actFailed": "That did not work — the task changed meanwhile. The list is up to date now.",
     "tokenRemakeQuestion": "Make a new key? The old one stops working at once.",
-    "explainShort": "What the AI works on. Errors and “Something is broken” tickets land here by themselves; you hand over the rest from Tickets, Errors and the inbox.",
+    "explainShort": "What the AI works on. Errors land here by themselves; you hand over tickets and inbox items – your own tickets also straight away with “Straight to the AI”.",
     "awaitingHint": "The AI says these are done. Check, then confirm or send back.",
     "withAiHeading": "With the AI",
     "withAiHint": "Nothing to do for you until the AI reports back.",

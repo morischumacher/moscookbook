@@ -5,7 +5,7 @@ import { getCurrentUser, requireAdmin } from '@/lib/auth';
 import { rateLimitShared } from '@/lib/rateLimitShared';
 import { safeTicketPath } from '@/lib/ticketPath';
 import { failed } from '@/lib/reportServerError';
-import { syncWorkItem, workStates } from '@/lib/workItemsDb';
+import { publishWorkItem, syncWorkItem, workStates } from '@/lib/workItemsDb';
 import { deleteBlobs, isReportPhoto } from '@/lib/blobCleanup';
 import { bulkIdsSchema, MAX_BULK, splitReports, withTheAi } from '@/lib/reportSections';
 
@@ -36,7 +36,7 @@ const schema = z.object({
     kind: z.enum(KINDS),
     body: z.string().trim().min(1, 'Say something').max(MAX_BODY),
     /** Where they were. See lib/ticketPath for what is refused and why. */
-    path: z.string().trim().optional().transform(safeTicketPath),
+    path: z.string().trim().nullish().transform(safeTicketPath),
     /**
      * Screenshots, already uploaded through /api/report-photos. Only
      * addresses in our own picture store are taken; anything else is
@@ -47,6 +47,8 @@ const schema = z.object({
         .max(4)
         .optional()
         .transform((urls) => (urls ?? []).filter(isReportPhoto)),
+    /** The admin's choice to put it straight on the AI's task list; ignored for anybody else. */
+    toAi: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -72,27 +74,28 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const { photos, ...fields } = parsed.data;
+        const { photos, toAi, ...fields } = parsed.data;
         const entry: { id: number; createdAt: Date } = await prisma.ticket.create({
             data: { ...fields, userId: user.id, photos: { create: photos.map((url) => ({ url })) } },
             select: { id: true, createdAt: true },
         });
-        // "Etwas ist kaputt" is a task at once, like an error — whoever wrote
-        // it, the admin included; an idea or anything else waits under
-        // Tickets until the admin hands it over.
+        /*
+         * Every ticket lands with the admin first, whatever its kind; only
+         * the admin's own, ticked "Direkt an die KI", goes onto the AI's task
+         * list at once (work #45, the owner's call).
+         */
         await syncWorkItem('ticket', entry.id);
 
         /*
-         * And checked, rather than trusted. syncWorkItem swallows its
-         * failures (it must never break what called it), so a problem ticket
-         * that did not make it onto the list used to say nothing at all —
-         * the admin found out by not finding it. Now it is recorded as an
-         * error, which is a task by itself, and the answer says so.
+         * And checked, rather than trusted: a hand-over that did not make it
+         * onto the list is recorded as an error rather than saying nothing,
+         * and the answer says where the ticket is.
          */
         let onTaskList = false;
-        if (fields.kind === 'problem') {
+        if (toAi && user.admin) {
+            await publishWorkItem('ticket', entry.id, null, photos.length > 0).catch(() => null);
             onTaskList = withTheAi((await workStates('ticket', [entry.id])).get(entry.id));
-            if (!onTaskList) failed('A "something is broken" ticket did not reach the task list:', new Error(`ticket ${entry.id}`));
+            if (!onTaskList) failed('A ticket sent straight to the AI did not reach the task list:', new Error(`ticket ${entry.id}`));
         }
 
         return NextResponse.json({ ...entry, onTaskList }, { status: 201 });

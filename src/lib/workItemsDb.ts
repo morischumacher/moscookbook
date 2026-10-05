@@ -258,10 +258,10 @@ export async function syncWorkItem(
             else if (row.resolvedAt) closeAs = 'resolved';
             else {
                 problem = true;
-                // Something broken, reported by anybody signed in — the admin
-                // included: a task by itself. An idea is the admin's to
-                // decide on first.
-                obvious = row.kind === 'problem';
+                // Never a task by itself: every ticket is the admin's to read
+                // first, and goes to the AI when they hand it over — or when
+                // the admin wrote it with "Direkt an die KI" (work #45).
+                obvious = false;
             }
         } else {
             const row = await prisma.capture.findUnique({ where: { id: refId }, select: { status: true, error: true, createdAt: true } });

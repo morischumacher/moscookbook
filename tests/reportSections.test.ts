@@ -43,7 +43,10 @@ export default function reportSectionsTests() {
     check('a ticket PATCH on nothing answers 404 again', tickets.includes('updated.count === 0') && tickets.includes('status: 404'));
     check('deleting tickets deletes their screenshots\' files', tickets.includes('deleteBlobs(photos'));
     check('deleting tickets is one request for many', tickets.includes('bulkIdsSchema.safeParse'));
-    check('a "something is broken" ticket is checked onto the task list, not trusted', tickets.includes("fields.kind === 'problem'") && tickets.includes('onTaskList'));
+    // The form sends `path: null` when there is no page (opened from the
+    // footer, or the page taken off): that was refused with a 400.
+    check('a ticket without a page is taken', tickets.includes('path: z.string().trim().nullish()'));
+    check('only the admin sends a ticket straight to the AI, and it is checked', tickets.includes('toAi && user.admin') && tickets.includes('onTaskList'));
     check('the ticket list leaves out what is with the AI', tickets.includes('splitReports('));
     const errors = source('app/api/errors/route.ts');
     check('errors can be deleted many at once, files with them', errors.includes('export async function DELETE') && errors.includes('deleteBlobs(photos'));
@@ -53,7 +56,7 @@ export default function reportSectionsTests() {
     check('withdrawn tasks are not listed', work.includes('where: { dismissedAt: null }'));
     const db = source('lib/workItemsDb.ts');
     check('only finished tasks are deleted', db.includes('closedAt: { not: null } } });'));
-    check('a problem ticket from anybody is a task, the admin included', db.includes("obvious = row.kind === 'problem';"));
+    check('no ticket is a task by itself', db.includes('obvious = false;') && !db.includes("obvious = row.kind === 'problem';"));
     check('an item older than its row does not decide for it', db.includes('STALE_SLACK_MS'));
 
     suite('reports: no hard-coded words in the panels');

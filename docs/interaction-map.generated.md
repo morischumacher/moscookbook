@@ -144,7 +144,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | DELETE | `/api/site-profiles/[host]` | admin | — | — | `admin/SiteProfiles` |
 | GET | `/api/site-profiles` | admin | zod | yes | `admin/SiteProfiles` |
 | POST | `/api/site-profiles` | admin | zod | yes | `admin/SiteProfiles` |
-| POST | `/api/tickets` | user (manual) | zod | yes | `admin/TicketsPanel`<br>`src/app/[locale]/tickets/page.tsx` |
+| POST | `/api/tickets` | user (manual) | zod | yes | `admin/TicketsPanel`<br>`tickets/TicketForm` |
 | GET | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
 | PATCH | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
 | DELETE | `/api/tickets` | admin | zod | yes | `admin/TicketsPanel` |
@@ -572,8 +572,8 @@ flowchart LR
   ePOST_api_tickets(["POST /api/tickets"])
   cadmin_TicketsPanel["admin/TicketsPanel"]
   cadmin_TicketsPanel --> ePOST_api_tickets
-  csrc_app__locale__tickets_page_tsx["src/app/[locale]/tickets/page.tsx"]
-  csrc_app__locale__tickets_page_tsx --> ePOST_api_tickets
+  ctickets_TicketForm["tickets/TicketForm"]
+  ctickets_TicketForm --> ePOST_api_tickets
   eGET_api_tickets(["GET /api/tickets"])
   cadmin_TicketsPanel --> eGET_api_tickets
   ePATCH_api_tickets(["PATCH /api/tickets"])
