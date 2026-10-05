@@ -291,7 +291,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
 
     /** Everything one recipe put on the list, taken off again. */
     const removeRecipe = async (source: string) => {
-        if (!(await ask({ title: t('removeRecipeQuestion', { recipe: source }), confirmLabel: t('removeRecipe'), destructive: true }))) return;
+        if (!(await ask({ title: t('removeRecipeQuestion', { recipe: titleOf(source) }), confirmLabel: t('removeRecipe'), destructive: true }))) return;
         const res = await fetch(`/api/shopping/remove?${listQuery}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -365,7 +365,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         if (typeof who === 'number' && item.buyerId !== who) return false;
         const q = search.toLowerCase().trim();
         if (!q) return true;
-        return ((item.item && itemName(item.item, locale, item.amount, item.measure)) || displayName(item.name, locale, item.amount, item.measure)).toLowerCase().includes(q) || item.name.toLowerCase().includes(q) || aisleName(item.aisle as Aisle).toLowerCase().includes(q) || item.sources.some((s) => s.toLowerCase().includes(q));
+        return ((item.item && itemName(item.item, locale, item.amount, item.measure)) || displayName(item.name, locale, item.amount, item.measure)).toLowerCase().includes(q) || item.name.toLowerCase().includes(q) || aisleName(item.aisle as Aisle).toLowerCase().includes(q) || item.sources.some((s) => titleOf(s).toLowerCase().includes(q));
     };
 
     const open = items.filter((item) => !item.checked);
@@ -386,14 +386,18 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     }, [items, locale, mode]);
     const visible = items.filter(shown);
 
+    /** A recipe's title in the page's language, whichever it was added in. */
+    const titles = useMemo(() => Object.assign({}, ...items.map((item) => item.titles ?? {})) as Record<string, { de: string; en: string }>, [items]);
+    const titleOf = (source: string) => titles[source]?.[locale] || source;
+
     /** "Agedashi Tofu (1 Bund), Chili-Öl (½ Bund)" — each recipe's share, when there are several and they are known. */
     const forWhom = (item: ShoppingItemRow) => {
         const parts = partsOf(item).filter((part) => part.s !== null);
-        if (item.sources.length < 2 || parts.some((part) => part.a === null)) return item.sources.join(', ');
+        if (item.sources.length < 2 || parts.some((part) => part.a === null)) return item.sources.map(titleOf).join(', ');
         return item.sources.map((source) => {
             const share = parts.filter((part) => part.s === source).reduce((sum, part) => sum + (part.a ?? 0), 0);
             const label = share > 0 ? amountLabel(item.measure, share, locale) : '';
-            return label ? `${source} (${label})` : source;
+            return label ? `${titleOf(source)} (${label})` : titleOf(source);
         }).join(', ');
     };
 
@@ -753,7 +757,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                         <ul className="divide-y divide-line">
                             {recipes.map((recipe) => (
                                 <li key={recipe} className="flex min-h-12 items-center justify-between gap-3">
-                                    <span className="min-w-0">{recipe}</span>
+                                    <span className="min-w-0">{titleOf(recipe)}</span>
                                     <button type="button" onClick={() => void removeRecipe(recipe)} className={buttonSecondary}>
                                         {t('removeRecipe')}
                                     </button>
