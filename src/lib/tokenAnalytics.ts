@@ -1,4 +1,5 @@
 import { median } from './tokenUsage';
+import { LARGE_MODEL, SMALL_MODEL } from './aiProviders';
 
 /**
  * The token dashboard, computed.
@@ -65,14 +66,7 @@ export interface Analytics {
 
 const NO_RECIPE_REASONS = new Set(['noRecipe', 'recipeInBio', 'recipeInComments', 'recipeByDm']);
 
-/** Models that cost several times what a small one does per token. */
-const LARGE_MODEL = /opus|sonnet|gpt-5(?!.*(mini|nano))|gpt-4o(?!-mini)|gpt-4\.1(?!-(mini|nano))|gemini-[\d.]+-pro/i;
-
-const SMALL_ALTERNATIVE: Record<string, string> = {
-    anthropic: 'claude-haiku-4-5',
-    openai: 'gpt-5-mini',
-    google: 'gemini-2.5-flash',
-};
+const SMALL_ALTERNATIVE: Record<string, string> = SMALL_MODEL;
 
 const tokensOf = (row: { input: number; output: number }) => row.input + row.output;
 
@@ -105,7 +99,7 @@ function perItem(rows: UsageRow[]): Map<number, { tokens: number; calls: number;
 export function analyse(
     rows: UsageRow[],
     captures: CaptureFacts[],
-    context: { now: Date; days: number; mode: string; learnedHosts: string[] }
+    context: { now: Date; days: number; mode: string; learnedHosts: string[]; smallFirst?: boolean }
 ): Analytics {
     const from = new Date(context.now.getTime() - context.days * 86_400_000);
     const before = new Date(from.getTime() - context.days * 86_400_000);
@@ -180,7 +174,7 @@ function recommend(
     byPurpose: Analytics['byPurpose'],
     bySource: Analytics['bySource'],
     byModel: Analytics['byModel'],
-    context: { mode: string; learnedHosts: string[] }
+    context: { mode: string; learnedHosts: string[]; smallFirst?: boolean }
 ): Recommendation[] {
     const found: Recommendation[] = [];
     const all = recent.reduce((total, row) => total + tokensOf(row), 0);
@@ -251,9 +245,9 @@ function recommend(
         });
     }
 
-    // A large model doing most of the work.
+    // A large model doing most of the work — unless the small one is already tried first (work #46).
     const large = byModel.find((row) => LARGE_MODEL.test(row.model));
-    if (large && large.tokens > all * 0.3) {
+    if (large && large.tokens > all * 0.3 && !context.smallFirst) {
         found.push({
             id: 'smallerModel',
             count: large.calls,

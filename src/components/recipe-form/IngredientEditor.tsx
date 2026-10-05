@@ -9,6 +9,7 @@ import { sectionHeading } from '@/lib/ingredientParts';
 import { fieldBase, fieldClass, labelClass } from './formStyles';
 import AmountInput from './AmountInput';
 import ItemInput from './ItemInput';
+import { moved, useDragReorder } from '@/components/ui/useDragReorder';
 
 export const EMPTY_ROW: Ingredient = { amount: '', item: '' };
 
@@ -28,6 +29,14 @@ export default function IngredientEditor({
     const [bulk, setBulk] = useState('');
     const [showBulk, setShowBulk] = useState(false);
     const itemRefs = useRef<(HTMLInputElement | null)[]>([]);
+    // Rows dragged by their handle, or moved with the arrow keys on it (work #48).
+    const list = useRef<HTMLDivElement>(null);
+    const { handle, rowStyle } = useDragReorder(list, (from, to) => onChange(moved(ingredients, from, to)));
+    const grip = (index: number) => (
+        <button type="button" {...handle(index)} aria-label={t('rowDrag', { number: index + 1 })} title={t('rowDragHint')} className="flex h-10 w-8 shrink-0 select-none items-center justify-center text-lg text-faint hover:text-ink">
+            ⠿
+        </button>
+    );
     // The names already in the cookbook, for the suggestions (ItemInput).
     const locale = useLocale();
     const [names, setNames] = useState<string[]>([]);
@@ -61,14 +70,6 @@ export default function IngredientEditor({
     const removeRow = (index: number) => {
         const next = ingredients.filter((_, position) => position !== index);
         onChange(next.length > 0 ? next : [{ ...EMPTY_ROW }]);
-    };
-
-    const move = (index: number, direction: -1 | 1) => {
-        const target = index + direction;
-        if (target < 0 || target >= ingredients.length) return;
-        const next = [...ingredients];
-        [next[index], next[target]] = [next[target], next[index]];
-        onChange(next);
     };
 
     const applyBulk = () => {
@@ -120,12 +121,13 @@ export default function IngredientEditor({
                 </div>
             )}
 
-            <div className="flex flex-col gap-2">
+            <div ref={list} className="flex flex-col gap-2">
                 {ingredients.map((row, index) =>
                     isHeadingRow(row) ? (
                         // A heading: one wide field, drawn as a heading, with
                         // the "## " that marks it kept out of sight.
-                        <div key={index} className="mt-3 flex items-center gap-2">
+                        <div key={index} data-drag-row style={rowStyle(index)} className={`mt-3 flex items-center gap-2 bg-page`}>
+                            {grip(index)}
                             <input
                                 ref={(element) => {
                                     itemRefs.current[index] = element;
@@ -149,7 +151,7 @@ export default function IngredientEditor({
                     ) : (
                     // On a phone two lines: the ingredient across the width,
                     // then its amount, unit and the row's buttons.
-                    <div key={index} className="flex flex-wrap items-center gap-2 border-b border-line pb-2 sm:border-0 sm:pb-0">
+                    <div key={index} data-drag-row style={rowStyle(index)} className={`flex flex-wrap items-center gap-2 border-b border-line bg-page pb-2 sm:border-0 sm:pb-0`}>
                         <AmountInput amount={row.amount} number={index + 1} onChange={(next) => update(index, 'amount', next)} />
                         <ItemInput
                             inputRef={(element) => {
@@ -164,22 +166,7 @@ export default function IngredientEditor({
                             className={fieldBase}
                         />
                         <div className="ml-auto flex shrink-0 items-center gap-0.5">
-                            <button
-                                type="button"
-                                onClick={() => move(index, -1)}
-                                aria-label={t('rowUp', { number: index + 1 })}
-                                className="flex h-10 w-7 items-center justify-center text-faint hover:text-ink sm:w-8"
-                            >
-                                ↑
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => move(index, 1)}
-                                aria-label={t('rowDown', { number: index + 1 })}
-                                className="flex h-10 w-7 items-center justify-center text-faint hover:text-ink sm:w-8"
-                            >
-                                ↓
-                            </button>
+                            {grip(index)}
                             <button
                                 type="button"
                                 onClick={() => removeRow(index)}

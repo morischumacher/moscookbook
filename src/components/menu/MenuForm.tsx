@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { moved, useDragReorder } from '@/components/ui/useDragReorder';
 import { sayable } from '@/lib/apiMessage';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
@@ -58,13 +59,9 @@ export default function MenuForm({ initial, recipes }: { initial: MenuDraft; rec
     const set = <K extends keyof MenuDraft>(key: K, value: MenuDraft[K]) => setMenu((current) => ({ ...current, [key]: value }));
     const setCourse = (index: number, next: Course) =>
         setMenu((current) => ({ ...current, courses: current.courses.map((course, i) => (i === index ? next : course)) }));
-    const moveCourse = (index: number, by: number) =>
-        setMenu((current) => {
-            const courses = [...current.courses];
-            const [moved] = courses.splice(index, 1);
-            courses.splice(index + by, 0, moved);
-            return { ...current, courses };
-        });
+    // Courses dragged by their handle, or moved with the arrow keys on it (work #48).
+    const courseList = useRef<HTMLOListElement>(null);
+    const courseDrag = useDragReorder(courseList, (from, to) => setMenu((current) => ({ ...current, courses: moved(current.courses, from, to) })));
 
     const onlyEmptyDishes = menu.courses.every((course) => course.dishes.every((dish) => !dish.title && dish.recipeId === null));
 
@@ -192,9 +189,14 @@ export default function MenuForm({ initial, recipes }: { initial: MenuDraft; rec
 
             <div>
                 <p className={label}>{t('fieldCourses')}</p>
-                <ol className="flex flex-col gap-4">
+                <ol ref={courseList} className="flex flex-col gap-4">
                     {menu.courses.map((course, courseIndex) => (
-                        <li key={courseIndex} className="rounded-2xl border border-line p-3">
+                        <li
+                            key={courseIndex}
+                            data-drag-row
+                            style={courseDrag.rowStyle(courseIndex)}
+                            className="rounded-2xl border border-line bg-page p-3"
+                        >
                             <div className="flex items-center gap-1">
                                 <input
                                     value={course.name}
@@ -203,8 +205,9 @@ export default function MenuForm({ initial, recipes }: { initial: MenuDraft; rec
                                     aria-label={t('courseName')}
                                     className={`${field} font-bold`}
                                 />
-                                <button type="button" onClick={() => moveCourse(courseIndex, -1)} disabled={courseIndex === 0} aria-label={t('moveUp')} className="flex h-10 w-9 shrink-0 items-center justify-center text-muted disabled:opacity-30">↑</button>
-                                <button type="button" onClick={() => moveCourse(courseIndex, 1)} disabled={courseIndex === menu.courses.length - 1} aria-label={t('moveDown')} className="flex h-10 w-9 shrink-0 items-center justify-center text-muted disabled:opacity-30">↓</button>
+                                <button type="button" {...courseDrag.handle(courseIndex)} aria-label={t('dragCourse')} className="flex h-10 w-9 shrink-0 select-none items-center justify-center text-lg text-muted">
+                                    ⠿
+                                </button>
                                 <button
                                     type="button"
                                     onClick={() => set('courses', menu.courses.filter((_, i) => i !== courseIndex))}

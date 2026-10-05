@@ -70,6 +70,7 @@ export default function AiKeys() {
     const [canStore, setCanStore] = useState(true);
     const [style, setStyle] = useState('');
     const [proxy, setProxy] = useState<boolean | null>(null);
+    const [smallFirst, setSmallFirst] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -90,6 +91,7 @@ export default function AiKeys() {
             setMode(data.mode);
             setStyle(typeof data.writingStyle === 'string' ? data.writingStyle : '');
             setProxy(typeof data.readerProxy === 'boolean' ? data.readerProxy : true);
+            setSmallFirst(typeof data.smallFirst === 'boolean' ? data.smallFirst : true);
             setCanStore(data.canStore);
 
             // Open on whichever is actually in use, rather than on the first in
@@ -477,7 +479,8 @@ export default function AiKeys() {
 
             <WritingStyle initial={style} />
 
-            {proxy !== null && <ReaderProxy initial={proxy} />}
+            {smallFirst !== null && <Switch initial={smallFirst} field="smallFirst" title={t('smallFirstTitle')} explain={t('smallFirstExplain')} />}
+            {proxy !== null && <Switch initial={proxy} field="readerProxy" title={t('proxyTitle')} explain={t('proxyExplain')} />}
 
             <p className="mt-8 text-sm text-muted">{t('privacyNote')}</p>
         </>
@@ -539,10 +542,11 @@ function WritingStyle({ initial }: { initial: string }) {
 }
 
 /**
- * Asking a page that refused the cookbook once more through a reading
- * service (lib/readerProxy). On by default; the admin can turn it off.
+ * One of the AI's on/off settings, on by default: asking a page that refused
+ * the cookbook once more through a reading service (lib/readerProxy), and
+ * reading a recipe from text with the small model first (work #46).
  */
-function ReaderProxy({ initial }: { initial: boolean }) {
+function Switch({ initial, field, title, explain }: { initial: boolean; field: 'readerProxy' | 'smallFirst'; title: string; explain: string }) {
     const t = useTranslations('Ai');
     const [on, setOn] = useState(initial);
     const [busy, setBusy] = useState(false);
@@ -554,10 +558,10 @@ function ReaderProxy({ initial }: { initial: boolean }) {
         const res = await fetch('/api/ai-keys', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ readerProxy: !on }),
+            body: JSON.stringify({ [field]: !on }),
         }).catch(() => null);
         setBusy(false);
-        if (res?.ok) setOn(((await res.json()) as { readerProxy: boolean }).readerProxy);
+        if (res?.ok) setOn(((await res.json()) as Record<string, boolean>)[field]);
         else setNote(t('styleFailed'));
     };
 
@@ -578,8 +582,8 @@ function ReaderProxy({ initial }: { initial: boolean }) {
                     {on ? '✓' : ''}
                 </span>
                 <span>
-                    <span className="font-bold">{t('proxyTitle')}</span>
-                    <span className="mt-1 block text-sm text-muted">{t('proxyExplain')}</span>
+                    <span className="font-bold">{title}</span>
+                    <span className="mt-1 block text-sm text-muted">{explain}</span>
                 </span>
             </button>
             <p role="status" className="text-sm text-muted">

@@ -386,8 +386,6 @@
     "tooManyPictures": "At most {max} pictures per recipe – the rest were not uploaded.",
     "slugTaken": "There is already a recipe with this link address. Change the link address or the title.",
     "saveInvalid": "The recipe cannot be saved like this – please check the fields.",
-    "rowUp": "Move ingredient {number} up",
-    "rowDown": "Move ingredient {number} down",
     "rowRemove": "Remove ingredient {number}",
     "draftFoundStale": "There are unsaved changes from an earlier visit — but the recipe has been saved since. Restoring overwrites that.",
     "saveConflict": "The recipe was saved elsewhere in the meantime. Reload the page — you will then be offered your changes to restore.",
@@ -400,7 +398,9 @@
     "unitNone": "–",
     "unitCustom": "Own …",
     "unitCustomPlaceholder": "e.g. can, bunch",
-    "unitCustomLabel": "Own unit for ingredient {number}"
+    "unitCustomLabel": "Own unit for ingredient {number}",
+    "rowDrag": "Move row {number} (drag, or the arrow keys)",
+    "rowDragHint": "Drag to move"
   },
   "QuickImport": {
     "heading": "Fill in quickly",
@@ -1085,7 +1085,9 @@
     "styleSaved": "Saved.",
     "styleFailed": "That did not work.",
     "proxyTitle": "Fetch blocked pages through a reading service",
-    "proxyExplain": "Some recipe sites (e.g. maangchi.com) refuse every server. The cookbook then asks once more through the reading service r.jina.ai, which sees that page's address. Switched off, such a page lands in the inbox as “could not be read”."
+    "proxyExplain": "Some recipe sites (e.g. maangchi.com) refuse every server. The cookbook then asks once more through the reading service r.jina.ai, which sees that page's address. Switched off, such a page lands in the inbox as “could not be read”.",
+    "smallFirstTitle": "Read recipes from text with the small model first",
+    "smallFirstExplain": "A small model (e.g. Claude Haiku) costs a fraction per token and is enough for most recipes. When its answer is incomplete – ingredients with no method, a title and nothing else – the configured model reads the same again. Photos are always read by the configured model. “Usage” shows which model was needed how often."
   },
   "SiteProfiles": {
     "title": "Learned sites",
@@ -1110,7 +1112,24 @@
     "viaJsonLd": "from the structured data at {path}",
     "viaList": "the list under the heading “{heading}”",
     "viaText": "the text under the heading “{heading}”",
-    "viaSelector": "via the CSS selector {selector}"
+    "viaSelector": "via the CSS selector {selector}",
+    "sourcesTitle": "Where your recipes came from",
+    "sourcesIntro": "Every source of your imports, and why something was or was not learned for it.",
+    "sourceCount": "{count, plural, one {# import} other {# imports}} · {rules} without AI · {ai} with AI",
+    "whyLearned": "Learned: further imports from here need no AI.",
+    "whyMarkup": "Read without AI – the page describes its recipe itself (recipe markup). There is nothing to learn; imports from here already cost nothing.",
+    "whyNotYet": "The AI read it, but the site is not learned yet (learning could not reproduce the result). You can try again here.",
+    "why_photo": "Photos, e.g. from a cookbook: a photo has no page layout to remember – each is read by the AI. That is by design for books, not a fault.",
+    "why_instagram": "No fixed page layout. What is remembered instead is the website where an account keeps its recipes.",
+    "why_tiktok": "No fixed page layout. What is remembered instead is the website where an account keeps its recipes.",
+    "why_youtube": "Videos: read from the description and subtitles, with no page layout to learn.",
+    "why_note": "Pasted text: read by rules or by the AI; a text has no layout to learn.",
+    "whyOther": "There is no page layout to learn here.",
+    "channel_photo": "Photos (e.g. a cookbook)",
+    "channel_instagram": "Instagram",
+    "channel_tiktok": "TikTok",
+    "channel_youtube": "YouTube",
+    "channel_note": "Pasted text"
   },
   "Drafts": {
     "title": "Drafts",
@@ -1169,9 +1188,8 @@
     "nothingChosen": "Nothing chosen yet.",
     "searchToAdd": "Type to find and add…",
     "noMatch": "Nothing matches.",
-    "moveUp": "Move {title} up",
-    "moveDown": "Move {title} down",
-    "remove": "Remove {title}"
+    "remove": "Remove {title}",
+    "drag": "Move “{title}” (drag, or the arrow keys)"
   },
   "Examples": {
     "post": "Show me an example post that uses every feature",
@@ -1372,8 +1390,6 @@
     "introPlaceholder": "So glad you could come.",
     "fieldCourses": "Courses",
     "courseName": "Course name",
-    "moveUp": "Move up",
-    "moveDown": "Move down",
     "removeCourse": "Remove course",
     "dishRecipe": "Recipe",
     "ownDish": "— No recipe, just words —",
@@ -1389,7 +1405,8 @@
     "delete": "Delete",
     "confirmDelete": "Delete this menu?",
     "shareFailed": "That did not work. Please try again.",
-    "deleteFailed": "The menu could not be deleted."
+    "deleteFailed": "The menu could not be deleted.",
+    "dragCourse": "Move course (drag, or the arrow keys)"
   },
   "Work": {
     "tab": "Tasks",

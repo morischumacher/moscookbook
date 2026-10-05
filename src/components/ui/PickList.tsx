@@ -1,6 +1,7 @@
 'use client';
 
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
+import { moved, useDragReorder } from './useDragReorder';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
@@ -47,17 +48,20 @@ export default function PickList({
         return found.slice(0, 8);
     }, [options, value, query]);
 
-    // `index` counts the shown rows; `value` may also hold ids with no row
-    // (a draft in a collection), so the move swaps with the next shown one.
-    const move = (index: number, by: number) => {
-        const from = value.indexOf(chosen[index].id);
-        const neighbour = chosen[index + by];
-        if (from < 0 || !neighbour) return;
-        const to = value.indexOf(neighbour.id);
+    // Dragged by the handle, or moved with the arrow keys on it (work #48).
+    // `value` may also hold ids with no row (a draft in a collection): those
+    // keep their places, and the shown ones are reordered among theirs.
+    const rows = useRef<HTMLOListElement>(null);
+    const { handle, rowStyle } = useDragReorder(rows, (from, to) => {
+        const shown = chosen.map((option) => option.id);
+        const order = moved(shown, from, to);
+        const slots = value.flatMap((id, index) => (shown.includes(id) ? [index] : []));
         const next = [...value];
-        [next[from], next[to]] = [next[to], next[from]];
+        slots.forEach((slot, index) => {
+            next[slot] = order[index];
+        });
         onChange(next);
-    };
+    });
 
     return (
         <div>
@@ -68,9 +72,14 @@ export default function PickList({
             {chosen.length === 0 ? (
                 <p className="mb-3 text-sm text-faint">{t('nothingChosen')}</p>
             ) : (
-                <ol className="mb-3 flex flex-col divide-y divide-line rounded-xl border border-line">
+                <ol ref={rows} className="mb-3 flex flex-col divide-y divide-line rounded-xl border border-line">
                     {chosen.map((option, index) => (
-                        <li key={option.id} className="flex items-center gap-3 px-3 py-2">
+                        <li
+                            key={option.id}
+                            data-drag-row
+                            style={rowStyle(index)}
+                            className="flex items-center gap-3 bg-page px-3 py-2"
+                        >
                             <span className="w-5 shrink-0 text-right text-xs text-faint">{index + 1}</span>
                             {option.image !== undefined && (
                                 <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded bg-surface">
@@ -83,21 +92,11 @@ export default function PickList({
                             <span className="flex shrink-0 items-center gap-1 text-sm">
                                 <button
                                     type="button"
-                                    onClick={() => move(index, -1)}
-                                    disabled={index === 0}
-                                    aria-label={t('moveUp', { title: option.title })}
-                                    className="flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-surface disabled:opacity-30"
+                                    {...handle(index)}
+                                    aria-label={t('drag', { title: option.title })}
+                                    className="flex h-9 w-9 select-none items-center justify-center rounded-full text-lg text-muted hover:bg-surface"
                                 >
-                                    ↑
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => move(index, 1)}
-                                    disabled={index === chosen.length - 1}
-                                    aria-label={t('moveDown', { title: option.title })}
-                                    className="flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-surface disabled:opacity-30"
-                                >
-                                    ↓
+                                    ⠿
                                 </button>
                                 <button
                                     type="button"

@@ -71,6 +71,9 @@ export default function WorkPanel() {
     const tList = useTranslations('ReportList');
     const [items, setItems] = useState<Item[] | null>(null);
     const [doneOpen, setDoneOpen] = useState(false);
+    // The open sections fold away too (work #47).
+    const [todoOpen, setTodoOpen] = useState(true);
+    const [awaitingOpen, setAwaitingOpen] = useState(true);
     const [busy, setBusy] = useState(false);
     const selection = useSelection();
     const [ask, dialog] = useConfirm();
@@ -136,18 +139,20 @@ export default function WorkPanel() {
                     {/* First what only you can do: an AI said it is done. */}
                     {awaiting.length > 0 && (
                         <section className="mb-10">
-                            <SectionHeading title={t('awaitingHeading')} count={awaiting.length} hint={t('awaitingHint')} />
+                            <SectionHeading title={t('awaitingHeading')} count={awaiting.length} hint={t('awaitingHint')} open={awaitingOpen} onToggle={setAwaitingOpen} />
+                            {awaitingOpen && (
                             <ul className="flex flex-col gap-3">
                                 {awaiting.map((item) => (
                                     <AwaitingRow key={item.id} item={item} onAnswer={(confirm, why) => act(item.id, { method: 'PATCH', body: JSON.stringify({ confirm, why }) })} />
                                 ))}
                             </ul>
+                            )}
                         </section>
                     )}
 
                     <section>
-                        <SectionHeading title={t('withAiHeading')} count={withAi.length} hint={t('withAiHint')} />
-                        {withAi.length === 0 ? (
+                        <SectionHeading title={t('withAiHeading')} count={withAi.length} hint={t('withAiHint')} open={todoOpen} onToggle={setTodoOpen} />
+                        {!todoOpen ? null : withAi.length === 0 ? (
                             <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-muted">{items.length === 0 ? t('empty') : t('noneWithAi')}</p>
                         ) : (
                             <ul className="flex flex-col gap-3">
