@@ -141,7 +141,8 @@
     "translationStale": "Das Original wurde seitdem geändert.",
     "timerDoneSaid": "Timer für {label} ist abgelaufen.",
     "cookView": "Ansicht",
-    "edit": "Bearbeiten"
+    "edit": "Bearbeiten",
+    "translationStillCurrent": "Ist aktuell"
   },
   "Rating": {
     "summary": "{count, plural, =0 {Noch nicht bewertet} one {# Person bewertete dies mit {average}} other {# Personen bewerteten dies mit {average}}}",
@@ -1232,14 +1233,13 @@
       "produce": "Obst & Gemüse",
       "bakery": "Brot",
       "meat": "Fleisch & Fisch",
-      "dairy": "Milch & Eier",
+      "dairy": "Kühlregal",
       "pantry": "Vorrat",
-      "spices": "Gewürze & Backen",
       "frozen": "Tiefkühl",
-      "drinks": "Getränke",
       "other": "Sonstiges",
       "basics": "Wahrscheinlich zu Hause",
-      "optional": "Optional"
+      "optional": "Optional",
+      "special": "Schwer zu bekommen (z. B. Asia-Markt)"
     },
     "addMenuGuests": "Einkaufsliste für {count, plural, one {# Gast} other {# Gäste}}",
     "undoAdd": "Wieder entfernen",
@@ -1689,6 +1689,8 @@
     "selectName": "„{name}“ auswählen",
     "germanMissing": "Deutsch fehlt",
     "englishMissing": "Englisch fehlt",
-    "usesShort": "{count, plural, =0 {ungenutzt} one {# Rezeptzeile} other {# Rezeptzeilen}}"
+    "usesShort": "{count, plural, =0 {ungenutzt} one {# Rezeptzeile} other {# Rezeptzeilen}}",
+    "aisle": "Abteilung in der Einkaufsliste",
+    "aisleAuto": "Automatisch ({aisle})"
   }
 }

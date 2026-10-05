@@ -1,6 +1,6 @@
 import prisma from './prisma';
 import { shoppingKey } from './shopping';
-import { NOISE } from './ingredientNames';
+import { germanName, NOISE } from './ingredientNames';
 import { guessLanguage, storedRows, type RecipeLanguage } from './recipeTranslation';
 import { sectionHeading } from './ingredientParts';
 import { shapeOf } from './ingredientShape';
@@ -94,7 +94,7 @@ export async function itemFor(name: string, language: RecipeLanguage): Promise<n
         const again = await matchItem(name, tx);
         if (again !== null) return again;
         const created = await tx.ingredientItem.create({
-            data: { de: language === 'de' ? core : '', en: language === 'en' ? core : '', keys: keysFor(core) },
+            data: { de: language === 'de' ? germanName(core) : '', en: language === 'en' ? core : '', keys: keysFor(core) },
             select: { id: true },
         });
         return created.id;
@@ -136,7 +136,7 @@ export async function linkRecipe(recipeId: number): Promise<number> {
             await prisma.ingredient.update({ where: { id: row.id }, data: { itemId } });
             linked += 1;
         }
-        const otherName = aligned ? coreName(aligned[index]).slice(0, 120) : '';
+        const otherName = aligned ? (other === 'de' ? germanName : (name: string) => name)(coreName(aligned[index]).slice(0, 120)) : '';
         if (otherName) {
             const item = await prisma.ingredientItem.findUnique({ where: { id: itemId }, select: { de: true, en: true, aliases: true } });
             if (item && item[other] === '') {

@@ -14,8 +14,9 @@ import { listLabel } from './listLabel';
  * with the way to the list beside it, because the next thing is usually a
  * second recipe rather than the list.
  *
- * With more than one list there is a choice of which, remembered for next
- * time; with one there is nothing to choose.
+ * With more than one list, the button opens a short menu of them — which
+ * one, chosen as part of adding rather than by a box beside the button (the
+ * owner's wish); with one there is nothing to choose.
  */
 
 const TARGET_KEY = 'shopping-target';
@@ -69,9 +70,26 @@ export default function AddToShopping(
             // Only a convenience.
         }
     };
-    const query = target ? `?list=${target}` : '';
+    const [picking, setPicking] = useState(false);
+    const menu = useRef<HTMLSpanElement>(null);
+    // The menu closes on a tap outside it, or Escape.
+    useEffect(() => {
+        if (!picking) return;
+        const away = (event: PointerEvent) => {
+            if (!menu.current?.contains(event.target as Node)) setPicking(false);
+        };
+        const key = (event: KeyboardEvent) => event.key === 'Escape' && setPicking(false);
+        document.addEventListener('pointerdown', away);
+        document.addEventListener('keydown', key);
+        return () => {
+            document.removeEventListener('pointerdown', away);
+            document.removeEventListener('keydown', key);
+        };
+    }, [picking]);
 
-    const add = async () => {
+    const add = async (value: string = target) => {
+        setPicking(false);
+        const query = value ? `?list=${value}` : '';
         setState('busy');
         const body = JSON.stringify({ ...what, locale });
         try {
@@ -122,28 +140,40 @@ export default function AddToShopping(
 
     return (
         <span className="inline-flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:flex-none">
-            <button
-                type="button"
-                onClick={() => void add()}
-                disabled={state === 'busy'}
-                className={`${buttonSecondary} w-full whitespace-nowrap sm:w-auto`}
-            >
-                <BusyLabel busy={state === 'busy'}>{label}</BusyLabel>
-            </button>
-            {lists.length > 1 && (
-                <select
-                    value={target}
-                    onChange={(event) => choose(event.target.value)}
-                    aria-label={t('addTo')}
-                    className="w-full rounded-full border border-control bg-transparent px-3 py-2 text-sm sm:w-auto"
+            <span ref={menu} className="relative w-full sm:w-auto">
+                <button
+                    type="button"
+                    onClick={() => (lists.length > 1 ? setPicking((open) => !open) : void add())}
+                    disabled={state === 'busy'}
+                    aria-haspopup={lists.length > 1 ? 'menu' : undefined}
+                    aria-expanded={lists.length > 1 ? picking : undefined}
+                    className={`${buttonSecondary} w-full whitespace-nowrap sm:w-auto`}
                 >
-                    {lists.map((list) => (
-                        <option key={list.id} value={list.owner && list.name === null ? '' : String(list.id)}>
-                            {listLabel(list, t)}
-                        </option>
-                    ))}
-                </select>
-            )}
+                    <BusyLabel busy={state === 'busy'}>{label}</BusyLabel>
+                </button>
+                {picking && (
+                    <ul role="menu" aria-label={t('addTo')} className="absolute left-0 top-full z-30 mt-1 min-w-full overflow-hidden rounded-xl border border-line bg-page py-1 shadow-lg">
+                        {lists.map((list) => {
+                            const value = list.owner && list.name === null ? '' : String(list.id);
+                            return (
+                                <li key={list.id} role="none">
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        onClick={() => {
+                                            choose(value);
+                                            void add(value);
+                                        }}
+                                        className={`flex min-h-11 w-full items-center gap-2 whitespace-nowrap px-4 text-left text-sm hover:bg-surface ${value === target ? 'font-semibold' : ''}`}
+                                    >
+                                        {listLabel(list, t)}
+                                    </button>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                )}
+            </span>
             <span role="status" className="text-muted">
                 {(state === 'done' || state === 'undoing') && (
                     <>

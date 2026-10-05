@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import TranslationFresh from './TranslationFresh';
 import { Link } from '@/i18n/routing';
 import RatingDisplay from '@/components/RatingDisplay';
 import FavoriteButton from '@/components/FavoriteButton';
@@ -263,10 +264,16 @@ export default async function RecipeArticle({
                     {recipe.title}
                 </h1>
 
-                {recipe.translated && written.language && (
+                {/* For the admin only: a reader has nothing to do with where a text came from. */}
+                {isAdmin && recipe.translated && written.language && (
                     <p lang={locale} className="mt-1 text-xs text-faint">
                         {t('translatedFrom', { language: written.language })}
-                        {recipe.stale && <> · {t('translationStale')}</>}
+                        {recipe.stale && (
+                            <>
+                                {' '}· {t('translationStale')}
+                                <TranslationFresh recipeId={recipe.id} locale={locale === 'en' ? 'en' : 'de'} />
+                            </>
+                        )}
                     </p>
                 )}
 

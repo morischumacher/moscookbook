@@ -6,6 +6,8 @@ import { aiCapability } from './aiConfig';
 import { canUseAi, smallModelFor } from './aiProviders';
 import { completeWithKey, extractJson } from './aiImport';
 import { usageRecorder } from './tokenUsageDb';
+import { keptTranslation, recipeColumns } from './recipeRepo';
+import { forgetCollectionFacets } from './collectionFacets';
 import { sourceKey, storedRows } from './recipeTranslation';
 import { snapshotOf } from './revisions';
 import { keepRevisionOf } from './revisionsDb';
@@ -159,7 +161,7 @@ const select = {
     prepMinutes: true,
     cookMinutes: true,
     tags: true,
-    ingredients: { orderBy: { position: 'asc' as const }, select: { id: true, raw: true, name: true, section: true } },
+    ingredients: { orderBy: { position: 'asc' as const }, select: { id: true, raw: true, name: true, section: true, quantity: true, quantityMax: true, unit: true } },
     translations: { select: { id: true, locale: true, ingredients: true, source: true } },
 };
 
@@ -212,7 +214,19 @@ export async function applyConvention(editedBy: string | null, rewrite: (name: s
                 ];
             }),
         ]);
+        // The search columns know the new names too ("Saeujeot"), as every writer of a recipe (lib/recipeRepo).
+        await prisma.recipe.update({
+            where: { id: recipe.id },
+            data: recipeColumns({
+                ...recipe,
+                tips: recipe.tips ?? '',
+                ingredients: recipe.ingredients.map((row, index) => ({ ...row, name: names[index] })),
+                translation: await keptTranslation(recipe.id),
+            }),
+        });
         changed += 1;
     }
+    // Names only — no category moves; the cached filter rail is cleared all the same, as every writer does.
+    if (changed > 0) forgetCollectionFacets();
     return changed;
 }

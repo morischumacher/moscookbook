@@ -1143,6 +1143,8 @@ model IngredientItem {
   /// defaults in lib/shoppingParts, or the AI asked once.
   buyMeasure  String?
   factors     Json         @default("{}")
+  /// The shop aisle, set by hand on admin → Zutaten; null: by the rules (lib/shopping aisleOf).
+  aisle       String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   ingredients Ingredient[]

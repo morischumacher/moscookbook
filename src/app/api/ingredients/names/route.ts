@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { route } from '@/lib/route';
 import { linkAllUnlinked } from '@/lib/ingredientCatalog';
+import { germanName } from '@/lib/ingredientNames';
 
 /**
  * The names the ingredient field suggests while typing: the cookbook's
@@ -39,7 +40,8 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
         const key = name.trim().toLowerCase();
         if (!key || seen.has(key)) return;
         seen.add(key);
-        names.push(name.trim());
+        // On the German page as a German list writes it: "Rote Zwiebeln", "Lauchzwiebel".
+        names.push(locale === 'de' ? germanName(name) : name.trim());
     };
     // Each in the page's language first, else the other; then every other name it goes by.
     for (const item of items) add(locale === 'de' ? item.de || item.en : item.en || item.de);
