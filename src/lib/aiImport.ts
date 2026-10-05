@@ -209,7 +209,7 @@ function isQuota(body: string): boolean {
     return /quota|billing|plan and billing|exceeded your current quota/i.test(body);
 }
 
-function providerError(provider: AiProvider, status: number, body: string, apiKey: string): Error {
+export function providerError(provider: AiProvider, status: number, body: string, apiKey: string): Error {
     const transient = status === 429 ? !isQuota(body) : TRANSIENT.has(status);
 
     // Busy, rationed, or gone. All three are answered by asking a different

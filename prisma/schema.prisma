@@ -348,6 +348,8 @@ model Recipe {
   tags         String[]   @default([])
   description  String?
   instructions String     // Markdown content
+  /// Tips & notes, markdown like the method; "" when there are none.
+  tips         String     @default("")
   views        Int        @default(0)
   nationality  String?
   category     String?
@@ -1061,6 +1063,7 @@ model RecipeTranslation {
   title        String
   description  String   @default("")
   instructions String   @default("")
+  tips         String   @default("")
   /// The ingredient editor's rows, [{amount, item}], headings as "## …".
   ingredients  Json     @default("[]")
   /// Fingerprint of the original it was made from, to notice it went stale.

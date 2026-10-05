@@ -181,6 +181,9 @@ const EXACT: Record<string, string> = {
     'This capture has already become a recipe.': 'Aus diesem Eintrag ist schon ein Rezept geworden.',
     'That capture has already been dealt with.': 'Dieser Eintrag ist schon erledigt.',
     'The AI is switched off or has no key.': 'Die KI ist ausgeschaltet oder hat keinen Schlüssel.',
+    'Pictures need an OpenAI or Google key.': 'Für Bilder braucht die KI einen Schlüssel von OpenAI oder Google.',
+    'Too many pictures. Please wait a moment.': 'Zu viele Bilder. Warte bitte einen Moment.',
+    'The AI did not send back a picture.': 'Die KI hat kein Bild zurückgeschickt.',
     'No AI key is configured.': 'Es ist kein KI-Schlüssel eingerichtet.',
     'No verified AI key is stored. Nothing can be learned without a model.':
         'Es ist kein geprüfter KI-Schlüssel gespeichert. Ohne Modell kann nichts gelernt werden.',

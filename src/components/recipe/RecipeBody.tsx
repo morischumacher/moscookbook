@@ -25,6 +25,7 @@ export default function RecipeBody({
     title,
     locale,
     share,
+    tips,
 }: {
     /** Which recipe's progress is being remembered. */
     recipeId: number;
@@ -38,6 +39,11 @@ export default function RecipeBody({
      * short paragraphs into HTML that could have been sent as HTML.
      */
     steps: React.ReactNode[];
+    /**
+     * Tips & notes after the method, rendered on the server like the steps;
+     * nothing when the recipe has none.
+     */
+    tips?: React.ReactNode;
     /** The same steps as text, for what cook mode reads out of them: timers, ingredients. */
     stepTexts: string[];
     /** The printed sheet's header (components/recipe/PrintSheet). */
@@ -301,6 +307,8 @@ export default function RecipeBody({
                 ingredientsHeading={t('ingredients')}
                 steps={steps}
                 stepsHeading={t('instructions')}
+                tips={tips}
+                tipsHeading={t('tips')}
                 scaledNote={baseServings && factor !== 1 ? t('scaledFrom', { base: baseServings, current: servings }) : null}
             />
         )}
@@ -528,6 +536,15 @@ export default function RecipeBody({
                     ))}
                 </ol>
             </section>
+
+            {tips && (
+                <section className="mt-14">
+                    <h2 className="mb-6 inline-block border-b-2 border-ink pb-1 font-sans text-2xl font-bold uppercase tracking-widest text-ink">
+                        {t('tips')}
+                    </h2>
+                    <div className={`markdown-step ${textSize} leading-relaxed text-ink`}>{tips}</div>
+                </section>
+            )}
         </div>
         </>
     );

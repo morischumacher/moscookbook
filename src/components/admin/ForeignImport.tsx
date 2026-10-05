@@ -63,6 +63,7 @@ export default function ForeignImport() {
                     description: recipe.description,
                     ingredients: recipe.ingredients,
                     instructions: recipe.instructions,
+                    tips: recipe.tips ?? '',
                     servings: recipe.servings,
                     prepMinutes: recipe.prepMinutes,
                     cookMinutes: recipe.cookMinutes,

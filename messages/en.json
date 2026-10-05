@@ -86,6 +86,7 @@
     "loadingRecipe": "Fetching the recipe…",
     "ingredients": "Ingredients",
     "instructions": "Method",
+    "tips": "Tips & notes",
     "noIngredients": "No ingredients recorded for this recipe.",
     "servings": "Servings",
     "oneMore": "One more serving",
@@ -300,6 +301,9 @@
     "enterHint": "Enter in an ingredient field opens the next row.",
     "instructions": "Method",
     "instructionsPlaceholder": "1. Chop the onions.\n\n2. Fry them in butter.",
+    "tips": "Tips & notes",
+    "tipsPlaceholder": "What helps: make it the day before, swap ingredients, how to store it…",
+    "tipsHint": "Optional. Shown after the method.",
     "preview": "Preview",
     "backToEdit": "Edit",
     "previewEmpty": "_Nothing written yet._",
@@ -320,6 +324,9 @@
     "moveImageLater": "Move picture {number} later",
     "removeImageNumber": "Remove picture {number}",
     "uploadTooLarge": "That picture is too large to send, even after shrinking it. Try a smaller one.",
+    "aiPicture": "Create a picture with AI",
+    "aiPictureBusy": "Painting the picture…",
+    "aiPictureNeedsTitle": "Give the recipe a title first.",
     "servingsHint": "Unlocks the servings calculator.",
     "tags": "Tags",
     "tagsPlaceholder": "grilling, Christmas, meal prep…",
@@ -345,6 +352,7 @@
     "field_servings": "servings",
     "field_ingredients": "ingredients",
     "field_instructions": "method",
+    "field_tips": "tips",
     "field_tags": "tags",
     "needIngredient": "A recipe needs at least one ingredient.",
     "labelsAdd": "Add your own (Enter)",
@@ -1483,7 +1491,8 @@
       "learn": "Learning a site",
       "import": "Import in the form",
       "polish": "Revising text",
-      "translate": "Translating"
+      "translate": "Translating",
+      "picture": "Picture for a recipe"
     }
   }
 }

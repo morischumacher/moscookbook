@@ -36,6 +36,8 @@ export interface RecipeRow {
     /** 0–3 chillies. */
     spiciness: number;
     instructions: string;
+    /** Tips & notes, markdown; "" when there are none. Optional: a shared page builds its own row. */
+    tips?: string;
     views: number;
     servings: number | null;
     prepMinutes: number | null;
@@ -98,7 +100,7 @@ export const recipeInclude = {
      */
     captures: { orderBy: { id: 'asc' }, take: 1, select: { sourceUrl: true } },
     // Both, at most two rows; the page picks the reader's (lib/recipeTranslation).
-    translations: { select: { locale: true, title: true, description: true, instructions: true, ingredients: true, source: true } },
+    translations: { select: { locale: true, title: true, description: true, instructions: true, tips: true, ingredients: true, source: true } },
 } as const;
 
 export interface RecipeArticleProps {
@@ -407,6 +409,11 @@ export default async function RecipeArticle({
                         </ReactMarkdown>
                     ))}
                     stepTexts={stepTexts}
+                    tips={
+                        recipe.tips?.trim() ? (
+                            <ReactMarkdown components={{ img: StorePicture }}>{withCelsius(recipe.tips)}</ReactMarkdown>
+                        ) : undefined
+                    }
                     canShop={mode === 'private' && isLoggedIn}
                     baseServings={recipe.servings}
                     title={recipe.title}

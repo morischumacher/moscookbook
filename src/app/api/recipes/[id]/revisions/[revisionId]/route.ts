@@ -28,7 +28,7 @@ export const POST = route<'admin', undefined, { id: string; revisionId: string }
                 where: { id: recipeId },
                 select: {
                     title: true, slug: true, description: true, category: true, nationality: true,
-                    instructions: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true,
+                    instructions: true, tips: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true,
                     ingredients: { orderBy: { position: 'asc' }, select: { raw: true, name: true, section: true } },
                 },
             }),
@@ -51,7 +51,7 @@ export const POST = route<'admin', undefined, { id: string; revisionId: string }
             prisma.recipe.update({
                 where: { id: recipeId },
                 // With the translation it keeps, or the search forgets it.
-                data: recipeColumns({ ...snapshot, slug: current.slug, ingredients, translation: await keptTranslation(recipeId) }),
+                data: recipeColumns({ ...snapshot, tips: snapshot.tips ?? current.tips, slug: current.slug, ingredients, translation: await keptTranslation(recipeId) }),
             }),
             prisma.ingredient.deleteMany({ where: { recipeId } }),
             prisma.ingredient.createMany({

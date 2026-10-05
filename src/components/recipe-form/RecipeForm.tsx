@@ -30,6 +30,8 @@ export interface RecipeFormValues {
     category: string;
     nationality: string;
     instructions: string;
+    /** Tips & notes, markdown; optional. */
+    tips?: string;
     ingredients: Ingredient[];
     /** In the order they should be shown; the first one is the cover. */
     imageUrls: string[];
@@ -93,6 +95,7 @@ export default function RecipeForm({
     const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
     const [imageUrls, setImageUrls] = useState<string[]>(initial?.imageUrls ?? []);
     const [instructions, setInstructions] = useState(initial?.instructions ?? '');
+    const [tips, setTips] = useState(initial?.tips ?? '');
     const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
     const [servings, setServings] = useState<string>(
         initial?.servings != null ? String(initial.servings) : ''
@@ -158,13 +161,13 @@ export default function RecipeForm({
 
     const values = useMemo(
         () => ({
-            title, slug, description, categories, cuisines, spiciness, imageUrls, instructions,
+            title, slug, description, categories, cuisines, spiciness, imageUrls, instructions, tips,
             ingredients, servings, prepMinutes, cookMinutes, tags,
             // The translation too: it was a paid call and possibly corrected by hand.
             language: chosenLanguage, translation,
         }),
         [
-            title, slug, description, categories, cuisines, spiciness, imageUrls, instructions,
+            title, slug, description, categories, cuisines, spiciness, imageUrls, instructions, tips,
             ingredients, servings, prepMinutes, cookMinutes, tags, chosenLanguage, translation,
         ]
     );
@@ -219,6 +222,8 @@ export default function RecipeForm({
             setTags(draft.tags ?? []);
             setImageUrls(draft.imageUrls ?? []);
             setInstructions(draft.instructions ?? '');
+            // A draft kept before recipes had tips says nothing about them.
+            setTips(draft.tips ?? initial?.tips ?? '');
             setIngredients(
                 draft.ingredients && draft.ingredients.length > 0 ? draft.ingredients : [{ ...EMPTY_ROW }]
             );
@@ -316,6 +321,7 @@ export default function RecipeForm({
                     tags,
                     imageUrls,
                     instructions,
+                    tips,
                     ingredients: cleanedIngredients,
                     servings: toOptionalNumber(servings),
                     prepMinutes: toOptionalNumber(prepMinutes),
@@ -523,6 +529,7 @@ export default function RecipeForm({
                 <GalleryField
                     imageUrls={imageUrls}
                     onChange={setImageUrls}
+                    ai={aiEnabled ? { title, ingredients: ingredients.map((row) => `${row.amount} ${row.item}`.trim()).filter(Boolean) } : undefined}
                     onError={(message) => (message ? failWith(message) : setError(''))}
                 />
 
@@ -571,8 +578,30 @@ export default function RecipeForm({
                     />
                 </div>
 
+                <div>
+                    <label htmlFor="tips" className={labelClass}>{t('tips')}</label>
+                    {preview ? (
+                        tips.trim() && (
+                            <div className="prose max-w-none rounded-lg border border-line p-4">
+                                <ReactMarkdown components={{ img: StorePicture }}>{tips}</ReactMarkdown>
+                            </div>
+                        )
+                    ) : (
+                        <textarea
+                            id="tips"
+                            value={tips}
+                            onChange={(event) => setTips(event.target.value)}
+                            rows={4}
+                            maxLength={10_000}
+                            placeholder={t('tipsPlaceholder')}
+                            className={fieldClass + ' text-sm'}
+                        />
+                    )}
+                    <p className="mt-1 text-xs text-muted">{t('tipsHint')}</p>
+                </div>
+
                 <TranslationPanel
-                    original={{ title, description, instructions, ingredients }}
+                    original={{ title, description, instructions, tips, ingredients }}
                     language={language}
                     onLanguage={setChosenLanguage}
                     translation={translation}

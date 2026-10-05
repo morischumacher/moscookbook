@@ -20,6 +20,12 @@ export default function run() {
     check('imageUrl stays undefined when omitted', a.success && a.data.imageUrl === undefined);
     check('defaults applied', a.success && a.data.description === '' && Array.isArray(a.data.ingredients));
 
+    check('tips left out stay undefined (kept as they are)', a.success && a.data.tips === undefined);
+    const withTips = recipeInputSchema.safeParse({ ...base, tips: '  Am Vortag kochen.  ' });
+    check('tips are accepted and trimmed', withTips.success && withTips.data.tips === 'Am Vortag kochen.');
+    check('empty tips are allowed', recipeInputSchema.safeParse({ ...base, tips: '' }).success);
+    check('tips past 10 000 characters are refused', !recipeInputSchema.safeParse({ ...base, tips: 'x'.repeat(10_001) }).success);
+
     const b = recipeInputSchema.safeParse({ ...base, imageUrl: '' });
     check('empty imageUrl allowed (clears image)', b.success && b.data.imageUrl === '');
 

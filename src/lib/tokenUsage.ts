@@ -8,7 +8,7 @@
  */
 
 /** What a call was for. The capture ones say which button (or none) asked. */
-export const USAGE_PURPOSES = ['capture', 'retry', 'askAi', 'aiOnly', 'learn', 'import', 'polish', 'translate'] as const;
+export const USAGE_PURPOSES = ['capture', 'retry', 'askAi', 'aiOnly', 'learn', 'import', 'polish', 'translate', 'picture'] as const;
 export type UsagePurpose = (typeof USAGE_PURPOSES)[number];
 
 export function median(values: number[]): number | null {

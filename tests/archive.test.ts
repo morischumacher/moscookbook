@@ -17,6 +17,7 @@ function row(overrides: Partial<ExportableRecipe> = {}): ExportableRecipe {
         slug: 'kaesespaetzle',
         description: 'Cremig.',
         instructions: '1. Kochen.',
+        tips: 'Am Vortag kochen.',
         category: 'Dinner',
         nationality: 'German',
         servings: 4,
@@ -41,6 +42,7 @@ function row(overrides: Partial<ExportableRecipe> = {}): ExportableRecipe {
             title: 'Cheese spaetzle',
             description: 'Creamy.',
             instructions: '1. Cook.',
+            tips: 'Cook the day before.',
             ingredients: [{ amount: '200 g', item: 'mountain cheese' }, { amount: '400 g', item: 'spaetzle' }],
             source: 'abc',
         }],
@@ -56,6 +58,11 @@ export default function run() {
     check('carries the format version', archive.version === ARCHIVE_VERSION, archive.version);
     check('records when it was written', archive.exportedAt === '2026-09-20T18:00:00.000Z', archive.exportedAt);
     check('counts the recipes', archive.recipeCount === 1, archive.recipeCount);
+    equal('keeps the tips', archive.recipes[0].tips, 'Am Vortag kochen.');
+    equal('and the translated tips', archive.recipes[0].translations[0].tips, 'Cook the day before.');
+    const older = parseArchive({ version: 11, exportedAt: 'x', recipes: [{ title: 'A', slug: 'a', translations: [{ locale: 'en', title: 'A' }] }] });
+    check('an archive from before tips reads them as none',
+        older.archive?.recipes[0].tips === '' && older.archive?.recipes[0].translations[0].tips === '', older);
     check('keeps the image URLs', archive.recipes[0].images[0] === 'https://example.com/a.jpg');
     check('ingredients come out in order', archive.recipes[0].ingredients[0].name === 'Spätzle', archive.recipes[0].ingredients);
     check('positions are renumbered from zero',
