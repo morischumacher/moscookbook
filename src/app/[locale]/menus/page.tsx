@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { menuStyle } from '@/lib/menu';
 import { buttonPrimarySmall, pageContainer, pageHeading, pageTop } from '@/lib/ui';
 import { titled } from '@/lib/metaTitle';
+import MenuActions from '@/components/menu/MenuActions';
 
 export const generateMetadata = titled('Menus', 'title');
 
@@ -59,11 +60,8 @@ export default async function MenusPage({ params }: { params: Promise<{ locale: 
             ) : (
                 <ul className="grid gap-3 sm:grid-cols-2">
                     {menus.map((menu) => (
-                        <li key={menu.id}>
-                            <Link
-                                href={`/menus/${menu.slug}`}
-                                className="flex h-full flex-col rounded-2xl border border-line p-5 transition-colors hover:border-ink"
-                            >
+                        <li key={menu.id} className="group relative flex flex-col rounded-2xl border border-line p-5 transition-colors hover:border-ink">
+                            <Link href={`/menus/${menu.slug}`} className="flex flex-1 flex-col">
                                 <span className="text-xs font-semibold uppercase tracking-widest text-faint">
                                     {[menu.occasion, menu.date ? formatDate.format(menu.date) : null].filter(Boolean).join(' · ') ||
                                         t(`style_${menuStyle(menu.style)}`)}
@@ -75,6 +73,7 @@ export default async function MenusPage({ params }: { params: Promise<{ locale: 
                                     {t(`style_${menuStyle(menu.style)}`)}
                                 </span>
                             </Link>
+                            {user?.admin && <MenuActions menuId={menu.id} />}
                         </li>
                     ))}
                 </ul>

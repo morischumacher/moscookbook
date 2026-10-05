@@ -563,8 +563,9 @@ export default function RecipeForm({
                         year, and a method forwarded from an e-mail is one
                         paragraph every single time. */}
                     <PolishPanel
-                        text={instructions}
+                        text={instructions.trim() ? instructions : ingredients.map((i) => `${i.amount} ${i.item}`.trim()).filter(Boolean).join('\n')}
                         onApply={setInstructions}
+                        modes={instructions.trim() ? ['spelling', 'steps', 'generate-method'] : ['generate-method']}
                         disabled={preview}
                         available={aiEnabled}
                     />

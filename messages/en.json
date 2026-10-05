@@ -654,6 +654,7 @@
   },
   "Share": {
     "share": "Share",
+    "visibility": "Visibility",
     "copied": "Link copied",
     "linkLabel": "Link to this recipe",
     "copyLink": "Copy link",
@@ -884,6 +885,7 @@
     "failed": "That did not work. Please try again.",
     "thanksTitle": "Ticket is open",
     "thanksBody": "Thank you. It is on the list.",
+    "sendAnother": "Send another ticket",
     "backToRecipes": "Back to the recipes",
     "nav": "Tickets",
     "adminTitle": "Tickets",
@@ -1025,6 +1027,7 @@
     "polishHeading": "Revise with AI",
     "polishSpelling": "Spelling",
     "polishSteps": "Clearer steps",
+    "polishGenerateMethod": "Generate method from ingredients",
     "polishBusy": "Revising…",
     "polishUnchanged": "Nothing to correct.",
     "polishApply": "Apply",

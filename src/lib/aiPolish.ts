@@ -28,7 +28,7 @@ import { scrub } from './secretBox';
  * catches the failure that a human proof-reader also misses.
  */
 
-export type PolishMode = 'spelling' | 'steps';
+export type PolishMode = 'spelling' | 'steps' | 'generate-method';
 
 /**
  * Orthography only.
@@ -95,9 +95,23 @@ You MUST NOT:
 
 Return ONLY the numbered list, with no explanation and no code fences.`;
 
+/**
+ * Generating a method from a list of ingredients.
+ */
+const GENERATE_METHOD_PROMPT = `You write a recipe method (step-by-step instructions) based ONLY on the provided ingredient list and title.
+
+Turn the ingredients into a numbered markdown list of clear, actionable steps, separated by blank lines. Each step is an instruction ("Die Zwiebeln schälen, fein würfeln und im Öl goldbraun anbraten.").
+
+Rules:
+- Write in the SAME language as the ingredients provided.
+- Do NOT invent exotic or unlisted main ingredients; stick to the provided ingredients and standard cooking techniques.
+- Do NOT add an introduction, chitchat, or notes of your own.
+- Return ONLY the numbered markdown list of steps.`;
+
 const PROMPTS: Record<PolishMode, string> = {
     spelling: SPELLING_PROMPT,
     steps: STEPS_PROMPT,
+    'generate-method': GENERATE_METHOD_PROMPT,
 };
 
 /**
@@ -181,7 +195,7 @@ export async function polish(
                 continue;
             }
 
-            if (!keepsNumbers(text, answer)) {
+            if (mode !== 'generate-method' && !keepsNumbers(text, answer)) {
                 return {
                     ok: false,
                     reason: 'numbers-changed',
@@ -202,7 +216,7 @@ export async function polish(
 }
 
 export const polishSchema = z.object({
-    mode: z.enum(['spelling', 'steps']),
+    mode: z.enum(['spelling', 'steps', 'generate-method']),
     // A recipe's method, not a novel. Anything longer is somebody pasting a
     // book in, and the button is not for that.
     text: z.string().trim().min(1).max(20_000),

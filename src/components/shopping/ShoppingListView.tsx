@@ -418,7 +418,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             ) : (
                 <>
                     {AISLES.map((aisle) => {
-                        const here = open.filter((item) => item.aisle === aisle);
+                        const here = items.filter((item) => item.aisle === aisle && matchesSearch(item));
                         if (here.length === 0) return null;
                         return (
                             <section key={aisle} className="mt-8 first:mt-2">
@@ -428,7 +428,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                         );
                     })}
 
-                    {open.length === 0 && <p className="mt-10 text-center text-muted">{t('allDone')}</p>}
+                    {items.filter(matchesSearch).length > 0 && open.length === 0 && <p className="mt-10 text-center text-muted">{t('allDone')}</p>}
                 </>
             )}
 

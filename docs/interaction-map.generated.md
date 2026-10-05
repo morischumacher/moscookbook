@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-46 screens · 91 endpoints · 86 link edges · 91 call edges
+46 screens · 91 endpoints · 87 link edges · 91 call edges
 
 ## Screens
 
@@ -41,8 +41,8 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/imprint` | open | steps aside | — | — |
 | `/[locale]/login` | open | steps aside | `POST /api/auth/login`<br>`POST /api/auth/passkey-login`<br>`POST /api/auth/passkey-options` | `/[locale]/forgot` |
 | `/[locale]/m/[token]` | open | steps aside | — | — |
-| `/[locale]/menus/[slug]` | account | requires session | `* /api/menus/[id]/share`<br>`GET /api/shopping/lists`<br>`POST /api/shopping`<br>`POST /api/shopping/remove` | `/[locale]/admin/menus/[id]`<br>`/[locale]/recipe/[id]`<br>`/[locale]/shopping` |
-| `/[locale]/menus` | account | requires session | — | `/[locale]/admin/menus/new`<br>`/[locale]/menus/[id]` |
+| `/[locale]/menus/[slug]` | account | requires session | `* /api/menus/[id]/share`<br>`DELETE /api/menus/[id]`<br>`GET /api/shopping/lists`<br>`POST /api/shopping`<br>`POST /api/shopping/remove` | `/[locale]/admin/menus/[id]`<br>`/[locale]/recipe/[id]`<br>`/[locale]/shopping` |
+| `/[locale]/menus` | account | requires session | `DELETE /api/menus/[id]` | `/[locale]/admin/menus/[id]`<br>`/[locale]/admin/menus/new`<br>`/[locale]/menus/[id]` |
 | `/[locale]/p/[token]` | open | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/collections/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
 | `/[locale]` | account | requires session | `* /api/recipes/[id]/favorite`<br>`GET /api/favorites`<br>`POST /api/recipes/[id]/rate` | `/[locale]/blog`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/privacy` | open | steps aside | — | — |
@@ -160,6 +160,7 @@ Calls the map could not match to an endpoint (a URL built elsewhere, or a path t
 - `* /api/shopping  (from shopping/ShoppingListView)`
 - `* /api/shopping/share  (from shopping/ShoppingSharing)`
 - `* /api/shopping/shared/[id]  (from shopping/ShoppingListView)`
+- `DELETE /api/menus/[id]  (from menu/MenuActions)`
 - `DELETE /api/menus/[id]  (from menu/MenuForm)`
 - `DELETE /api/recipes/[id]/cooked  (from recipe/Cooked)`
 - `DELETE /api/report-photos/[id]  (from admin/ReportPhotos)`
@@ -321,6 +322,7 @@ flowchart LR
   n__locale__menus__slug_ --> n__locale__admin_menus__id_
   n__locale__menus__slug_ --> n__locale__recipe__slug_
   n__locale__menus__slug_ --> n__locale__shopping
+  n__locale__menus --> n__locale__admin_menus__id_
   n__locale__menus --> n__locale__admin_menus_new
   n__locale__menus --> n__locale__menus__slug_
   n__locale__p__token_ --> n__locale__collections__slug_

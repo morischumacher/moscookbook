@@ -104,9 +104,22 @@ function TicketForm() {
             <main className={`${pageContainer} ${pageTop} pb-32`}>
                 <h1 className={pageHeading}>{t('thanksTitle')}</h1>
                 <p className="mt-8 font-serif text-lg leading-relaxed text-muted">{t('thanksBody')}</p>
-                <Link href="/" className="mt-8 inline-block text-sm underline underline-offset-4">
-                    {t('backToRecipes')}
-                </Link>
+                <div className="mt-8 flex flex-wrap items-center gap-4">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setSent(false);
+                            setBody(about ? about.slice(0, 2000) : '');
+                            setPhotos([]);
+                        }}
+                        className={buttonPrimary}
+                    >
+                        {t('sendAnother')}
+                    </button>
+                    <Link href="/" className="inline-block text-sm underline underline-offset-4">
+                        {t('backToRecipes')}
+                    </Link>
+                </div>
             </main>
         );
     }

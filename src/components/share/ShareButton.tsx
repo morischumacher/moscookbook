@@ -40,6 +40,7 @@ export default function ShareButton({
     onlyMe = false,
     ownUrl,
     mayChange,
+    label,
     className,
 }: {
     id: number;
@@ -53,6 +54,7 @@ export default function ShareButton({
     ownUrl: string;
     /** Whether this person may change who can see it. An admin, in practice. */
     mayChange: boolean;
+    label?: string;
     className?: string;
 }) {
     const t = useTranslations('Share');
@@ -79,7 +81,7 @@ export default function ShareButton({
                 onClick={() => (mayChange ? setOpen(true) : void justShare())}
                 className={className}
             >
-                {copied === 'own' ? t('copied') : t('share')}
+                {copied === 'own' ? t('copied') : (label ?? t('share'))}
             </button>
 
             {open && (

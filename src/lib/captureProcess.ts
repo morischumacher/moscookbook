@@ -474,7 +474,7 @@ async function processWebPage(
      * actually helped. Learning from a failed call would store a map of a
      * recipe nobody found.
      */
-    if (host && !known && options.learnWith && trace.asked && !trace.failed && status === 'ready') {
+    if (host && !known && options.learnWith && status === 'ready') {
         await rememberThisSite(page.html, draft, host, page.finalUrl, options).catch(() => undefined);
     }
 

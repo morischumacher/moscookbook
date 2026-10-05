@@ -30,18 +30,9 @@ export default function PolishPanel({
 }: {
     text: string;
     onApply: (next: string) => void;
-    /** `steps` only makes sense for a method. A title gets spelling alone. */
-    modes?: ('spelling' | 'steps')[];
+    /** `steps` and `generate-method` for method field. */
+    modes?: ('spelling' | 'steps' | 'generate-method')[];
     disabled?: boolean;
-    /**
-     * False when no key is configured, or the AI is switched off entirely.
-     *
-     * The buttons are still drawn, greyed and inert, with a line underneath
-     * saying where to turn it on. Hiding them was the first version and it was
-     * worse: a feature that is invisible until it is configured cannot be
-     * discovered by the person who would configure it. A disabled control
-     * answers "can this thing do that?" — an absent one does not.
-     */
     available?: boolean;
 }) {
     const t = useTranslations('Ai');
@@ -50,7 +41,7 @@ export default function PolishPanel({
     const [suggestion, setSuggestion] = useState<string | null>(null);
     const [note, setNote] = useState('');
 
-    const run = async (mode: 'spelling' | 'steps') => {
+    const run = async (mode: 'spelling' | 'steps' | 'generate-method') => {
         setBusy(mode);
         setNote('');
         setSuggestion(null);
@@ -112,8 +103,10 @@ export default function PolishPanel({
                         {busy === mode
                             ? t('polishBusy')
                             : mode === 'spelling'
-                                ? t('polishSpelling')
-                                : t('polishSteps')}
+                              ? t('polishSpelling')
+                              : mode === 'steps'
+                                ? t('polishSteps')
+                                : t('polishGenerateMethod')}
                     </button>
                 ))}
             </div>

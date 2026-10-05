@@ -402,8 +402,8 @@ body {
   /* ─── The recipe sheet (components/recipe/PrintSheet) ─────────────────── */
 
   @page {
-    size: A4;
-    margin: 14mm 15mm;
+    size: auto;
+    margin: 12mm 15mm;
   }
 
   /* The page around the sheet: no tint, no height, no padding to push it. */
@@ -414,14 +414,13 @@ body {
   }
 
   .print-sheet {
-    /* Paper width, not screen width: see the component. */
-    width: 180mm;
-    max-width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 0 auto;
     color: #000;
     font-family: var(--font-sans), system-ui, sans-serif;
-    font-size: 10pt;
-    line-height: 1.4;
+    font-size: 11.5pt;
+    line-height: 1.5;
   }
 
   .print-masthead {
@@ -434,12 +433,12 @@ body {
   }
 
   .print-url {
-    font-size: 8pt;
+    font-size: 9.5pt;
     color: #444;
   }
 
   .print-eyebrow {
-    font-size: 8pt;
+    font-size: 9pt;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -448,9 +447,9 @@ body {
   }
 
   .print-sheet .print-title {
-    font-size: 22pt;
+    font-size: 24pt;
     font-weight: 800;
-    line-height: 1.1;
+    line-height: 1.15;
     letter-spacing: -0.01em;
     margin: 0;
   }
@@ -458,10 +457,10 @@ body {
   .print-description {
     font-family: var(--font-serif), Georgia, serif;
     font-style: italic;
-    font-size: 10pt;
+    font-size: 11pt;
     color: #333;
     margin: 2.5mm 0 0;
-    max-width: 150mm;
+    max-width: 100%;
   }
 
   .print-facts {

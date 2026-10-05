@@ -90,10 +90,15 @@ type Locale = 'en' | 'de';
 
 /** A number, rounded the way a kitchen would say it. */
 function kitchenRound(value: number, unit: string): number {
-    if (unit === 'g' || unit === 'ml') {
+    const norm = unit.toLowerCase().trim();
+    if (norm === 'g' || norm === 'ml' || norm === 'gramm' || norm === 'gram' || norm === 'grams') {
         if (value >= 100) return Math.round(value / 5) * 5;
         if (value >= 10) return Math.round(value);
         return Math.round(value * 10) / 10;
+    }
+    if (norm === 'kg' || norm === 'l') {
+        if (value >= 10) return Math.round(value * 10) / 10;
+        return Math.round(value * 100) / 100;
     }
     return Math.round(value * 100) / 100;
 }

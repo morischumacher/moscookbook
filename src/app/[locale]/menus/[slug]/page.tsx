@@ -7,6 +7,7 @@ import { menuBy } from '@/lib/menuQuery';
 import MenuCard from '@/components/menu/MenuCard';
 import MenuShare from '@/components/menu/MenuShare';
 import PrintButton from '@/components/menu/PrintButton';
+import MenuActions from '@/components/menu/MenuActions';
 import AddToShopping from '@/components/shopping/AddToShopping';
 import { pageContainer } from '@/lib/ui';
 
@@ -32,11 +33,7 @@ export default async function MenuPage({ params }: { params: Promise<{ locale: s
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                     <PrintButton label={t('print')} />
                     {user && menu.recipes.length > 0 && <AddToShopping menuId={menu.id} guests={menu.guests} />}
-                    {user?.admin && (
-                        <Link href={`/admin/menus/${menu.id}`} className="text-sm underline underline-offset-4 hover:text-muted">
-                            {t('edit')}
-                        </Link>
-                    )}
+                    {user?.admin && <MenuActions menuId={menu.id} />}
                 </div>
 
                 {menu.recipes.length > 0 && (
