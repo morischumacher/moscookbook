@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import AiKeys from '@/components/admin/AiKeys';
 import SiteProfiles from '@/components/admin/SiteProfiles';
+import ConnectAi from '@/components/admin/ConnectAi';
 import PageHeader from '@/components/admin/PageHeader';
 import { pageContainer } from '@/lib/ui';
 import { Link } from '@/i18n/routing';
@@ -31,6 +32,8 @@ export default async function AdminAiPage() {
 
             <AiKeys />
             <SiteProfiles />
+            {/* The task list for an AI that works on the code: its link, brief and key. */}
+            <ConnectAi />
         </main>
     );
 }
