@@ -123,7 +123,13 @@ const PROMPTS: Record<PolishMode, string> = {
  * ½ becoming 0.5 is also fine, so both forms are counted as present.
  */
 export function numbersIn(text: string): string[] {
-    const found = (text.match(/\d+(?:[.,]\d+)?/g) ?? []).map((value) =>
+    /*
+     * Without the numbers of a list: turning a paragraph into steps writes
+     * "1.", "2.", "3." in front of them, and those are not quantities. Every
+     * "Schritte klarer" was refused for that (work #33).
+     */
+    const quantities = text.replace(/^[ \t]*(?:(?:schritt|step)[ \t]*)?\d{1,2}[ \t]*[.):][ \t]+/gim, '');
+    const found = (quantities.match(/\d+(?:[.,]\d+)?/g) ?? []).map((value) =>
         value.replace(',', '.').replace(/\.0+$/, '')
     );
     return found.sort();

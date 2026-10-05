@@ -1077,7 +1077,9 @@
     "stylePlaceholder": "e.g. address the reader directly, short sentences, don't repeat amounts in the steps, fan oven temperatures.",
     "styleSave": "Save style",
     "styleSaved": "Saved.",
-    "styleFailed": "That did not work."
+    "styleFailed": "That did not work.",
+    "proxyTitle": "Fetch blocked pages through a reading service",
+    "proxyExplain": "Some recipe sites (e.g. maangchi.com) refuse every server. The cookbook then asks once more through the reading service r.jina.ai, which sees that page's address. Switched off, such a page lands in the inbox as “could not be read”."
   },
   "SiteProfiles": {
     "title": "Learned sites",

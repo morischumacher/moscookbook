@@ -90,6 +90,7 @@ import aiProviders from './aiProviders.test';
 import aiPolish from './aiPolish.test';
 import aiPicture from './aiPicture.test';
 import draftQuality from './draftQuality.test';
+import readerProxy from './readerProxy.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
 // they are run in order rather than fired off together.
@@ -193,6 +194,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['publicPages', publicPages],
     ['shareStage', shareStage],
     ['draftQuality', draftQuality],
+    ['readerProxy', readerProxy],
     ['fixtures', fixtures],
     ['pageTitle', pageTitle],
     ['transcripts', transcripts],

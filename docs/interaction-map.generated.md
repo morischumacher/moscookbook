@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-46 screens · 94 endpoints · 92 link edges · 97 call edges
+46 screens · 95 endpoints · 92 link edges · 97 call edges
 
 ## Screens
 
@@ -153,6 +153,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | DELETE | `/api/users/[id]` | admin | — | — | `admin/UserList` |
 | GET | `/api/users` | admin | — | — | `admin/UserList` |
 | POST | `/api/work/[id]/done` | session (proxy only) | zod | yes | *(nothing in the UI)* |
+| GET | `/api/work/[id]/photos` | session (proxy only) | — | yes | *(nothing in the UI)* |
 | GET | `/api/work` | none (open by design) | — | yes | `admin/WorkPanel` |
 
 Calls the map could not match to an endpoint (a URL built elsewhere, or a path the regex misread):

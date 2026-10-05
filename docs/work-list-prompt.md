@@ -212,6 +212,22 @@ path, write a test that reproduces it where you can, and fix the cause, not
 the symptom. A `count` of 1 from long ago may already be fixed. Check before
 you change anything.
 
+### Screenshots
+
+The list says only how many a ticket or error has (`photoCount`); it is
+public, and a screenshot can show anything that was on screen. With the task
+key, fetch them:
+
+```
+GET /api/work/<id>/photos
+Authorization: Bearer <task key>
+→ {"id": 33, "photos": ["https://…/reports/report_….jpg"]}
+```
+
+Look at them before you start: a ticket that says "see picture" or "this is
+odd" means what the picture shows, and guessing has cost whole rounds of
+work before. Without the key, ask the person for the pictures instead.
+
 ### `ticket`: something a person asked for or reported
 `data` holds `kind`, `body` (their words, anonymized), `path` (the page they
 were on) and `writtenAt`. Every ticket is

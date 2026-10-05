@@ -69,6 +69,7 @@ export default function AiKeys() {
     const [mode, setMode] = useState<string>('always');
     const [canStore, setCanStore] = useState(true);
     const [style, setStyle] = useState('');
+    const [proxy, setProxy] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -88,6 +89,7 @@ export default function AiKeys() {
             setCredentials(data.credentials);
             setMode(data.mode);
             setStyle(typeof data.writingStyle === 'string' ? data.writingStyle : '');
+            setProxy(typeof data.readerProxy === 'boolean' ? data.readerProxy : true);
             setCanStore(data.canStore);
 
             // Open on whichever is actually in use, rather than on the first in
@@ -475,6 +477,8 @@ export default function AiKeys() {
 
             <WritingStyle initial={style} />
 
+            {proxy !== null && <ReaderProxy initial={proxy} />}
+
             <p className="mt-8 text-sm text-muted">{t('privacyNote')}</p>
         </>
     );
@@ -530,6 +534,57 @@ function WritingStyle({ initial }: { initial: string }) {
                     {note}
                 </p>
             </div>
+        </section>
+    );
+}
+
+/**
+ * Asking a page that refused the cookbook once more through a reading
+ * service (lib/readerProxy). On by default; the admin can turn it off.
+ */
+function ReaderProxy({ initial }: { initial: boolean }) {
+    const t = useTranslations('Ai');
+    const [on, setOn] = useState(initial);
+    const [busy, setBusy] = useState(false);
+    const [note, setNote] = useState('');
+
+    const toggle = async () => {
+        setBusy(true);
+        setNote('');
+        const res = await fetch('/api/ai-keys', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ readerProxy: !on }),
+        }).catch(() => null);
+        setBusy(false);
+        if (res?.ok) setOn(((await res.json()) as { readerProxy: boolean }).readerProxy);
+        else setNote(t('styleFailed'));
+    };
+
+    return (
+        <section className="mt-10 border-t border-line pt-6">
+            <button
+                type="button"
+                role="switch"
+                aria-checked={on}
+                disabled={busy}
+                onClick={() => void toggle()}
+                className="flex min-h-11 w-full items-start gap-3 text-left disabled:opacity-60"
+            >
+                <span
+                    aria-hidden
+                    className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${on ? 'border-transparent bg-ink text-page' : 'border-control'}`}
+                >
+                    {on ? '✓' : ''}
+                </span>
+                <span>
+                    <span className="font-bold">{t('proxyTitle')}</span>
+                    <span className="mt-1 block text-sm text-muted">{t('proxyExplain')}</span>
+                </span>
+            </button>
+            <p role="status" className="text-sm text-muted">
+                {note}
+            </p>
         </section>
     );
 }

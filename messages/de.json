@@ -1077,7 +1077,9 @@
     "stylePlaceholder": "z. B. Du-Form, kurze Sätze, Mengen in den Schritten nicht wiederholen, Temperaturen immer mit Umluft.",
     "styleSave": "Stil speichern",
     "styleSaved": "Gespeichert.",
-    "styleFailed": "Das hat nicht geklappt."
+    "styleFailed": "Das hat nicht geklappt.",
+    "proxyTitle": "Gesperrte Seiten über einen Lesedienst holen",
+    "proxyExplain": "Manche Rezeptseiten (z. B. maangchi.com) lehnen jeden Server ab. Dann fragt das Kochbuch noch einmal über den Lesedienst r.jina.ai. Dabei geht die Adresse dieser Seite an diesen Dienst. Ausgeschaltet landet so eine Seite als „konnte nicht gelesen werden“ im Eingang."
   },
   "SiteProfiles": {
     "title": "Gelernte Seiten",

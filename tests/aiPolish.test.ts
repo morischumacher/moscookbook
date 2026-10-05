@@ -25,6 +25,13 @@ export default async function aiPolishTests() {
     check('a comma rewritten as a point passes', keepsNumbers('1,5 l Brühe', '1.5 l Brühe'));
 
     check('a dropped number fails', !keepsNumbers('18–20 Minuten', '20 Minuten'));
+    // Work #33: "Schritte klarer" numbers the steps, which are not quantities.
+    check(
+        'numbering the steps passes',
+        keepsNumbers('Zwiebel würfeln, dann bei 180 Grad 25 Minuten backen.', '1. Zwiebel würfeln.\n\n2. Bei 180 Grad 25 Minuten backen.')
+    );
+    check('so does "Schritt 1:"', keepsNumbers('Mehl sieben.', 'Schritt 1: Mehl sieben.'));
+    check('but a quantity at the start of a line still counts', !keepsNumbers('200 g Mehl', '250 g Mehl'));
     check('a changed number fails', !keepsNumbers('180 Grad', '200 Grad'));
     check('an invented number fails', !keepsNumbers('Backen bis goldbraun', 'Backen, etwa 20 Minuten'));
 
