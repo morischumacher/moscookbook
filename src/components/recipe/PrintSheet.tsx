@@ -23,7 +23,12 @@ export interface PrintInfo {
  * Its width is set in millimetres rather than taken from the page: an iPhone
  * prints the layout at the phone's width and shrinks it onto the sheet, which
  * is where the narrow column came from. A fixed paper width comes out the
- * same from every browser.
+ * same from every browser. Do not make it fluid (`width: 100%`) again.
+ *
+ * `print-root` tells the print stylesheet (the "Paper" block in
+ * app/globals.css) that this is the only thing on the page to print:
+ * everything around it is dropped and its wrappers are reset, so no screen
+ * width or horizontal overflow can shrink it or push it to one side.
  */
 export default function PrintSheet({
     title,
@@ -49,7 +54,7 @@ export default function PrintSheet({
     const facts = [...(servings ? [{ label: servingsLabel, value: String(servings) }] : []), ...info.facts];
 
     return (
-        <div className="print-sheet hidden print:block">
+        <div className="print-sheet print-root hidden print:block">
             <header className="print-masthead">
                 {/* Loaded eagerly: hidden on screen, a lazy picture is never
                     fetched, and the printed page came out without the logo. */}

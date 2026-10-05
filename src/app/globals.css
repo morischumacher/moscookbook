@@ -363,18 +363,100 @@ body {
   outline-offset: 2px;
 }
 
+/*
+ * Paper.
+ *
+ * The rule this block keeps: the paper decides the width, never the screen.
+ *
+ * A browser prints by laying the page out and then fitting the result onto
+ * the sheet. Desktop Chrome lays it out at the paper's width. iOS Safari lays
+ * it out at the page's own width, and if anything in the document is wider
+ * than that, or the document is capped at the phone's width, the whole
+ * layout is scaled down to fit and lands on one side of the sheet: the tiny,
+ * shifted recipe that came off an iPhone (work #40). So, in print:
+ *
+ * - html and body lose every screen width. `max-width: 100vw` (set above for
+ *   the screen) can mean the *phone's* width while printing on iOS; it is
+ *   undone here, along with the overflow clipping that went with it.
+ * - A page that has a sheet to print (`.print-root`: the recipe sheet, the
+ *   menu card) prints that and nothing else. Everything around it is taken
+ *   out of the layout, not just hidden, and the wrappers it sits in lose
+ *   their padding, negative margins, minimum heights and transforms, so
+ *   nothing is left that could be wider than the paper or push the sheet
+ *   sideways.
+ * - The sheet itself has a width in millimetres that fits the printable area
+ *   (A4: 210mm less the margins of @page), centred, with `max-width: 100%`
+ *   so a smaller paper size shrinks it rather than cutting it off.
+ *
+ * Do not set the sheet to `width: 100%` or `@page { size: auto }`: that hands
+ * the width back to whatever the browser thinks the page is, which is how
+ * this broke before.
+ */
 @media print {
+  @page {
+    size: A4;
+    margin: 14mm 15mm;
+  }
+
+  html,
+  body {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 12pt;
+  }
+
+  /* The layout's wrapper around every page holds a screen's height open. */
+  #content {
+    display: block !important;
+    min-height: 0 !important;
+  }
+
   nav,
   footer,
   .print\:hidden {
     display: none !important;
   }
 
-  html,
-  body {
-    background: #fff !important;
-    color: #000 !important;
-    font-size: 12pt;
+  /* Only the sheet, when there is one. A browser without :has() drops these
+     two rules and falls back to the print:hidden markup, which still works. */
+  body:has(.print-root) :not(.print-root, .print-root *, :has(.print-root)) {
+    display: none !important;
+  }
+
+  body:has(.print-root) :has(.print-root) {
+    display: block !important;
+    position: static !important;
+    transform: none !important;
+    float: none !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .print-root {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    overflow-wrap: break-word;
+  }
+
+  /* No picture on paper may be wider than the sheet. */
+  .print-root img,
+  .print-root svg,
+  .print-root video {
+    max-width: 100% !important;
   }
 
   article {
@@ -401,11 +483,6 @@ body {
 
   /* ─── The recipe sheet (components/recipe/PrintSheet) ─────────────────── */
 
-  @page {
-    size: auto;
-    margin: 12mm 15mm;
-  }
-
   /* The page around the sheet: no tint, no height, no padding to push it. */
   main {
     min-height: 0 !important;
@@ -414,31 +491,36 @@ body {
   }
 
   .print-sheet {
-    width: 100% !important;
-    max-width: 100% !important;
+    /* Paper width, not screen width: 210mm less 2 × 15mm of @page margin.
+       See the comment at the top of this block, and the component. */
+    width: 180mm;
+    max-width: 100%;
     margin: 0 auto;
     color: #000;
     font-family: var(--font-sans), system-ui, sans-serif;
-    font-size: 11.5pt;
-    line-height: 1.5;
+    font-size: 10.5pt;
+    line-height: 1.45;
   }
 
   .print-masthead {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 6mm;
     padding-bottom: 4mm;
     border-bottom: 0.4pt solid #000;
     margin-bottom: 6mm;
   }
 
   .print-url {
-    font-size: 9.5pt;
+    min-width: 0;
+    font-size: 8.5pt;
     color: #444;
+    overflow-wrap: anywhere;
   }
 
   .print-eyebrow {
-    font-size: 9pt;
+    font-size: 8.5pt;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -447,9 +529,9 @@ body {
   }
 
   .print-sheet .print-title {
-    font-size: 24pt;
+    font-size: 22pt;
     font-weight: 800;
-    line-height: 1.15;
+    line-height: 1.1;
     letter-spacing: -0.01em;
     margin: 0;
   }
@@ -457,10 +539,10 @@ body {
   .print-description {
     font-family: var(--font-serif), Georgia, serif;
     font-style: italic;
-    font-size: 11pt;
+    font-size: 10.5pt;
     color: #333;
     margin: 2.5mm 0 0;
-    max-width: 100%;
+    max-width: 150mm;
   }
 
   .print-facts {
@@ -489,9 +571,18 @@ body {
 
   .print-columns {
     display: grid;
-    grid-template-columns: 62mm 1fr;
+    /* minmax(0, …): a long word or link in a step wraps instead of widening
+       the column past the sheet. */
+    grid-template-columns: 62mm minmax(0, 1fr);
     gap: 9mm;
     margin-top: 6mm;
+  }
+
+  /* The two columns may run onto the next page; their rows and steps may
+     not. Kept whole, a long method jumped to page two and left the first
+     page with nothing but a title. */
+  .print-columns > section {
+    break-inside: auto;
   }
 
   .print-sheet h2 {
@@ -552,8 +643,22 @@ body {
     break-inside: avoid;
   }
 
+  .print-method li > div {
+    min-width: 0;
+  }
+
   .print-method li p {
     margin: 0;
+  }
+
+  /* A picture inside a step: the column's width at most, and never a page. */
+  .print-method img {
+    display: block;
+    width: auto !important;
+    height: auto !important;
+    max-height: 60mm;
+    margin: 1.5mm 0;
+    object-fit: contain;
   }
 
   .print-step-number {

@@ -188,10 +188,16 @@
     margin: 12mm;
   }
 
+  /* A width in millimetres, like the recipe sheet: A5 less its margins.
+     Where a browser ignores the named page (iOS Safari prints on the paper
+     the printer has) the card still comes out this size and centred, rather
+     than taking its width from the phone's screen. */
   .card {
     page: menu;
     box-shadow: none;
-    max-width: none;
+    width: 124mm;
+    max-width: 100%;
+    margin: 0 auto;
     padding-top: 0;
     padding-bottom: 0;
     background: transparent !important;
