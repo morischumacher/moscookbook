@@ -142,8 +142,6 @@
     "cookView": "Ansicht"
   },
   "Rating": {
-    "rate": "Bewerten",
-    "editRating": "Bewertung ändern",
     "summary": "{count, plural, =0 {Noch nicht bewertet} one {# Person bewertete dies mit {average}} other {# Personen bewerteten dies mit {average}}}",
     "submitYours": "Deine Bewertung abgeben",
     "screenReader": "Durchschnitt {average} von {max}",
@@ -151,7 +149,9 @@
     "failed": "Die Bewertung konnte nicht gespeichert werden.",
     "error": "Beim Speichern der Bewertung ist etwas schiefgegangen.",
     "rateN": "{value, number} von {max}",
-    "cancel": "Abbrechen"
+    "yours": "Deine Bewertung: {value} – tippen zum Ändern",
+    "tapToRate": "Auf eine Auster tippen zum Bewerten",
+    "saved": "Gespeichert: {value} von 5"
   },
   "Favorite": {
     "add": "Zu Favoriten hinzufügen",

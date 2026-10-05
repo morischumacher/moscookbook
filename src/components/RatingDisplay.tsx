@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import Rating, { type RatingResult } from './Rating';
 
@@ -43,64 +43,74 @@ export default function RatingDisplay({
     const [average, setAverage] = useState(initialAverage);
     const [count, setCount] = useState(initialCount);
     const [userRating, setUserRating] = useState(initialUserRating);
-    const [isRatingOpen, setIsRatingOpen] = useState(false);
+    /*
+     * One tap on an oyster rates (the owner's wish: "Bewerten", then the
+     * oysters, then a tap was a two-step for a one-step thing). At rest the
+     * oysters show the average; pointed at, or focused, they show your own
+     * rating and follow the pointer, and a tap saves at once.
+     */
+    const [pointing, setPointing] = useState(false);
+    const [justSaved, setJustSaved] = useState(false);
+    const saved = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => () => {
+        if (saved.current) clearTimeout(saved.current);
+    }, []);
 
     const handleRated = (result: RatingResult) => {
         setAverage(result.average);
         setCount(result.totalRatings);
         setUserRating(result.rating);
-        setIsRatingOpen(false);
+        // Said for a moment, also on a phone, which has no pointing.
+        setJustSaved(true);
+        if (saved.current) clearTimeout(saved.current);
+        saved.current = setTimeout(() => setJustSaved(false), 2500);
     };
+
+    const showingYours = isLoggedIn && (pointing || justSaved);
+    const yours = justSaved
+        ? t('saved', { value: userRating })
+        : userRating > 0
+          ? t('yours', { value: userRating })
+          : t('tapToRate');
 
     return (
         <div className={infoClassName}>
-            <span className="inline-flex items-center gap-2">
-                {/* Keyed apart: React reused one instance for both, and the
-                    hover state from rating stayed on the read-only row — it
-                    showed your own rating beside the text saying the average. */}
-                {isRatingOpen ? (
-                    <Rating key="edit" value={userRating} recipeId={recipeId} onRated={handleRated} focusOnShow />
+            <span
+                className="inline-flex items-center gap-2"
+                onPointerEnter={(event) => event.pointerType === 'mouse' && setPointing(true)}
+                onPointerLeave={() => setPointing(false)}
+                onFocus={() => setPointing(true)}
+                onBlur={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPointing(false);
+                }}
+            >
+                {isLoggedIn ? (
+                    <Rating value={showingYours ? userRating : average} recipeId={recipeId} onRated={handleRated} />
                 ) : (
-                    <Rating key="view" value={average} readonly />
+                    <Rating value={average} readonly />
                 )}
 
-                {/* The count in words rather than "(0)" next to five empty
-                    shells, which reads as a rating of nought rather than as
-                    nobody having cooked it yet.
-
-                    No "/5" after the average either: five oysters are sitting
-                    immediately to the left saying exactly that, and a scale
-                    written out next to a picture of the scale is the kind of
-                    small redundancy that makes an interface feel wordy. */}
-                <span className="text-muted">
-                    {t('summary', { count, average: oneDecimal.format(average) })}
+                {/* The two sentences in one cell, the longer one setting its
+                    width: switching between them moved everything after it,
+                    which was the jumping. No "/5" after the average: five
+                    oysters say that already. */}
+                <span className="grid text-muted">
+                    <span className={`col-start-1 row-start-1 ${showingYours ? 'invisible' : ''}`} aria-hidden={showingYours}>
+                        {t('summary', { count, average: oneDecimal.format(average) })}
+                    </span>
+                    {isLoggedIn && (
+                        <span
+                            className={`col-start-1 row-start-1 ${showingYours ? '' : 'invisible'} ${justSaved ? 'text-ink' : ''}`}
+                            aria-live="polite"
+                        >
+                            {showingYours ? yours : t('tapToRate')}
+                        </span>
+                    )}
                 </span>
             </span>
 
             <span aria-hidden="true">•</span>
             <span>{tRecipe('views', { count: views })}</span>
-
-            {isRatingOpen && (
-                <>
-                    <span aria-hidden="true">•</span>
-                    <button type="button" onClick={() => setIsRatingOpen(false)} className="text-sm text-muted underline underline-offset-4">
-                        {t('cancel')}
-                    </button>
-                </>
-            )}
-
-            {isLoggedIn && !isRatingOpen && (
-                <>
-                    <span aria-hidden="true">•</span>
-                    <button
-                        type="button"
-                        onClick={() => setIsRatingOpen(true)}
-                        className="text-sm font-semibold text-accent-text underline decoration-1 underline-offset-4 hover:opacity-70 transition-opacity"
-                    >
-                        {userRating === 0 ? t('rate') : t('editRating')}
-                    </button>
-                </>
-            )}
         </div>
     );
 }
