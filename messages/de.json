@@ -112,7 +112,7 @@
     "nextImage": "Nächstes Foto",
     "units": "Einheiten",
     "unitsMetric": "g / ml",
-    "unitsOriginal": "Wie geschrieben",
+    "unitsUS": "Cups / oz",
     "screenMayDim": "Bildschirm kann ausgehen.",
     "stepOf": "Schritt {number} von {total}",
     "stepDone": "erledigt",
@@ -1049,7 +1049,13 @@
     "aiOnly": "Nur mit KI lesen (kostet)",
     "aiOnlyExplain": "Die KI bekommt alles, was geteilt wurde – Seite, Bildtext, Videobeschreibung, Untertitel, Screenshot – und macht daraus das Rezept. Ohne Regeln und ohne Gelerntes; ersetzt das bisherige Ergebnis.",
     "aiOnlyDone": "Wurde schon nur von der KI gelesen. Noch einmal bringt dasselbe.",
-    "polishFailed": "Die Überarbeitung hat nicht geklappt. Versuch es bitte noch einmal."
+    "polishFailed": "Die Überarbeitung hat nicht geklappt. Versuch es bitte noch einmal.",
+    "styleTitle": "Eigener Schreibstil",
+    "styleExplain": "Wie die KI schreibt, wenn sie eine Zubereitung aus den Zutaten verfasst oder in Schritte bringt. Die Rechtschreibkorrektur ändert den Stil nicht.",
+    "stylePlaceholder": "z. B. Du-Form, kurze Sätze, Mengen in den Schritten nicht wiederholen, Temperaturen immer mit Umluft.",
+    "styleSave": "Stil speichern",
+    "styleSaved": "Gespeichert.",
+    "styleFailed": "Das hat nicht geklappt."
   },
   "SiteProfiles": {
     "title": "Gelernte Seiten",

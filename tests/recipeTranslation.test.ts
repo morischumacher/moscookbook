@@ -66,8 +66,9 @@ export default async function recipeTranslationTests() {
     check('a method that went missing is refused',
         readTranslation({ ...answer, instructions: '' }, curry, 'de', 'k') === null);
 
-    check('the German prompt converts cups', translatePrompt('en', 'de').includes('cups of liquid → ml'));
-    check('the English prompt keeps metric', translatePrompt('de', 'en').includes('do not convert to cups'));
+    // The page converts either way (lib/units); a model doing sums gave "472,23524 g" (work #28).
+    check('the German prompt keeps the amounts', translatePrompt('en', 'de').includes('never convert or compute an amount'));
+    check('the English prompt keeps the amounts', translatePrompt('de', 'en').includes('never convert or compute an amount'));
 
     suite('recipeTranslation: fingerprint');
 

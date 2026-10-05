@@ -1,6 +1,6 @@
 /** Units: metric by default, tidy after scaling, addable for the shopping list */
 import { suite, check, equal } from './harness';
-import { countUnitLabel, fromBase, hasNonMetric, tidy, toBase, toMetric, unitOf } from '../src/lib/units';
+import { countUnitLabel, fromBase, hasMeasures, hasNonMetric, tidy, toBase, toMetric, toUS, unitOf } from '../src/lib/units';
 
 const amount = (quantity: number | null, unit: string | null, quantityMax: number | null = null) => ({
     quantity,
@@ -29,6 +29,22 @@ export default function unitsTests() {
     equal('no amount, nothing to do', toMetric(amount(null, 'etwas'), 'Salz'), amount(null, 'etwas'));
     check('a German recipe needs no switch', !hasNonMetric([amount(200, 'g'), amount(2, 'EL')]));
     check('an American one does', hasNonMetric([amount(1, 'cup')]));
+
+    suite('units: into American measures (work #29, #44)');
+    equal('125 g flour is a cup', toUS(amount(125, 'g'), 'flour', 'en'), amount(1, 'cup'));
+    equal('400 g sugar is two cups', toUS(amount(400, 'g'), 'Zucker', 'de'), amount(2, 'Tassen'));
+    equal('480 ml milk is two cups', toUS(amount(480, 'ml'), 'milk', 'en'), amount(2, 'cups'));
+    equal('80 ml is a third of a cup', toUS(amount(80, 'ml'), 'water', 'en'), amount(0.333, 'cup'));
+    equal('30 ml is two tablespoons', toUS(amount(30, 'ml'), 'soy sauce', 'en'), amount(2, 'tbsp'));
+    equal('5 ml is a teaspoon', toUS(amount(5, 'ml'), 'vinegar', 'de'), amount(1, 'TL'));
+    equal('200 g grated cheese is two cups', toUS(amount(200, 'g'), 'grated cheese', 'en'), amount(2, 'cups'));
+    equal('225 g beef is eight ounces', toUS(amount(225, 'g'), 'beef', 'en'), amount(8, 'oz'));
+    equal('a kilo of potatoes is pounds', toUS(amount(1, 'kg'), 'potatoes', 'en'), amount(2.25, 'lb'));
+    equal('cups stay cups', toUS(amount(1, 'cup'), 'flour', 'en'), amount(1, 'cup'));
+    equal('spoons stay spoons', toUS(amount(2, 'EL'), 'oil', 'de'), amount(2, 'EL'));
+    equal('a range stays a range', toUS(amount(240, 'ml', 480), 'water', 'en'), amount(1, 'cups', 2));
+    check('a German recipe has something to switch', hasMeasures([amount(200, 'g'), amount(2, 'EL')]));
+    check('spoons alone do not', !hasMeasures([amount(2, 'EL'), amount(2, 'Zehen')]));
 
     suite('units: tidy after scaling');
     equal('1000 g is a kilo', tidy(amount(1000, 'g')), amount(1, 'kg'));

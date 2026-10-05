@@ -80,4 +80,20 @@ export default async function aiPolishTests() {
 
     check('the second provider is asked when the first fails', chain.ok, chain);
     equal('and both were tried', asked, 2);
+
+    suite('aiPolish: a method from the ingredients (work #30)');
+    let seen = { system: '', user: '' };
+    const method = '1. Den Tofu würfeln und in Stärke wenden.\n\n2. In Öl goldbraun frittieren.\n\n'.repeat(8);
+    const written = await polish('generate-method', '400 g Tofu\n3 EL Stärke', [key], async (_, system, user) => {
+        seen = { system, user };
+        return method;
+    }, { title: 'Agedashi Tofu', style: 'Kurze Sätze, du-Form.' });
+    check('a method far longer than the list is kept', written.ok, written);
+    check('the title is sent along', seen.user.includes('Title: Agedashi Tofu') && seen.user.includes('400 g Tofu'));
+    check('the writing style reaches the prompt', seen.system.includes('Kurze Sätze, du-Form.'));
+    await polish('spelling', ORIGINAL, [key], async (_, system) => {
+        seen.system = system;
+        return ORIGINAL;
+    }, { style: 'Kurze Sätze' });
+    check('but not the spelling fix', !seen.system.includes('Kurze Sätze'));
 }

@@ -9,16 +9,10 @@ import { failed } from '@/lib/reportServerError';
 /**
  * Finishing a draft.
  *
- * One direction only, and there is no route for the other one. A recipe can
- * stop being a draft; it cannot be sent back to being one.
- *
- * That asymmetry is deliberate rather than unfinished. Going back would mean a
- * recipe that is public having to un-publish itself, revoke a share link that
- * somebody may already have opened, and vanish from collections other people
- * can see — a great deal of machinery, every piece of it a place for a private
- * recipe to stay visible by accident, in service of an act nobody asked for.
- * A recipe that turned out not to be ready can be edited, or deleted and
- * imported again.
+ * The way back is "Als Entwurf speichern" in the edit form (PUT with
+ * `isDraft: true`, work #23): every page that shows a recipe already leaves
+ * drafts out (`isDraft: false` in its query, a share link included), so a
+ * recipe sent back disappears from them without further machinery.
  *
  * `updateMany` with `isDraft: true` in the WHERE clause so that pressing twice
  * is not an error the second time and not a second write either: the first

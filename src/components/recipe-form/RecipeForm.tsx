@@ -15,7 +15,7 @@ import TagField from './TagField';
 import IngredientEditor, { EMPTY_ROW } from './IngredientEditor';
 import { fieldClass, labelClass } from './formStyles';
 import QuickImport, { type ImportedDraft } from './QuickImport';
-import { buttonPrimary } from '@/lib/ui';
+import { buttonPrimary, buttonSecondary } from '@/lib/ui';
 import { BusyLabel } from '@/components/ui/Busy';
 import LabelPicker from './LabelPicker';
 import DietPicker from './DietPicker';
@@ -351,7 +351,7 @@ export default function RecipeForm({
             // second press creates the recipe twice (or a 409 on its slug).
             saved = true;
             clearDraft();
-            router.push(captureId ? '/admin/inbox' : '/admin');
+            router.push(captureId ? '/admin/inbox' : isDraft ? '/admin/drafts' : '/admin');
             router.refresh();
         } catch {
             failWith(t('saveFailed'));
@@ -562,10 +562,14 @@ export default function RecipeForm({
                         earn their keep: a title has a typo perhaps twice a
                         year, and a method forwarded from an e-mail is one
                         paragraph every single time. */}
+                    {/* With a method, the buttons work on it; without one, the
+                        one button writes it from the ingredients (work #30) —
+                        never over a method somebody already wrote. */}
                     <PolishPanel
                         text={instructions.trim() ? instructions : ingredients.map((i) => `${i.amount} ${i.item}`.trim()).filter(Boolean).join('\n')}
+                        title={title}
                         onApply={setInstructions}
-                        modes={instructions.trim() ? ['spelling', 'steps', 'generate-method'] : ['generate-method']}
+                        modes={instructions.trim() ? ['spelling', 'steps'] : ['generate-method']}
                         disabled={preview}
                         available={aiEnabled}
                     />
@@ -597,9 +601,9 @@ export default function RecipeForm({
                         type="button"
                         disabled={saving}
                         onClick={(event) => void handleSubmit(event, true)}
-                        className="rounded-lg border border-control px-4 py-2 text-sm font-medium hover:bg-surface disabled:opacity-50"
+                        className={buttonSecondary}
                     >
-                        {t('saveAsDraft') || 'Als Entwurf speichern'}
+                        {t('saveAsDraft')}
                     </button>
                     <button
                         type="button"

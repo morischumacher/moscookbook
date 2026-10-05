@@ -44,13 +44,5 @@ export const CUISINE_PRESETS = [
     'American',
 ] as const;
 
-export const MAX_LABELS = 5;
-
-/**
- * What the head of a recipe shows: the first few, and how many more there
- * are — a recipe filed under nine categories must not push its own title off
- * the screen.
- */
-export function headLabels(labels: string[], shown = 3): { shown: string[]; more: number } {
-    return { shown: labels.slice(0, shown), more: Math.max(0, labels.length - shown) };
-}
+/** Per field, when a recipe is written: few enough that the head shows every one (work #44). */
+export const MAX_LABELS = 4;

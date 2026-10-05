@@ -23,12 +23,15 @@ import { buttonPrimarySmall } from '@/lib/ui';
  */
 export default function PolishPanel({
     text,
+    title,
     onApply,
     modes = ['spelling', 'steps'],
     disabled = false,
     available = true,
 }: {
     text: string;
+    /** The recipe's name, sent along when a method is written from the ingredients. */
+    title?: string;
     onApply: (next: string) => void;
     /** `steps` and `generate-method` for method field. */
     modes?: ('spelling' | 'steps' | 'generate-method')[];
@@ -50,7 +53,7 @@ export default function PolishPanel({
             const res = await fetch('/api/ai/polish', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode, text }),
+                body: JSON.stringify({ mode, text, ...(mode === 'generate-method' && title?.trim() ? { title } : {}) }),
             });
 
             const data = await res.json().catch(() => ({}));

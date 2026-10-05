@@ -112,7 +112,7 @@
     "nextImage": "Next photo",
     "units": "Units",
     "unitsMetric": "g / ml",
-    "unitsOriginal": "As written",
+    "unitsUS": "cups / oz",
     "screenMayDim": "The screen may turn off.",
     "stepOf": "Step {number} of {total}",
     "stepDone": "done",
@@ -1049,7 +1049,13 @@
     "aiOnly": "Read with AI only (paid)",
     "aiOnlyExplain": "The AI gets everything that was shared – page, caption, video description, subtitles, screenshot – and makes the recipe from it. No rules, nothing learned; replaces the current result.",
     "aiOnlyDone": "Already read by the AI alone. Reading it again would give the same result.",
-    "polishFailed": "The revision did not work. Please try again."
+    "polishFailed": "The revision did not work. Please try again.",
+    "styleTitle": "Your writing style",
+    "styleExplain": "How the AI writes when it drafts a method from the ingredients or turns one into steps. The spelling fix does not change the style.",
+    "stylePlaceholder": "e.g. address the reader directly, short sentences, don't repeat amounts in the steps, fan oven temperatures.",
+    "styleSave": "Save style",
+    "styleSaved": "Saved.",
+    "styleFailed": "That did not work."
   },
   "SiteProfiles": {
     "title": "Learned sites",

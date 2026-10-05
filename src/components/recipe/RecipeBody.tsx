@@ -9,7 +9,7 @@ import { buttonFloating, buttonPrimarySmall } from '@/lib/ui';
 import CookMode from './CookMode';
 import { useCookTimers } from './useCookTimers';
 import { clock } from '@/lib/cookSteps';
-import { formatMeasured, hasNonMetric, tidy, toMetric, unitOf, type UnitSystem, countUnitLabel } from '@/lib/units';
+import { formatMeasured, hasMeasures, tidy, toMetric, toUS, unitOf, type UnitSystem, countUnitLabel } from '@/lib/units';
 import { cookProgressKey, parseCookProgress, worthSaving } from '@/lib/cookProgress';
 import PrintSheet, { type PrintInfo } from './PrintSheet';
 
@@ -91,17 +91,20 @@ export default function RecipeBody({
     const uiLocale = (locale === 'en' ? 'en' : 'de') as 'en' | 'de';
 
     /*
-     * Grams and millilitres by default, with the recipe's own units one tap
-     * away. Remembered per device, because somebody who wants cups wants them
-     * on every recipe. Offered only where it changes anything.
+     * Grams and millilitres by default, cups and ounces one tap away — every
+     * amount worked out either way, whatever the recipe was written in, so a
+     * page never mixes the two (work #29, #44). Remembered per device,
+     * because somebody who wants cups wants them on every recipe. Offered
+     * only where there is a weight or a volume to change.
      */
-    const convertible = hasNonMetric(ingredients);
+    const convertible = hasMeasures(ingredients);
     const [system, setSystem] = useState<UnitSystem>('metric');
     useEffect(() => {
         try {
             const saved = window.localStorage.getItem('unit-system');
+            // "original" was the old name for the recipe's own units: cups, mostly.
             // eslint-disable-next-line react-hooks/set-state-in-effect -- read from the browser's storage after hydration
-            if (saved === 'original' || saved === 'metric') setSystem(saved);
+            if (saved === 'us' || saved === 'original') setSystem('us');
         } catch {
             // Storage blocked: metric it is.
         }
@@ -128,10 +131,15 @@ export default function RecipeBody({
             unit: row.unit,
         };
         const unit = unitOf(row.unit);
-        const converts = system === 'metric' && unit !== null && !unit.metric;
-        if (factor === 1 && !converts) return row.raw || formatAmount(row, 1, uiLocale);
+        const converts = unit !== null && unit.dimension !== 'spoon' && (system === 'metric' ? !unit.metric : unit.metric);
+        // A written amount with a long tail of decimals ("472,23524 g", from a
+        // conversion somebody else did) is worked out again rather than shown (work #28).
+        const messy = /\d[.,]\d{3,}/.test(row.raw ?? '');
+        if (factor === 1 && !converts && !messy) return row.raw || formatAmount(row, 1, uiLocale);
         const shown = converts
-            ? toMetric(scaled, row.name, uiLocale)
+            ? system === 'metric'
+                ? toMetric(scaled, row.name, uiLocale)
+                : toUS(scaled, row.name, uiLocale)
             : unit
               ? tidy(scaled, uiLocale)
               : { ...scaled, unit: countUnitLabel(scaled.unit, scaled.quantityMax ?? scaled.quantity) };
@@ -366,7 +374,7 @@ export default function RecipeBody({
 
                 {convertible && (
                     <div role="group" aria-label={t('units')} className="flex rounded-full border border-line p-0.5 text-sm">
-                        {(['metric', 'original'] as const).map((which) => (
+                        {(['metric', 'us'] as const).map((which) => (
                             <button
                                 key={which}
                                 type="button"
@@ -374,7 +382,7 @@ export default function RecipeBody({
                                 onClick={() => chooseSystem(which)}
                                 className={`min-h-11 rounded-full px-3 py-1.5 ${system === which ? 'bg-ink text-page' : 'text-muted'}`}
                             >
-                                {which === 'metric' ? t('unitsMetric') : t('unitsOriginal')}
+                                {which === 'metric' ? t('unitsMetric') : t('unitsUS')}
                             </button>
                         ))}
                     </div>

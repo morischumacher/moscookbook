@@ -171,7 +171,8 @@ export async function polish(
     mode: PolishMode,
     text: string,
     keys: AiKey[],
-    call: (key: AiKey, system: string, user: string) => Promise<string>
+    call: (key: AiKey, system: string, user: string) => Promise<string>,
+    extra: { title?: string; style?: string } = {}
 ): Promise<PolishResult | PolishFailure> {
     if (keys.length === 0) {
         return { ok: false, reason: 'no-keys', message: 'No AI key is configured.' };
@@ -179,9 +180,16 @@ export async function polish(
 
     const failures: string[] = [];
 
+    // The cookbook's own voice (admin → AI), for the buttons that write;
+    // spelling only corrects, and must not restyle (work #20).
+    const style = extra.style?.trim();
+    const system = style && mode !== 'spelling' ? `${PROMPTS[mode]}\n\nWrite in the cookbook's own style:\n${style.slice(0, 2000)}` : PROMPTS[mode];
+    // A method is written from the ingredients and the dish's name (work #30).
+    const user = mode === 'generate-method' ? `${extra.title?.trim() ? `Title: ${extra.title.trim()}\n\n` : ''}Ingredients:\n${text}` : text;
+
     for (const key of keys) {
         try {
-            const answer = (await call(key, PROMPTS[mode], text)).trim();
+            const answer = (await call(key, system, user)).trim();
 
             if (answer === '') {
                 failures.push('an empty answer');
@@ -190,7 +198,9 @@ export async function polish(
 
             // A model that decided to explain itself rather than do the work.
             // Cheap to spot: the answer is enormously longer than the input.
-            if (answer.length > text.length * 3 + 500) {
+            // A method written from a short list of ingredients is longer than
+            // the list by nature: only a runaway answer is refused there.
+            if (mode === 'generate-method' ? answer.length > 8000 : answer.length > text.length * 3 + 500) {
                 failures.push('an answer that was not the text');
                 continue;
             }
@@ -220,4 +230,6 @@ export const polishSchema = z.object({
     // A recipe's method, not a novel. Anything longer is somebody pasting a
     // book in, and the button is not for that.
     text: z.string().trim().min(1).max(20_000),
+    /** The recipe's name, for writing a method from its ingredients. */
+    title: z.string().trim().max(200).optional(),
 });

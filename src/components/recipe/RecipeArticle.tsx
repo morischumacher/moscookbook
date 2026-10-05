@@ -10,7 +10,6 @@ import RecipeBody from '@/components/recipe/RecipeBody';
 import { splitSteps } from '@/lib/steps';
 import { withCelsius } from '@/lib/units';
 import { KNOWN_TAGS, TAG_ICONS, chillies } from '@/lib/tags';
-import { headLabels } from '@/lib/recipeLabels';
 import Gallery from '@/components/recipe/Gallery';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import Cooked, { type CookedEntry } from '@/components/recipe/Cooked';
@@ -180,7 +179,6 @@ export default async function RecipeArticle({
         ...recipe.categories.map((value) => (tCategory.has(value) ? tCategory(value) : value)),
         ...recipe.cuisines.map((value) => (tCuisine.has(value) ? tCuisine(value) : value)),
     ];
-    const head = headLabels(labels);
 
     const totalMinutes = (recipe.prepMinutes ?? 0) + (recipe.cookMinutes ?? 0);
     const times = [
@@ -189,7 +187,8 @@ export default async function RecipeArticle({
         recipe.prepMinutes && recipe.cookMinutes
             ? { label: t('totalTime'), value: formatMinutes(totalMinutes, locale) }
             : null,
-        recipe.servings ? { label: t('servings'), value: String(recipe.servings) } : null,
+        // Not the servings: the stepper below says how many, and changes;
+        // a second, fixed number up here contradicted it (work #44).
     ].filter((entry): entry is { label: string; value: string } => entry !== null);
 
 
@@ -254,8 +253,8 @@ export default async function RecipeArticle({
                     the same mark, shown only on paper. */}
 
                 <p className="text-xs font-semibold uppercase tracking-widest text-faint">
-                    {head.shown.join(' · ') || formatDate(recipe.createdAt, locale, 'short')}
-                    {head.more > 0 && <span title={labels.slice(3).join(', ')} className="whitespace-nowrap"> · +{head.more}</span>}
+                    {/* Every one: a "+1" that could not be opened hid what it counted (work #44). */}
+                    {labels.join(' · ') || formatDate(recipe.createdAt, locale, 'short')}
                 </p>
 
                 <h1 className="mt-2 text-3xl font-extrabold leading-[1.12] tracking-tight text-ink sm:text-4xl">

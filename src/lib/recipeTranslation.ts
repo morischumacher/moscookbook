@@ -123,17 +123,17 @@ const UNIT_RULES: Record<RecipeLanguage, string> = {
     de: `Amounts, for a German kitchen:
 - write units the German way: tbsp → EL, tsp → TL, pinch → Prise, clove → Zehe,
   bunch → Bund, can → Dose, handful → Handvoll, slice → Scheibe
-- convert US and imperial measures to metric, rounded to what a cook would
-  weigh or measure: cups of liquid → ml, cups of flour, sugar, rice etc. → g
-  (use the ingredient's weight), oz → g, lb → g or kg, fl oz → ml, pints → ml,
-  inches → cm
+- keep every quantity exactly as it is, and keep cup, oz, lb, fl oz and pint
+  as they are: the page works out grams and millilitres itself (and cups
+  from grams), so never convert or compute an amount
 - temperatures in the method: °F → °C, rounded to 5 (350 °F → 180 °C)
 - use a decimal comma (1,5) and keep fractions like 1/2 as they are`,
     en: `Amounts, for an English-speaking kitchen:
 - write units the English way: EL → tbsp, TL → tsp, Prise → pinch, Zehe → clove,
   Bund → bunch, Dose → can, Handvoll → handful, Scheibe → slice, Stück → leave
   out or "piece"
-- keep metric quantities metric (g, kg, ml, l, °C, cm); do not convert to cups
+- keep every quantity and unit as it is (g stays g, cups stay cups): the
+  page converts between the two itself, so never convert or compute an amount
 - use a decimal point (1.5) and keep fractions like 1/2 as they are`,
 };
 
