@@ -3,6 +3,7 @@ import { shoppingKey } from './shopping';
 import { NOISE } from './ingredientNames';
 import { guessLanguage, storedRows, type RecipeLanguage } from './recipeTranslation';
 import { sectionHeading } from './ingredientParts';
+import { shapeOf } from './ingredientShape';
 
 /**
  * The cookbook's ingredients, once each, in both languages.
@@ -26,10 +27,14 @@ export interface CatalogItem {
     aliases: string[];
 }
 
-/** A row's name without what is not the thing: brackets, a preparation after the comma. */
+/**
+ * A row's name without what is not the thing: the form after the comma, the
+ * notes in brackets, "(optional)", and a form written before it ("frischer
+ * Ingwer") — the cookbook's convention (lib/ingredientShape).
+ */
 export function coreName(name: string): string {
-    return name
-        .replace(/\([^)]*\)/g, ' ')
+    return shapeOf(name)
+        .base.replace(/\([^)]*\)/g, ' ')
         .split(/[,;]/)[0]
         .replace(/\s+/g, ' ')
         .trim();

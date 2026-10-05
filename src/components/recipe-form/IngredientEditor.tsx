@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
+import { conventionalRows } from '@/lib/ingredientShape';
 import { sectionHeading } from '@/lib/ingredientParts';
 import { fieldBase, fieldClass, labelClass } from './formStyles';
 import AmountInput from './AmountInput';
@@ -81,7 +82,8 @@ export default function IngredientEditor({
         if (parsed.length === 0) return;
 
         const existing = ingredients.filter((row) => row.item.trim() !== '');
-        onChange([...existing, ...parsed]);
+        // Written the cookbook's way, as a row typed in is on leaving it (lib/ingredientShape).
+        onChange([...existing, ...conventionalRows(parsed)]);
         setBulk('');
         setShowBulk(false);
     };

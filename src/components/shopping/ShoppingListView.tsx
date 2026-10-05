@@ -373,12 +373,14 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     // The ingredients that are on the list in more than one unit.
     const severalUnits = useMemo(() => {
         if (mode.kind !== 'account' || !mode.admin) return [];
-        const measures = new Map<number, { item: ShoppingItemRow; units: Set<string> }>();
+        const measures = new Map<string, { item: ShoppingItemRow; units: Set<string> }>();
         for (const item of items) {
             if (item.checked || item.itemId === null || item.measure === null) continue;
-            const group = measures.get(item.itemId) ?? { item, units: new Set<string>() };
+            // An optional line is apart from the one that is needed (lib/shopping).
+            const id = `${item.itemId}:${item.aisle === 'optional'}`;
+            const group = measures.get(id) ?? { item, units: new Set<string>() };
             group.units.add(item.measure);
-            measures.set(item.itemId, group);
+            measures.set(id, group);
         }
         return [...measures.values()].filter((group) => group.units.size > 1).map(({ item }) => (item.item && itemName(item.item, locale, null, null)) || displayName(item.name, locale, null, null));
     }, [items, locale, mode]);

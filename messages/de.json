@@ -291,7 +291,7 @@
     "pasteList": "Liste einfügen",
     "closeList": "Liste schließen",
     "appendIngredients": "Zutaten anhängen",
-    "itemPlaceholder": "Mehl",
+    "itemPlaceholder": "z. B. Knoblauch, gehackt (optional)",
     "amountLabel": "Menge {number}",
     "itemLabel": "Zutat {number}",
     "moveUp": "Nach oben",
@@ -1218,7 +1218,8 @@
       "frozen": "Tiefkühl",
       "drinks": "Getränke",
       "other": "Sonstiges",
-      "basics": "Wahrscheinlich zu Hause"
+      "basics": "Wahrscheinlich zu Hause",
+      "optional": "Optional"
     },
     "addMenuGuests": "Einkaufsliste für {count, plural, one {# Gast} other {# Gäste}}",
     "undoAdd": "Wieder entfernen",
@@ -1667,6 +1668,12 @@
     "selectName": "„{name}“ auswählen",
     "germanMissing": "Deutsch fehlt",
     "englishMissing": "Englisch fehlt",
-    "usesShort": "{count, plural, =0 {ungenutzt} one {# Rezeptzeile} other {# Rezeptzeilen}}"
+    "usesShort": "{count, plural, =0 {ungenutzt} one {# Rezeptzeile} other {# Rezeptzeilen}}",
+    "conventionTitle": "{count, plural, one {# Zutatenzeile} other {# Zutatenzeilen}} in {recipes, plural, one {# Rezept} other {# Rezepten}} noch nicht einheitlich geschrieben",
+    "conventionExplain": "Die Schreibweise ist „Zutat, Form (Zusatz) (optional)“, zum Beispiel „Knoblauch, gehackt (große Zehen) (optional)“. Getrackt wird nur die Zutat vor dem Komma. Jedes geänderte Rezept behält seine alte Version im Verlauf; aktuelle Übersetzungen bleiben aktuell.",
+    "conventionApply": "Alle anpassen",
+    "conventionShow": "Änderungen ansehen",
+    "conventionHide": "Änderungen ausblenden",
+    "conventionDone": "{count, plural, =0 {Nichts geändert.} one {# Rezept angepasst.} other {# Rezepte angepasst.}}"
   }
 }

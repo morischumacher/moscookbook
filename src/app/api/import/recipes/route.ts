@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { conventionalRows } from '@/lib/ingredientShape';
 import { linkRecipe } from '@/lib/ingredientCatalog';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
@@ -92,7 +93,7 @@ export const POST = route({ access: 'admin', body, label: 'Importing recipes' },
                     servings: recipe.servings,
                     prepMinutes: recipe.prepMinutes,
                     cookMinutes: recipe.cookMinutes,
-                    ingredients: toStructuredIngredients(recipe.ingredients),
+                    ingredients: toStructuredIngredients(conventionalRows(recipe.ingredients)),
                     tags: normaliseTags(recipe.tags),
                     imageUrls: recipe.imageUrl ? [recipe.imageUrl] : [],
                 }),

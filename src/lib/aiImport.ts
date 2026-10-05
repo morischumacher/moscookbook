@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CONVENTION_RULE } from './ingredientShape';
 import type { ParsedRecipe } from './recipeParser';
 import { scrub } from './secretBox';
 import { DEFAULT_MODEL, PROVIDER_LABEL, isValidModel, modelsFor, type AiKey, type AiProvider } from './aiProviders';
@@ -88,6 +89,7 @@ Rules:
 - "amount" holds the quantity and unit together, e.g. "200 g", "2 EL", "1/2".
   Leave it as an empty string when the source gives no quantity.
 - "item" is the ingredient alone, without the quantity.
+${CONVENTION_RULE}
 - "instructions" is markdown: one numbered list item per step, separated by blank lines.
 - "category" is a single word like Breakfast, Lunch, Dinner, Dessert — or "" if unclear.
 - "nationality" is the cuisine, e.g. Italian, German — or "" if unclear.

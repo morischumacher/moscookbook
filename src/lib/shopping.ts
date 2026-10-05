@@ -2,6 +2,7 @@ import { splitAmount, formatAmount, type AmountParts } from './ingredientParts';
 import { displayName, ingredientKey, itemName } from './ingredientNames';
 import { singular, expandUmlauts } from './searchText';
 import { fromBase, isCountUnit, toBase, unitOf, unitSpelling, type Measured } from './units';
+import { shapeOf } from './ingredientShape';
 import { lessPart, partsOf, settled as settledAmount, withPart, type Part } from './shoppingParts';
 
 /**
@@ -30,10 +31,16 @@ export type Aisle =
     | 'frozen'
     | 'drinks'
     | 'basics'
-    | 'other';
+    | 'other'
+    /** What a recipe marks "(optional)" (lib/ingredientShape): last, under its own heading. */
+    | 'optional';
 
 /** In the order a shop is usually walked. */
-export const AISLES: Aisle[] = ['produce', 'bakery', 'meat', 'dairy', 'pantry', 'spices', 'frozen', 'drinks', 'other', 'basics'];
+export const AISLES: Aisle[] = ['produce', 'bakery', 'meat', 'dairy', 'pantry', 'spices', 'frozen', 'drinks', 'other', 'basics', 'optional'];
+
+/** An optional line is its own line: "Chili (optional)" is not added to the chili the dish needs. */
+export const OPTIONAL_KEY = 'opt:';
+export const keyFor = (key: string, aisle: string) => (aisle === 'optional' && !key.startsWith(OPTIONAL_KEY) ? OPTIONAL_KEY + key : key);
 
 const AISLE_RULES: Array<[Aisle, RegExp]> = [
     // Things almost every kitchen has. They are still listed — at the end,
@@ -126,8 +133,11 @@ export interface PlannedLine {
 /** A recipe's ingredients at `factor` times their amounts, as list lines. */
 export function linesFor(ingredients: IngredientForList[], factor: number, source: string | null): PlannedLine[] {
     return ingredients.flatMap((ingredient) => {
-        const name = shoppingName(ingredient.name);
+        // "Ingwer, frisch gerieben (optional)": the ingredient is what is bought.
+        const shape = shapeOf(ingredient.name);
+        const name = shoppingName(shape.base);
         if (!name || NEVER_BOUGHT.test(name)) return [];
+        const aisle: Aisle = shape.optional ? 'optional' : aisleOf(name);
 
         const scaled: AmountParts = {
             quantity: ingredient.quantity === null ? null : ingredient.quantity * factor,
@@ -140,10 +150,10 @@ export function linesFor(ingredients: IngredientForList[], factor: number, sourc
             {
                 name,
                 // "Frühlingszwiebeln" and "green onions" are one line (lib/ingredientNames).
-                key: ingredientKey(name),
+                key: keyFor(ingredientKey(name), aisle),
                 measure: measured?.key ?? null,
                 amount: measured?.amount ?? null,
-                aisle: aisleOf(name),
+                aisle,
                 source,
             },
         ];
