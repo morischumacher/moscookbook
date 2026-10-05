@@ -703,7 +703,11 @@
     "retry": "Try again",
     "exportMarkdown": "Copy all as Markdown",
     "copied": "Copied",
-    "copyFailed": "Could not copy."
+    "copyFailed": "Could not copy.",
+    "explanationShort": "What has been failing and is not with the AI: reported anonymously, or taken back. Hand it over, or mark it resolved.",
+    "todoHint": "Waiting for your decision.",
+    "nextError": "hand it to the AI to fix, or mark it resolved if it was noise.",
+    "doneHeading": "Resolved"
   },
   "ErrorPage": {
     "title": "This page did not load.",
@@ -912,7 +916,14 @@
     "photoAdd": "+ Screenshot",
     "photoRemove": "Remove screenshot",
     "photoTooLarge": "The picture is too large.",
-    "photoFailed": "The picture could not be uploaded."
+    "photoFailed": "The picture could not be uploaded.",
+    "adminExplanationShort": "What people wrote about the cookbook. Decide for each: hand it to the AI, or mark it done.",
+    "todoHint": "Waiting for your decision.",
+    "noneTodo": "Nothing waiting for you.",
+    "nextIdea": "decide — have the AI build it, or mark it done if it is settled.",
+    "nextProblem": "taken back from the AI — fix it yourself and mark it done, or hand it over again.",
+    "doneCard": "Done {date}",
+    "thanksTask": "It is on the task list to be fixed."
   },
   "Account": {
     "devicesTitle": "Devices",
@@ -1418,7 +1429,18 @@
     "tokenCopy": "Copy the key",
     "tokenTapToCopy": "Tap to copy",
     "actFailed": "That did not work — the task changed meanwhile. The list is up to date now.",
-    "tokenRemakeQuestion": "Make a new key? The old one stops working at once."
+    "tokenRemakeQuestion": "Make a new key? The old one stops working at once.",
+    "explainShort": "What the AI works on. Errors and “Something is broken” tickets land here by themselves; you hand over the rest from Tickets, Errors and the inbox.",
+    "awaitingHint": "The AI says these are done. Check, then confirm or send back.",
+    "withAiHeading": "With the AI",
+    "withAiHint": "Nothing to do for you until the AI reports back.",
+    "nextAwaiting": "check the change, then confirm — or send it back with what is missing.",
+    "noneWithAi": "Nothing with the AI right now.",
+    "markDoneMyself": "Mark done",
+    "takeBack": "Take back",
+    "takeBackHint": "Takes it off the AI's list; it goes back to Tickets or Errors.",
+    "connectHeading": "Connect an AI: link, prompt, key",
+    "doneHint": "Delete finished tasks to tidy up; a recurring error comes back as a new task."
   },
   "Tokens": {
     "openDashboard": "See token usage and how to save →",
@@ -1515,5 +1537,27 @@
       "polish": "Revising text",
       "translate": "Translating"
     }
+  },
+  "ReportList": {
+    "next": "Next:",
+    "todoHeading": "To do",
+    "doneHeading": "Done",
+    "withAiNote": "{count, plural, one {# is with the AI} other {# are with the AI}} — on the task list, not here.",
+    "withAiShow": "Show",
+    "select": "Select",
+    "selectStop": "Finish selecting",
+    "selectAll": "Select all {count}",
+    "selectNone": "Select none",
+    "selectedCount": "{count, plural, =0 {Nothing selected} one {# selected} other {# selected}}",
+    "deleteCount": "Delete {count}",
+    "markDoneCount": "Mark {count} done",
+    "selectionBar": "Selection",
+    "selectHint": "Tick what should go. Only what you can see is selected — open “Done” to include those.",
+    "deleteQuestion": "{count, plural, one {Delete # item for good?} other {Delete # items for good?}}",
+    "deleteBody": "This cannot be undone. Screenshots are deleted with them.",
+    "deleteConfirm": "Delete",
+    "failed": "That did not work. The list has been reloaded.",
+    "reopen": "Reopen",
+    "markDone": "Mark done"
   }
 }

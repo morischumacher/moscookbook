@@ -19,6 +19,9 @@ import { captureIsObvious, errorIsObvious } from './workAuto';
 /** How long after a "done" report the same error still counts as the old build's. */
 const RECURRENCE_GRACE_MS = 60 * 60 * 1000;
 
+/** See syncWorkItem: how much older than its row an item may be and still be its. */
+const STALE_SLACK_MS = 60 * 1000;
+
 /** A note stays readable: the newest part of it, when it has grown long. */
 function capNote(note: string | null): string | null {
     if (!note) return note;
@@ -217,7 +220,10 @@ export async function syncWorkItem(
     known?: { people: string[] }
 ): Promise<void> {
     try {
-        const item = await prisma.workItem.findUnique({ where: { kind_refId: { kind, refId } } });
+        let item = await prisma.workItem.findUnique({ where: { kind_refId: { kind, refId } } });
+        // When the row was made: an item older than its row belongs to an
+        // earlier row that had the same id (see below).
+        let rowMadeAt: Date | null = null;
         let problem = false;
         let obvious = false;
         let closeAs: string | null = null;
@@ -229,7 +235,8 @@ export async function syncWorkItem(
         let settling = false;
 
         if (kind === 'error') {
-            const row = await prisma.errorLog.findUnique({ where: { id: refId }, select: { resolvedAt: true, lastSeenAt: true, trusted: true } });
+            const row = await prisma.errorLog.findUnique({ where: { id: refId }, select: { resolvedAt: true, lastSeenAt: true, trusted: true, firstSeenAt: true } });
+            rowMadeAt = row?.firstSeenAt ?? null;
             if (!row) closeAs = 'removed';
             else if (row.resolvedAt) closeAs = 'resolved';
             else {
@@ -245,17 +252,20 @@ export async function syncWorkItem(
                 );
             }
         } else if (kind === 'ticket') {
-            const row = await prisma.ticket.findUnique({ where: { id: refId }, select: { resolvedAt: true, kind: true } });
+            const row = await prisma.ticket.findUnique({ where: { id: refId }, select: { resolvedAt: true, kind: true, createdAt: true } });
+            rowMadeAt = row?.createdAt ?? null;
             if (!row) closeAs = 'removed';
             else if (row.resolvedAt) closeAs = 'resolved';
             else {
                 problem = true;
-                // Something broken, reported by somebody signed in: a task by
-                // itself. An idea is the admin's to decide on first.
+                // Something broken, reported by anybody signed in — the admin
+                // included: a task by itself. An idea is the admin's to
+                // decide on first.
                 obvious = row.kind === 'problem';
             }
         } else {
-            const row = await prisma.capture.findUnique({ where: { id: refId }, select: { status: true, error: true } });
+            const row = await prisma.capture.findUnique({ where: { id: refId }, select: { status: true, error: true, createdAt: true } });
+            rowMadeAt = row?.createdAt ?? null;
             if (!row) closeAs = 'removed';
             else if (row.status === 'published') closeAs = 'published';
             else if (row.status === 'ready') closeAs = 'ready';
@@ -263,6 +273,19 @@ export async function syncWorkItem(
                 obvious = captureIsObvious(row.status, row.error);
                 problem = obvious;
             }
+        }
+
+        /*
+         * An item made before its row was is about a different row: one that
+         * had the same id and is gone (a restored backup starts the ids
+         * again). Its "withdrawn" mark or old report must not decide for the
+         * new row — that kept a new "something is broken" ticket off the
+         * list for good, silently. The old item goes; the new row starts
+         * fresh. A minute of slack, for the clocks of app and database.
+         */
+        if (item && rowMadeAt && item.createdAt.getTime() < rowMadeAt.getTime() - STALE_SLACK_MS) {
+            await prisma.workItem.deleteMany({ where: { id: item.id } });
+            item = null;
         }
 
         if (closeAs) {
@@ -331,6 +354,46 @@ export async function workStates(kind: WorkKind, refIds: number[]): Promise<Map<
         select: { id: true, refId: true, auto: true, closedAt: true, doneAt: true },
     });
     return new Map(items.map((item) => [item.refId, { id: item.id, auto: item.auto, closed: item.closedAt !== null, done: item.doneAt !== null }]));
+}
+
+/**
+ * The rows of one kind that are with the AI now: on the list, not withdrawn,
+ * not finished. The ticket and error lists leave these out (lib/reportSections).
+ */
+export async function liveWorkRefIds(kind: WorkKind): Promise<Set<number>> {
+    const items = await prisma.workItem.findMany({ where: { kind, closedAt: null, dismissedAt: null }, select: { refId: true } });
+    return new Set(items.map((item) => item.refId));
+}
+
+/**
+ * How many open rows of a kind need the admin: open, and not with the AI.
+ * For the counts on the Reports tabs. Never throws; a count is not worth a page.
+ */
+export async function needsYouCount(kind: 'error' | 'ticket'): Promise<number> {
+    try {
+        const [open, live] = await Promise.all([
+            kind === 'error'
+                ? prisma.errorLog.findMany({ where: { resolvedAt: null }, select: { id: true }, take: 1000 })
+                : prisma.ticket.findMany({ where: { resolvedAt: null }, select: { id: true }, take: 1000 }),
+            liveWorkRefIds(kind),
+        ]);
+        return open.filter((row) => !live.has(row.id)).length;
+    } catch {
+        return 0;
+    }
+}
+
+/**
+ * Deletes tasks for good — only finished ones. An open task is withdrawn
+ * instead (it goes back to its ticket or error list), and one waiting for a
+ * confirmation is answered; deleting either would lose the decision.
+ *
+ * A finished task deleted here does not come back by itself unless its
+ * error happens again, which is then a new task, as it should be.
+ */
+export async function deleteFinishedWorkItems(ids: number[]): Promise<number> {
+    const deleted = await prisma.workItem.deleteMany({ where: { id: { in: ids }, closedAt: { not: null } } });
+    return deleted.count;
 }
 
 /**

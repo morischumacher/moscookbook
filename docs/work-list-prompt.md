@@ -22,7 +22,7 @@ Everything that needs work on the code is on a **public task list**:
 
 - **By itself:** every error the server records or a signed-in person runs
   into, every inbox import that could not be read, and every ticket of the
-  kind "something is broken".
+  kind "something is broken" — whoever wrote it, the admin included.
 - **Handed over by the admin:** ideas and other tickets ("Have AI implement
   it"), and inbox items whose reading should improve ("Have AI improve
   reading this").
@@ -152,8 +152,10 @@ and tell the person; they can mark it done themselves.
 Report once per task, after the merge and preferably after the deploy
 (`currentVersion` changes): a report cannot be replaced while it waits, and
 an error seen again more than an hour after your report reopens the task. A
-`409`/`404` means the task is not open any more (already reported, closed or
-withdrawn) — leave it.
+`409`/`404` means the task is not open any more (already reported, closed,
+withdrawn or deleted) — leave it. A task the admin takes back goes back to
+their own ticket or error list and off yours; finished tasks may be deleted
+to tidy up.
 
 The report closes nothing. The task moves to `awaitingConfirmation`, and the
 admin confirms it in the app — which closes the task and resolves the error

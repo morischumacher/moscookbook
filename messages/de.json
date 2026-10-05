@@ -703,7 +703,11 @@
     "retry": "Noch einmal versuchen",
     "exportMarkdown": "Alle als Markdown kopieren",
     "copied": "Kopiert",
-    "copyFailed": "Kopieren hat nicht geklappt."
+    "copyFailed": "Kopieren hat nicht geklappt.",
+    "explanationShort": "Was schiefgeht und nicht bei der KI liegt: anonym gemeldet oder zurückgenommen. Übergib es oder markiere es als behoben.",
+    "todoHint": "Warten auf deine Entscheidung.",
+    "nextError": "an die KI zum Beheben geben oder als behoben markieren, wenn es nur Rauschen war.",
+    "doneHeading": "Behoben"
   },
   "ErrorPage": {
     "title": "Diese Seite konnte nicht geladen werden.",
@@ -912,7 +916,14 @@
     "photoAdd": "+ Screenshot",
     "photoRemove": "Screenshot entfernen",
     "photoTooLarge": "Das Bild ist zu groß.",
-    "photoFailed": "Das Bild konnte nicht hochgeladen werden."
+    "photoFailed": "Das Bild konnte nicht hochgeladen werden.",
+    "adminExplanationShort": "Was Leute über das Kochbuch geschrieben haben. Entscheide bei jedem: an die KI geben oder als erledigt markieren.",
+    "todoHint": "Warten auf deine Entscheidung.",
+    "noneTodo": "Nichts wartet auf dich.",
+    "nextIdea": "entscheiden – von der KI umsetzen lassen oder als erledigt markieren, wenn es sich erledigt hat.",
+    "nextProblem": "von der KI zurückgenommen – selbst beheben und als erledigt markieren oder wieder übergeben.",
+    "doneCard": "Erledigt {date}",
+    "thanksTask": "Es steht schon auf der Aufgabenliste zum Beheben."
   },
   "Account": {
     "devicesTitle": "Geräte",
@@ -1418,7 +1429,18 @@
     "tokenCopy": "Schlüssel kopieren",
     "tokenTapToCopy": "Antippen zum Kopieren",
     "actFailed": "Das hat nicht geklappt – die Aufgabe hat sich inzwischen geändert. Die Liste ist jetzt aktuell.",
-    "tokenRemakeQuestion": "Neuen Schlüssel erzeugen? Der alte hört sofort auf zu funktionieren."
+    "tokenRemakeQuestion": "Neuen Schlüssel erzeugen? Der alte hört sofort auf zu funktionieren.",
+    "explainShort": "Woran die KI arbeitet. Fehler und Tickets „Etwas geht nicht“ landen von selbst hier; den Rest übergibst du aus Tickets, Fehlern und dem Eingang.",
+    "awaitingHint": "Die KI meldet diese als erledigt. Prüfe und bestätige oder gib zurück.",
+    "withAiHeading": "Bei der KI",
+    "withAiHint": "Für dich nichts zu tun, bis die KI sich meldet.",
+    "nextAwaiting": "Änderung prüfen, dann bestätigen – oder mit dem, was fehlt, zurückgeben.",
+    "noneWithAi": "Gerade liegt nichts bei der KI.",
+    "markDoneMyself": "Als erledigt markieren",
+    "takeBack": "Zurücknehmen",
+    "takeBackHint": "Nimmt es von der Liste der KI; es geht zurück zu Tickets oder Fehlern.",
+    "connectHeading": "KI anbinden: Link, Prompt, Schlüssel",
+    "doneHint": "Lösche erledigte Aufgaben zum Aufräumen; ein wiederkehrender Fehler kommt als neue Aufgabe zurück."
   },
   "Tokens": {
     "openDashboard": "Token-Verbrauch und Spartipps ansehen →",
@@ -1515,5 +1537,27 @@
       "polish": "Text überarbeiten",
       "translate": "Übersetzen"
     }
+  },
+  "ReportList": {
+    "next": "Als Nächstes:",
+    "todoHeading": "Zu erledigen",
+    "doneHeading": "Erledigt",
+    "withAiNote": "{count, plural, one {# liegt bei der KI} other {# liegen bei der KI}} – auf der Aufgabenliste, nicht hier.",
+    "withAiShow": "Ansehen",
+    "select": "Auswählen",
+    "selectStop": "Auswahl beenden",
+    "selectAll": "Alle {count} auswählen",
+    "selectNone": "Keine auswählen",
+    "selectedCount": "{count, plural, =0 {Nichts ausgewählt} one {# ausgewählt} other {# ausgewählt}}",
+    "deleteCount": "{count} löschen",
+    "markDoneCount": "{count} erledigt",
+    "selectionBar": "Auswahl",
+    "selectHint": "Hake an, was weg soll. Ausgewählt wird nur, was du siehst – öffne „Erledigt“, um die mitzunehmen.",
+    "deleteQuestion": "{count, plural, one {# Eintrag endgültig löschen?} other {# Einträge endgültig löschen?}}",
+    "deleteBody": "Das lässt sich nicht rückgängig machen. Screenshots werden mitgelöscht.",
+    "deleteConfirm": "Löschen",
+    "failed": "Das hat nicht geklappt. Die Liste ist neu geladen.",
+    "reopen": "Wieder öffnen",
+    "markDone": "Als erledigt markieren"
   }
 }

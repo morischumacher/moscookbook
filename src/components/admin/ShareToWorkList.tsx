@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { BusyLabel } from '@/components/ui/Busy';
 import type { WorkKind } from '@/lib/workItems';
+import { buttonSecondary } from '@/lib/ui';
 
 export interface WorkState {
     id: number;
@@ -25,6 +26,8 @@ export default function ShareToWorkList({
     photoCount = 0,
     className = '',
     withHint = false,
+    buttonClassName,
+    onChange,
 }: {
     kind: WorkKind;
     id: number;
@@ -35,6 +38,10 @@ export default function ShareToWorkList({
     className?: string;
     /** The one-line explanation under the button too (in a menu of choices). */
     withHint?: boolean;
+    /** Shown as a real button (a class from lib/ui) instead of a text link. */
+    buttonClassName?: string;
+    /** After it went on the list or came off it, for a list that sorts by that. */
+    onChange?: () => void;
 }) {
     const t = useTranslations('Work');
     // Says what happens, per kind: a ticket is to be implemented, an inbox
@@ -61,6 +68,7 @@ export default function ShareToWorkList({
             const data = await res.json();
             setState({ id: data.id, auto: false, closed: false, done: false });
             setOpen(false);
+            onChange?.();
         } catch {
             setFailed(true);
         } finally {
@@ -73,8 +81,10 @@ export default function ShareToWorkList({
         setBusy(true);
         const res = await fetch(`/api/work-items/${state.id}`, { method: 'DELETE' }).catch(() => null);
         setBusy(false);
-        if (res?.ok) setState(null);
-        else setFailed(true);
+        if (res?.ok) {
+            setState(null);
+            onChange?.();
+        } else setFailed(true);
     };
 
     if (state && !state.closed) {
@@ -85,6 +95,14 @@ export default function ShareToWorkList({
                     <BusyLabel busy={busy}>{t('withdraw')}</BusyLabel>
                 </button>
             </span>
+        );
+    }
+
+    if (!open && buttonClassName) {
+        return (
+            <button type="button" onClick={() => setOpen(true)} className={buttonClassName}>
+                {label}
+            </button>
         );
     }
 
@@ -111,7 +129,7 @@ export default function ShareToWorkList({
                 placeholder={t('notePlaceholder')}
                 maxLength={1000}
                 autoFocus
-                className="w-full min-w-0 rounded-lg border border-control bg-transparent px-3 py-2 text-sm outline-none focus:border-ink"
+                className="w-full min-w-0 rounded-lg border border-control bg-transparent px-3 py-2 text-base outline-none focus:border-ink"
             />
             {photoCount > 0 && (
                 <label className="flex items-center gap-2 text-sm">
@@ -121,14 +139,25 @@ export default function ShareToWorkList({
             )}
             <p className="text-xs text-muted">{explain}</p>
             <p className="text-xs text-faint">{t('publicHint')}</p>
-            <div className="flex gap-4 text-sm">
-                <button type="submit" disabled={busy} className="font-medium underline underline-offset-4">
-                    <BusyLabel busy={busy}>{t('shareNow')}</BusyLabel>
-                </button>
-                <button type="button" onClick={() => setOpen(false)} className="text-muted underline underline-offset-4">
-                    {t('cancel')}
-                </button>
-            </div>
+            {buttonClassName ? (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                    <button type="submit" disabled={busy} className={buttonClassName}>
+                        <BusyLabel busy={busy}>{t('shareNow')}</BusyLabel>
+                    </button>
+                    <button type="button" onClick={() => setOpen(false)} className={buttonSecondary}>
+                        {t('cancel')}
+                    </button>
+                </div>
+            ) : (
+                <div className="flex gap-4 text-sm">
+                    <button type="submit" disabled={busy} className="font-medium underline underline-offset-4">
+                        <BusyLabel busy={busy}>{t('shareNow')}</BusyLabel>
+                    </button>
+                    <button type="button" onClick={() => setOpen(false)} className="text-muted underline underline-offset-4">
+                        {t('cancel')}
+                    </button>
+                </div>
+            )}
             {failed && <p className="text-xs text-danger">{t('failed')}</p>}
         </form>
     );

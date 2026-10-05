@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { currentUserVerified } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { needsYouCount } from '@/lib/workItemsDb';
 import AdminNav from '@/components/admin/AdminNav';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -40,12 +41,17 @@ export default async function AdminLayout({
      * wants to know whether anything is waiting, not whether it arrived as a
      * stack trace or as a sentence. Fails to zero rather than failing the
      * page.
+     *
+     * Only what needs *you*: open and not with the AI, plus what the AI
+     * reports done and waits for your confirmation. Counting every open
+     * error kept a number up that nobody but the AI could bring down.
      */
-    const [errorCount, ticketCount]: [number, number] = await Promise.all([
-        prisma.errorLog.count({ where: { resolvedAt: null } }).catch(() => 0),
-        prisma.ticket.count({ where: { resolvedAt: null } }).catch(() => 0),
+    const [errorCount, ticketCount, toConfirm]: [number, number, number] = await Promise.all([
+        needsYouCount('error'),
+        needsYouCount('ticket'),
+        prisma.workItem.count({ where: { doneAt: { not: null }, closedAt: null, dismissedAt: null } }).catch(() => 0),
     ]);
-    const unresolvedReports = errorCount + ticketCount;
+    const unresolvedReports = errorCount + ticketCount + toConfirm;
 
     // The admin's tools are a navigation of their own, rendered once here
     // rather than by each page, so that every page under /admin has it and no
