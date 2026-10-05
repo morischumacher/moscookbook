@@ -11,7 +11,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { buildTsQuery } from '@/lib/searchText';
 import { parseIngredientQuery, variantsOf } from '@/lib/ingredientSearch';
 import { pageContainer } from '@/lib/ui';
-import { KNOWN_TAGS, QUICK_MINUTES, TAG_ICONS, chillies } from '@/lib/tags';
+import { DIET_TAGS, KNOWN_TAGS, QUICK_MINUTES, TAG_ICONS, chillies } from '@/lib/tags';
 
 interface RecipeListRow {
     id: number;
@@ -474,9 +474,17 @@ export default async function HomePage({
         description: (recipe.translations[0] ? recipe.translations[0].description : recipe.description) ?? '',
         category: recipe.category ?? '',
         nationality: recipe.nationality ?? '',
-        // Diet, meat or fish and chillies, as their icons: read at a glance
-        // on a tile too small for words.
-        marks: [...recipe.tags.filter((tag: string) => KNOWN_TAGS.includes(tag)).map((tag: string) => TAG_ICONS[tag]), chillies(recipe.spiciness)].join(' ').trim(),
+        // Meat or fish and chillies as their icons, read at a glance on a
+        // small tile; the diet with its word as well — a carrot alone did not
+        // say "vegetarian" (work #43).
+        marks: [
+            ...recipe.tags
+                .filter((tag: string) => KNOWN_TAGS.includes(tag))
+                .map((tag: string) => (DIET_TAGS.includes(tag as (typeof DIET_TAGS)[number]) ? `${TAG_ICONS[tag]} ${tTags(tag)}` : TAG_ICONS[tag])),
+            chillies(recipe.spiciness),
+        ]
+            .join(' ')
+            .trim(),
         // The same in words, for a screen reader: the icons are hidden from it.
         marksLabel: [
             ...recipe.tags.filter((tag: string) => KNOWN_TAGS.includes(tag)).map((tag: string) => tTags(tag)),

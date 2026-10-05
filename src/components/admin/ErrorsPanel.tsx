@@ -2,17 +2,17 @@
 
 import ShareToWorkList, { type WorkState } from '@/components/admin/ShareToWorkList';
 import ReportPhotos, { type ReportPhoto } from '@/components/admin/ReportPhotos';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDateTime } from '@/lib/formatDate';
-import { messageFrom } from '@/lib/apiMessage';
-import InlineConfirm from '@/components/ui/InlineConfirm';
+import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 import { useCopy } from '@/components/ui/useCopy';
+import { useConfirm } from '@/components/ui/useConfirm';
 import Loading from '@/components/ui/Loading';
+import { CardActions, DoneFold, ItemCard, KindBadge, NextStep, SectionHeading, SelectionBar, SelectToggle, useSelection, WithAiNote } from './ReportSections';
 
 interface ErrorRow {
     photos: ReportPhoto[];
-    /** On the work list, and whether it was put there automatically. */
     work: WorkState | null;
     id: number;
     source: string;
@@ -22,99 +22,103 @@ interface ErrorRow {
     count: number;
     firstSeenAt: string;
     lastSeenAt: string;
+    resolvedAt: string | null;
+}
+
+interface Lists {
+    todo: ErrorRow[];
+    done: ErrorRow[];
+    withAi: number;
 }
 
 /**
- * What is currently broken.
+ * What is broken, sorted by what it asks of the admin — the same sections as
+ * the tickets (lib/reportSections).
  *
- * One row per problem, not per occurrence, with a count — so this stays
- * something you can read rather than a log you scroll past.
+ * Most errors never need the admin: every one the server sees or a signed-in
+ * person runs into is a task for the AI by itself, and is counted here with a
+ * way to the task list rather than listed twice. What is left under "To do"
+ * is what nobody is on: anonymous reports, and ones taken back from the AI.
  *
- * A panel rather than a page since errors and tickets became one entry in the
- * admin's navigation. They are the same question asked from two sides — what
- * the application noticed, and what a person noticed — and two tabs for that
- * was two taps and a decision about which one to check first.
+ * One row per problem, not per occurrence, with a count, so this stays
+ * something you can read rather than a log you scroll past. A failed request
+ * shows as a failure — "nothing is failing" must never be said when the
+ * truth is "could not ask".
  */
-export default function ErrorsPanel() {
+export default function ErrorsPanel({ onShowWork }: { onShowWork?: () => void }) {
     const t = useTranslations('Errors');
-    // The site's language, not the browser's: these three pages used
-    // toLocaleDateString() with no argument, so a German reader on an
-    // English-language phone saw 9/21/2026 here and 21. September 2026
-    // on the blog, in one visit.
+    const tList = useTranslations('ReportList');
+    // The site's language, not the browser's.
     const locale = useLocale();
 
-    const [errors, setErrors] = useState<ErrorRow[]>([]);
+    const [lists, setLists] = useState<Lists>({ todo: [], done: [], withAi: 0 });
     const [loading, setLoading] = useState(true);
-    /**
-     * This page had no error state at all, on the one page whose job is to
-     * tell you when things break. A 500 from /api/errors left the list empty,
-     * loading went false, and it rendered "all quiet" — the most misleading
-     * sentence it could possibly have shown.
-     */
     const [error, setError] = useState('');
-    const [showResolved, setShowResolved] = useState(false);
     const [expanded, setExpanded] = useState<number | null>(null);
+    const [doneOpen, setDoneOpen] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const selection = useSelection();
+    const [ask, dialog] = useConfirm();
     const { copy, copied, failed: copyRefused } = useCopy();
 
     const load = useCallback(async () => {
-        setLoading(true);
         setError('');
-
         try {
-            const res = await fetch(`/api/errors?resolved=${showResolved}`);
+            const res = await fetch('/api/errors', { cache: 'no-store' });
             if (!res.ok) throw new Error(t('loadFailed'));
-            const data = await res.json();
-            setErrors(data.errors);
+            setLists(await res.json());
         } catch (err) {
-            setErrors([]);
+            setLists({ todo: [], done: [], withAi: 0 });
             setError(err instanceof Error ? err.message : t('loadFailed'));
         } finally {
             setLoading(false);
         }
-    }, [showResolved, t]);
+    }, [t]);
 
     useEffect(() => {
-        load();
+        void load();
     }, [load]);
 
-    /*
-     * Deleting one for good.
-     *
-     * DELETE /api/errors/[id] has existed since the error log did, correct
-     * and tested and called by nothing — the interaction map listed it as one
-     * of two endpoints with no way to reach them. It is worth having: a
-     * resolved row that keeps coming back is history, and one that was noise
-     * the first time is clutter for ever.
-     *
-     * Offered only among the resolved ones. Deciding an error is dealt with
-     * is the normal path and it is reversible; removing the row is neither,
-     * so it sits one deliberate step further in.
-     */
-    const remove = async (id: number) => {
+    const visible = useMemo(
+        () => [...lists.todo.map((row) => row.id), ...(doneOpen ? lists.done.map((row) => row.id) : [])],
+        [lists, doneOpen]
+    );
+
+    const send = async (method: 'PATCH' | 'DELETE', body: object) => {
+        setBusy(true);
         try {
-            const res = await fetch(`/api/errors/${id}`, { method: 'DELETE' });
-            if (!res.ok) {
-                setError(await messageFrom(res, t('deleteFailed')));
-                return;
-            }
-            setErrors((current) => current.filter((row) => row.id !== id));
+            const res = await fetch('/api/errors', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            if (!res.ok) setError(tList('failed'));
+            return res.ok;
         } catch {
-            setError(t('deleteFailed'));
+            setError(tList('failed'));
+            return false;
+        } finally {
+            await load();
+            setBusy(false);
         }
     };
 
-    /**
-     * The list as Markdown, for pasting where it gets fixed.
-     *
-     * The stack traces come with it, inside fences — they are the reason
-     * anybody exports this rather than reading it here, and a stack pasted
-     * without a fence turns into a paragraph.
-     */
+    const setResolved = (ids: number[], resolved: boolean) => send('PATCH', { ids, resolved });
+
+    const remove = async (ids: number[]) => {
+        if (ids.length === 0) return;
+        const sure = await ask({
+            title: tList('deleteQuestion', { count: ids.length }),
+            body: tList('deleteBody'),
+            confirmLabel: tList('deleteConfirm'),
+            destructive: true,
+        });
+        if (!sure) return;
+        if (await send('DELETE', { ids })) selection.stop();
+    };
+
+    /** What needs the admin as Markdown, stacks in fences, for pasting where it gets fixed. */
     const asMarkdown = () =>
         [
-            `# ${t('title')} — ${showResolved ? t('showResolved') : t('showOpen')}`,
+            `# ${t('title')} — ${tList('todoHeading')}`,
             '',
-            ...errors.flatMap((row) => [
+            ...lists.todo.flatMap((row) => [
                 `## ${row.message}`,
                 '',
                 `- ${t(`source.${row.source}`)} · ${t('seen', { count: row.count })}`,
@@ -125,131 +129,132 @@ export default function ErrorsPanel() {
             ]),
         ].join('\n');
 
-    const resolve = async (id: number) => {
-        // The row used to vanish whatever happened, so an expired session
-        // looked exactly like a successful resolve until the next reload.
-        try {
-            const res = await fetch(`/api/errors/${id}`, { method: 'POST' });
-            if (!res.ok) throw new Error(t('resolveFailed'));
-            setErrors((current) => current.filter((row) => row.id !== id));
-        } catch (err) {
-            setError(err instanceof Error ? err.message : t('resolveFailed'));
-        }
-    };
+    const head = (row: ErrorRow) => (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+            <KindBadge strong={!row.resolvedAt}>{t(`source.${row.source}`)}</KindBadge>
+            <span>
+                {t('seen', { count: row.count })} · <time dateTime={row.lastSeenAt}>{formatDateTime(row.lastSeenAt, locale)}</time>
+            </span>
+        </div>
+    );
+
+    const stack = (row: ErrorRow) =>
+        row.stack && (
+            <button type="button" onClick={() => setExpanded(expanded === row.id ? null : row.id)} className="min-h-11 text-sm text-muted underline underline-offset-4 sm:px-2">
+                {expanded === row.id ? t('hideStack') : t('showStack')}
+            </button>
+        );
+
+    if (loading) return <Loading label={t('loading')} />;
 
     return (
         <div>
-            <p className="mb-6 font-serif text-muted">{t('explanation')}</p>
+            {dialog}
+            <p className="mb-4 text-sm leading-relaxed text-muted">{t('explanationShort')}</p>
 
-            <div className="mb-8 flex flex-wrap items-center gap-5">
-                <button
-                    type="button"
-                    onClick={() => setShowResolved(!showResolved)}
-                    className="text-sm underline underline-offset-4"
-                >
-                    {showResolved ? t('showOpen') : t('showResolved')}
-                </button>
+            <WithAiNote count={lists.withAi} onShow={onShowWork} />
 
-                {errors.length > 0 && (
-                    <button
-                        type="button"
-                        onClick={() => void copy(asMarkdown(), 'all')}
-                        className="text-sm underline underline-offset-4"
-                    >
-                        {copied === 'all' ? t('copied') : t('exportMarkdown')}
+            {error && (
+                <div role="alert" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger-line bg-danger-surface p-3">
+                    <p className="text-sm text-danger">{error}</p>
+                    <button type="button" onClick={() => void load()} className="min-h-11 text-sm font-medium text-danger underline underline-offset-4">
+                        {t('retry')}
                     </button>
-                )}
-            </div>
-
+                </div>
+            )}
             {copyRefused && (
                 <p role="alert" className="mb-4 text-sm text-danger">
                     {t('copyFailed')}
                 </p>
             )}
 
-            {/* Before the list, and instead of it: "all quiet" must never be
-                shown when the truth is "could not ask". */}
-            {error && (
-                <div
-                    role="alert"
-                    className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger-line bg-danger-surface p-3"
-                >
-                    <p className="text-sm text-danger">{error}</p>
-                    <button
-                        type="button"
-                        onClick={load}
-                        className="text-sm font-medium text-danger underline underline-offset-4"
-                    >
-                        {t('retry')}
-                    </button>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <SectionHeading title={tList('todoHeading')} count={lists.todo.length} hint={t('todoHint')} />
+                <div className="flex flex-wrap gap-2">
+                    {lists.todo.length > 0 && (
+                        <button type="button" onClick={() => void copy(asMarkdown(), 'all')} className={buttonSecondary}>
+                            {copied === 'all' ? t('copied') : t('exportMarkdown')}
+                        </button>
+                    )}
+                    <SelectToggle selection={selection} disabled={lists.todo.length + lists.done.length === 0} />
                 </div>
-            )}
+            </div>
+            {selection.selecting && <p className="mb-3 text-sm text-muted">{tList('selectHint')}</p>}
 
-            {loading ? (
-                <Loading label={t('loading')} />
-            ) : error ? null : errors.length === 0 ? (
-                <p className="border-t border-line py-16 text-center text-muted">
-                    {showResolved ? t('noneResolved') : t('allQuiet')}
-                </p>
+            {error ? null : lists.todo.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-muted">{t('allQuiet')}</p>
             ) : (
-                <ul className="flex flex-col divide-y divide-line">
-                    {errors.map((row) => (
-                        <li key={row.id} className="py-5">
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs uppercase tracking-widest text-faint">
-                                <span>{t(`source.${row.source}`)}</span>
-                                <span aria-hidden="true">·</span>
-                                <span>{t('seen', { count: row.count })}</span>
-                                <span aria-hidden="true">·</span>
-                                <time dateTime={row.lastSeenAt}>
-                                    {formatDateTime(row.lastSeenAt, locale)}
-                                </time>
-                            </div>
-
-                            <p className="mt-2 font-mono text-sm leading-snug">{row.message}</p>
-                            {row.path && <p className="mt-1 text-sm text-muted">{row.path}</p>}
-
+                <ul className="flex flex-col gap-3">
+                    {lists.todo.map((row) => (
+                        <ItemCard key={row.id} selecting={selection.selecting} selected={selection.picked.includes(row.id)} onToggle={() => selection.toggle(row.id)} label={row.message}>
+                            {head(row)}
+                            <p className="mt-2 break-words font-mono text-sm leading-snug">{row.message}</p>
+                            {row.path && <p className="mt-1 break-all text-sm text-muted">{row.path}</p>}
                             <ReportPhotos photos={row.photos} attachTo={row.id} />
-
-                            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-                                {row.stack && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setExpanded(expanded === row.id ? null : row.id)}
-                                        className="text-muted underline underline-offset-4"
-                                    >
-                                        {expanded === row.id ? t('hideStack') : t('showStack')}
-                                    </button>
-                                )}
-                                <ShareToWorkList kind="error" id={row.id} work={row.work} photoCount={row.photos.length} key={`w-${row.id}-${row.work?.id ?? 0}`} />
-                                {!showResolved ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => resolve(row.id)}
-                                        className="underline underline-offset-4"
-                                    >
+                            <NextStep>{t('nextError')}</NextStep>
+                            {!selection.selecting && (
+                                <CardActions>
+                                    <ShareToWorkList
+                                        kind="error"
+                                        id={row.id}
+                                        work={row.work}
+                                        photoCount={row.photos.length}
+                                        key={`w-${row.id}-${row.work?.id ?? 0}`}
+                                        buttonClassName={buttonPrimarySmall}
+                                        onChange={() => void load()}
+                                    />
+                                    <button type="button" disabled={busy} onClick={() => void setResolved([row.id], true)} className={buttonSecondary}>
                                         {t('resolve')}
                                     </button>
-                                ) : (
-                                    <InlineConfirm
-                                        label={t('delete')}
-                                        question={t('deleteConfirm')}
-                                        confirmLabel={t('delete')}
-                                        destructive
-                                        onConfirm={() => remove(row.id)}
-                                        className="text-danger underline underline-offset-4"
-                                    />
-                                )}
-                            </div>
-
-                            {expanded === row.id && row.stack && (
-                                <pre className="mt-3 overflow-x-auto rounded-lg border border-line bg-surface p-3 text-xs leading-relaxed">
-                                    {row.stack}
-                                </pre>
+                                    {stack(row)}
+                                </CardActions>
                             )}
-                        </li>
+                            {expanded === row.id && row.stack && (
+                                <pre className="mt-3 overflow-x-auto rounded-lg border border-line bg-surface p-3 text-xs leading-relaxed">{row.stack}</pre>
+                            )}
+                        </ItemCard>
                     ))}
                 </ul>
             )}
+
+            {lists.done.length > 0 && (
+                <DoneFold title={t('doneHeading')} count={lists.done.length} open={doneOpen} onToggle={setDoneOpen}>
+                    <ul className="flex flex-col gap-2">
+                        {lists.done.map((row) => (
+                            <ItemCard key={row.id} tone="quiet" selecting={selection.selecting} selected={selection.picked.includes(row.id)} onToggle={() => selection.toggle(row.id)} label={row.message}>
+                                {head(row)}
+                                <p className="mt-2 line-clamp-3 break-words font-mono text-sm leading-snug">{row.message}</p>
+                                {!selection.selecting && (
+                                    <CardActions>
+                                        <button type="button" disabled={busy} onClick={() => void remove([row.id])} className={buttonSecondary}>
+                                            {t('delete')}
+                                        </button>
+                                        {stack(row)}
+                                    </CardActions>
+                                )}
+                                {expanded === row.id && row.stack && (
+                                    <pre className="mt-3 overflow-x-auto rounded-lg border border-line bg-surface p-3 text-xs leading-relaxed">{row.stack}</pre>
+                                )}
+                            </ItemCard>
+                        ))}
+                    </ul>
+                </DoneFold>
+            )}
+
+            <SelectionBar
+                selection={selection}
+                visible={visible}
+                busy={busy}
+                onDelete={(ids) => void remove(ids)}
+                extra={(ids) => {
+                    const open = ids.filter((id) => lists.todo.some((row) => row.id === id));
+                    return open.length > 0 ? (
+                        <button type="button" disabled={busy} onClick={() => void setResolved(open, true).then((ok) => ok && selection.stop())} className={buttonSecondary}>
+                            {tList('markDoneCount', { count: open.length })}
+                        </button>
+                    ) : null;
+                }}
+            />
         </div>
     );
 }

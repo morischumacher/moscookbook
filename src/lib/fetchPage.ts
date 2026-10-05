@@ -1,5 +1,6 @@
 import { readCapped, safeFetch, UnsafeUrlError } from './safeFetch';
 import { isSafePublicUrl } from './privateAddress';
+import { readerProxyOn, readerProxyUrl } from './readerProxy';
 
 /**
  * Fetching a page someone shared.
@@ -62,14 +63,12 @@ export async function fetchPage(rawUrl: string, options: { json?: boolean } = {}
         });
 
         let wasProxied = false;
-        // Optional scraping proxy fallback (e.g. ScrapingBee / FlareSolverr / custom proxy or public reader) when blocked by WAF.
+        // Refused by a bot wall: once more through the reader proxy, unless
+        // the admin switched it off (lib/readerProxy).
         if (!response.ok && (response.status === 403 || response.status === 503)) {
-            const proxyTemplate = process.env.SCRAPING_PROXY_URL || (!options.json ? 'https://r.jina.ai/{url}' : undefined);
-            if (proxyTemplate) {
+            const proxyUrl = readerProxyUrl(url, Boolean(options.json));
+            if (proxyUrl && (await readerProxyOn())) {
                 try {
-                    const proxyUrl = proxyTemplate.includes('{url}')
-                        ? proxyTemplate.replace('{url}', encodeURIComponent(url))
-                        : `${proxyTemplate}${encodeURIComponent(url)}`;
                     const proxied = await safeFetch(proxyUrl, {
                         signal: controller.signal,
                         headers: proxyUrl.includes('r.jina.ai') ? { 'X-Respond-With': 'html' } : undefined,

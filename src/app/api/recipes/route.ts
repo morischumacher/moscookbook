@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
                     category,
                     nationality,
                     instructions,
+                    tips: parsed.data.tips ?? '',
                     servings,
                     prepMinutes,
                     cookMinutes,

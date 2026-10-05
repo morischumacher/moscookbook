@@ -19,6 +19,11 @@ const snapshotSchema = z.object({
     category: z.string().nullable().default(null),
     nationality: z.string().nullable().default(null),
     instructions: z.string().default(''),
+    /**
+     * Absent in a version kept before recipes had tips: restoring one keeps
+     * today's tips rather than deleting what that version never knew about.
+     */
+    tips: z.string().optional(),
     servings: z.number().nullable().default(null),
     prepMinutes: z.number().nullable().default(null),
     cookMinutes: z.number().nullable().default(null),
@@ -37,6 +42,7 @@ export interface SnapshotSource {
     category: string | null;
     nationality: string | null;
     instructions: string;
+    tips: string;
     servings: number | null;
     prepMinutes: number | null;
     cookMinutes: number | null;
@@ -52,6 +58,7 @@ export function snapshotOf(recipe: SnapshotSource): RecipeSnapshot {
         category: recipe.category,
         nationality: recipe.nationality,
         instructions: recipe.instructions,
+        tips: recipe.tips,
         servings: recipe.servings,
         prepMinutes: recipe.prepMinutes,
         cookMinutes: recipe.cookMinutes,
@@ -65,7 +72,7 @@ export function readSnapshot(value: unknown): RecipeSnapshot | null {
     return parsed.success ? parsed.data : null;
 }
 
-export type ChangedField = 'title' | 'description' | 'category' | 'times' | 'servings' | 'ingredients' | 'instructions' | 'tags';
+export type ChangedField = 'title' | 'description' | 'category' | 'times' | 'servings' | 'ingredients' | 'instructions' | 'tips' | 'tags';
 
 /** What differs between two versions, in the words the history shows. */
 export function changedFields(before: RecipeSnapshot, after: RecipeSnapshot): ChangedField[] {
@@ -77,6 +84,7 @@ export function changedFields(before: RecipeSnapshot, after: RecipeSnapshot): Ch
     if (before.prepMinutes !== after.prepMinutes || before.cookMinutes !== after.cookMinutes) changed.push('times');
     if (JSON.stringify(before.ingredients) !== JSON.stringify(after.ingredients)) changed.push('ingredients');
     if (before.instructions.trim() !== after.instructions.trim()) changed.push('instructions');
+    if ((before.tips ?? '').trim() !== (after.tips ?? '').trim()) changed.push('tips');
     if ([...before.tags].sort().join() !== [...after.tags].sort().join()) changed.push('tags');
     return changed;
 }

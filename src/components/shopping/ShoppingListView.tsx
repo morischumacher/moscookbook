@@ -7,7 +7,8 @@ import { AISLES, amountLabel, listAsText, type Aisle } from '@/lib/shopping';
 import type { ShoppingItemRow } from '@/lib/shoppingDb';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
-import { buttonPrimarySmall } from '@/lib/ui';
+import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
+import Sheet, { sheetItem } from '@/components/ui/Sheet';
 import ShoppingSharing from './ShoppingSharing';
 import ListSettings from './ListSettings';
 
@@ -15,7 +16,11 @@ import ListSettings from './ListSettings';
  * The list, in the shop.
  *
  * Built for one hand and bad signal: big boxes to tick, the list in the order
- * the shop is walked, what is in the trolley moved out of the way. A tick
+ * the shop is walked. A ticked line stays where it is, struck through — it
+ * jumping to a "trolley" section further down made the list shift under the
+ * thumb and showed everything twice. Everything that is not shopping (who is
+ * on the list, the link, the recipes, renaming, emptying) is in one menu
+ * behind "…" rather than stacked under the list. A tick
  * shows at once and is sent in the background; with no signal it is kept on
  * the phone and sent when the signal comes back, so the list never argues
  * with the person holding it.
@@ -23,11 +28,32 @@ import ListSettings from './ListSettings';
  * The same component serves everybody shopping on the list with an account
  * (at /shopping — the owner and whoever joined it, who can do everything but
  * choose who else is on it), and whoever was sent the link (at /s/<token>),
- * who can tick — and add, if the owner allows it.
+ * who can look — and tick and add, if they are signed in and the owner allows it.
+ *
+ * When more than one person is on a list, each line can say who is buying
+ * it, and the list can be narrowed to one person's share of the shop.
  */
 
+interface Person {
+    id: number;
+    name: string;
+}
+
 type Mode =
-    | { kind: 'account'; listId: number; name: string | null; owner: boolean; shareToken: string | null; canAdd: boolean } | { kind: 'shared'; token: string; canAdd: boolean };
+    | {
+          kind: 'account';
+          listId: number;
+          name: string | null;
+          owner: boolean;
+          shareToken: string | null;
+          canAdd: boolean;
+          /** Everybody on the list, owner first. */
+          people: Person[];
+          me: number;
+          /** For somebody who joined: whose list it is. */
+          ownerName: string;
+      }
+    | { kind: 'shared'; token: string; canAdd: boolean; signedIn: boolean };
 
 /*
  * One store per list: ticks queued on your own list are not sent to somebody
@@ -61,15 +87,23 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     const [text, setText] = useState('');
     const [adding, setAdding] = useState(false);
     const [note, setNote] = useState('');
-    // Whether the link may add. It can change while somebody has it open.
+    // Whether the link may change the list. It can change while somebody has it open.
     const [linkCanAdd, setLinkCanAdd] = useState(mode.kind === 'shared' ? mode.canAdd : true);
-    const canAdd = mode.kind !== 'shared' || linkCanAdd;
+    const canEdit = mode.kind !== 'shared' || linkCanAdd;
 
     // Which list, on every call about it.
     const listQuery = mode.kind === 'account' ? `list=${mode.listId}` : '';
     const base = mode.kind === 'shared' ? `/api/shopping/shared/${mode.token}` : `/api/shopping?${listQuery}`;
     // The add field is folded away: most lines come from recipes.
     const [adderOpen, setAdderOpen] = useState(false);
+    // The menu, and what was chosen from it.
+    const [sheet, setSheet] = useState<null | 'menu' | 'share' | 'recipes' | 'rename'>(null);
+
+    const people = useMemo(() => (mode.kind === 'account' ? mode.people : []), [mode]);
+    // Splitting the shop only means something with somebody to split it with.
+    const together = people.length > 1;
+    const nameOf = useCallback((id: number | null) => people.find((person) => person.id === id)?.name ?? null, [people]);
+    const [who, setWho] = useState<'all' | 'nobody' | number>('all');
 
     /** Sends one tick. Returns false when it could not be sent. */
     const sendTick = useCallback(
@@ -87,8 +121,9 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ itemId: id, checked }),
                           });
-                // A 404 is an item somebody else removed: nothing left to send.
-                return res.ok || res.status === 404;
+                // A 404 is an item somebody else removed, a 403 a link that may
+                // no longer tick: nothing left to send either way.
+                return res.ok || res.status === 404 || res.status === 403;
             } catch {
                 return false;
             }
@@ -144,16 +179,15 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     }, [base, refresh]);
 
     /*
-     * A ticked line moves to the trolley and a removed one goes, and the
-     * button that had the focus goes with it: the focus fell to the top of
-     * the page on every tick. When the focus was on that line, it moves to
-     * the line that took its place.
+     * A removed line goes, and the button that had the focus goes with it:
+     * the focus fell to the top of the page. When the focus was on that
+     * line, it moves to the line that took its place.
      */
     const keepFocusAfter = (id: number) => {
         const active = document.activeElement;
         if (!(active instanceof HTMLElement) || active.dataset.line !== String(id)) return;
-        const order = [...items.filter((item) => !item.checked), ...items.filter((item) => item.checked)].map((item) => item.id);
-        const at = order.indexOf(id);
+        const order = [...document.querySelectorAll<HTMLElement>('[data-line][role="checkbox"]')].map((element) => element.dataset.line);
+        const at = order.indexOf(String(id));
         const next = order[at + 1] ?? order[at - 1];
         requestAnimationFrame(() => {
             const target = next === undefined ? null : document.querySelector<HTMLElement>(`[data-line="${next}"][role="checkbox"]`);
@@ -162,7 +196,6 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     };
 
     const toggle = async (id: number, checked: boolean) => {
-        keepFocusAfter(id);
         setItems((current) => current.map((item) => (item.id === id ? { ...item, checked } : item)));
         const pending = readPending(base);
         if (await sendTick(id, checked)) {
@@ -175,6 +208,20 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         } else {
             writePending(base, { ...pending, [id]: checked });
             setNote(t('offlineNote'));
+        }
+    };
+
+    const assign = async (item: ShoppingItemRow, buyerId: number | null) => {
+        const before = item.buyerId;
+        setItems((current) => current.map((line) => (line.id === item.id ? { ...line, buyerId } : line)));
+        const res = await fetch(`/api/shopping/${item.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ buyerId }),
+        }).catch(() => null);
+        if (!res?.ok) {
+            setItems((current) => current.map((line) => (line.id === item.id ? { ...line, buyerId: before } : line)));
+            setNote(t('failed'));
         }
     };
 
@@ -193,7 +240,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                 setText('');
             } else if (res.status === 403 && mode.kind === 'shared') {
                 setLinkCanAdd(false);
-                setNote(t('linkTickOnly'));
+                setNote(t('linkViewOnly'));
             } else {
                 setNote(t('failed'));
             }
@@ -211,6 +258,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     };
 
     const clear = async (which: 'checked' | 'all') => {
+        setSheet(null);
         if (
             which === 'all' &&
             !(await ask({
@@ -222,6 +270,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             return;
         const res = await fetch(`/api/shopping?which=${which}&${listQuery}`, { method: 'DELETE' }).catch(() => null);
         if (res?.ok) setItems(((await res.json()) as { items: ShoppingItemRow[] }).items);
+        else setNote(t('failed'));
     };
 
     // The address is only known in the browser. Read after hydration, so the
@@ -243,10 +292,32 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         else setNote(t('failed'));
     };
 
+    const leave = async () => {
+        setSheet(null);
+        if (mode.kind !== 'account' || !(await ask({ title: t('leaveQuestion'), confirmLabel: t('leave') }))) return;
+        const res = await fetch(`/api/shopping/members?list=${mode.listId}&leave=1`, { method: 'DELETE' }).catch(() => null);
+        if (res?.ok) {
+            router.replace('/shopping');
+            router.refresh();
+        } else setNote(t('failed'));
+    };
+
+    const deleteList = async () => {
+        setSheet(null);
+        if (mode.kind !== 'account' || mode.name === null) return;
+        if (!(await ask({ title: t('deleteListQuestion', { name: mode.name }), confirmLabel: t('deleteList'), destructive: true }))) return;
+        const res = await fetch(`/api/shopping/lists?list=${mode.listId}`, { method: 'DELETE' }).catch(() => null);
+        if (res?.ok) {
+            router.replace('/shopping');
+            router.refresh();
+        } else setNote(t('failed'));
+    };
+
     const aisleName = useCallback((aisle: Aisle) => t(`aisle.${aisle}`), [t]);
     const asText = useMemo(() => listAsText(items, aisleName, locale), [items, aisleName, locale]);
 
     const sendText = async () => {
+        setSheet(null);
         // A named list goes out under its name: "Grillparty", not "Einkaufsliste".
         const heading = (mode.kind === 'account' && mode.name) || t('title');
         const body = `${heading}\n\n${asText}${shareLink ? `\n\n${shareLink}` : ''}`;
@@ -263,70 +334,81 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
 
     const [search, setSearch] = useState('');
 
-    const toggleBuyer = async (item: ShoppingItemRow, buyerName = 'Ich') => {
-        const tag = `@${buyerName}`;
-        const hasTag = item.sources.includes(tag);
-        const newSources = hasTag ? item.sources.filter((s) => s !== tag) : [...item.sources, tag];
-        setItems((current) => current.map((i) => (i.id === item.id ? { ...i, sources: newSources } : i)));
-    };
-
-    const matchesSearch = (item: ShoppingItemRow) => {
-        if (!search.trim()) return true;
+    const shown = (item: ShoppingItemRow) => {
+        if (who === 'nobody' && item.buyerId !== null) return false;
+        if (typeof who === 'number' && item.buyerId !== who) return false;
         const q = search.toLowerCase().trim();
-        return (
-            item.name.toLowerCase().includes(q) ||
-            item.aisle.toLowerCase().includes(q) ||
-            item.sources.some((s) => s.toLowerCase().includes(q))
-        );
+        if (!q) return true;
+        return item.name.toLowerCase().includes(q) || aisleName(item.aisle as Aisle).toLowerCase().includes(q) || item.sources.some((s) => s.toLowerCase().includes(q));
     };
 
-    const open = items.filter((item) => !item.checked && matchesSearch(item));
-    const done = items.filter((item) => item.checked && matchesSearch(item));
+    const open = items.filter((item) => !item.checked);
+    const checked = items.filter((item) => item.checked);
+    const visible = items.filter(shown);
 
     const line = (item: ShoppingItemRow) => {
         const amount = amountLabel(item.measure, item.amount, locale);
-        const buyerTag = item.sources.find((s) => s.startsWith('@'))?.slice(1);
-        const recipeSources = item.sources.filter((s) => !s.startsWith('@'));
+        const buyer = nameOf(item.buyerId);
 
         return (
             <li key={item.id} className="flex items-start gap-3 py-2">
-                <button
-                    type="button"
-                    role="checkbox"
-                    data-line={item.id}
-                    aria-checked={item.checked}
-                    onClick={() => void toggle(item.id, !item.checked)}
-                    aria-label={t(item.checked ? 'untick' : 'tick', { name: item.name })}
-                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-lg transition-colors ${
-                        item.checked ? 'border-transparent bg-ink text-page' : 'border-control'
-                    }`}
-                >
-                    {item.checked ? '✓' : ''}
-                </button>
-                <div className={`min-w-0 flex-1 pt-2 ${item.checked ? 'text-faint line-through' : ''}`}>
-                    <p className="leading-snug flex flex-wrap items-center gap-1.5">
-                        {amount && <span className="font-semibold">{amount} </span>}
-                        <span>{item.name}</span>
-                        {buyerTag && (
-                            <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent-text">
-                                🛒 {buyerTag}
-                            </span>
-                        )}
-                    </p>
-                    {recipeSources.length > 0 && !item.checked && (
-                        <p className="mt-0.5 text-xs text-faint">{t('for', { recipes: recipeSources.join(', ') })}</p>
-                    )}
-                </div>
-                {!item.checked && (
+                {canEdit ? (
                     <button
                         type="button"
-                        onClick={() => void toggleBuyer(item, 'Ich')}
-                        title="Einkäufer zuweisen"
-                        className="mt-1 text-xs text-faint hover:text-ink underline underline-offset-4 shrink-0 px-1"
+                        role="checkbox"
+                        data-line={item.id}
+                        aria-checked={item.checked}
+                        onClick={() => void toggle(item.id, !item.checked)}
+                        aria-label={t(item.checked ? 'untick' : 'tick', { name: item.name })}
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-lg transition-colors ${
+                            item.checked ? 'border-transparent bg-ink text-page' : 'border-control'
+                        }`}
                     >
-                        {buyerTag ? 'Freigeben' : '+ Käufer'}
+                        {item.checked ? '✓' : ''}
                     </button>
+                ) : (
+                    <span
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-lg ${item.checked ? 'border-transparent bg-faint text-page' : 'border-control'}`}
+                        aria-label={item.checked ? t('isTicked') : undefined}
+                    >
+                        {item.checked ? '✓' : ''}
+                    </span>
                 )}
+                <div className="min-w-0 flex-1 pt-2">
+                    <p className={`leading-snug ${item.checked ? 'text-faint line-through' : ''}`}>
+                        {amount && <span className="font-semibold">{amount} </span>}
+                        {item.name}
+                    </p>
+                    {(item.sources.length > 0 || (together && (buyer || !item.checked))) && (
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-faint">
+                            {item.sources.length > 0 && !item.checked && <span>{t('for', { recipes: item.sources.join(', ') })}</span>}
+                            {together &&
+                                (item.checked ? (
+                                    buyer && <span>{t('boughtBy', { name: buyer })}</span>
+                                ) : (
+                                    // A native picker: on a phone it opens the system's own list.
+                                    <label
+                                        className={`relative inline-flex min-h-8 items-center rounded-full px-2.5 ${buyer ? 'bg-surface font-semibold text-ink' : 'text-faint hover:text-ink'}`}
+                                    >
+                                        <span aria-hidden>{buyer ?? t('whoBuys')}</span>
+                                        <select
+                                            value={item.buyerId ?? ''}
+                                            onChange={(event) => void assign(item, event.target.value ? Number(event.target.value) : null)}
+                                            aria-label={t('whoBuysFor', { name: item.name })}
+                                            className="absolute inset-0 cursor-pointer opacity-0"
+                                        >
+                                            <option value="">{t('nobody')}</option>
+                                            {people.map((person) => (
+                                                <option key={person.id} value={person.id}>
+                                                    {mode.kind === 'account' && person.id === mode.me ? t('me') : person.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                ))}
+                        </div>
+                    )}
+                </div>
                 {mode.kind !== 'shared' && (
                     <button
                         type="button"
@@ -345,7 +427,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     // The recipes on the list, in the order they first appear, for taking one off whole.
     const recipes = [...new Set(items.flatMap((item) => item.sources))];
 
-    const adder = canAdd && (
+    const adder = canEdit && (
         <div className="mt-6">
             {adderOpen ? (
                 <form
@@ -372,34 +454,90 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                     </button>
                 </form>
             ) : (
-                <button type="button" onClick={() => setAdderOpen(true)} className="text-sm font-medium underline underline-offset-4">
+                <button type="button" onClick={() => setAdderOpen(true)} className="min-h-11 text-sm font-medium underline underline-offset-4">
                     {t('addSomething')}
                 </button>
             )}
         </div>
     );
 
+    const filterChip = (active: boolean) =>
+        `inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors ${
+            active ? 'border-ink bg-ink text-page' : 'border-control text-muted hover:border-ink hover:text-ink'
+        }`;
+    const countFor = (match: (item: ShoppingItemRow) => boolean) => open.filter(match).length;
+
+    const others = people.filter((person) => mode.kind === 'account' && person.id !== mode.me).map((person) => person.name);
+
     return (
         <div>
             {dialog}
 
-            {!canAdd && <p className="text-sm text-muted">{t('linkTickOnly')}</p>}
+            {mode.kind === 'shared' && !canEdit && (
+                <p className="mb-4 rounded-xl bg-surface px-4 py-3 text-sm text-muted">
+                    {mode.signedIn ? (
+                        t('linkViewOnly')
+                    ) : (
+                        <>
+                            {t('linkSignIn')}{' '}
+                            <Link href={`/login?next=${encodeURIComponent(`/${locale}/s/${mode.token}`)}`} className="font-medium text-ink underline underline-offset-4">
+                                {t('signIn')}
+                            </Link>
+                        </>
+                    )}
+                </p>
+            )}
 
             {/* Always there, empty until something is said: a status region
                 that appears together with its text is often not read out. */}
-            <p role="status" className={note ? 'mt-3 text-sm text-muted' : 'sr-only'}>
+            <p role="status" className={note ? 'mb-3 text-sm text-muted' : 'sr-only'}>
                 {note}
             </p>
 
-            {items.length > 0 && (
-                <div className="mb-4">
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Einkaufsliste durchsuchen..."
-                        className="w-full rounded-full border border-control bg-transparent px-4 py-2 text-sm outline-none focus:border-ink placeholder:text-muted/70"
-                    />
+            <div className="flex items-center gap-2">
+                {items.length > 0 && (
+                    <>
+                        <label htmlFor="shopping-search" className="sr-only">
+                            {t('searchLabel')}
+                        </label>
+                        <input
+                            id="shopping-search"
+                            type="search"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder={t('searchPlaceholder')}
+                            className="min-w-0 flex-1 rounded-full border border-control bg-transparent px-4 py-2 text-sm outline-none placeholder:text-faint focus:border-ink"
+                        />
+                    </>
+                )}
+                {mode.kind === 'account' && (
+                    <button
+                        type="button"
+                        onClick={() => setSheet('menu')}
+                        aria-label={t('menu')}
+                        aria-haspopup="dialog"
+                        className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-control text-xl leading-none hover:border-ink"
+                    >
+                        …
+                    </button>
+                )}
+            </div>
+
+            {together && items.length > 0 && (
+                <div role="group" aria-label={t('filterLabel')} className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
+                    <button type="button" aria-pressed={who === 'all'} onClick={() => setWho('all')} className={filterChip(who === 'all')}>
+                        {t('filterAll')}
+                    </button>
+                    {people.map((person) => (
+                        <button key={person.id} type="button" aria-pressed={who === person.id} onClick={() => setWho(person.id)} className={filterChip(who === person.id)}>
+                            {mode.kind === 'account' && person.id === mode.me ? t('me') : person.name}
+                            <span className="text-xs opacity-70">{countFor((item) => item.buyerId === person.id)}</span>
+                        </button>
+                    ))}
+                    <button type="button" aria-pressed={who === 'nobody'} onClick={() => setWho('nobody')} className={filterChip(who === 'nobody')}>
+                        {t('filterNobody')}
+                        <span className="text-xs opacity-70">{countFor((item) => item.buyerId === null)}</span>
+                    </button>
                 </div>
             )}
 
@@ -418,75 +556,143 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             ) : (
                 <>
                     {AISLES.map((aisle) => {
-                        const here = items.filter((item) => item.aisle === aisle && matchesSearch(item));
+                        const here = visible.filter((item) => item.aisle === aisle);
                         if (here.length === 0) return null;
                         return (
-                            <section key={aisle} className="mt-8 first:mt-2">
+                            <section key={aisle} className="mt-6">
                                 <h2 className="mb-1 text-xs font-bold uppercase tracking-widest text-muted">{aisleName(aisle)}</h2>
                                 <ul className="divide-y divide-line">{here.map(line)}</ul>
                             </section>
                         );
                     })}
 
-                    {items.filter(matchesSearch).length > 0 && open.length === 0 && <p className="mt-10 text-center text-muted">{t('allDone')}</p>}
+                    {visible.length === 0 && <p className="mt-10 text-center text-muted">{t('nothingMatches')}</p>}
+
+                    {open.length === 0 && (
+                        <div className="mt-10 flex flex-col items-center gap-3 text-center text-muted">
+                            <p>{t('allDone')}</p>
+                            {mode.kind === 'account' && (
+                                <button type="button" onClick={() => void clear('checked')} className={buttonSecondary}>
+                                    {t('clearCheckedCount', { count: checked.length })}
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </>
             )}
 
             {adder}
 
-            {done.length > 0 && (
-                <section className="mt-10 border-t border-line pt-4">
-                    <div className="flex items-baseline justify-between gap-4">
-                        <h2 className="text-xs font-bold uppercase tracking-widest text-faint">{t('inTrolley', { count: done.length })}</h2>
-                        {mode.kind !== 'shared' && (
-                            <button type="button" onClick={() => void clear('checked')} className="text-sm text-muted underline underline-offset-4">
-                                {t('clearChecked')}
-                            </button>
-                        )}
-                    </div>
-                    <ul className="divide-y divide-line">{done.map(line)}</ul>
-                </section>
-            )}
-
-            {mode.kind !== 'shared' && recipes.length > 0 && (
-                <section className="mt-10 border-t border-line pt-4">
-                    <h2 className="text-xs font-bold uppercase tracking-widest text-muted">{t('recipesOnList')}</h2>
-                    <ul className="mt-1 divide-y divide-line">
-                        {recipes.map((recipe) => (
-                            <li key={recipe} className="flex items-center justify-between gap-3 py-1">
-                                <span className="min-w-0 text-sm">{recipe}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => void removeRecipe(recipe)}
-                                    className="min-h-11 shrink-0 text-sm text-muted underline underline-offset-4 hover:text-danger"
-                                >
-                                    {t('removeRecipe')}
+            {mode.kind === 'account' && sheet === 'menu' && (
+                <Sheet title={mode.name ?? t('title')} onClose={() => setSheet(null)}>
+                    <ul className="flex flex-col">
+                        {mode.owner ? (
+                            <li>
+                                <button type="button" onClick={() => setSheet('share')} className={sheetItem}>
+                                    <span>
+                                        {t('menuShare')}
+                                        <span className="block text-sm font-normal text-muted">
+                                            {others.length > 0 ? t('sharedWith', { names: others.join(', ') }) : shareToken ? t('linkActive') : t('menuShareNone')}
+                                        </span>
+                                    </span>
+                                    <span aria-hidden className="text-faint">›</span>
                                 </button>
                             </li>
-                        ))}
+                        ) : (
+                            <li className="px-3 pb-2 text-sm text-muted">{t('memberExplain', { name: mode.ownerName, names: people.map((p) => p.name).join(', ') })}</li>
+                        )}
+                        {recipes.length > 0 && (
+                            <li>
+                                <button type="button" onClick={() => setSheet('recipes')} className={sheetItem}>
+                                    <span>{t('recipesOnListCount', { count: recipes.length })}</span>
+                                    <span aria-hidden className="text-faint">›</span>
+                                </button>
+                            </li>
+                        )}
+                        {open.length > 0 && (
+                            <li>
+                                <button type="button" onClick={() => void sendText()} className={sheetItem}>
+                                    {t('sendAsText')}
+                                </button>
+                            </li>
+                        )}
+                        {checked.length > 0 && (
+                            <li>
+                                <button type="button" onClick={() => void clear('checked')} className={sheetItem}>
+                                    {t('clearCheckedCount', { count: checked.length })}
+                                </button>
+                            </li>
+                        )}
+                        {mode.owner && mode.name !== null && (
+                            <li>
+                                <button type="button" onClick={() => setSheet('rename')} className={sheetItem}>
+                                    {t('renameList')}
+                                </button>
+                            </li>
+                        )}
+                        <li className="mt-2 border-t border-line pt-2" />
+                        {items.length > 0 && (
+                            <li>
+                                <button type="button" onClick={() => void clear('all')} className={`${sheetItem} text-danger`}>
+                                    {t('clearAll')}
+                                </button>
+                            </li>
+                        )}
+                        {mode.owner && mode.name !== null && (
+                            <li>
+                                <button type="button" onClick={() => void deleteList()} className={`${sheetItem} text-danger`}>
+                                    {t('deleteList')}
+                                </button>
+                            </li>
+                        )}
+                        {!mode.owner && (
+                            <li>
+                                <button type="button" onClick={() => void leave()} className={`${sheetItem} text-danger`}>
+                                    {t('leave')}
+                                </button>
+                            </li>
+                        )}
                     </ul>
-                </section>
+                </Sheet>
             )}
 
-            <div className="mt-12 flex flex-col gap-4 border-t border-line pt-6 text-sm">
-                {items.length > 0 && (
-                    <button type="button" onClick={() => void sendText()} className="self-start underline underline-offset-4">
-                        {t('sendAsText')}
-                    </button>
-                )}
+            {mode.kind === 'account' && sheet === 'share' && (
+                <Sheet title={t('shareTitle')} onClose={() => setSheet(null)}>
+                    <ShoppingSharing
+                        listId={mode.listId}
+                        shareLink={shareLink}
+                        onShareToken={setShareToken}
+                        canAdd={mode.canAdd}
+                        onNote={setNote}
+                        onChanged={() => router.refresh()}
+                    />
+                </Sheet>
+            )}
 
-                {mode.kind === 'account' && (
-                    <ShoppingSharing listId={mode.listId} owner={mode.owner} shareLink={shareLink} onShareToken={setShareToken} canAdd={mode.canAdd} onNote={setNote} />
-                )}
+            {mode.kind === 'account' && sheet === 'recipes' && (
+                <Sheet title={t('recipesOnList')} onClose={() => setSheet(null)}>
+                    {recipes.length === 0 ? (
+                        <p className="text-muted">{t('noRecipes')}</p>
+                    ) : (
+                        <ul className="divide-y divide-line">
+                            {recipes.map((recipe) => (
+                                <li key={recipe} className="flex min-h-12 items-center justify-between gap-3">
+                                    <span className="min-w-0">{recipe}</span>
+                                    <button type="button" onClick={() => void removeRecipe(recipe)} className={buttonSecondary}>
+                                        {t('removeRecipe')}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Sheet>
+            )}
 
-                {mode.kind === 'account' && mode.owner && mode.name !== null && <ListSettings listId={mode.listId} name={mode.name} />}
-
-                {mode.kind === 'account' && items.length > 0 && (
-                    <button type="button" onClick={() => void clear('all')} className="self-start text-faint underline underline-offset-4 hover:text-danger">
-                        {t('clearAll')}
-                    </button>
-                )}
-            </div>
+            {mode.kind === 'account' && sheet === 'rename' && mode.name !== null && (
+                <Sheet title={t('renameList')} onClose={() => setSheet(null)}>
+                    <ListSettings listId={mode.listId} name={mode.name} onDone={() => setSheet(null)} />
+                </Sheet>
+            )}
         </div>
     );
 }

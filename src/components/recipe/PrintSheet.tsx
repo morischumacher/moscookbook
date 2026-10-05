@@ -23,7 +23,12 @@ export interface PrintInfo {
  * Its width is set in millimetres rather than taken from the page: an iPhone
  * prints the layout at the phone's width and shrinks it onto the sheet, which
  * is where the narrow column came from. A fixed paper width comes out the
- * same from every browser.
+ * same from every browser. Do not make it fluid (`width: 100%`) again.
+ *
+ * `print-root` tells the print stylesheet (the "Paper" block in
+ * app/globals.css) that this is the only thing on the page to print:
+ * everything around it is dropped and its wrappers are reset, so no screen
+ * width or horizontal overflow can shrink it or push it to one side.
  */
 export default function PrintSheet({
     title,
@@ -34,6 +39,8 @@ export default function PrintSheet({
     ingredientsHeading,
     steps,
     stepsHeading,
+    tips,
+    tipsHeading,
     scaledNote,
 }: {
     title: string;
@@ -44,12 +51,15 @@ export default function PrintSheet({
     ingredientsHeading: string;
     steps: ReactNode[];
     stepsHeading: string;
+    /** Tips & notes, rendered; left out when there are none. */
+    tips?: ReactNode;
+    tipsHeading?: string;
     scaledNote: string | null;
 }) {
     const facts = [...(servings ? [{ label: servingsLabel, value: String(servings) }] : []), ...info.facts];
 
     return (
-        <div className="print-sheet hidden print:block">
+        <div className="print-sheet print-root hidden print:block">
             <header className="print-masthead">
                 {/* Loaded eagerly: hidden on screen, a lazy picture is never
                     fetched, and the printed page came out without the logo. */}
@@ -107,6 +117,16 @@ export default function PrintSheet({
                             </li>
                         ))}
                     </ol>
+                    {/* Under the method, in its column and a size smaller:
+                        a note beside the steps, not a second page. */}
+                    {tips && (
+                        <div className="mt-4 break-inside-avoid">
+                            <h2>{tipsHeading}</h2>
+                            {/* Its list items are list items: the method's rule above
+                                makes every li in this column a flex row. */}
+                            <div className="markdown-step text-xs leading-snug [&_li]:!list-item">{tips}</div>
+                        </div>
+                    )}
                 </section>
             </div>
         </div>

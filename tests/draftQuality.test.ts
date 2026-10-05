@@ -1,5 +1,5 @@
 import { suite, check, equal } from './harness';
-import { assessDraft, worthAsking } from '../src/lib/draftQuality';
+import { assessDraft, nameFromParagraph, worthAsking } from '../src/lib/draftQuality';
 import type { ImportedRecipe } from '../src/lib/recipeFromHtml';
 
 /**
@@ -41,6 +41,23 @@ function draft(over: Partial<ImportedRecipe>): ImportedRecipe {
 }
 
 export default function draftQualityTests() {
+    suite('draftQuality: a name out of a paragraph (work #42)');
+    const caption =
+        'Le Tofu Poilu (máo dòufǔ 毛豆腐) Recette traduite du chinois par @ferment_nation 👈 Le Máo Dòufǔ, littéralement « Tofu Poilu » en chinois, est du tofu sur lequel on a fait pousser une moisissure.';
+    equal('cut after the bracket', nameFromParagraph(caption), 'Le Tofu Poilu (máo dòufǔ 毛豆腐)');
+    equal(
+        'cut at the first sentence',
+        nameFromParagraph('Cremige Tomatensuppe. Die beste Suppe für kalte Tage, mit frischem Basilikum und einem Schuss Sahne, schnell gemacht und so gut.'),
+        'Cremige Tomatensuppe'
+    );
+    equal(
+        'cut before the hashtags',
+        nameFromParagraph('Ofengemüse mit Feta #vegetarisch #ofen #schnell #lecker #feierabendküche #einfach #gesund #mealprep #foodblogger #rezept #instafood #kochen #abendessen'),
+        'Ofengemüse mit Feta'
+    );
+    equal('a name is left alone', nameFromParagraph('Agedashi Tofu'), 'Agedashi Tofu');
+    check('never longer than a name', nameFromParagraph('wort '.repeat(60)).length <= 81);
+
     suite('draftQuality: what must stay good');
 
     equal('a clean draft is good', assessDraft(draft({})).quality, 'good');

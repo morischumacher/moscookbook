@@ -44,7 +44,7 @@ export default function recipeVisibilityTests() {
 
     suite('only me: through a backup');
     const row = {
-        title: 'Geheim', slug: 'geheim', description: null, instructions: '1.', category: null, nationality: null,
+        title: 'Geheim', slug: 'geheim', description: null, instructions: '1.', tips: '', category: null, nationality: null,
         servings: null, prepMinutes: null, cookMinutes: null, views: 0, isPublic: false, isDraft: false, onlyMe: true,
         createdAt: new Date('2026-09-01T00:00:00Z'), images: [], tags: [], categories: [], cuisines: [], spiciness: 0,
         ingredients: [], language: null, translations: [],

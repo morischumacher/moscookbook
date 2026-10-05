@@ -48,7 +48,7 @@ export function readInBackground(captureId: number, classified: ClassifiedCaptur
             // render.
             const draft =
                 result.draft && result.draft.imageUrl
-                    ? { ...result.draft, imageUrl: await mirrorImageToBlob(result.draft.imageUrl) }
+                    ? { ...result.draft, imageUrl: await mirrorImageToBlob(result.draft.imageUrl, result.draft.title) }
                     : result.draft;
 
             // Only while it is still waiting to be read: the reading takes

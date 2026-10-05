@@ -65,7 +65,7 @@ export default function ShoppingLists({ lists, current }: { lists: ListSummary[]
                 )}
                 {!creating && lists.filter((l) => l.owner).length >= 3 && (
                     <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line px-3 py-2 text-xs text-faint">
-                        Max 3 Listen
+                        {t('maxLists', { count: 3 })}
                     </span>
                 )}
             </nav>

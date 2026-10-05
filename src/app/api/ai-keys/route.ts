@@ -1,3 +1,4 @@
+import { readerProxyOn, setReaderProxy } from '@/lib/readerProxy';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
@@ -49,16 +50,18 @@ export async function GET() {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    const [credentials, mode, style]: [AiCredentialView[], string, string] = await Promise.all([
+    const [credentials, mode, style, proxy]: [AiCredentialView[], string, string, boolean] = await Promise.all([
         listAiCredentials(),
         assistMode(),
         writingStyle(),
+        readerProxyOn(),
     ]);
 
     return NextResponse.json({
         credentials,
         mode,
         writingStyle: style,
+        readerProxy: proxy,
         modes: ASSIST_MODES,
         canStore: canSeal(),
     });
@@ -111,6 +114,8 @@ export async function POST(req: NextRequest) {
 const modeSchema = z.object({
     mode: z.string().refine(isAssistMode, 'Unknown mode').optional(),
     writingStyle: z.string().max(2000).optional(),
+    /** Asking a blocked page once more through the reader proxy (lib/readerProxy). */
+    readerProxy: z.boolean().optional(),
 });
 
 /** The knobs: when the AI is allowed to be asked and custom writing style. */
@@ -125,9 +130,11 @@ export async function PATCH(req: NextRequest) {
 
     if (parsed.data.mode) await setAssistMode(parsed.data.mode);
     if (parsed.data.writingStyle !== undefined) await setWritingStyle(parsed.data.writingStyle);
+    if (parsed.data.readerProxy !== undefined) await setReaderProxy(parsed.data.readerProxy);
 
     return NextResponse.json({
         mode: parsed.data.mode ?? (await assistMode()),
         writingStyle: parsed.data.writingStyle ?? (await writingStyle()),
+        readerProxy: await readerProxyOn(),
     });
 }

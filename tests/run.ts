@@ -63,6 +63,7 @@ import socialImport from './socialImport.test';
 import passkeys from './passkeys.test';
 import workItems from './workItems.test';
 import workAuto from './workAuto.test';
+import reportSections from './reportSections.test';
 import inboxDecision from './inboxDecision.test';
 import recipeLayout from './recipeLayout.test';
 import userProtection from './userProtection.test';
@@ -87,7 +88,9 @@ import publicPages from './publicPages.test';
 import shareStage from './shareStage.test';
 import aiProviders from './aiProviders.test';
 import aiPolish from './aiPolish.test';
+import aiPicture from './aiPicture.test';
 import draftQuality from './draftQuality.test';
+import readerProxy from './readerProxy.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
 // they are run in order rather than fired off together.
@@ -146,6 +149,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['siteProfile', siteProfile],
     ['aiProviders', aiProviders],
     ['aiPolish', aiPolish],
+    ['aiPicture', aiPicture],
     ['clientMessages', clientMessages],
     ['recipeRepo', recipeRepo],
     ['storedDraftTests', storedDraftTests],
@@ -164,6 +168,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['passkeys', passkeys],
     ['workItems', workItems],
     ['workAuto', workAuto],
+    ['reportSections', reportSections],
     ['inboxDecision', inboxDecision],
     ['recipeLayout', recipeLayout],
     ['userProtection', userProtection],
@@ -189,6 +194,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['publicPages', publicPages],
     ['shareStage', shareStage],
     ['draftQuality', draftQuality],
+    ['readerProxy', readerProxy],
     ['fixtures', fixtures],
     ['pageTitle', pageTitle],
     ['transcripts', transcripts],

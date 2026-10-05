@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import prisma from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth';
 import { itemsOf } from '@/lib/shoppingDb';
 import ShoppingListView from '@/components/shopping/ShoppingListView';
 import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
@@ -9,9 +10,9 @@ import { pageContainer, pageHeading, pageTop } from '@/lib/ui';
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
- * A shopping list somebody was sent. No account needed: the link is the
- * permission, it opens this one list, and it can tick — and add, if the
- * owner allows it — but not delete.
+ * A shopping list somebody was sent. No account needed to look: the link is
+ * the permission, and it opens this one list. Ticking and adding need an
+ * account as well, and the owner's leave; deleting is not possible from here.
  */
 export default async function SharedShoppingPage({ params }: { params: Promise<{ token: string }> }) {
     const { token } = await params;
@@ -23,13 +24,13 @@ export default async function SharedShoppingPage({ params }: { params: Promise<{
     });
     if (!list) notFound();
 
-    const [t, items] = await Promise.all([getTranslations('Shopping'), itemsOf(list.id)]);
+    const [t, items, user] = await Promise.all([getTranslations('Shopping'), itemsOf(list.id), getCurrentUser()]);
 
     return (
         <main className={`${pageContainer} pb-32`}>
             <h1 className={`${pageTop} ${pageHeading} mb-2`}>{list.name ?? t('title')}</h1>
             <p className="mb-6 text-sm text-muted">{t('sharedBy', { name: list.user.firstName || list.user.name })}</p>
-            <ShoppingListView initial={items} mode={{ kind: 'shared', token, canAdd: list.shareCanAdd }} />
+            <ShoppingListView initial={items} mode={{ kind: 'shared', token, canAdd: list.shareCanAdd && Boolean(user), signedIn: Boolean(user) }} />
         </main>
     );
 }

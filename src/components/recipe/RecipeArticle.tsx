@@ -10,7 +10,6 @@ import RecipeBody from '@/components/recipe/RecipeBody';
 import { splitSteps } from '@/lib/steps';
 import { withCelsius } from '@/lib/units';
 import { KNOWN_TAGS, TAG_ICONS, chillies } from '@/lib/tags';
-import { headLabels } from '@/lib/recipeLabels';
 import Gallery from '@/components/recipe/Gallery';
 import RecipeNotes, { type RecipeNote } from '@/components/recipe/RecipeNotes';
 import Cooked, { type CookedEntry } from '@/components/recipe/Cooked';
@@ -36,6 +35,8 @@ export interface RecipeRow {
     /** 0–3 chillies. */
     spiciness: number;
     instructions: string;
+    /** Tips & notes, markdown; "" when there are none. Optional: a shared page builds its own row. */
+    tips?: string;
     views: number;
     servings: number | null;
     prepMinutes: number | null;
@@ -98,7 +99,7 @@ export const recipeInclude = {
      */
     captures: { orderBy: { id: 'asc' }, take: 1, select: { sourceUrl: true } },
     // Both, at most two rows; the page picks the reader's (lib/recipeTranslation).
-    translations: { select: { locale: true, title: true, description: true, instructions: true, ingredients: true, source: true } },
+    translations: { select: { locale: true, title: true, description: true, instructions: true, tips: true, ingredients: true, source: true } },
 } as const;
 
 export interface RecipeArticleProps {
@@ -180,7 +181,6 @@ export default async function RecipeArticle({
         ...recipe.categories.map((value) => (tCategory.has(value) ? tCategory(value) : value)),
         ...recipe.cuisines.map((value) => (tCuisine.has(value) ? tCuisine(value) : value)),
     ];
-    const head = headLabels(labels);
 
     const totalMinutes = (recipe.prepMinutes ?? 0) + (recipe.cookMinutes ?? 0);
     const times = [
@@ -189,7 +189,8 @@ export default async function RecipeArticle({
         recipe.prepMinutes && recipe.cookMinutes
             ? { label: t('totalTime'), value: formatMinutes(totalMinutes, locale) }
             : null,
-        recipe.servings ? { label: t('servings'), value: String(recipe.servings) } : null,
+        // Not the servings: the stepper below says how many, and changes;
+        // a second, fixed number up here contradicted it (work #44).
     ].filter((entry): entry is { label: string; value: string } => entry !== null);
 
 
@@ -254,8 +255,8 @@ export default async function RecipeArticle({
                     the same mark, shown only on paper. */}
 
                 <p className="text-xs font-semibold uppercase tracking-widest text-faint">
-                    {head.shown.join(' · ') || formatDate(recipe.createdAt, locale, 'short')}
-                    {head.more > 0 && <span title={labels.slice(3).join(', ')} className="whitespace-nowrap"> · +{head.more}</span>}
+                    {/* Every one: a "+1" that could not be opened hid what it counted (work #44). */}
+                    {labels.join(' · ') || formatDate(recipe.createdAt, locale, 'short')}
                 </p>
 
                 <h1 className="mt-2 text-3xl font-extrabold leading-[1.12] tracking-tight text-ink sm:text-4xl">
@@ -407,6 +408,11 @@ export default async function RecipeArticle({
                         </ReactMarkdown>
                     ))}
                     stepTexts={stepTexts}
+                    tips={
+                        recipe.tips?.trim() ? (
+                            <ReactMarkdown components={{ img: StorePicture }}>{withCelsius(recipe.tips)}</ReactMarkdown>
+                        ) : undefined
+                    }
                     canShop={mode === 'private' && isLoggedIn}
                     baseServings={recipe.servings}
                     title={recipe.title}

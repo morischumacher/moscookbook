@@ -15,7 +15,7 @@ import TagField from './TagField';
 import IngredientEditor, { EMPTY_ROW } from './IngredientEditor';
 import { fieldClass, labelClass } from './formStyles';
 import QuickImport, { type ImportedDraft } from './QuickImport';
-import { buttonPrimary } from '@/lib/ui';
+import { buttonPrimary, buttonSecondary } from '@/lib/ui';
 import { BusyLabel } from '@/components/ui/Busy';
 import LabelPicker from './LabelPicker';
 import DietPicker from './DietPicker';
@@ -30,6 +30,8 @@ export interface RecipeFormValues {
     category: string;
     nationality: string;
     instructions: string;
+    /** Tips & notes, markdown; optional. */
+    tips?: string;
     ingredients: Ingredient[];
     /** In the order they should be shown; the first one is the cover. */
     imageUrls: string[];
@@ -93,6 +95,7 @@ export default function RecipeForm({
     const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
     const [imageUrls, setImageUrls] = useState<string[]>(initial?.imageUrls ?? []);
     const [instructions, setInstructions] = useState(initial?.instructions ?? '');
+    const [tips, setTips] = useState(initial?.tips ?? '');
     const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
     const [servings, setServings] = useState<string>(
         initial?.servings != null ? String(initial.servings) : ''
@@ -158,13 +161,13 @@ export default function RecipeForm({
 
     const values = useMemo(
         () => ({
-            title, slug, description, categories, cuisines, spiciness, imageUrls, instructions,
+            title, slug, description, categories, cuisines, spiciness, imageUrls, instructions, tips,
             ingredients, servings, prepMinutes, cookMinutes, tags,
             // The translation too: it was a paid call and possibly corrected by hand.
             language: chosenLanguage, translation,
         }),
         [
-            title, slug, description, categories, cuisines, spiciness, imageUrls, instructions,
+            title, slug, description, categories, cuisines, spiciness, imageUrls, instructions, tips,
             ingredients, servings, prepMinutes, cookMinutes, tags, chosenLanguage, translation,
         ]
     );
@@ -219,6 +222,8 @@ export default function RecipeForm({
             setTags(draft.tags ?? []);
             setImageUrls(draft.imageUrls ?? []);
             setInstructions(draft.instructions ?? '');
+            // A draft kept before recipes had tips says nothing about them.
+            setTips(draft.tips ?? initial?.tips ?? '');
             setIngredients(
                 draft.ingredients && draft.ingredients.length > 0 ? draft.ingredients : [{ ...EMPTY_ROW }]
             );
@@ -316,6 +321,7 @@ export default function RecipeForm({
                     tags,
                     imageUrls,
                     instructions,
+                    tips,
                     ingredients: cleanedIngredients,
                     servings: toOptionalNumber(servings),
                     prepMinutes: toOptionalNumber(prepMinutes),
@@ -351,7 +357,46 @@ export default function RecipeForm({
             // second press creates the recipe twice (or a 409 on its slug).
             saved = true;
             clearDraft();
-            router.push(captureId ? '/admin/inbox' : '/admin');
+            router.push(captureId ? '/admin/inbox' : isDraft ? '/admin/drafts' : '/admin');
+            router.refresh();
+        } catch {
+            failWith(t('saveFailed'));
+        } finally {
+            if (!saved) setSaving(false);
+        }
+    };
+
+    /** An inbox item's edits kept on the item, without taking it into the cookbook (work #20, #23). */
+    const saveToInbox = async () => {
+        if (!captureId) return;
+        setError('');
+        setSaving(true);
+        let saved = false;
+        try {
+            const res = await fetch(`/api/capture/${captureId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    draft: {
+                        title,
+                        description,
+                        instructions,
+                        category: categories[0] ?? '',
+                        nationality: cuisines[0] ?? '',
+                        servings: toOptionalNumber(servings),
+                        prepMinutes: toOptionalNumber(prepMinutes),
+                        cookMinutes: toOptionalNumber(cookMinutes),
+                        ingredients: ingredients.filter((row) => row.item.trim() !== '').map((row) => ({ amount: row.amount, item: row.item })),
+                    },
+                }),
+            });
+            if (!res.ok) {
+                failWith(sayable((await res.json().catch(() => ({}))).message, t('saveFailed')));
+                return;
+            }
+            saved = true;
+            clearDraft();
+            router.push('/admin/inbox');
             router.refresh();
         } catch {
             failWith(t('saveFailed'));
@@ -522,7 +567,9 @@ export default function RecipeForm({
                     just as far off screen. */}
                 <GalleryField
                     imageUrls={imageUrls}
+                    title={title}
                     onChange={setImageUrls}
+                    ai={aiEnabled ? { title, ingredients: ingredients.map((row) => `${row.amount} ${row.item}`.trim()).filter(Boolean) } : undefined}
                     onError={(message) => (message ? failWith(message) : setError(''))}
                 />
 
@@ -562,17 +609,43 @@ export default function RecipeForm({
                         earn their keep: a title has a typo perhaps twice a
                         year, and a method forwarded from an e-mail is one
                         paragraph every single time. */}
+                    {/* With a method, the buttons work on it; without one, the
+                        one button writes it from the ingredients (work #30) —
+                        never over a method somebody already wrote. */}
                     <PolishPanel
                         text={instructions.trim() ? instructions : ingredients.map((i) => `${i.amount} ${i.item}`.trim()).filter(Boolean).join('\n')}
+                        title={title}
                         onApply={setInstructions}
-                        modes={instructions.trim() ? ['spelling', 'steps', 'generate-method'] : ['generate-method']}
+                        modes={instructions.trim() ? ['spelling', 'steps'] : ['generate-method']}
                         disabled={preview}
                         available={aiEnabled}
                     />
                 </div>
 
+                <div>
+                    <label htmlFor="tips" className={labelClass}>{t('tips')}</label>
+                    {preview ? (
+                        tips.trim() && (
+                            <div className="prose max-w-none rounded-lg border border-line p-4">
+                                <ReactMarkdown components={{ img: StorePicture }}>{tips}</ReactMarkdown>
+                            </div>
+                        )
+                    ) : (
+                        <textarea
+                            id="tips"
+                            value={tips}
+                            onChange={(event) => setTips(event.target.value)}
+                            rows={4}
+                            maxLength={10_000}
+                            placeholder={t('tipsPlaceholder')}
+                            className={fieldClass + ' text-sm'}
+                        />
+                    )}
+                    <p className="mt-1 text-xs text-muted">{t('tipsHint')}</p>
+                </div>
+
                 <TranslationPanel
-                    original={{ title, description, instructions, ingredients }}
+                    original={{ title, description, instructions, tips, ingredients }}
                     language={language}
                     onLanguage={setChosenLanguage}
                     translation={translation}
@@ -593,13 +666,18 @@ export default function RecipeForm({
                             {mode === 'create' ? t('create') : t('save')}
                         </BusyLabel>
                     </button>
+                    {captureId && (
+                        <button type="button" disabled={saving} onClick={() => void saveToInbox()} className={buttonSecondary}>
+                            {t('saveToInbox')}
+                        </button>
+                    )}
                     <button
                         type="button"
                         disabled={saving}
                         onClick={(event) => void handleSubmit(event, true)}
-                        className="rounded-lg border border-control px-4 py-2 text-sm font-medium hover:bg-surface disabled:opacity-50"
+                        className={buttonSecondary}
                     >
-                        {t('saveAsDraft') || 'Als Entwurf speichern'}
+                        {t('saveAsDraft')}
                     </button>
                     <button
                         type="button"

@@ -43,6 +43,7 @@ function recipeData(recipe: ArchiveRecipe) {
         slug: recipe.slug,
         description: recipe.description,
         instructions: recipe.instructions,
+        tips: recipe.tips,
         category: recipe.category,
         nationality: recipe.nationality,
         servings: recipe.servings,
@@ -160,7 +161,7 @@ export async function POST(req: NextRequest) {
                         where: { slug: recipe.slug },
                         select: {
                             id: true, title: true, slug: true, description: true, category: true, nationality: true,
-                            instructions: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true, isDraft: true,
+                            instructions: true, tips: true, servings: true, prepMinutes: true, cookMinutes: true, tags: true, isDraft: true,
                             ingredients: { orderBy: { position: 'asc' }, select: { raw: true, name: true, section: true } },
                         },
                     });

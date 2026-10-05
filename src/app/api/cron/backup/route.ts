@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
                 slug: true,
                 description: true,
                 instructions: true,
+                tips: true,
                 category: true,
                 nationality: true,
                 servings: true,

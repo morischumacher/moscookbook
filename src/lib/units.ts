@@ -85,7 +85,8 @@ export function unitOf(written: string | null | undefined): UnitDef | null {
     return BY_ALIAS.get(key) ?? null;
 }
 
-export type UnitSystem = 'metric' | 'original';
+/** Grams and millilitres, or American cups, ounces and pounds — every recipe either way. */
+export type UnitSystem = 'metric' | 'us';
 type Locale = 'en' | 'de';
 
 /** A number, rounded the way a kitchen would say it. */
@@ -160,6 +161,68 @@ export function toMetric(parts: AmountParts, ingredient: string, locale: Locale 
         { quantity: convert(parts.quantity), quantityMax: convert(parts.quantityMax), unit: asGrams ? 'g' : 'ml' },
         locale
     );
+}
+
+/**
+ * The amount in American kitchen units: grams of a dry thing a cup measures
+ * (flour, sugar, butter …) and millilitres in cups, or in tablespoons and
+ * teaspoons when less than a quarter cup; other weights in ounces and pounds.
+ * Rounded to what the measuring cups and spoons in a drawer can do — a
+ * quarter or a third of a cup, half a tablespoon. Amounts that are American
+ * already, spoons, and anything else ("2 Zehen") come back as they were.
+ */
+export function toUS(parts: AmountParts, ingredient: string, locale: Locale = 'de'): AmountParts {
+    const unit = unitOf(parts.unit);
+    if (!unit || parts.quantity === null) return parts;
+    if (unit.dimension === 'spoon') return tidy(parts, locale);
+    if (!unit.metric) return parts;
+
+    const perCup = GRAMS_PER_CUP.find(([pattern]) => pattern.test(ingredient))?.[1];
+    const top = (parts.quantityMax ?? parts.quantity) * unit.base;
+    const both = (convert: (base: number) => number, label: string): AmountParts => ({
+        quantity: convert(parts.quantity! * unit.base),
+        quantityMax: parts.quantityMax === null ? null : convert(parts.quantityMax * unit.base),
+        unit: label,
+    });
+
+    // A weight nobody measures in cups: ounces, and pounds from one up.
+    if (unit.dimension === 'mass' && perCup === undefined) {
+        if (top / 453.6 >= 1) return both((grams) => roundTo(grams / 453.6, 4), 'lb');
+        return both((grams) => Math.max(0.25, roundTo(grams / 28.35, grams / 28.35 < 4 ? 4 : 2)), 'oz');
+    }
+
+    // In cups: grams through the ingredient's weight per cup, millilitres as they are.
+    const cupsOf = (base: number) => (unit.dimension === 'mass' ? base / perCup! : base / 240);
+    const cups = cupsOf(top);
+    if (cups >= 0.25 - 0.01) {
+        const label = (amount: number) => (locale === 'de' ? (amount > 1 ? 'Tassen' : 'Tasse') : amount > 1 ? 'cups' : 'cup');
+        const shown = both((base) => cupFraction(cupsOf(base)), '');
+        return { ...shown, unit: label(shown.quantityMax ?? shown.quantity ?? 0) };
+    }
+    const tablespoons = cups * 16;
+    if (tablespoons >= 1) return both((base) => Math.max(0.5, roundTo(cupsOf(base) * 16, 2)), locale === 'de' ? 'EL' : 'tbsp');
+    return both((base) => Math.max(0.125, roundTo(cupsOf(base) * 48, 4)), locale === 'de' ? 'TL' : 'tsp');
+}
+
+/** Rounded to a 1/step: roundTo(1.3, 4) is 1.25. */
+function roundTo(value: number, step: number): number {
+    return Math.round(value * step) / step;
+}
+
+/** The nearest amount a set of measuring cups makes: quarters and thirds. */
+function cupFraction(cups: number): number {
+    const quarters = roundTo(cups, 4);
+    const thirds = roundTo(cups, 3);
+    const best = Math.abs(thirds - cups) < Math.abs(quarters - cups) - 0.001 ? thirds : quarters;
+    return Math.max(0.25, Math.round(best * 1000) / 1000);
+}
+
+/** Whether a recipe has weights or volumes to show in the other system — so the switch is only offered where it changes anything. */
+export function hasMeasures(rows: AmountParts[]): boolean {
+    return rows.some((row) => {
+        const unit = unitOf(row.unit);
+        return row.quantity !== null && unit !== null && unit.dimension !== 'spoon';
+    });
 }
 
 /** What the shopping list adds up: a dimension and an amount in its base, or a named unit. */

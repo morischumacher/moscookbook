@@ -6,6 +6,8 @@ import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { prepareErrorReport } from '@/lib/errorReport';
 import { failed } from '@/lib/reportServerError';
 import { syncWorkItem, workStates } from '@/lib/workItemsDb';
+import { deleteBlobs } from '@/lib/blobCleanup';
+import { bulkIdsSchema, splitReports } from '@/lib/reportSections';
 
 /**
  * Where a broken page says so.
@@ -137,21 +139,76 @@ async function storeReport(report: ReturnType<typeof prepareErrorReport>, signed
     }
 }
 
-/** The list, for the admin screen. */
-export async function GET(req: NextRequest) {
+/**
+ * The list, for the admin screen, sorted the way it is shown
+ * (lib/reportSections): what needs the admin, what is resolved, and how many
+ * are with the AI — those are on the task list, not here.
+ */
+export async function GET() {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    const showResolved = new URL(req.url).searchParams.get('resolved') === 'true';
+    const include = { photos: { orderBy: { id: 'asc' as const }, select: { id: true, url: true } } };
+    const [open, resolved] = await Promise.all([
+        prisma.errorLog.findMany({ where: { resolvedAt: null }, orderBy: { lastSeenAt: 'desc' }, take: 300, include }),
+        prisma.errorLog.findMany({ where: { NOT: { resolvedAt: null } }, orderBy: { lastSeenAt: 'desc' }, take: 100, include }),
+    ]);
 
-    const errors = await prisma.errorLog.findMany({
-        where: showResolved ? { NOT: { resolvedAt: null } } : { resolvedAt: null },
-        orderBy: { lastSeenAt: 'desc' },
-        take: 100,
-        include: { photos: { orderBy: { id: 'asc' }, select: { id: true, url: true } } },
-    });
+    const work = await workStates('error', open.map((row: { id: number }) => row.id));
+    const sorted = splitReports([
+        ...open.map((row) => ({ ...row, work: work.get(row.id) ?? null })),
+        ...resolved.map((row) => ({ ...row, work: null })),
+    ]);
+    return NextResponse.json({ todo: sorted.todo, done: sorted.done, withAi: sorted.withAi.length });
+}
 
-    // Beside each row: whether it is on the work list.
-    const work = await workStates('error', errors.map((row: { id: number }) => row.id));
-    return NextResponse.json({ errors: errors.map((row: { id: number }) => ({ ...row, work: work.get(row.id) ?? null })) });
+const resolveSchema = bulkIdsSchema.extend({ resolved: z.boolean().default(true) });
+
+/**
+ * Marking many resolved (or back to open) in one request. One error at a
+ * time is POST /api/errors/[id], which this matches.
+ */
+export async function PATCH(req: NextRequest) {
+    const auth = await requireAdmin();
+    if ('response' in auth) return auth.response;
+
+    const parsed = resolveSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) return NextResponse.json({ message: 'Which ones?' }, { status: 400 });
+    const { ids, resolved } = parsed.data;
+
+    try {
+        const updated = await prisma.errorLog.updateMany({ where: { id: { in: ids } }, data: { resolvedAt: resolved ? new Date() : null } });
+        if (updated.count === 0) return NextResponse.json({ message: 'That is not there any more.' }, { status: 404 });
+        // Dealt with here is dealt with on the work list too.
+        for (const id of ids) await syncWorkItem('error', id);
+        return NextResponse.json({ ok: true, updated: updated.count });
+    } catch (error) {
+        failed('Could not update errors:', error);
+        return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
+    }
+}
+
+/**
+ * Deleting many for good in one request, with their screenshots' files —
+ * the rows' cascade does not reach the picture store.
+ */
+export async function DELETE(req: NextRequest) {
+    const auth = await requireAdmin();
+    if ('response' in auth) return auth.response;
+
+    const parsed = bulkIdsSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) return NextResponse.json({ message: 'Which ones?' }, { status: 400 });
+    const { ids } = parsed.data;
+
+    try {
+        const photos = await prisma.reportPhoto.findMany({ where: { errorLogId: { in: ids } }, select: { url: true } });
+        const deleted = await prisma.errorLog.deleteMany({ where: { id: { in: ids } } });
+        if (deleted.count === 0) return NextResponse.json({ message: 'That is not there any more.' }, { status: 404 });
+        await deleteBlobs(photos.map((photo) => photo.url));
+        for (const id of ids) await syncWorkItem('error', id);
+        return NextResponse.json({ ok: true, deleted: deleted.count });
+    } catch (error) {
+        failed('Could not delete errors:', error);
+        return NextResponse.json({ message: 'That did not work.' }, { status: 500 });
+    }
 }

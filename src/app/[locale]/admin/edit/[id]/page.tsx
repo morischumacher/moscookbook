@@ -24,8 +24,9 @@ interface EditableRecipe {
     spiciness: number;
     onlyMe: boolean;
     language: string | null;
-    translations: { locale: string; title: string; description: string; instructions: string; ingredients: unknown; source: string }[];
+    translations: { locale: string; title: string; description: string; instructions: string; tips: string; ingredients: unknown; source: string }[];
     instructions: string;
+    tips: string;
     servings: number | null;
     prepMinutes: number | null;
     cookMinutes: number | null;
@@ -91,6 +92,7 @@ export default async function EditRecipePage({
                 category: recipe.category ?? '',
                 nationality: recipe.nationality ?? '',
                 instructions: recipe.instructions,
+                tips: recipe.tips,
                 // Headings come back as rows of their own, where the section
                 // changes — the shape the editor writes them in.
                 ingredients: withHeadingRows(

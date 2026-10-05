@@ -1,3 +1,4 @@
+import { blobName } from '@/lib/blobName';
 import { NextRequest, NextResponse } from 'next/server';
 import { hiddenFrom } from '@/lib/recipeVisibilityDb';
 import { put } from '@vercel/blob';
@@ -175,7 +176,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
         const { buffer, filename, contentType } = normalised.image;
 
-        const blob = await put(`cooked_${Date.now()}_${filename}`, buffer, {
+        const blob = await put(blobName('cooked', filename), buffer, {
             access: 'public',
             contentType,
         });

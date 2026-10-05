@@ -21,11 +21,10 @@ Prisma 5 and Postgres, deployed on Vercel.
 Everything that needs work on the code is on a **public task list**:
 
 - **By itself:** every error the server records or a signed-in person runs
-  into, every inbox import that could not be read, and every ticket of the
-  kind "something is broken".
-- **Handed over by the admin:** ideas and other tickets ("Have AI implement
-  it"), and inbox items whose reading should improve ("Have AI improve
-  reading this").
+  into, and every inbox import that could not be read.
+- **Handed over by the admin:** tickets of every kind ("Have AI implement
+  it", or written by the admin with "Straight to the AI"), and inbox items
+  whose reading should improve ("Have AI improve reading this").
 
 Your job is to work through that list: fix, implement, improve — and report
 each task done when your fix is merged (section 1).
@@ -152,8 +151,10 @@ and tell the person; they can mark it done themselves.
 Report once per task, after the merge and preferably after the deploy
 (`currentVersion` changes): a report cannot be replaced while it waits, and
 an error seen again more than an hour after your report reopens the task. A
-`409`/`404` means the task is not open any more (already reported, closed or
-withdrawn) — leave it.
+`409`/`404` means the task is not open any more (already reported, closed,
+withdrawn or deleted) — leave it. A task the admin takes back goes back to
+their own ticket or error list and off yours; finished tasks may be deleted
+to tidy up.
 
 The report closes nothing. The task moves to `awaitingConfirmation`, and the
 admin confirms it in the app — which closes the task and resolves the error
@@ -211,11 +212,28 @@ path, write a test that reproduces it where you can, and fix the cause, not
 the symptom. A `count` of 1 from long ago may already be fixed. Check before
 you change anything.
 
+### Screenshots
+
+The list says only how many a ticket or error has (`photoCount`); it is
+public, and a screenshot can show anything that was on screen. With the task
+key, fetch them:
+
+```
+GET /api/work/<id>/photos
+Authorization: Bearer <task key>
+→ {"id": 33, "photos": ["https://…/reports/report_….jpg"]}
+```
+
+Look at them before you start: a ticket that says "see picture" or "this is
+odd" means what the picture shows, and guessing has cost whole rounds of
+work before. Without the key, ask the person for the pictures instead.
+
 ### `ticket`: something a person asked for or reported
 `data` holds `kind`, `body` (their words, anonymized), `path` (the page they
-were on) and `writtenAt`. `kind: "problem"` ("something is broken") is on the
-list by itself — treat it like a bug report. `idea` and `other` are there
-because the admin handed them over to be **implemented**: a wish to build. Tickets are often in German. Keep changes
+were on) and `writtenAt`. Every ticket is
+there because the admin handed it over. `kind: "problem"` ("something is
+broken") — treat it like a bug report. `idea` and `other` are to be
+**implemented**: a wish to build. Tickets are often in German. Keep changes
 proportionate: if a ticket asks for something large or unclear, do not
 build it — describe it in the pull request as an open question, and do not
 report it done.

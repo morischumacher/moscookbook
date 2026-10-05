@@ -1,3 +1,4 @@
+import { blobName } from '@/lib/blobName';
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { getCurrentUser } from '@/lib/auth';
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
         if (!normalised.ok) return NextResponse.json({ message: 'That is not a picture.' }, { status: 415 });
 
         const { buffer, filename, contentType } = normalised.image;
-        const blob = await put(`reports/${filename}`, buffer, { access: 'public', contentType, addRandomSuffix: true });
+        const blob = await put(`reports/${blobName('report', filename)}`, buffer, { access: 'public', contentType, addRandomSuffix: true });
         return NextResponse.json({ url: blob.url }, { status: 201 });
     } catch (error) {
         failed('Report photo upload failed:', error);

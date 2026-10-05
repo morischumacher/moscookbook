@@ -53,6 +53,7 @@ model User {
   tokens         AuthToken[]
   shoppingLists  ShoppingList[]
   shoppingShares ShoppingListMember[]
+  shoppingBuys   ShoppingItem[] @relation("ShoppingBuyer")
   posts          Post[]
   cookEntries    CookEntry[]
   tickets        Ticket[]
@@ -348,6 +349,8 @@ model Recipe {
   tags         String[]   @default([])
   description  String?
   instructions String     // Markdown content
+  /// Tips & notes, markdown like the method; "" when there are none.
+  tips         String     @default("")
   views        Int        @default(0)
   nationality  String?
   category     String?
@@ -901,6 +904,10 @@ model ShoppingItem {
   /// The recipes it is for, as titles — shown under the line.
   sources    String[]     @default([])
   checked    Boolean      @default(false)
+  /// Who on the list is buying it, when the people on it split the shop.
+  /// Only the owner or somebody who joined; cleared when they leave.
+  buyerId    Int?
+  buyer      User?        @relation("ShoppingBuyer", fields: [buyerId], references: [id], onDelete: SetNull)
   createdAt  DateTime     @default(now())
 
   @@index([listId, checked])
@@ -1061,6 +1068,7 @@ model RecipeTranslation {
   title        String
   description  String   @default("")
   instructions String   @default("")
+  tips         String   @default("")
   /// The ingredient editor's rows, [{amount, item}], headings as "## …".
   ingredients  Json     @default("[]")
   /// Fingerprint of the original it was made from, to notice it went stale.
