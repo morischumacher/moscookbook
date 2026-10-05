@@ -37,6 +37,8 @@ export interface ShoppingItemRow {
     /** Who on the list is buying it; null when nobody said. */
     buyerId: number | null;
     itemId: number | null;
+    /** The recipes' titles in both languages, by the title each line was added under. */
+    titles?: Record<string, { de: string; en: string }>;
     /** How much is for which recipe (lib/shoppingParts). */
     parts: Prisma.JsonValue;
     /** The catalogue's ingredient, named in both languages; null for a line that is none. */
@@ -248,12 +250,37 @@ export async function simplifyLines(
 }
 
 export async function itemsOf(listId: number): Promise<ShoppingItemRow[]> {
-    return prisma.shoppingItem.findMany({
+    const rows = await prisma.shoppingItem.findMany({
         where: { listId },
         // In the order they came: a ticked line keeps its place (work #38).
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         select: shoppingItemSelect,
     });
+    const titles = await titlesOf([...new Set(rows.flatMap((row) => row.sources))]);
+    return rows.map((row) => ({ ...row, titles: Object.fromEntries(row.sources.flatMap((source) => (titles.has(source) ? [[source, titles.get(source)!]] : []))) }));
+}
+
+/**
+ * A recipe's title in both languages, for each title a line was added under —
+ * "Napa cabbage kimchi" on the English page, "Chinakohl-Kimchi" on the German
+ * one, whichever it was added in. The line keeps the title it was added
+ * under (taking the recipe off goes by it); only what is shown changes.
+ */
+async function titlesOf(sources: string[]): Promise<Map<string, { de: string; en: string }>> {
+    if (sources.length === 0) return new Map();
+    const recipes = await prisma.recipe.findMany({
+        where: { OR: [{ title: { in: sources } }, { translations: { some: { title: { in: sources } } } }] },
+        select: { title: true, language: true, translations: { select: { locale: true, title: true } } },
+    });
+    const found = new Map<string, { de: string; en: string }>();
+    for (const recipe of recipes) {
+        const own = recipe.language === 'en' ? 'en' : 'de';
+        const other = own === 'de' ? 'en' : 'de';
+        const translated = recipe.translations.find((row) => row.locale === other)?.title || recipe.title;
+        const both = own === 'de' ? { de: recipe.title, en: translated } : { de: translated, en: recipe.title };
+        for (const title of [recipe.title, ...recipe.translations.map((row) => row.title)]) if (sources.includes(title) && !found.has(title)) found.set(title, both);
+    }
+    return found;
 }
 
 /** New lines onto a list, merged with what is already there. Returns how many lines changed. */
