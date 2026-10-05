@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { Link } from '@/i18n/routing';
 import FinishDraft from '@/components/recipe/FinishDraft';
 import DeleteRecipeButton from '@/components/DeleteRecipeButton';
-import { pageContainer } from '@/lib/ui';
+import { buttonSecondary, pageContainer } from '@/lib/ui';
 import { formatDate } from '@/lib/formatDate';
 import PageHeader from '@/components/admin/PageHeader';
 
@@ -99,7 +99,7 @@ export default async function DraftsPage({ params }: { params: Promise<{ locale:
                                 <div className="flex flex-wrap items-center gap-3">
                                     <Link
                                         href={`/admin/edit/${draft.id}`}
-                                        className="rounded-lg border border-control px-3 py-1.5 text-sm font-medium hover:bg-surface"
+                                        className={buttonSecondary}
                                     >
                                         {t('edit')}
                                     </Link>

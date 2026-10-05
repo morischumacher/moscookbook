@@ -38,7 +38,7 @@ export default function DeleteRecipeButton({ recipeId }: { recipeId: number }) {
                 destructive
                 disabled={isDeleting}
                 onConfirm={handleDelete}
-                className="underline underline-offset-4 hover:text-danger disabled:opacity-50"
+                className="inline-flex min-h-11 items-center px-2 text-sm text-muted underline underline-offset-4 hover:text-danger disabled:opacity-50"
             />
             {dialog}
         </>
