@@ -28,7 +28,7 @@ export default async function MenuCard({ menu, locale }: { menu: MenuCardData; l
 
     return (
         // print-root: on paper the card is the only thing printed (app/globals.css).
-        <article className={`print-root ${styles.card}${styles[menu.style]} ${font}`}>
+        <article className={`print-root ${styles.card} ${styles[menu.style]} ${font}`}>
             <div className={styles.logo}>
                 <Logo height={menu.style === 'casual' ? 40 : 32} />
             </div>
