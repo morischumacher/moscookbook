@@ -125,6 +125,28 @@ export interface AiKey {
     apiKey: string;
     /** Null means this provider's default. */
     model: string | null;
+    /**
+     * A small model to try first for a recipe from text, when the admin's
+     * "kleines Modell zuerst" is on (lib/smallFirst); the key's own model
+     * reads it again only when the small one's answer is incomplete.
+     */
+    small?: string;
+}
+
+/** Models that cost several times what a small one does per token. */
+export const LARGE_MODEL = /opus|sonnet|gpt-5(?!.*(mini|nano))|gpt-4o(?!-mini)|gpt-4\.1(?!-(mini|nano))|gemini-[\d.]+-pro/i;
+
+/** The small model of each provider: a fraction of the price, plenty for reading a recipe. */
+export const SMALL_MODEL: Record<AiProvider, string> = {
+    anthropic: 'claude-haiku-4-5',
+    openai: 'gpt-5-mini',
+    google: 'gemini-2.5-flash',
+};
+
+/** The small model to try first with this key, or undefined when its own is already small. */
+export function smallModelFor(key: AiKey): string | undefined {
+    const own = key.model?.trim() || DEFAULT_MODEL[key.provider];
+    return LARGE_MODEL.test(own) ? SMALL_MODEL[key.provider] : undefined;
 }
 
 /**

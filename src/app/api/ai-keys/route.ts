@@ -9,6 +9,8 @@ import {
     listAiCredentials,
     saveAiCredential,
     setAssistMode,
+    setSmallFirst,
+    smallFirstOn,
     setPrimary,
     setWritingStyle,
     writingStyle,
@@ -50,11 +52,12 @@ export async function GET() {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    const [credentials, mode, style, proxy]: [AiCredentialView[], string, string, boolean] = await Promise.all([
+    const [credentials, mode, style, proxy, smallFirst]: [AiCredentialView[], string, string, boolean, boolean] = await Promise.all([
         listAiCredentials(),
         assistMode(),
         writingStyle(),
         readerProxyOn(),
+        smallFirstOn(),
     ]);
 
     return NextResponse.json({
@@ -62,6 +65,7 @@ export async function GET() {
         mode,
         writingStyle: style,
         readerProxy: proxy,
+        smallFirst,
         modes: ASSIST_MODES,
         canStore: canSeal(),
     });
@@ -116,6 +120,8 @@ const modeSchema = z.object({
     writingStyle: z.string().max(2000).optional(),
     /** Asking a blocked page once more through the reader proxy (lib/readerProxy). */
     readerProxy: z.boolean().optional(),
+    /** A recipe from text read by the small model first (lib/aiImport, work #46). */
+    smallFirst: z.boolean().optional(),
 });
 
 /** The knobs: when the AI is allowed to be asked and custom writing style. */
@@ -131,10 +137,12 @@ export async function PATCH(req: NextRequest) {
     if (parsed.data.mode) await setAssistMode(parsed.data.mode);
     if (parsed.data.writingStyle !== undefined) await setWritingStyle(parsed.data.writingStyle);
     if (parsed.data.readerProxy !== undefined) await setReaderProxy(parsed.data.readerProxy);
+    if (parsed.data.smallFirst !== undefined) await setSmallFirst(parsed.data.smallFirst);
 
     return NextResponse.json({
         mode: parsed.data.mode ?? (await assistMode()),
         writingStyle: parsed.data.writingStyle ?? (await writingStyle()),
         readerProxy: await readerProxyOn(),
+        smallFirst: await smallFirstOn(),
     });
 }

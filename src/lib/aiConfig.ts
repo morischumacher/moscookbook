@@ -11,6 +11,7 @@ import {
     isAssistMode,
     isValidModel,
     keysFromEnv,
+    smallModelFor,
 } from './aiProviders';
 
 /**
@@ -229,7 +230,23 @@ export async function aiCapability(): Promise<AiCapability> {
         if (!fromRows.has(key.provider)) keys.push(key);
     }
 
+    // "Kleines Modell zuerst" (work #46): each key's small model, unless its own already is one.
+    if (await smallFirstOn()) for (const key of keys) key.small = smallModelFor(key);
+
     return { mode, keys };
+}
+
+const SMALL_FIRST_KEY = 'ai.smallFirst';
+
+/** Whether a recipe from text is read by the small model first. On unless switched off. */
+export async function smallFirstOn(): Promise<boolean> {
+    const row = await prisma.appSetting.findUnique({ where: { key: SMALL_FIRST_KEY }, select: { value: true } }).catch(() => null);
+    return row?.value !== 'off';
+}
+
+export async function setSmallFirst(on: boolean): Promise<void> {
+    const value = on ? 'on' : 'off';
+    await prisma.appSetting.upsert({ where: { key: SMALL_FIRST_KEY }, update: { value }, create: { key: SMALL_FIRST_KEY, value } });
 }
 
 /**

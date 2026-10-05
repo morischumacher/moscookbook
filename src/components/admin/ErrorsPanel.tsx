@@ -56,6 +56,8 @@ export default function ErrorsPanel({ onShowWork }: { onShowWork?: () => void })
     const [error, setError] = useState('');
     const [expanded, setExpanded] = useState<number | null>(null);
     const [doneOpen, setDoneOpen] = useState(false);
+    // The open section folds away too, like the one below it (work #47).
+    const [todoOpen, setTodoOpen] = useState(true);
     const [busy, setBusy] = useState(false);
     const selection = useSelection();
     const [ask, dialog] = useConfirm();
@@ -169,7 +171,7 @@ export default function ErrorsPanel({ onShowWork }: { onShowWork?: () => void })
             )}
 
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <SectionHeading title={tList('todoHeading')} count={lists.todo.length} hint={t('todoHint')} />
+                <SectionHeading title={tList('todoHeading')} count={lists.todo.length} hint={t('todoHint')} open={todoOpen} onToggle={setTodoOpen} />
                 <div className="flex flex-wrap gap-2">
                     {lists.todo.length > 0 && (
                         <button type="button" onClick={() => void copy(asMarkdown(), 'all')} className={buttonSecondary}>
@@ -181,7 +183,9 @@ export default function ErrorsPanel({ onShowWork }: { onShowWork?: () => void })
             </div>
             {selection.selecting && <p className="mb-3 text-sm text-muted">{tList('selectHint')}</p>}
 
-            {error ? null : lists.todo.length === 0 ? (
+            {todoOpen && (
+                <>
+{error ? null : lists.todo.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-muted">{t('allQuiet')}</p>
             ) : (
                 <ul className="flex flex-col gap-3">
@@ -215,6 +219,8 @@ export default function ErrorsPanel({ onShowWork }: { onShowWork?: () => void })
                         </ItemCard>
                     ))}
                 </ul>
+            )}
+                </>
             )}
 
             {lists.done.length > 0 && (

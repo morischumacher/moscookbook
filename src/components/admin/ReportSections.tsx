@@ -19,14 +19,28 @@ import { BusyLabel } from '@/components/ui/Busy';
  */
 
 /** A section's heading: what it is, how many, and one line on what it asks of you. */
-export function SectionHeading({ title, count, hint }: { title: string; count: number; hint?: string }) {
+export function SectionHeading({ title, count, hint, open, onToggle }: { title: string; count: number; hint?: string; open?: boolean; onToggle?: (open: boolean) => void }) {
+    const badge = <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-surface px-2 text-sm font-semibold text-muted">{count}</span>;
     return (
         <div className="mb-3">
-            <h3 className="flex items-center gap-2 text-base font-bold">
-                {title}
-                <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-surface px-2 text-sm font-semibold text-muted">{count}</span>
+            <h3 className="text-base font-bold">
+                {/* Folds away like "Erledigt" below it (work #47). */}
+                {onToggle ? (
+                    <button type="button" aria-expanded={open} onClick={() => onToggle(!open)} className="flex min-h-11 items-center gap-2 text-left">
+                        <span aria-hidden="true" className={`shrink-0 text-faint transition-transform ${open ? 'rotate-90' : ''}`}>
+                            ▸
+                        </span>
+                        {title}
+                        {badge}
+                    </button>
+                ) : (
+                    <span className="flex items-center gap-2">
+                        {title}
+                        {badge}
+                    </span>
+                )}
             </h3>
-            {hint && <p className="mt-0.5 text-sm text-muted">{hint}</p>}
+            {hint && open !== false && <p className="mt-0.5 text-sm text-muted">{hint}</p>}
         </div>
     );
 }

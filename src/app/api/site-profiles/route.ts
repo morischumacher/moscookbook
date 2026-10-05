@@ -12,6 +12,7 @@ import { learnSiteProfile } from '@/lib/siteLearn';
 import { hostOf } from '@/lib/siteProfile';
 import { listSiteProfiles, siteProfiles } from '@/lib/siteProfileDb';
 import { scrub } from '@/lib/secretBox';
+import { captureSources } from '@/lib/captureSources';
 import { usageRecorder } from '@/lib/tokenUsageDb';
 
 /**
@@ -43,7 +44,8 @@ export async function GET() {
     const auth = await requireAdmin();
     if ('response' in auth) return auth.response;
 
-    return NextResponse.json({ profiles: await listSiteProfiles() });
+    const [profiles, sources] = await Promise.all([listSiteProfiles(), captureSources().catch(() => [])]);
+    return NextResponse.json({ profiles, sources });
 }
 
 export async function POST(req: NextRequest) {

@@ -581,6 +581,16 @@ export async function extractRecipeWithAi(
     const failures: string[] = [];
 
     for (const key of keys) {
+        // A recipe from text: the small model first (work #46), the key's own
+        // only when its answer is incomplete — or when it fails to answer.
+        if (key.small && source.kind === 'text') {
+            try {
+                const quick = await extractWithKey({ ...key, model: key.small }, source, report);
+                if (complete(quick)) return quick;
+            } catch {
+                // The key's own model next, as without the small one.
+            }
+        }
         try {
             return await extractWithKey(key, source, report);
         } catch (error) {
@@ -589,4 +599,18 @@ export async function extractRecipeWithAi(
     }
 
     throw new Error(failures.join(' · '));
+}
+
+/**
+ * Whether a small model's answer can stand: a whole recipe (a title, at least
+ * two ingredients, a method), or plainly none ("there is no recipe here").
+ * Anything in between — ingredients and no method, a title and nothing else —
+ * is a reading the larger model does again.
+ */
+export function complete(recipe: AiExtractionResult): boolean {
+    const title = recipe.title.trim() !== '';
+    const ingredients = recipe.ingredients.length;
+    const method = recipe.instructions.replace(/\s+/g, ' ').trim().length;
+    if (!title && ingredients === 0 && method === 0) return true;
+    return title && ingredients >= 2 && method >= 40;
 }

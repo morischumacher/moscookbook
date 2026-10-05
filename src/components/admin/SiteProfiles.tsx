@@ -52,11 +52,23 @@ interface Profile {
     lastError: string | null;
 }
 
+/** Where the imports came from (lib/captureSources). */
+interface Source {
+    key: string;
+    web: boolean;
+    count: number;
+    rules: number;
+    ai: number;
+    last: string;
+    example: string | null;
+}
+
 export default function SiteProfiles() {
     const t = useTranslations('SiteProfiles');
     const locale = useLocale();
 
     const [profiles, setProfiles] = useState<Profile[] | null>(null);
+    const [sources, setSources] = useState<Source[]>([]);
     const [url, setUrl] = useState('');
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState<{ good: boolean; text: string } | null>(null);
@@ -67,8 +79,9 @@ export default function SiteProfiles() {
             setProfiles([]);
             return;
         }
-        const data = (await response.json()) as { profiles: Profile[] };
+        const data = (await response.json()) as { profiles: Profile[]; sources?: Source[] };
         setProfiles(data.profiles);
+        setSources(data.sources ?? []);
     }, []);
 
     useEffect(() => {
@@ -236,6 +249,53 @@ export default function SiteProfiles() {
                         </li>
                     ))}
                 </ul>
+            )}
+
+            {/*
+                Every place the imports came from, and why it is or is not
+                above (work #41): "nothing learned" was only explained, never
+                shown against what had actually been imported.
+            */}
+            {sources.length > 0 && (
+                <div className="mt-10">
+                    <h3 className="mb-1 text-base font-bold">{t('sourcesTitle')}</h3>
+                    <p className="mb-4 text-sm text-muted">{t('sourcesIntro')}</p>
+                    <ul className="divide-y divide-line border-y border-line">
+                        {sources.map((source) => {
+                            const learned = source.web && (profiles ?? []).some((entry) => entry.host === source.key && !entry.stale);
+                            const why = learned
+                                ? t('whyLearned')
+                                : source.web
+                                  ? source.ai === 0
+                                      ? t('whyMarkup')
+                                      : t('whyNotYet')
+                                  : t.has(`why_${source.key}`)
+                                    ? t(`why_${source.key}`)
+                                    : t('whyOther');
+                            return (
+                                <li key={source.key} className="py-3">
+                                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                        <span className={source.web ? 'font-mono text-sm font-semibold' : 'text-sm font-semibold'}>
+                                            {source.web ? source.key : t.has(`channel_${source.key}`) ? t(`channel_${source.key}`) : source.key}
+                                        </span>
+                                        <span className="text-xs text-muted">{t('sourceCount', { count: source.count, rules: source.rules, ai: source.ai })}</span>
+                                    </div>
+                                    <p className="mt-1 text-sm text-muted">{why}</p>
+                                    {source.web && !learned && source.ai > 0 && source.example && (
+                                        <button
+                                            type="button"
+                                            className="mt-1 min-h-8 text-sm underline underline-offset-4 disabled:opacity-50"
+                                            disabled={busy}
+                                            onClick={() => void learn(source.example!)}
+                                        >
+                                            {t('learn')}
+                                        </button>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </div>
             )}
         </section>
     );

@@ -222,7 +222,14 @@ key, fetch them:
 GET /api/work/<id>/photos
 Authorization: Bearer <task key>
 → {"id": 33, "photos": ["https://…/reports/report_….jpg"]}
+
+GET /api/work/<id>/photos?n=0
+Authorization: Bearer <task key>
+→ the first picture itself (?n=1 the second …)
 ```
+
+The `?n=` form passes the picture through this site, for a network that
+reaches the cookbook but not the picture store.
 
 Look at them before you start: a ticket that says "see picture" or "this is
 odd" means what the picture shows, and guessing has cost whole rounds of

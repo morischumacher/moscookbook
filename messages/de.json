@@ -386,8 +386,6 @@
     "tooManyPictures": "Höchstens {max} Bilder pro Rezept – die übrigen wurden nicht hochgeladen.",
     "slugTaken": "Es gibt schon ein Rezept mit dieser Link-Adresse. Ändere die Link-Adresse oder den Titel.",
     "saveInvalid": "So kann das Rezept nicht gespeichert werden – bitte die Felder prüfen.",
-    "rowUp": "Zutat {number} nach oben",
-    "rowDown": "Zutat {number} nach unten",
     "rowRemove": "Zutat {number} entfernen",
     "draftFoundStale": "Es gibt ungespeicherte Änderungen von einem früheren Besuch – das Rezept wurde seitdem aber gespeichert. Wiederherstellen überschreibt das.",
     "saveConflict": "Das Rezept wurde inzwischen woanders gespeichert. Lade die Seite neu – deine Änderungen werden dir dann zum Wiederherstellen angeboten.",
@@ -400,7 +398,9 @@
     "unitNone": "–",
     "unitCustom": "Eigene …",
     "unitCustomPlaceholder": "z. B. Dose, Bund",
-    "unitCustomLabel": "Eigene Einheit für Zutat {number}"
+    "unitCustomLabel": "Eigene Einheit für Zutat {number}",
+    "rowDrag": "Zeile {number} verschieben (ziehen oder Pfeiltasten)",
+    "rowDragHint": "Ziehen zum Verschieben"
   },
   "QuickImport": {
     "heading": "Schnell befüllen",
@@ -1085,7 +1085,9 @@
     "styleSaved": "Gespeichert.",
     "styleFailed": "Das hat nicht geklappt.",
     "proxyTitle": "Gesperrte Seiten über einen Lesedienst holen",
-    "proxyExplain": "Manche Rezeptseiten (z. B. maangchi.com) lehnen jeden Server ab. Dann fragt das Kochbuch noch einmal über den Lesedienst r.jina.ai. Dabei geht die Adresse dieser Seite an diesen Dienst. Ausgeschaltet landet so eine Seite als „konnte nicht gelesen werden“ im Eingang."
+    "proxyExplain": "Manche Rezeptseiten (z. B. maangchi.com) lehnen jeden Server ab. Dann fragt das Kochbuch noch einmal über den Lesedienst r.jina.ai. Dabei geht die Adresse dieser Seite an diesen Dienst. Ausgeschaltet landet so eine Seite als „konnte nicht gelesen werden“ im Eingang.",
+    "smallFirstTitle": "Rezepte aus Text zuerst mit dem kleinen Modell lesen",
+    "smallFirstExplain": "Ein kleines Modell (z. B. Claude Haiku) kostet pro Token einen Bruchteil und reicht für die meisten Rezepte. Ist seine Antwort unvollständig – Zutaten ohne Zubereitung, ein Titel ohne Rest –, liest das eingestellte Modell dasselbe noch einmal. Fotos liest immer das eingestellte Modell. Unter „Verbrauch“ siehst du, welches Modell wie oft gebraucht wurde."
   },
   "SiteProfiles": {
     "title": "Gelernte Seiten",
@@ -1110,7 +1112,24 @@
     "viaJsonLd": "aus den strukturierten Daten unter {path}",
     "viaList": "die Liste unter der Überschrift „{heading}“",
     "viaText": "der Text unter der Überschrift „{heading}“",
-    "viaSelector": "über den CSS-Selektor {selector}"
+    "viaSelector": "über den CSS-Selektor {selector}",
+    "sourcesTitle": "Woher deine Rezepte kamen",
+    "sourcesIntro": "Jede Quelle deiner Importe, und warum dafür etwas gelernt wurde oder nicht.",
+    "sourceCount": "{count, plural, one {# Import} other {# Importe}} · {rules} ohne KI · {ai} mit KI",
+    "whyLearned": "Gelernt: weitere Importe von hier kommen ohne KI aus.",
+    "whyMarkup": "Ohne KI gelesen – die Seite beschreibt ihr Rezept selbst (Rezept-Markup). Es gibt nichts zu lernen, Importe von hier kosten schon nichts.",
+    "whyNotYet": "Die KI hat gelesen, die Seite ist aber noch nicht gelernt (das Lernen hat das Ergebnis nicht nachbauen können). Du kannst es hier noch einmal versuchen.",
+    "why_photo": "Fotos, etwa aus einem Kochbuch: Ein Foto hat kein Seitenlayout, das sich merken ließe – jedes wird von der KI gelesen. Das ist bei Büchern so gewollt, nicht ein Fehler.",
+    "why_instagram": "Kein festes Seitenlayout. Gemerkt wird stattdessen, auf welcher Webseite ein Konto seine Rezepte hat.",
+    "why_tiktok": "Kein festes Seitenlayout. Gemerkt wird stattdessen, auf welcher Webseite ein Konto seine Rezepte hat.",
+    "why_youtube": "Videos: gelesen aus Beschreibung und Untertiteln, ohne Seitenlayout zum Lernen.",
+    "why_note": "Eingefügter Text: wird nach Regeln oder von der KI gelesen; ein Text hat kein Layout zum Lernen.",
+    "whyOther": "Hier gibt es kein Seitenlayout zu lernen.",
+    "channel_photo": "Fotos (z. B. Kochbuch)",
+    "channel_instagram": "Instagram",
+    "channel_tiktok": "TikTok",
+    "channel_youtube": "YouTube",
+    "channel_note": "Eingefügter Text"
   },
   "Drafts": {
     "title": "Entwürfe",
@@ -1169,9 +1188,8 @@
     "nothingChosen": "Noch nichts ausgewählt.",
     "searchToAdd": "Tippen zum Finden und Hinzufügen…",
     "noMatch": "Nichts passt.",
-    "moveUp": "{title} nach oben",
-    "moveDown": "{title} nach unten",
-    "remove": "{title} entfernen"
+    "remove": "{title} entfernen",
+    "drag": "„{title}“ verschieben (ziehen oder Pfeiltasten)"
   },
   "Examples": {
     "post": "Zeig mir einen Beispielbeitrag, der alles verwendet",
@@ -1372,8 +1390,6 @@
     "introPlaceholder": "Schön, dass ihr da seid.",
     "fieldCourses": "Gänge",
     "courseName": "Name des Gangs",
-    "moveUp": "Nach oben",
-    "moveDown": "Nach unten",
     "removeCourse": "Gang entfernen",
     "dishRecipe": "Rezept",
     "ownDish": "– Ohne Rezept, nur Text –",
@@ -1389,7 +1405,8 @@
     "delete": "Löschen",
     "confirmDelete": "Dieses Menü löschen?",
     "shareFailed": "Das hat nicht geklappt. Versuch es bitte noch einmal.",
-    "deleteFailed": "Das Menü konnte nicht gelöscht werden."
+    "deleteFailed": "Das Menü konnte nicht gelöscht werden.",
+    "dragCourse": "Gang verschieben (ziehen oder Pfeiltasten)"
   },
   "Work": {
     "tab": "Aufgaben",

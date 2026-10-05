@@ -53,6 +53,7 @@ export default async function TokenUsagePage() {
         days: DAYS,
         mode: ai.mode,
         learnedHosts: profiles.map((profile) => profile.host),
+        smallFirst: ai.keys.some((key) => key.small),
     });
 
     const number = (value: number) => new Intl.NumberFormat(locale).format(value);
