@@ -57,6 +57,8 @@ type Mode =
           /** Everybody on the list, owner first, then those invited. */
           people: Person[];
           me: number;
+          /** Combining units is the admin's: it may ask the AI, which costs. */
+          admin: boolean;
           /** For somebody who joined: whose list it is. */
           ownerName: string;
       }
@@ -370,6 +372,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
     const checked = items.filter((item) => item.checked);
     // The ingredients that are on the list in more than one unit.
     const severalUnits = useMemo(() => {
+        if (mode.kind !== 'account' || !mode.admin) return [];
         const measures = new Map<number, { item: ShoppingItemRow; units: Set<string> }>();
         for (const item of items) {
             if (item.checked || item.itemId === null || item.measure === null) continue;
@@ -378,7 +381,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             measures.set(item.itemId, group);
         }
         return [...measures.values()].filter((group) => group.units.size > 1).map(({ item }) => (item.item && itemName(item.item, locale, null, null)) || displayName(item.name, locale, null, null));
-    }, [items, locale]);
+    }, [items, locale, mode]);
     const visible = items.filter(shown);
 
     /** "Agedashi Tofu (1 Bund), Chili-Öl (½ Bund)" — each recipe's share, when there are several and they are known. */

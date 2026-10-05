@@ -75,6 +75,7 @@ export default async function ShoppingPage({
                     canAdd: settings?.shareCanAdd ?? true,
                     people: buyers,
                     me: user.id,
+                    admin: user.admin,
                     ownerName: household?.owner.name ?? '',
                 }}
             />

@@ -211,49 +211,64 @@ export interface MergePlan {
 }
 
 /**
+ * The open line a new one goes onto: the same thing measured the same way;
+ * or, for "Salz" with no amount, any line of it ("1 TL Salz" just gains the
+ * recipe); or, for "1 TL Salz", a line of it with no amount yet (which takes
+ * the amount). Otherwise none: grams and spoons stay apart until they are
+ * converted (lib/shoppingParts).
+ */
+function targetFor<T extends { key: string; measure?: string | null; amount: number | null }>(lines: T[], line: { key: string; measure: string | null }): T | undefined {
+    const same = lines.filter((other) => other.key === line.key);
+    return (
+        same.find((other) => (other.measure ?? null) === line.measure) ??
+        (line.measure === null ? same[0] : same.find((other) => (other.measure ?? null) === null && other.amount === null))
+    );
+}
+
+/**
  * How new lines join a list: onto an open line for the same thing measured
  * the same way, or as new lines. A line already ticked off is not added to —
  * what was bought was bought, and the extra is a new thing to buy. Each line
  * keeps how much of it is for which recipe.
  */
 export function mergeInto(existing: ExistingLine[], planned: PlannedLine[]): MergePlan {
-    const open = new Map<string, Touched>();
-    for (const line of existing) {
-        if (!line.checked) open.set(`${line.key}\u0000${line.measure ?? ''}`, { id: line.id, amount: line.amount, sources: line.sources, parts: partsOf(line) });
-    }
-
-    const created = new Map<string, PlannedLine & { sources: string[]; parts: Part[] }>();
-    const touched = new Map<number, Touched>();
+    const open: (Touched & { key: string })[] = existing
+        .filter((line) => !line.checked)
+        .map((line) => ({ id: line.id, key: line.key, measure: line.measure, amount: line.amount, sources: line.sources, parts: partsOf(line) }));
+    const created: (PlannedLine & { sources: string[]; parts: Part[] })[] = [];
+    const touched = new Set<number>();
 
     const add = (amount: number | null, extra: number | null) =>
         amount === null && extra === null ? null : (amount ?? 0) + (extra ?? 0);
     const withSource = (sources: string[], source: string | null) =>
         source && !sources.includes(source) ? [...sources, source] : sources;
+    // Onto a line: its amount, recipes and parts; and its unit, when it had none.
+    const join = (target: { measure?: string | null; amount: number | null; sources: string[]; parts: Part[] }, line: PlannedLine) => {
+        if ((target.measure ?? null) === null && line.measure !== null) target.measure = line.measure;
+        target.amount = add(target.amount, line.amount);
+        target.sources = withSource(target.sources, line.source);
+        target.parts = withPart(target.parts, { s: line.source, a: line.amount });
+    };
 
     for (const line of planned) {
-        const id = `${line.key}\u0000${line.measure ?? ''}`;
-        const target = touched.get(open.get(id)?.id ?? -1) ?? open.get(id);
-        const part = { s: line.source, a: line.amount };
-
+        const target = targetFor(open, line);
         if (target) {
-            const next = { id: target.id, amount: add(target.amount, line.amount), sources: withSource(target.sources, line.source), parts: withPart(target.parts, part) };
-            touched.set(target.id, next);
-            open.set(id, next);
+            join(target, line);
+            touched.add(target.id);
             continue;
         }
-
-        const pending = created.get(id);
+        const pending = targetFor(created, line);
         if (pending) {
-            pending.amount = add(pending.amount, line.amount);
-            pending.sources = withSource(pending.sources, line.source);
-            pending.parts = withPart(pending.parts, part);
+            join(pending, line);
             continue;
         }
-
-        created.set(id, { ...line, sources: line.source ? [line.source] : [], parts: [part] });
+        created.push({ ...line, sources: line.source ? [line.source] : [], parts: [{ s: line.source, a: line.amount }] });
     }
 
-    return { creates: [...created.values()], updates: [...touched.values()] };
+    return {
+        creates: created,
+        updates: open.filter((line) => touched.has(line.id)).map(({ id, measure, amount, sources, parts }) => ({ id, measure, amount, sources, parts })),
+    };
 }
 
 export interface RemovalPlan {
@@ -270,16 +285,16 @@ export interface RemovalPlan {
  * recipe put there goes. Ticked lines are left alone: those are bought.
  */
 export function removeFrom(existing: ExistingLine[], planned: PlannedLine[]): RemovalPlan {
-    const open = new Map<string, Touched>();
-    for (const line of existing) {
-        if (!line.checked) open.set(`${line.key}\u0000${line.measure ?? ''}`, { id: line.id, measure: line.measure, amount: line.amount, sources: [...line.sources], parts: partsOf(line) });
-    }
+    const open: (Touched & { key: string })[] = existing
+        .filter((line) => !line.checked)
+        .map((line) => ({ id: line.id, key: line.key, measure: line.measure, amount: line.amount, sources: [...line.sources], parts: partsOf(line) }));
 
     const touched = new Map<number, Touched>();
     for (const line of planned) {
-        const target = open.get(`${line.key}\u0000${line.measure ?? ''}`);
+        // Where mergeInto put it: the same line, found the same way.
+        const target = targetFor(open, line);
         if (!target) continue;
-        if (target.amount !== null && line.amount !== null) {
+        if (target.amount !== null && line.amount !== null && (target.measure ?? null) === line.measure) {
             target.amount = Math.round((target.amount - line.amount) * 1000) / 1000;
         }
         target.parts = lessPart(target.parts, line.source, line.amount);
@@ -292,9 +307,10 @@ export function removeFrom(existing: ExistingLine[], planned: PlannedLine[]): Re
     const updates: RemovalPlan['updates'] = [];
     const deletes: number[] = [];
     for (const line of touched.values()) {
-        const nothingLeft = line.amount === null ? line.sources.length === 0 : line.amount <= 0.0001;
-        if (nothingLeft) deletes.push(line.id);
-        else updates.push(line);
+        // Gone when nobody's share is left: a line typed by hand is somebody's too.
+        const emptied = line.amount !== null && line.amount <= 0.0001;
+        if (line.parts.length === 0 || (emptied && line.parts.every((part) => part.a !== null))) deletes.push(line.id);
+        else updates.push(emptied ? { ...line, amount: null } : line);
     }
     return { updates, deletes };
 }

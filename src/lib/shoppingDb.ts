@@ -295,7 +295,7 @@ export async function addLines(listId: number, planned: PlannedLine[]): Promise<
         for (const update of plan.updates) {
             await tx.shoppingItem.update({
                 where: { id: update.id },
-                data: { amount: update.amount, sources: update.sources, parts: asJson(update.parts) },
+                data: { measure: update.measure ?? null, amount: update.amount, sources: update.sources, parts: asJson(update.parts) },
             });
         }
         await tx.shoppingItem.createMany({
