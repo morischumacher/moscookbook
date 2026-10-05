@@ -23,13 +23,6 @@ interface Item {
     createdAt: string;
 }
 
-/** Names not yet written "Zutat, Form (Zusatz) (optional)" (lib/ingredientShape). */
-interface Convention {
-    count: number;
-    recipes: number;
-    samples: { recipe: string; from: string; to: string }[];
-}
-
 /** The ways into the list: what needs looking at first, then by age and use. */
 type View = 'doubles' | 'missing' | 'newest' | 'used' | 'unused' | 'all';
 
@@ -59,8 +52,6 @@ export default function IngredientCatalog() {
     const [doubles, setDoubles] = useState<Double[]>([]);
     const [aiAvailable, setAiAvailable] = useState(false);
     const [unlinked, setUnlinked] = useState(0);
-    const [convention, setConvention] = useState<Convention>({ count: 0, recipes: 0, samples: [] });
-    const [showConvention, setShowConvention] = useState(false);
     const [query, setQuery] = useState('');
     const [view, setView] = useState<View | null>(null);
     const [shown, setShown] = useState(60);
@@ -84,9 +75,7 @@ export default function IngredientCatalog() {
             doubles: Double[];
             aiAvailable: boolean;
             unlinked: number;
-            convention: Convention;
         };
-        setConvention(data.convention);
         setItems(data.items);
         setDoubles(data.doubles);
         setAiAvailable(data.aiAvailable);
@@ -164,15 +153,6 @@ export default function IngredientCatalog() {
         })) as { rows: number } | null;
         if (done) {
             setNote(t('linked', { count: done.rows }));
-            await load();
-        }
-    };
-
-    const applyConvention = async () => {
-        const done = (await call('convention', { method: 'POST', body: JSON.stringify({ action: 'convention' }) })) as { recipes: number } | null;
-        if (done) {
-            setNote(t('conventionDone', { count: done.recipes }));
-            setShowConvention(false);
             await load();
         }
     };
@@ -265,31 +245,6 @@ export default function IngredientCatalog() {
                 )}
             </div>
             {!aiAvailable && <p className="mt-2 text-sm text-faint">{t('noAi')}</p>}
-
-            {convention.count > 0 && (
-                <section className="mt-6 rounded-xl border border-line p-4">
-                    <h2 className="text-base font-bold leading-snug">{t('conventionTitle', { count: convention.count, recipes: convention.recipes })}</h2>
-                    <p className="mt-1 text-sm text-muted">{t('conventionExplain')}</p>
-                    {showConvention && (
-                        <ul className="mt-3 max-h-80 divide-y divide-line overflow-y-auto text-sm">
-                            {convention.samples.map((row, index) => (
-                                <li key={index} className="py-2">
-                                    <span className="text-muted line-through">{row.from}</span> → <span className="font-medium">{row.to}</span>
-                                    <span className="block text-xs text-faint">{row.recipe}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                        <button type="button" disabled={busy !== null} onClick={() => void applyConvention()} className={buttonPrimarySmall}>
-                            <BusyLabel busy={busy === 'convention'}>{t('conventionApply')}</BusyLabel>
-                        </button>
-                        <button type="button" onClick={() => setShowConvention((on) => !on)} className={buttonSecondary}>
-                            {t(showConvention ? 'conventionHide' : 'conventionShow')}
-                        </button>
-                    </div>
-                </section>
-            )}
 
             {aiProposals && (
                 <section className="mt-8 rounded-xl border border-ink p-4">

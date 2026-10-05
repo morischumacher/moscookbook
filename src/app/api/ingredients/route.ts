@@ -9,7 +9,6 @@ import { canUseAi, completeWithKey, extractJson } from '@/lib/aiImport';
 import { usageRecorder } from '@/lib/tokenUsageDb';
 import { commonIngredient } from '@/lib/ingredientNames';
 import { isMeasure, unitsOf } from '@/lib/shoppingParts';
-import { applyConvention, conventionChanges } from '@/lib/ingredientConventionDb';
 
 /**
  * The ingredient catalogue for admin → Zutaten (lib/ingredientCatalog).
@@ -56,14 +55,13 @@ async function catalogue() {
 }
 
 export const GET = route({ access: 'admin', label: 'The ingredient catalogue' }, async () => {
-    const [items, skip, ai, unlinked, convention] = await Promise.all([
+    const [items, skip, ai, unlinked] = await Promise.all([
         catalogue(),
         notDoubles(),
         aiCapability(),
         prisma.ingredient.count({ where: { itemId: null } }),
-        conventionChanges(),
     ]);
-    return NextResponse.json({ items, doubles: findDoubles(items, skip), aiAvailable: canUseAi(ai), unlinked, convention });
+    return NextResponse.json({ items, doubles: findDoubles(items, skip), aiAvailable: canUseAi(ai), unlinked });
 });
 
 const name = z.string().trim().max(120);
@@ -111,15 +109,11 @@ const postBody = z.discriminatedUnion('action', [
     z.object({ action: z.literal('merge'), into: z.number().int().positive(), from: z.array(z.number().int().positive()).min(1).max(50) }),
     z.object({ action: z.literal('notDouble'), a: z.number().int().positive(), b: z.number().int().positive() }),
     z.object({ action: z.literal('linkAll') }),
-    z.object({ action: z.literal('convention') }),
     z.object({ action: z.literal('aiCheck') }),
     z.object({ action: z.literal('aiTranslate') }),
 ]);
 
-export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the ingredient catalogue' }, async ({ body, user }) => {
-    // The recipes written before the convention, brought into it (lib/ingredientConventionDb).
-    if (body.action === 'convention') return NextResponse.json({ recipes: await applyConvention(user.name) });
-
+export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the ingredient catalogue' }, async ({ body }) => {
     if (body.action === 'merge') return NextResponse.json(await merge(body.into, body.from.filter((id) => id !== body.into)));
 
     if (body.action === 'notDouble') {

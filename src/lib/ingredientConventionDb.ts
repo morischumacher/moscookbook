@@ -9,9 +9,45 @@ import { keepRevisionOf } from './revisionsDb';
 /**
  * The recipes written before the convention (lib/ingredientShape), brought
  * into it: "frischer Ingwer" → "Ingwer, frisch", in the recipe and in its
- * translation alike. Shown first, then applied by the admin; every recipe it
- * changes keeps its version from before in its history.
+ * translation alike. Done once by itself after a deploy (`ensureConvention`);
+ * every recipe it changes keeps its version from before in its history.
+ *
+ * When the rules in lib/ingredientShape change, raise VERSION: the recipes
+ * are brought into the new rules the same way.
  */
+const VERSION = '1';
+const FLAG = 'ingredients.convention';
+let settled = false;
+
+/**
+ * Brings every recipe into the convention unless that was done for this
+ * VERSION. Cheap after the first time (a flag in memory). Two servers at once:
+ * the first to claim the flag does it, the other leaves it be.
+ */
+export async function ensureConvention(): Promise<void> {
+    if (settled) return;
+    const row = await prisma.appSetting.findUnique({ where: { key: FLAG }, select: { value: true } }).catch(() => null);
+    if (row?.value === VERSION) {
+        settled = true;
+        return;
+    }
+    // Being done right now, by a request not ten minutes ago.
+    const running = /^running:(\d+)$/.exec(row?.value ?? '');
+    if (running && Date.now() - Number(running[1]) < 10 * 60_000) return;
+
+    const claim = `running:${Date.now()}`;
+    const claimed = row
+        ? (await prisma.appSetting.updateMany({ where: { key: FLAG, value: row.value }, data: { value: claim } })).count === 1
+        : await prisma.appSetting
+              .create({ data: { key: FLAG, value: claim } })
+              .then(() => true)
+              .catch(() => false);
+    if (!claimed) return;
+
+    await applyConvention(null);
+    await prisma.appSetting.update({ where: { key: FLAG }, data: { value: VERSION } });
+    settled = true;
+}
 
 const select = {
     id: true,
@@ -45,34 +81,6 @@ function keyOf(recipe: Row, names: string[]) {
         tips: recipe.tips,
         ingredients: withHeadingRows(recipe.ingredients.map((row, index) => ({ amount: row.raw, item: names[index], section: row.section }))),
     });
-}
-
-/** Every name that is not yet written the convention's way, in recipes and their translations. */
-export async function conventionChanges(): Promise<{ count: number; recipes: number; samples: { recipe: string; from: string; to: string }[] }> {
-    const recipes = await load();
-    const samples: { recipe: string; from: string; to: string }[] = [];
-    let count = 0;
-    let touched = 0;
-    for (const recipe of recipes) {
-        let here = 0;
-        const add = (from: string, to: string) => {
-            here += 1;
-            if (samples.length < 200) samples.push({ recipe: recipe.title, from, to });
-        };
-        for (const row of recipe.ingredients) {
-            const to = conventional(row.name);
-            if (to !== row.name) add(row.name, to);
-        }
-        for (const translation of recipe.translations) {
-            const rows = storedRows(translation.ingredients);
-            conventionalRows(rows).forEach((row, index) => {
-                if (row.item !== rows[index].item) add(rows[index].item, row.item);
-            });
-        }
-        count += here;
-        if (here > 0) touched += 1;
-    }
-    return { count, recipes: touched, samples };
 }
 
 /** All of them changed. A translation that was up to date stays up to date. Returns how many recipes changed. */

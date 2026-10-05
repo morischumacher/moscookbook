@@ -1668,12 +1668,6 @@
     "selectName": "Select “{name}”",
     "germanMissing": "German missing",
     "englishMissing": "English missing",
-    "usesShort": "{count, plural, =0 {unused} one {# recipe line} other {# recipe lines}}",
-    "conventionTitle": "{count, plural, one {# ingredient line} other {# ingredient lines}} in {recipes, plural, one {# recipe} other {# recipes}} not yet written the one way",
-    "conventionExplain": "The way is “Ingredient, preparation (notes) (optional)”, e.g. “garlic, minced (large cloves) (optional)”. Only the ingredient before the comma is tracked. Every recipe changed keeps its old version in its history; translations that are up to date stay so.",
-    "conventionApply": "Change all",
-    "conventionShow": "See the changes",
-    "conventionHide": "Hide the changes",
-    "conventionDone": "{count, plural, =0 {Nothing changed.} one {# recipe changed.} other {# recipes changed.}}"
+    "usesShort": "{count, plural, =0 {unused} one {# recipe line} other {# recipe lines}}"
   }
 }

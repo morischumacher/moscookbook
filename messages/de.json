@@ -1668,12 +1668,6 @@
     "selectName": "„{name}“ auswählen",
     "germanMissing": "Deutsch fehlt",
     "englishMissing": "Englisch fehlt",
-    "usesShort": "{count, plural, =0 {ungenutzt} one {# Rezeptzeile} other {# Rezeptzeilen}}",
-    "conventionTitle": "{count, plural, one {# Zutatenzeile} other {# Zutatenzeilen}} in {recipes, plural, one {# Rezept} other {# Rezepten}} noch nicht einheitlich geschrieben",
-    "conventionExplain": "Die Schreibweise ist „Zutat, Form (Zusatz) (optional)“, zum Beispiel „Knoblauch, gehackt (große Zehen) (optional)“. Getrackt wird nur die Zutat vor dem Komma. Jedes geänderte Rezept behält seine alte Version im Verlauf; aktuelle Übersetzungen bleiben aktuell.",
-    "conventionApply": "Alle anpassen",
-    "conventionShow": "Änderungen ansehen",
-    "conventionHide": "Änderungen ausblenden",
-    "conventionDone": "{count, plural, =0 {Nichts geändert.} one {# Rezept angepasst.} other {# Rezepte angepasst.}}"
+    "usesShort": "{count, plural, =0 {ungenutzt} one {# Rezeptzeile} other {# Rezeptzeilen}}"
   }
 }
