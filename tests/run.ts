@@ -93,6 +93,7 @@ import draftQuality from './draftQuality.test';
 import readerProxy from './readerProxy.test';
 import unitChoice from './unitChoice.test';
 import classNames from './classNames.test';
+import ingredientNames from './ingredientNames.test';
 
 // Suites may be async — the capture pipeline stubs fetch and awaits it — so
 // they are run in order rather than fired off together.
@@ -199,6 +200,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['readerProxy', readerProxy],
     ['unitChoice', unitChoice],
     ['classNames', classNames],
+    ['ingredientNames', ingredientNames],
     ['fixtures', fixtures],
     ['pageTitle', pageTitle],
     ['transcripts', transcripts],

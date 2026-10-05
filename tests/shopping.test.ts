@@ -73,7 +73,7 @@ export default function shoppingTests() {
     equal('what was bought is left alone', boughtAlready, { updates: [], deletes: [] });
 
     suite('shopping: typed by hand');
-    equal('"500 g Mehl"', lineFromText('500 g Mehl'), { name: 'Mehl', key: 'mehl', measure: 'mass', amount: 500, aisle: 'pantry', source: null });
+    equal('"500 g Mehl"', lineFromText('500 g Mehl'), { name: 'Mehl', key: 'ing:flour', measure: 'mass', amount: 500, aisle: 'pantry', source: null });
     equal('"2 Zitronen"', lineFromText('2 Zitronen')?.amount, 2);
     equal('"Klopapier"', lineFromText('Klopapier')?.amount, null);
     for (const [one, many] of [['onion', 'onions'], ['lemon', 'lemons'], ['tomato', 'tomatoes'], ['Zitrone', 'Zitronen'], ['Ei', 'Eier'], ['egg', 'eggs'], ['Kartoffel', 'Kartoffeln']]) {
