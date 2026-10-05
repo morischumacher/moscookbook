@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { notOurs } from '@/lib/errorNoise';
 
 /**
  * The errors React's boundaries never see.
@@ -41,6 +42,8 @@ export default function GlobalErrorReporter() {
 
         const send = (message: string, stack: string | null) => {
             if (sent >= MAX_PER_PAGE) return;
+            // A browser extension's error, not ours (lib/errorNoise).
+            if (notOurs(message, stack)) return;
             // The same error firing in a loop is one report here, and one row
             // with a count on the other end anyway; this saves the round trips.
             const key = `${message}\n${stack ?? ''}`;
