@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { AISLES, amountLabel, listAsText, type Aisle } from '@/lib/shopping';
+import { displayName } from '@/lib/ingredientNames';
 import type { ShoppingItemRow } from '@/lib/shoppingDb';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
@@ -344,7 +345,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
         if (typeof who === 'number' && item.buyerId !== who) return false;
         const q = search.toLowerCase().trim();
         if (!q) return true;
-        return item.name.toLowerCase().includes(q) || aisleName(item.aisle as Aisle).toLowerCase().includes(q) || item.sources.some((s) => s.toLowerCase().includes(q));
+        return displayName(item.name, locale, item.amount, item.measure).toLowerCase().includes(q) || item.name.toLowerCase().includes(q) || aisleName(item.aisle as Aisle).toLowerCase().includes(q) || item.sources.some((s) => s.toLowerCase().includes(q));
     };
 
     const open = items.filter((item) => !item.checked);
@@ -353,6 +354,8 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
 
     const line = (item: ShoppingItemRow) => {
         const amount = amountLabel(item.measure, item.amount, locale);
+        // "Frühlingszwiebeln" on the German page, "spring onions" on the English one.
+        const name = displayName(item.name, locale, item.amount, item.measure);
         const buyerPerson = personOf(item.buyerId);
         const buyer = buyerPerson ? (mode.kind === 'account' && buyerPerson.id === mode.me ? t('me') : buyerPerson.name) : null;
 
@@ -383,7 +386,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                 <div className="min-w-0 flex-1 pt-2">
                     <p className={`leading-snug ${item.checked ? 'text-faint line-through' : ''}`}>
                         {amount && <span className="font-semibold">{amount} </span>}
-                        {item.name}
+                        {name}
                     </p>
                     {(item.sources.length > 0 || (together && (buyer || !item.checked))) && (
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-faint">

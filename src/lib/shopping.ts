@@ -1,4 +1,5 @@
 import { splitAmount, formatAmount, type AmountParts } from './ingredientParts';
+import { displayName, ingredientKey } from './ingredientNames';
 import { singular, expandUmlauts } from './searchText';
 import { fromBase, isCountUnit, toBase, unitOf, unitSpelling, type Measured } from './units';
 
@@ -137,7 +138,8 @@ export function linesFor(ingredients: IngredientForList[], factor: number, sourc
         return [
             {
                 name,
-                key: shoppingKey(name),
+                // "Frühlingszwiebeln" and "green onions" are one line (lib/ingredientNames).
+                key: ingredientKey(name),
                 measure: measured?.key ?? null,
                 amount: measured?.amount ?? null,
                 aisle: aisleOf(name),
@@ -312,7 +314,7 @@ export function listAsText(
         if (here.length === 0) return [];
         return [
             aisleName(aisle),
-            ...here.map((line) => `- ${[amountLabel(line.measure, line.amount, locale), line.name].filter(Boolean).join(' ')}`),
+            ...here.map((line) => `- ${[amountLabel(line.measure, line.amount, locale), displayName(line.name, locale, line.amount, line.measure)].filter(Boolean).join(' ')}`),
             '',
         ];
     })

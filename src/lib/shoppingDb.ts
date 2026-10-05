@@ -1,5 +1,6 @@
 import prisma from './prisma';
 import { linesFor, mergeInto, removeFrom, type PlannedLine } from './shopping';
+import { ingredientKey } from './ingredientNames';
 import { inLanguage } from './recipeTranslation';
 import { visibleTo } from './recipeVisibility';
 
@@ -205,10 +206,12 @@ export async function addLines(listId: number, planned: PlannedLine[]): Promise<
 
         const existing = await tx.shoppingItem.findMany({
             where: { listId, checked: false },
-            select: { id: true, key: true, measure: true, amount: true, sources: true, checked: true },
+            select: { id: true, key: true, name: true, measure: true, amount: true, sources: true, checked: true },
         });
 
-        const plan = mergeInto(existing, planned);
+        // Lines made before the common names were known meet the new ones
+        // by the name they show (lib/ingredientNames).
+        const plan = mergeInto(existing.map((row) => ({ ...row, key: ingredientKey(row.name) })), planned);
 
         for (const update of plan.updates) {
             await tx.shoppingItem.update({
@@ -241,9 +244,9 @@ export async function removeLines(listId: number, planned: PlannedLine[]): Promi
         await tx.$queryRaw`SELECT id FROM "ShoppingList" WHERE id = ${listId} FOR UPDATE`;
         const existing = await tx.shoppingItem.findMany({
             where: { listId, checked: false },
-            select: { id: true, key: true, measure: true, amount: true, sources: true, checked: true },
+            select: { id: true, key: true, name: true, measure: true, amount: true, sources: true, checked: true },
         });
-        const plan = removeFrom(existing, planned);
+        const plan = removeFrom(existing.map((row) => ({ ...row, key: ingredientKey(row.name) })), planned);
         for (const update of plan.updates) {
             await tx.shoppingItem.update({ where: { id: update.id }, data: { amount: update.amount, sources: update.sources } });
         }
