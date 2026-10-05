@@ -63,6 +63,7 @@ const EXACT: Record<string, string> = {
     'Invalid capture ID': 'Diesen Eintrag gibt es nicht.',
     'Invalid capture id': 'Diesen Eintrag gibt es nicht.',
     'Capture not found': 'Diesen Eintrag gibt es nicht (mehr).',
+    'Invalid edit data': 'Diese Änderungen lassen sich so nicht speichern.',
     'Invalid entry id': 'Diesen Eintrag gibt es nicht.',
     'Invalid user ID': 'Dieses Konto gibt es nicht.',
     'User not found': 'Dieses Konto gibt es nicht (mehr).',

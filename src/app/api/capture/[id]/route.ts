@@ -294,14 +294,36 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     return NextResponse.json({ ok: true });
 }
 
+const line = z.string().max(2000);
+const minutes = z.number().int().min(0).max(100_000).nullable();
+
+/**
+ * What the form may change in a draft: the fields a draft has, each checked
+ * (work #20). Not its status — that is the pipeline's, and a status nothing
+ * else knows would leave the item stuck — and not its source.
+ */
 const patchCaptureSchema = z.object({
-    draft: z.record(z.string(), z.unknown()).optional(),
-    note: z.string().nullable().optional(),
-    status: z.string().optional(),
+    draft: z
+        .object({
+            title: z.string().trim().max(200),
+            description: z.string().max(5000),
+            instructions: z.string().max(50_000),
+            category: z.string().trim().max(60),
+            nationality: z.string().trim().max(60),
+            servings: minutes,
+            prepMinutes: minutes,
+            cookMinutes: minutes,
+            ingredients: z.array(z.object({ amount: line, item: line })).max(300),
+        })
+        .partial()
+        .strict()
+        .optional(),
+    note: z.string().max(2000).nullable().optional(),
 });
 
 /**
- * Saves edits to an inbox item's draft or note.
+ * Saves edits to an inbox item's draft or note, without taking it in: the
+ * recipe form's "Im Eingang speichern".
  */
 export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
     const auth = await requireAdmin();
@@ -331,7 +353,6 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
         data: {
             ...(parsed.data.draft ? { draft: toJsonObject(updatedDraft) } : {}),
             ...(parsed.data.note !== undefined ? { note: parsed.data.note } : {}),
-            ...(parsed.data.status ? { status: parsed.data.status } : {}),
         },
     });
 

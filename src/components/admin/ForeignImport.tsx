@@ -55,7 +55,7 @@ export default function ForeignImport() {
             for (const recipe of batch) {
                 let imageUrl = '';
                 if (recipe.image) {
-                    const result = await uploadPicture(new File([recipe.image.data.slice().buffer as ArrayBuffer], 'photo', { type: recipe.image.type }));
+                    const result = await uploadPicture(new File([recipe.image.data.slice().buffer as ArrayBuffer], 'photo', { type: recipe.image.type }), '/api/upload', recipe.title);
                     if (result.ok) imageUrl = result.url;
                 }
                 payload.push({

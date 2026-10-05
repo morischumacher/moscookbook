@@ -360,6 +360,45 @@ export default function RecipeForm({
         }
     };
 
+    /** An inbox item's edits kept on the item, without taking it into the cookbook (work #20, #23). */
+    const saveToInbox = async () => {
+        if (!captureId) return;
+        setError('');
+        setSaving(true);
+        let saved = false;
+        try {
+            const res = await fetch(`/api/capture/${captureId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    draft: {
+                        title,
+                        description,
+                        instructions,
+                        category: categories[0] ?? '',
+                        nationality: cuisines[0] ?? '',
+                        servings: toOptionalNumber(servings),
+                        prepMinutes: toOptionalNumber(prepMinutes),
+                        cookMinutes: toOptionalNumber(cookMinutes),
+                        ingredients: ingredients.filter((row) => row.item.trim() !== '').map((row) => ({ amount: row.amount, item: row.item })),
+                    },
+                }),
+            });
+            if (!res.ok) {
+                failWith(sayable((await res.json().catch(() => ({}))).message, t('saveFailed')));
+                return;
+            }
+            saved = true;
+            clearDraft();
+            router.push('/admin/inbox');
+            router.refresh();
+        } catch {
+            failWith(t('saveFailed'));
+        } finally {
+            if (!saved) setSaving(false);
+        }
+    };
+
     return (
         <main className="container mx-auto max-w-3xl px-4 py-10 sm:px-8">
             <h1 className="mb-8 text-3xl font-extrabold tracking-tight sm:text-4xl">
@@ -522,6 +561,7 @@ export default function RecipeForm({
                     just as far off screen. */}
                 <GalleryField
                     imageUrls={imageUrls}
+                    title={title}
                     onChange={setImageUrls}
                     onError={(message) => (message ? failWith(message) : setError(''))}
                 />
@@ -597,6 +637,11 @@ export default function RecipeForm({
                             {mode === 'create' ? t('create') : t('save')}
                         </BusyLabel>
                     </button>
+                    {captureId && (
+                        <button type="button" disabled={saving} onClick={() => void saveToInbox()} className={buttonSecondary}>
+                            {t('saveToInbox')}
+                        </button>
+                    )}
                     <button
                         type="button"
                         disabled={saving}

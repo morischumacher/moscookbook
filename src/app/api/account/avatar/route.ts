@@ -1,3 +1,4 @@
+import { blobName } from '@/lib/blobName';
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import prisma from '@/lib/prisma';
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
             select: { avatarUrl: true },
         });
 
-        const blob = await put(`avatar_${user.id}_${Date.now()}_${filename}`, buffer, {
+        const blob = await put(blobName(`avatar_${user.id}`, filename), buffer, {
             access: 'public',
             contentType,
         });

@@ -385,7 +385,8 @@
     "saveConflict": "Das Rezept wurde inzwischen woanders gespeichert. Lade die Seite neu – deine Änderungen werden dir dann zum Wiederherstellen angeboten.",
     "translateAgainQuestion": "Neu übersetzen? Von Hand korrigierte Stellen der jetzigen Übersetzung gehen verloren.",
     "languageSwitchQuestion": "Sprache wechseln? Die gespeicherte Übersetzung wird beim Speichern gelöscht.",
-    "languageSwitch": "Wechseln"
+    "languageSwitch": "Wechseln",
+    "saveToInbox": "Im Eingang speichern"
   },
   "QuickImport": {
     "heading": "Schnell befüllen",

@@ -13,10 +13,13 @@ const MAX_PICTURES = 12;
 
 export default function GalleryField({
     imageUrls,
+    title,
     onChange,
     onError,
 }: {
     imageUrls: string[];
+    /** The recipe's name: the stored files are named after it. */
+    title?: string;
     onChange: (next: string[]) => void;
     onError: (message: string) => void;
 }) {
@@ -54,7 +57,7 @@ export default function GalleryField({
 
             for (const file of usable) {
                 try {
-                    const result = await uploadPicture(file);
+                    const result = await uploadPicture(file, '/api/upload', title);
 
                     if (result.ok) {
                         const next = [...current.current, result.url];
@@ -72,7 +75,7 @@ export default function GalleryField({
                 }
             }
         },
-        [onChange, onError, t]
+        [onChange, onError, t, title]
     );
 
     // Pasting a screenshot straight into the page is the fastest path of all.

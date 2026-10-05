@@ -13,13 +13,15 @@ export type UploadResult =
     | { ok: false; reason: 'too-large' }
     | { ok: false; reason: 'failed'; message?: string };
 
-export async function uploadPicture(file: File, endpoint = '/api/upload'): Promise<UploadResult> {
+export async function uploadPicture(file: File, endpoint = '/api/upload', title?: string): Promise<UploadResult> {
     try {
         const prepared = await compressImage(file);
         if (prepared.size > UPLOAD_LIMIT_BYTES) return { ok: false, reason: 'too-large' };
 
         const formData = new FormData();
         formData.append('file', prepared);
+        // The stored file is named after the recipe, when there is one yet (work #20).
+        if (title?.trim()) formData.append('title', title.trim());
 
         const res = await fetch(endpoint, { method: 'POST', body: formData });
         const data: { url?: string; message?: string } = await res.json().catch(() => ({}));

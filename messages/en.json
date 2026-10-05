@@ -385,7 +385,8 @@
     "saveConflict": "The recipe was saved elsewhere in the meantime. Reload the page — you will then be offered your changes to restore.",
     "translateAgainQuestion": "Translate again? Anything corrected by hand in the current translation is lost.",
     "languageSwitchQuestion": "Switch the language? The saved translation is deleted when you save.",
-    "languageSwitch": "Switch"
+    "languageSwitch": "Switch",
+    "saveToInbox": "Save in the inbox"
   },
   "QuickImport": {
     "heading": "Fill in quickly",

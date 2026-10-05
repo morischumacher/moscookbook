@@ -1,9 +1,9 @@
+import { blobName } from '@/lib/blobName';
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { requireAdmin } from '@/lib/auth';
 import { checkImageUpload, convertHeicToJpeg, normaliseUpload } from '@/lib/uploadImage';
 import { failed } from '@/lib/reportServerError';
-import { slugify } from '@/lib/recipe';
 
 /**
  * The admin form's upload: a recipe's own photography.
@@ -79,10 +79,10 @@ export async function POST(request: Request) {
         }
 
         const { buffer, filename: finalFilename, contentType } = normalised.image;
-        const titleParam = formData.get('title') || formData.get('recipeTitle');
-        const safeTitle = typeof titleParam === 'string' && titleParam.trim() ? slugify(titleParam.trim()) : '';
-        const ext = finalFilename.includes('.') ? finalFilename.split('.').pop() : 'jpg';
-        const cleanName = safeTitle ? `${safeTitle}_${Date.now()}.${ext}` : `${Date.now()}_${finalFilename}`;
+        // Named after the recipe when the form knows it, and never after the
+        // file on the phone (lib/blobName).
+        const titleParam = formData.get('title');
+        const cleanName = blobName('picture', finalFilename, typeof titleParam === 'string' ? titleParam : null);
 
         const blob = await put(cleanName, buffer, {
             access: 'public',
