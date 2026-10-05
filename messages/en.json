@@ -1419,7 +1419,7 @@
     "notePlaceholder": "What should the AI do or look out for? (optional)",
     "publicHint": "Goes onto the public task list, anonymised — without names, e-mail addresses or links with keys.",
     "failed": "That did not work.",
-    "explain": "Tasks for an AI, or whoever you have working on the code. On it by itself: every error the server sees or a signed-in person runs into. You add tickets (\"Have AI implement it\", your own also straight away with “Straight to the AI”) and inbox items (\"Have AI improve reading this\"). When a task is done, the AI reports it — it then sits at the top under “Done by the AI – please confirm”, and your tap closes it along with its error or ticket. If an error happens again afterwards, the task reopens by itself. The list is public and anonymised at this address; the brief for the AI is in the repository at docs/work-list-prompt.md.",
+    "explain": "Tasks for an AI, or whoever you have working on the code. The list is under Reports → Tasks. On it by itself: every error the server sees or a signed-in person runs into. You add tickets (\"Have AI implement it\", your own also straight away with “Straight to the AI”) and inbox items (\"Have AI improve reading this\"). When a task is done, the AI reports it — it then sits there at the top under “Done by the AI – please confirm”, and your tap closes it along with its error or ticket. If an error happens again afterwards, the task reopens by itself. The list is public and anonymised at this address; the brief for the AI is in the repository at docs/work-list-prompt.md.",
     "copy": "Copy",
     "copied": "Copied",
     "loading": "Loading…",
@@ -1488,7 +1488,9 @@
     "takeBack": "Take back",
     "takeBackHint": "Takes it off the AI's list; it goes back to Tickets or Errors.",
     "connectHeading": "Connect an AI: link, prompt, key",
-    "doneHint": "Delete finished tasks to tidy up; a recurring error comes back as a new task."
+    "doneHint": "Delete finished tasks to tidy up; a recurring error comes back as a new task.",
+    "connectMoved": "The link, prompt and key an AI works through this list with are now under",
+    "connectMovedLink": "Admin → AI"
   },
   "Tokens": {
     "openDashboard": "See token usage and how to save →",

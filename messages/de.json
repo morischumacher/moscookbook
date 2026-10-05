@@ -1419,7 +1419,7 @@
     "notePlaceholder": "Was soll die KI tun oder beachten? (optional)",
     "publicHint": "Landet anonymisiert – ohne Namen, E-Mail-Adressen und Links mit Schlüssel – auf der öffentlichen Aufgabenliste.",
     "failed": "Das hat nicht geklappt.",
-    "explain": "Aufgaben für eine KI oder wen auch immer du am Code arbeiten lässt. Von selbst steht hier jeder Fehler, den der Server sieht oder den jemand Angemeldetes auslöst. Tickets („Von KI umsetzen lassen“, deine eigenen auch direkt mit „Direkt an die KI“) und Einträge aus dem Eingang („KI soll das Einlesen verbessern“) gibst du dazu. Ist eine Aufgabe erledigt, meldet die KI das – sie steht dann oben unter „Von der KI erledigt – bitte bestätigen“, und dein Tippen schließt sie samt Fehler oder Ticket. Tritt ein Fehler danach wieder auf, geht die Aufgabe von selbst wieder auf. Die Liste ist anonymisiert unter dieser öffentlichen Adresse; den Auftrag für die KI findest du im Repo unter docs/work-list-prompt.md.",
+    "explain": "Aufgaben für eine KI oder wen auch immer du am Code arbeiten lässt. Die Liste steht unter Meldungen → Aufgaben. Von selbst kommt dorthin jeder Fehler, den der Server sieht oder den jemand Angemeldetes auslöst. Tickets („Von KI umsetzen lassen“, deine eigenen auch direkt mit „Direkt an die KI“) und Einträge aus dem Eingang („KI soll das Einlesen verbessern“) gibst du dazu. Ist eine Aufgabe erledigt, meldet die KI das – sie steht dann dort oben unter „Von der KI erledigt – bitte bestätigen“, und dein Tippen schließt sie samt Fehler oder Ticket. Tritt ein Fehler danach wieder auf, geht die Aufgabe von selbst wieder auf. Die Liste ist anonymisiert unter dieser öffentlichen Adresse; den Auftrag für die KI findest du im Repo unter docs/work-list-prompt.md.",
     "copy": "Kopieren",
     "copied": "Kopiert",
     "loading": "Wird geladen…",
@@ -1488,7 +1488,9 @@
     "takeBack": "Zurücknehmen",
     "takeBackHint": "Nimmt es von der Liste der KI; es geht zurück zu Tickets oder Fehlern.",
     "connectHeading": "KI anbinden: Link, Prompt, Schlüssel",
-    "doneHint": "Lösche erledigte Aufgaben zum Aufräumen; ein wiederkehrender Fehler kommt als neue Aufgabe zurück."
+    "doneHint": "Lösche erledigte Aufgaben zum Aufräumen; ein wiederkehrender Fehler kommt als neue Aufgabe zurück.",
+    "connectMoved": "Link, Prompt und Schlüssel, mit denen eine KI diese Liste abarbeitet, findest du jetzt unter",
+    "connectMovedLink": "Verwaltung → KI"
   },
   "Tokens": {
     "openDashboard": "Token-Verbrauch und Spartipps ansehen →",

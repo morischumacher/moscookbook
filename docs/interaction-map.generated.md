@@ -3,14 +3,14 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-48 screens · 96 endpoints · 95 link edges · 99 call edges
+48 screens · 96 endpoints · 96 link edges · 99 call edges
 
 ## Screens
 
 | Route | Access | Proxy | Calls | Links to |
 |---|---|---|---|---|
 | `/[locale]/account` | account | requires session | `* /api/account`<br>`* /api/account/email`<br>`* /api/account/name`<br>`* /api/account/password`<br>`* /api/auth/logout`<br>`DELETE /api/account/avatar`<br>`DELETE /api/account/passkeys/[id]`<br>`GET /api/account/passkeys`<br>`POST /api/account/avatar`<br>`POST /api/account/passkeys`<br>`POST /api/account/passkeys/options` | `/[locale]/login` |
-| `/[locale]/admin/ai` | admin | requires admin | `DELETE /api/ai-keys/[id]`<br>`DELETE /api/site-profiles/[id]`<br>`GET /api/ai-keys`<br>`GET /api/site-profiles`<br>`PATCH /api/ai-keys`<br>`POST /api/ai-keys`<br>`POST /api/ai-keys/[id]/test`<br>`POST /api/site-profiles` | `/[locale]/admin/ai/usage` |
+| `/[locale]/admin/ai` | admin | requires admin | `* /api/work`<br>`DELETE /api/ai-keys/[id]`<br>`DELETE /api/site-profiles/[id]`<br>`GET /api/ai-keys`<br>`GET /api/site-profiles`<br>`GET /api/work`<br>`GET /api/work-items/prompt`<br>`GET /api/work-items/token`<br>`PATCH /api/ai-keys`<br>`POST /api/ai-keys`<br>`POST /api/ai-keys/[id]/test`<br>`POST /api/site-profiles`<br>`POST /api/work-items/token` | `/[locale]/admin/ai/usage` |
 | `/[locale]/admin/ai/usage` | admin | requires admin | — | `/[locale]/admin/inbox` |
 | `/[locale]/admin/collections/[id]` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/admin/collections`<br>`/[locale]/collections/[id]` |
 | `/[locale]/admin/collections/new` | admin | requires admin | `* /api/collections`<br>`* /api/collections/[id]`<br>`DELETE /api/collections/[id]` | `/[locale]/admin/collections`<br>`/[locale]/collections/[id]` |
@@ -29,7 +29,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/posts/[id]` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts/new` | admin | requires admin | `* /api/posts`<br>`* /api/posts/[id]` | `/[locale]/admin/posts` |
 | `/[locale]/admin/posts` | admin | requires admin | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/posts/[id]`<br>`POST /api/examples` | `/[locale]/admin/posts/[id]`<br>`/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/collections/[id]`<br>`/[locale]/recipe/[id]` |
-| `/[locale]/admin/reports` | admin | requires admin | `* /api/errors`<br>`* /api/report-photos`<br>`* /api/tickets`<br>`* /api/work`<br>`DELETE /api/report-photos/[id]`<br>`DELETE /api/work-items`<br>`DELETE /api/work-items/[id]`<br>`GET /api/work`<br>`GET /api/work-items`<br>`GET /api/work-items/[id]`<br>`GET /api/work-items/prompt`<br>`GET /api/work-items/token`<br>`POST /api/errors/[id]/photos`<br>`POST /api/work-items`<br>`POST /api/work-items/token` | — |
+| `/[locale]/admin/reports` | admin | requires admin | `* /api/errors`<br>`* /api/report-photos`<br>`* /api/tickets`<br>`DELETE /api/report-photos/[id]`<br>`DELETE /api/work-items`<br>`DELETE /api/work-items/[id]`<br>`GET /api/work-items`<br>`GET /api/work-items/[id]`<br>`POST /api/errors/[id]/photos`<br>`POST /api/work-items` | `/[locale]/admin/ai` |
 | `/[locale]/admin/tickets` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/users` | admin | requires admin | `DELETE /api/invites/[id]`<br>`DELETE /api/users/[id]`<br>`GET /api/invites`<br>`GET /api/invites/name`<br>`GET /api/users`<br>`PATCH /api/users/[id]/role`<br>`POST /api/invites` | — |
 | `/[locale]/blog/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility` | `/[locale]/collections/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]` |
@@ -157,7 +157,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | GET | `/api/users` | admin | — | — | `admin/UserList` |
 | POST | `/api/work/[id]/done` | session (proxy only) | zod | yes | *(nothing in the UI)* |
 | GET | `/api/work/[id]/photos` | session (proxy only) | — | yes | *(nothing in the UI)* |
-| GET | `/api/work` | none (open by design) | — | yes | `admin/WorkPanel` |
+| GET | `/api/work` | none (open by design) | — | yes | `admin/ConnectAi` |
 
 Calls the map could not match to an endpoint (a URL built elsewhere, or a path the regex misread):
 
@@ -187,8 +187,8 @@ Calls the map could not match to an endpoint (a URL built elsewhere, or a path t
 - `GET /api/shopping/recipes  (from shopping/AddRecipeSearch)`
 - `GET /api/work-items  (from admin/WorkPanel)`
 - `GET /api/work-items/[id]  (from admin/WorkPanel)`
-- `GET /api/work-items/prompt  (from admin/WorkPanel)`
-- `GET /api/work-items/token  (from admin/WorkPanel)`
+- `GET /api/work-items/prompt  (from admin/ConnectAi)`
+- `GET /api/work-items/token  (from admin/ConnectAi)`
 - `PATCH /api/recipes/[id]/cooked  (from recipe/Cooked)`
 - `PATCH /api/shopping/[id]  (from shopping/ShoppingListView)`
 - `PATCH /api/shopping/lists  (from shopping/ListSettings)`
@@ -209,7 +209,7 @@ Calls the map could not match to an endpoint (a URL built elsewhere, or a path t
 - `POST /api/shopping/remove  (from shopping/ShoppingListView)`
 - `POST /api/shopping/simplify  (from shopping/ShoppingListView)`
 - `POST /api/work-items  (from admin/ShareToWorkList)`
-- `POST /api/work-items/token  (from admin/WorkPanel)`
+- `POST /api/work-items/token  (from admin/ConnectAi)`
 
 ## Always present
 
@@ -319,6 +319,7 @@ flowchart LR
   n__locale__admin_posts --> n__locale__blog__slug_
   n__locale__admin_posts --> n__locale__collections__slug_
   n__locale__admin_posts --> n__locale__recipe__slug_
+  n__locale__admin_reports --> n__locale__admin_ai
   n__locale__admin_tickets --> n__locale__admin_reports
   n__locale__blog__slug_ --> n__locale__collections__slug_
   n__locale__blog__slug_ --> n__locale__login
@@ -611,7 +612,7 @@ flowchart LR
   eGET_api_users(["GET /api/users"])
   cadmin_UserList --> eGET_api_users
   eGET_api_work(["GET /api/work"])
-  cadmin_WorkPanel["admin/WorkPanel"]
-  cadmin_WorkPanel --> eGET_api_work
+  cadmin_ConnectAi["admin/ConnectAi"]
+  cadmin_ConnectAi --> eGET_api_work
 ```
 
