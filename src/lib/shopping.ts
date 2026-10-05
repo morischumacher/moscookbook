@@ -1,5 +1,5 @@
 import { splitAmount, formatAmount, type AmountParts } from './ingredientParts';
-import { displayName, ingredientKey } from './ingredientNames';
+import { displayName, ingredientKey, itemName } from './ingredientNames';
 import { singular, expandUmlauts } from './searchText';
 import { fromBase, isCountUnit, toBase, unitOf, unitSpelling, type Measured } from './units';
 
@@ -305,7 +305,7 @@ export function amountLabel(measure: string | null, amount: number | null, local
 
 /** The whole list as text, for sending: grouped, ticked lines left out. */
 export function listAsText(
-    lines: { name: string; measure: string | null; amount: number | null; aisle: string; checked: boolean }[],
+    lines: { name: string; measure: string | null; amount: number | null; aisle: string; checked: boolean; item?: { de: string; en: string } | null }[],
     aisleName: (aisle: Aisle) => string,
     locale: 'en' | 'de'
 ): string {
@@ -314,7 +314,7 @@ export function listAsText(
         if (here.length === 0) return [];
         return [
             aisleName(aisle),
-            ...here.map((line) => `- ${[amountLabel(line.measure, line.amount, locale), displayName(line.name, locale, line.amount, line.measure)].filter(Boolean).join(' ')}`),
+            ...here.map((line) => `- ${[amountLabel(line.measure, line.amount, locale), (line.item && itemName(line.item, locale, line.amount, line.measure)) || displayName(line.name, locale, line.amount, line.measure)].filter(Boolean).join(' ')}`),
             '',
         ];
     })

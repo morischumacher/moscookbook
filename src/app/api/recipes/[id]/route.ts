@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
+import { linkRecipe } from '@/lib/ingredientCatalog';
 import { requireAdmin } from '@/lib/auth';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
@@ -190,6 +191,10 @@ export async function PUT(
 
         // The category or cuisine may have changed, and with it the rail.
         forgetCollectionFacets();
+
+        // Its rows were written afresh: each pointed at the catalogue's
+        // ingredient again (lib/ingredientCatalog). Never in the way of the save.
+        await linkRecipe(recipeId).catch(() => 0);
 
         return NextResponse.json(updatedRecipe, { status: 200 });
     } catch (error) {

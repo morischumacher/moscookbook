@@ -88,6 +88,7 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
             { href: '/admin/drafts', label: tDrafts('nav') },
             { href: '/admin', label: t('dashboard') },
             { href: '/admin/collections', label: tCollections('adminNav') },
+            { href: '/admin/ingredients', label: t('ingredients') },
             { href: '/admin/posts', label: tBlog('adminNav') },
         ],
         [

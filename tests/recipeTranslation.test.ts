@@ -1,6 +1,7 @@
 import { suite, check, equal } from './harness';
 import {
     foreignLanguage,
+    glossaryRule,
     guessLanguage,
     inLanguage,
     readTranslation,
@@ -181,4 +182,9 @@ export default async function recipeTranslationTests() {
     equal('English is not', foreignLanguage('Peel the onion and fry it in the oil with a pinch of salt, then add the water and let it cook for 10 minutes until soft.'), null);
     equal('a few words are too few to tell', foreignLanguage('Paella de la casa'), null);
     check('the prompt names the language and asks for German', translatePrompt('es', 'de').includes('from Spanish into German'));
+
+    suite('recipeTranslation: the cookbook\'s own ingredient names');
+    const rule = glossaryRule({ Frühlingszwiebeln: 'spring onions', Ingwer: 'ginger' });
+    check('the names are given as a rule', rule.includes('Frühlingszwiebeln → spring onions') && rule.includes('Ingwer → ginger'));
+    equal('no names, no rule', glossaryRule({}), '');
 }

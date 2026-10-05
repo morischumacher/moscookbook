@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-47 screens · 96 endpoints · 93 link edges · 99 call edges
+48 screens · 96 endpoints · 93 link edges · 99 call edges
 
 ## Screens
 
@@ -21,6 +21,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`* /api/upload`<br>`GET /api/ingredients/names`<br>`PATCH /api/capture/[id]`<br>`POST /api/ai/picture`<br>`POST /api/ai/polish`<br>`POST /api/ai/translate`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/recipes/[id]/revisions/[id]` | `/[locale]/admin`<br>`/[locale]/admin/inbox` |
 | `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`DELETE /api/work-items/[id]`<br>`GET /api/capture`<br>`GET /api/capture/[id]/tokens`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge`<br>`POST /api/capture/share`<br>`POST /api/work-items` | `/[locale]/admin/create`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
+| `/[locale]/admin/ingredients` | admin | requires admin | `* /api/ingredients`<br>`GET /api/ingredients` | — |
 | `/[locale]/admin/invites` | admin | requires admin | — | `/[locale]/admin/users` |
 | `/[locale]/admin/menus/[id]` | admin | requires admin | `* /api/menus`<br>`* /api/menus/[id]`<br>`DELETE /api/menus/[id]` | `/[locale]/menus`<br>`/[locale]/menus/[id]` |
 | `/[locale]/admin/menus/new` | admin | requires admin | `* /api/menus`<br>`* /api/menus/[id]`<br>`DELETE /api/menus/[id]` | `/[locale]/menus`<br>`/[locale]/menus/[id]` |
@@ -160,6 +161,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 
 Calls the map could not match to an endpoint (a URL built elsewhere, or a path the regex misread):
 
+- `* /api/ingredients  (from admin/IngredientCatalog)`
 - `* /api/menus  (from menu/MenuForm)`
 - `* /api/menus/[id]  (from menu/MenuForm)`
 - `* /api/menus/[id]/share  (from menu/MenuShare)`
@@ -178,6 +180,7 @@ Calls the map could not match to an endpoint (a URL built elsewhere, or a path t
 - `DELETE /api/work-items  (from admin/WorkPanel)`
 - `DELETE /api/work-items/[id]  (from admin/ShareToWorkList)`
 - `GET /api/favorites  (from home/OfflineFavorites)`
+- `GET /api/ingredients  (from admin/IngredientCatalog)`
 - `GET /api/ingredients/names  (from recipe-form/IngredientEditor)`
 - `GET /api/shopping/lists  (from shopping/AddToShopping)`
 - `GET /api/shopping/members  (from shopping/ShoppingSharing)`
@@ -215,7 +218,7 @@ Rendered by a layout rather than a page, so they are on every screen (or every a
 |---|---|---|
 | Header | `Navbar` | `/[locale]`<br>`/[locale]/account`<br>`/[locale]/admin`<br>`/[locale]/blog`<br>`/[locale]/collections`<br>`/[locale]/login`<br>`/[locale]/menus`<br>`/[locale]/shopping` |
 | Footer | `Footer` | `/[locale]/imprint`<br>`/[locale]/privacy` |
-| Admin nav | `admin/AdminNav` | `/[locale]/admin`<br>`/[locale]/admin/ai`<br>`/[locale]/admin/collections`<br>`/[locale]/admin/devices`<br>`/[locale]/admin/drafts`<br>`/[locale]/admin/inbox`<br>`/[locale]/admin/posts`<br>`/[locale]/admin/reports`<br>`/[locale]/admin/users` |
+| Admin nav | `admin/AdminNav` | `/[locale]/admin`<br>`/[locale]/admin/ai`<br>`/[locale]/admin/collections`<br>`/[locale]/admin/devices`<br>`/[locale]/admin/drafts`<br>`/[locale]/admin/inbox`<br>`/[locale]/admin/ingredients`<br>`/[locale]/admin/posts`<br>`/[locale]/admin/reports`<br>`/[locale]/admin/users` |
 
 ## Navigation
 
@@ -248,6 +251,7 @@ flowchart LR
     n__locale__admin_edit__id_["/[locale]/admin/edit/[id]"]
     n__locale__admin_errors["/[locale]/admin/errors"]
     n__locale__admin_inbox["/[locale]/admin/inbox"]
+    n__locale__admin_ingredients["/[locale]/admin/ingredients"]
     n__locale__admin_invites["/[locale]/admin/invites"]
     n__locale__admin_menus__id_["/[locale]/admin/menus/[id]"]
     n__locale__admin_menus_new["/[locale]/admin/menus/new"]

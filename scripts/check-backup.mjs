@@ -60,6 +60,13 @@ const NOT_BACKED_UP = new Map([
         'home for profiles is the planned `npm run profiles:export`, which writes ' +
         'them into the repo where they can be read, corrected and shipped',
     ],
+    [
+        'IngredientItem',
+        'the ingredient catalogue is rebuilt from the recipes after a restore ' +
+        '(lib/ingredientCatalog links every row the first time the form, the ' +
+        'shopping list or admin → Zutaten is used). Not free either: names ' +
+        'corrected by hand, further names and merges are made again there',
+    ],
     ['CollectionRecipe', "carried inside each collection's entry, in order, rather than as its own list"],
     ['PostRecipe', "carried inside each entry as recipeSlugs, in order, rather than as its own list"],
     ['PostCollection', "carried inside each entry as collectionSlugs, in order, rather than as its own list"],
