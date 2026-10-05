@@ -141,7 +141,8 @@
     "translationStale": "Das Original wurde seitdem geändert.",
     "timerDoneSaid": "Timer für {label} ist abgelaufen.",
     "cookView": "Ansicht",
-    "edit": "Bearbeiten"
+    "edit": "Bearbeiten",
+    "translationStillCurrent": "Ist aktuell"
   },
   "Rating": {
     "summary": "{count, plural, =0 {Noch nicht bewertet} one {# Person bewertete dies mit {average}} other {# Personen bewerteten dies mit {average}}}",

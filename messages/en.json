@@ -141,7 +141,8 @@
     "translationStale": "The original has changed since.",
     "timerDoneSaid": "Timer for {label} is done.",
     "cookView": "View",
-    "edit": "Edit"
+    "edit": "Edit",
+    "translationStillCurrent": "Still current"
   },
   "Rating": {
     "summary": "{count, plural, =0 {Not rated yet} one {# person rated this {average}} other {# people rated this {average}}}",
