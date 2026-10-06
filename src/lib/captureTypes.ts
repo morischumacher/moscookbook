@@ -89,6 +89,13 @@ export interface ProcessOptions {
      * existing caller and every test behaves exactly as it did.
      */
     profiles?: SiteProfileStore;
+    /**
+     * The ingredient list's names in another language (lib/ingredientCatalog
+     * glossaryFor), so a recipe translated on import names what the list
+     * knows the list's way. Passed in for the same reason; left unset, the
+     * translation keeps the model's words.
+     */
+    glossary?: (rows: { item: string }[], to: 'de' | 'en') => Promise<Record<string, string>>;
     /** Which website an account keeps its recipes on. See authorSite.ts. */
     accounts?: AccountSiteStore;
     /**

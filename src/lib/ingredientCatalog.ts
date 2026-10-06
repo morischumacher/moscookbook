@@ -138,3 +138,20 @@ export async function linkAllUnlinked(limit = 500): Promise<{ recipes: number; r
     }
     return { recipes: recipes.length, rows };
 }
+
+/**
+ * The names the list already has for a recipe's ingredients in another
+ * language — "Frühlingszwiebeln" → "spring onions" — for a translation to
+ * use (lib/recipeTranslation withGlossary puts them in, whatever the model wrote).
+ */
+export async function glossaryFor(rows: { item: string }[], to: RecipeLanguage): Promise<Record<string, string>> {
+    const glossary: Record<string, string> = {};
+    for (const row of rows) {
+        const name = coreName(row.item);
+        if (!name || name.startsWith('#') || glossary[name]) continue;
+        const id = await matchItem(name).catch(() => null);
+        const item = id ? await prisma.ingredientItem.findUnique({ where: { id }, select: { de: true, en: true } }) : null;
+        if (item?.[to]) glossary[name] = item[to];
+    }
+    return glossary;
+}

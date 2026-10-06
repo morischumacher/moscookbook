@@ -649,7 +649,9 @@ async function inGerman(result: ProcessedCapture, ai: AiCapability, options: Pro
         ai.keys,
         (key, system, text) => completeWithKey(key, { kind: 'raw', system, text }, options.onModel),
         extractJson,
-        'de'
+        'de',
+        // The list's German names for what it knows (lib/ingredientCatalog), never the model's own word.
+        (await options.glossary?.(draft.ingredients, 'de').catch(() => ({}))) ?? {}
     ).catch(() => null);
     if (!outcome?.ok) return result;
 

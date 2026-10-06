@@ -1,8 +1,9 @@
 /** An ingredient's standard unit, conflicts, conversions without AI, and how the form finds a name */
 import { suite, check, equal } from './harness';
-import { amountIn, convertQuantity, factorBetween, measureOf, missingConversions, unitKey, unitLabel, unitState } from '../src/lib/ingredientUnits';
+import { amountIn, conversionText, convertQuantity, factorBetween, isEuropean, rebased, storedFactor, unitFits, measureOf, missingConversions, unitKey, unitLabel, unitState } from '../src/lib/ingredientUnits';
 import { matchIn, similarIn, itemKeys } from '../src/lib/ingredientMatch';
-import { converted } from '../src/lib/shoppingParts';
+import { converted, unitsOf } from '../src/lib/shoppingParts';
+import { withGlossary } from '../src/lib/recipeTranslation';
 
 const item = (id: number, de: string, en = '', aliases: string[] = []) => ({ id, de, en, aliases, keys: itemKeys({ de, en, aliases }) });
 
@@ -36,17 +37,36 @@ export default function ingredientUnitsTests() {
 
     suite('ingredient units: standard and conflicts');
     equal('one kind: the usual one is the standard', unitState({ unit: null, moreUnits: [] }, [{ unit: 'g', count: 3 }, { unit: 'kg', count: 1 }]), { unit: 'g', chosen: false, odd: [] });
-    equal('two kinds, nobody chose: a conflict', unitState({ unit: null, moreUnits: [] }, [{ unit: 'g', count: 3 }, { unit: '', count: 1 }]).odd.sort(), ['count:', 'mass']);
+    equal('two kinds, nobody chose: the most used is the main unit, the other a question', unitState({ unit: null, moreUnits: [] }, [{ unit: 'g', count: 3 }, { unit: '', count: 1 }]), { unit: 'g', chosen: false, odd: ['count:'] });
     equal('chosen g, a recipe in pieces: that kind is odd', unitState({ unit: 'g', moreUnits: [] }, [{ unit: 'g', count: 3 }, { unit: '', count: 1 }]).odd, ['count:']);
-    equal('pieces allowed too: no conflict', unitState({ unit: 'g', moreUnits: ['count:'] }, [{ unit: 'g', count: 3 }, { unit: '', count: 1 }]).odd, []);
+    equal('on the card without a conversion: still a question', unitState({ unit: 'g', moreUnits: ['count:'] }, [{ unit: 'g', count: 3 }, { unit: '', count: 1 }]).odd, ['count:']);
+    equal('on the card with its conversion: fine', unitState({ unit: 'g', moreUnits: ['count:'] }, [{ unit: 'g', count: 3 }, { unit: '', count: 1 }], { buy: 'mass', factors: { 'count:': 150 } }).odd, []);
+    check('TL fits a card in EL (green)', unitFits({ unit: 'tbsp', moreUnits: [], units: null }, 'TL'));
+    check('Stück does not fit a card in g', !unitFits({ unit: 'g', moreUnits: [], units: null }, ''));
+    check('cups are not European', !isEuropean('cups'));
+    check('Bund is', isEuropean('bunch'));
+    equal('"7 Stück = 1 Bund" stored against the bunch', storedFactor('', 7, 'bunch', 1), { measure: 'count:', factor: 0.142857 });
+    equal('and written back', conversionText('', 'bunch', 1 / 7, 'de').text, '7 Stück = 1 Bund');
+    equal('rebased onto another main unit', rebased({ buy: 'count:bund', factors: { 'count:': 0.2 } }, 'count:'), { buy: 'count:', factors: { 'count:bund': 5 } });
     equal('EL beside ml is no conflict', unitState({ unit: null, moreUnits: [] }, [{ unit: 'tbsp', count: 1 }, { unit: 'ml', count: 1 }]).odd, []);
     equal('allowed, not chosen: the other one is the standard', unitState({ unit: null, moreUnits: ['count:'] }, [{ unit: 'g', count: 3 }, { unit: '', count: 1 }]).unit, 'g');
+
+    equal('the shopping list buys in the card\'s main unit', unitsOf({ buyMeasure: 'mass', factors: { 'count:': 100 }, unit: '' }, null), { buy: 'count:', factors: { mass: 0.01 } });
 
     suite('ingredient units: what waits for the AI');
     equal('g and kg need nobody', missingConversions(['mass', 'mass'], null, 'g'), []);
     equal('EL and ml need nobody', missingConversions(['spoon', 'volume'], null, 'ml'), []);
     equal('pieces and grams wait', missingConversions(['mass', 'count:'], null, 'g'), ['count:']);
     equal('known factors need nobody', missingConversions(['count:bund', 'count:'], springOnion, 'bunch'), []);
+
+    suite('translation: the list names the ingredients');
+    const translated = withGlossary(
+        { ingredients: [{ amount: '2', item: 'scallions, finely sliced' }, { amount: '1 TL', item: 'salt' }] },
+        { ingredients: [{ amount: '2', item: 'Frühlingszwiebeln, fein geschnitten' }, { amount: '1 TL', item: 'Salz' }] },
+        { Frühlingszwiebeln: 'spring onions' }
+    );
+    equal("the list's name, the model's preparation", translated.ingredients[0].item, 'spring onions, finely sliced');
+    equal('what the list does not know stays the model\'s', translated.ingredients[1].item, 'salt');
 
     suite('ingredient match: the form finds names');
     const catalog = [item(1, 'Pasta', 'pasta', ['Nudeln']), item(2, 'Frühlingszwiebeln', 'spring onions'), item(3, 'Tomaten', 'tomatoes')];
