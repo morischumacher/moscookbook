@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { splitAmount, formatAmount } from '@/lib/ingredientParts';
 import { formatShape, shapeOf } from '@/lib/ingredientShape';
 import { matchIn, similarIn, type MatchableItem } from '@/lib/ingredientMatch';
-import { convertQuantity, familyOf, measureOf, unitLabel } from '@/lib/ingredientUnits';
+import { convertQuantity, familyOf, measureOf, unitKey, unitLabel } from '@/lib/ingredientUnits';
 import type { Units } from '@/lib/shoppingParts';
 
 export interface FormCatalogItem extends MatchableItem {
@@ -15,15 +15,16 @@ export interface FormCatalogItem extends MatchableItem {
 }
 
 /**
- * What the form says under an ingredient row, from the catalogue
- * (lib/ingredientMatch, lib/ingredientUnits):
+ * Where an ingredient row of the recipe form stands with the cookbook's list
+ * (lib/ingredientMatch, lib/ingredientUnits), in one of three colours — the
+ * same for a recipe typed in and one imported and checked as a draft:
  *
- * - a name the cookbook does not know yet: "new", and the ones that look
- *   alike, each a tap to take instead — or keep it new;
- * - a known one in a unit of another kind than its standard one ("Pasta is
- *   usually in g"): convert the row to it, or allow this unit for it too.
- *
- * Nothing for a known name in its own unit: the quiet case is the common one.
+ * - green: an ingredient we have, in a unit it is written in;
+ * - amber: something to decide — a similar ingredient (take it, overwrite
+ *   it with this name, or make this one new), or a known one in another unit
+ *   (convert to its unit, allow this unit too, make this unit its standard,
+ *   or call it something else: another ingredient);
+ * - blue: nothing like it yet — saving adds it to the list.
  */
 export default function IngredientHint({
     item,
@@ -35,68 +36,92 @@ export default function IngredientHint({
     onAmount,
     onKeepNew,
     onAllow,
+    onRename,
+    onOverwriteName,
+    onOverwriteUnit,
 }: {
     item: string;
     amount: string;
     catalog: FormCatalogItem[];
     locale: 'de' | 'en';
-    /** "Keep it new" was tapped for this name. */
+    /** "Add as new ingredient" was tapped for this name. */
     keptNew: boolean;
     onItem: (next: string) => void;
     onAmount: (next: string) => void;
     onKeepNew: () => void;
     onAllow: (id: number, measure: string) => void;
+    /** "Another ingredient": back into the name field, to call it something else. */
+    onRename: () => void;
+    /** The ingredient we have renamed to this row's name — in every recipe. */
+    onOverwriteName: (id: number, name: string) => void;
+    /** This row's unit made the ingredient's standard one. */
+    onOverwriteUnit: (id: number, unit: string) => void;
 }) {
     const t = useTranslations('RecipeForm');
     const name = item.trim();
     if (catalog.length === 0 || name.length < 3 || name.startsWith('#')) return null;
     const nameOf = (entry: MatchableItem) => (locale === 'de' ? entry.de || entry.en : entry.en || entry.de);
     const chip = 'min-h-9 rounded-full border border-control px-3 text-xs text-ink hover:border-ink';
+    const status = (tone: 'success' | 'warning' | 'info', text: string) => (
+        <span className={`inline-flex items-center gap-1.5 font-medium ${tone === 'success' ? 'text-success' : tone === 'warning' ? 'text-warning' : 'text-info'}`}>
+            <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-current" />
+            {text}
+        </span>
+    );
 
     const known = matchIn(name, catalog);
     if (!known) {
-        if (keptNew) return null;
-        const alike = similarIn(name, catalog);
+        const alike = keptNew ? [] : similarIn(name, catalog);
+        if (alike.length === 0) {
+            return (
+                <div className="basis-full text-xs" role="note">
+                    {status('info', t('hintNew'))} <span className="text-muted">{t('hintNewExplain')}</span>
+                </div>
+            );
+        }
         return (
             <div className="basis-full text-xs text-muted" role="note">
-                <span className="mr-2 inline-block rounded-full bg-surface px-2 py-0.5 font-semibold text-ink">{t('hintNew')}</span>
-                {alike.length > 0 ? (
-                    <span className="inline-flex flex-wrap items-center gap-2 align-middle">
-                        {t('hintAlike')}
-                        {alike.map((entry) => (
-                            <button key={entry.id} type="button" onClick={() => onItem(formatShape({ ...shapeOf(name), base: nameOf(entry) }))} className={chip}>
-                                {nameOf(entry)}
-                            </button>
-                        ))}
-                        <button type="button" onClick={onKeepNew} className="min-h-9 px-1 underline underline-offset-4 hover:text-ink">
-                            {t('hintKeepNew')}
+                {status('warning', t('hintAlike'))}
+                <span className="mt-1 flex flex-wrap items-center gap-2">
+                    {alike.map((entry) => (
+                        <button key={entry.id} type="button" onClick={() => onItem(formatShape({ ...shapeOf(name), base: nameOf(entry) }))} className={chip}>
+                            {t('hintTake', { name: nameOf(entry) })}
                         </button>
-                    </span>
-                ) : (
-                    t('hintNewExplain')
-                )}
+                    ))}
+                    {/* The closest one overwritten with this name: "Nudeln" becomes "Pasta", in every recipe. */}
+                    <button type="button" onClick={() => onOverwriteName(alike[0].id, shapeOf(name).base)} className={chip}>
+                        {t('hintOverwriteName', { old: nameOf(alike[0]), name: shapeOf(name).base })}
+                    </button>
+                    <button type="button" onClick={onKeepNew} className={chip}>
+                        {t('hintKeepNew')}
+                    </button>
+                </span>
             </div>
         );
     }
 
     // Known: is its unit one this ingredient is written in?
     const parts = splitAmount(amount);
-    if (known.unit === null || (parts.quantity === null && !parts.unit)) return null;
     const written = parts.unit ?? '';
     const kind = familyOf(measureOf(written));
-    const standardKind = familyOf(measureOf(known.unit));
-    if (!kind || kind === standardKind || known.moreUnits.includes(kind)) return null;
+    const standardKind = known.unit === null ? null : familyOf(measureOf(known.unit));
+    const fits = known.unit === null || (parts.quantity === null && !parts.unit) || !kind || kind === standardKind || known.moreUnits.includes(kind);
+    if (fits) {
+        return (
+            <div className="basis-full text-xs" role="note">
+                {status('success', known.unit !== null ? t('hintKnownUnit', { name: nameOf(known), unit: unitLabel(known.unit, locale) }) : t('hintKnown', { name: nameOf(known) }))}
+            </div>
+        );
+    }
 
-    const standard = unitLabel(known.unit, locale);
-    const quantity = parts.quantity === null ? null : convertQuantity(parts.quantity, written, known.unit, known.units);
-    const quantityMax = parts.quantityMax === null ? null : convertQuantity(parts.quantityMax, written, known.unit, known.units);
+    const standard = unitLabel(known.unit!, locale);
+    const quantity = parts.quantity === null ? null : convertQuantity(parts.quantity, written, known.unit!, known.units);
+    const quantityMax = parts.quantityMax === null ? null : convertQuantity(parts.quantityMax, written, known.unit!, known.units);
     const converted =
-        quantity === null
-            ? null
-            : formatAmount({ quantity, quantityMax, unit: known.unit === '' ? null : unitLabel(known.unit, locale, (quantityMax ?? quantity) > 1) }, 1, locale);
+        quantity === null ? null : formatAmount({ quantity, quantityMax, unit: known.unit === '' ? null : unitLabel(known.unit!, locale, (quantityMax ?? quantity) > 1) }, 1, locale);
     return (
         <div className="basis-full text-xs text-muted" role="note">
-            <span>{t('hintUnit', { name: nameOf(known), unit: standard })}</span>
+            {status('warning', t('hintUnit', { name: nameOf(known), unit: standard }))}
             <span className="mt-1 flex flex-wrap items-center gap-2">
                 <button
                     type="button"
@@ -106,8 +131,14 @@ export default function IngredientHint({
                 >
                     {converted ? t('hintConvert', { amount: converted }) : t('hintSwitch', { unit: standard })}
                 </button>
-                <button type="button" onClick={() => onAllow(known.id, kind)} className={chip}>
+                <button type="button" onClick={() => onAllow(known.id, kind!)} className={chip}>
                     {t('hintAllow', { unit: written || unitLabel('', locale) })}
+                </button>
+                <button type="button" onClick={() => onOverwriteUnit(known.id, unitKey(written))} className={chip}>
+                    {t('hintOverwriteUnit', { unit: written || unitLabel('', locale) })}
+                </button>
+                <button type="button" onClick={onRename} className={chip}>
+                    {t('hintOther')}
                 </button>
             </span>
         </div>

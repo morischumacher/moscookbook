@@ -171,6 +171,7 @@ export default function TranslationPanel({
                     <IngredientEditor
                         ingredients={current.ingredients}
                         onChange={(rows) => edit({ ingredients: rows })}
+                        hints={false}
                     />
 
                     <div>

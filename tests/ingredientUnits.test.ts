@@ -1,6 +1,6 @@
 /** An ingredient's standard unit, conflicts, conversions without AI, and how the form finds a name */
 import { suite, check, equal } from './harness';
-import { convertQuantity, factorBetween, measureOf, missingConversions, unitKey, unitLabel, unitState } from '../src/lib/ingredientUnits';
+import { amountIn, convertQuantity, factorBetween, measureOf, missingConversions, unitKey, unitLabel, unitState } from '../src/lib/ingredientUnits';
 import { matchIn, similarIn, itemKeys } from '../src/lib/ingredientMatch';
 import { converted } from '../src/lib/shoppingParts';
 
@@ -19,10 +19,15 @@ export default function ingredientUnitsTests() {
     equal('the German label', unitLabel('tbsp', 'de'), 'EL');
     equal('pieces in German', unitLabel('', 'de'), 'Stück');
 
+    equal('a replaced amount in English', amountIn('1 Bund', 'en'), '1 bunch');
+    equal('and spoons', amountIn('2 EL', 'en'), '2 tbsp');
+    equal('a unit of its own stays', amountIn('1 Dose', 'en'), '1 Dose');
+
     suite('ingredient units: converting without AI');
     equal('kg to g', convertQuantity(0.5, 'kg', 'g', null), 500);
     equal('EL to ml', convertQuantity(2, 'EL', 'ml', null), 30);
     equal('l to ml', convertQuantity(1, 'l', 'ml', null), 1000);
+    equal('100 ml are 0.1 l, not half a litre', convertQuantity(100, 'ml', 'l', null), 0.1);
     equal('pieces to grams need the ingredient', convertQuantity(3, '', 'g', null), null);
     const springOnion = { buy: 'count:bund', factors: { 'count:': 1 / 7 } };
     equal('14 spring onions are 2 bunches', convertQuantity(14, '', 'Bund', springOnion), 2);

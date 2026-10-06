@@ -12,8 +12,8 @@ import { isMeasure, unitsOf } from '@/lib/shoppingParts';
 import { aisleOf, CHOOSABLE_AISLES, isAisle, shoppingKey } from '@/lib/shopping';
 import { formatShape, shapeOf } from '@/lib/ingredientShape';
 import { rewriteRows } from '@/lib/recipeRowsDb';
-import { DUE_COUNT, learnPending, unitOverview } from '@/lib/ingredientUnitsDb';
-import { convertQuantity, familyOf, measureOf, unitKey, unitLabel } from '@/lib/ingredientUnits';
+import { alignRecipes, DUE_COUNT, learnPending, unitOverview } from '@/lib/ingredientUnitsDb';
+import { amountIn, convertQuantity, familyOf, measureOf, unitKey, unitLabel } from '@/lib/ingredientUnits';
 import { splitAmount, formatAmount } from '@/lib/ingredientParts';
 
 /**
@@ -26,7 +26,9 @@ import { splitAmount, formatAmount } from '@/lib/ingredientParts';
  * POST {action}:
  *   merge {into, from}: several into one — rows, shopping lines and names move
  *     over, and the recipes' rows are renamed to the one kept (not the method);
- *   setUnit {id, unit}: its standard unit ('g', 'bunch', '' for pieces; null: read off the recipes);
+ *   setUnit {id, unit}: its standard unit ('g', 'bunch', '' for pieces; null: read off the recipes),
+ *     the recipes following where that is sure;
+ *   renameItem {id, name, locale}: renamed (the old name kept as a further one), the recipes' rows too;
  *   allowUnit {id, measure}: a further kind of unit it may be written in;
  *   convertRows {id, measure}: the recipes' rows in that kind rewritten in the standard unit;
  *   aiUnits: the gathered conversions the shopping list lacks, asked of the AI;
@@ -65,6 +67,15 @@ async function catalogue() {
         },
     });
     const overview = await unitOverview(items);
+    // For the ingredients in a unit conflict: the recipe rows themselves, to see where and to change them.
+    const conflicted = items.filter((item) => (overview.get(item.id)?.state.odd.length ?? 0) > 0).map((item) => item.id);
+    const rows = conflicted.length
+        ? await prisma.ingredient.findMany({
+              where: { itemId: { in: conflicted } },
+              orderBy: [{ recipeId: 'asc' }, { position: 'asc' }],
+              select: { id: true, raw: true, name: true, unit: true, itemId: true, recipe: { select: { id: true, title: true, slug: true } } },
+          })
+        : [];
     return items.map((item) => ({
         id: item.id,
         de: item.de,
@@ -85,6 +96,9 @@ async function catalogue() {
         unitUses: (overview.get(item.id)?.uses ?? []).sort((a, b) => b.count - a.count),
         oddUnits: overview.get(item.id)?.state.odd ?? [],
         missingConversions: overview.get(item.id)?.missing ?? [],
+        conflictRows: rows
+            .filter((row) => row.itemId === item.id)
+            .map((row) => ({ rowId: row.id, recipeId: row.recipe.id, title: row.recipe.title, slug: row.recipe.slug, amount: row.raw, name: row.name, unit: unitKey(row.unit) })),
     }));
 }
 
@@ -149,7 +163,9 @@ const postBody = z.discriminatedUnion('action', [
     z.object({ action: z.literal('aiCheck') }),
     z.object({ action: z.literal('aiTranslate') }),
     z.object({ action: z.literal('setUnit'), id: z.number().int().positive(), unit: z.string().trim().max(40).nullable() }),
-    z.object({ action: z.literal('allowUnit'), id: z.number().int().positive(), measure: z.string().max(40).refine(isMeasure) }),
+    z.object({ action: z.literal('allowUnit'), id: z.number().int().positive(), measure: z.string().max(40).refine(isMeasure).optional(), measures: z.array(z.string().max(40).refine(isMeasure)).max(12).optional() }),
+    z.object({ action: z.literal('renameItem'), id: z.number().int().positive(), name: z.string().trim().min(1).max(120), locale: z.enum(['de', 'en']) }),
+    z.object({ action: z.literal('setRowAmount'), rowId: z.number().int().positive(), amount: z.string().trim().max(60) }),
     z.object({ action: z.literal('convertRows'), id: z.number().int().positive(), measure: z.string().max(40).refine(isMeasure) }),
     z.object({ action: z.literal('aiUnits') }),
 ]);
@@ -165,14 +181,57 @@ export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the
         if (!item) refuse(404, 'That ingredient is gone.');
         const kind = unit === null ? null : familyOf(measureOf(unit));
         await prisma.ingredientItem.update({ where: { id: body.id }, data: { unit, moreUnits: item.moreUnits.filter((other) => other !== kind) } });
-        return NextResponse.json({ ok: true });
+        // The recipes follow where that is sure: "1 kg" → "1000 g", other kinds with a known conversion (lib/ingredientUnitsDb).
+        const recipes = unit === null ? 0 : await alignRecipes([body.id], user.name);
+        return NextResponse.json(recipes > 0 ? { recipes, skipped: 0 } : { ok: true });
     }
 
     if (body.action === 'allowUnit') {
         const item = await prisma.ingredientItem.findUnique({ where: { id: body.id }, select: { moreUnits: true } });
         if (!item) refuse(404, 'That ingredient is gone.');
-        await prisma.ingredientItem.update({ where: { id: body.id }, data: { moreUnits: [...new Set([...item.moreUnits, body.measure])].slice(0, 12) } });
+        // One kind, or every kind at once ("accept both").
+        const added = [...(body.measure ? [body.measure] : []), ...(body.measures ?? [])];
+        if (added.length === 0) refuse(400, 'Allow which unit?');
+        await prisma.ingredientItem.update({ where: { id: body.id }, data: { moreUnits: [...new Set([...item.moreUnits, ...added])].slice(0, 12) } });
         return NextResponse.json({ ok: true });
+    }
+
+    if (body.action === 'renameItem') {
+        // The ingredient we have, overwritten with the name of a new one ("Nudeln" → "Pasta"): the old name stays
+        // a further name, and the recipes' rows are renamed in that language, as when two are merged.
+        const item = await prisma.ingredientItem.findUnique({ where: { id: body.id }, select: { de: true, en: true, aliases: true } });
+        if (!item) refuse(404, 'That ingredient is gone.');
+        const name = body.locale === 'de' ? germanName(body.name) : body.name;
+        const old = item[body.locale];
+        const next = { ...item, [body.locale]: name, aliases: [...new Set([...item.aliases, ...(old && old !== name ? [old] : [])])].slice(0, 60) };
+        const clash = await prisma.ingredientItem.findFirst({ where: { id: { not: body.id }, keys: { hasSome: itemKeys({ de: name, en: '', aliases: [] }) } }, select: { id: true } });
+        if (clash) refuse(409, 'Another ingredient already has that name. Merge the two instead.');
+        await prisma.ingredientItem.update({ where: { id: body.id }, data: { [body.locale]: name, aliases: next.aliases, keys: itemKeys(next) } });
+        const recipes = await rewriteRows(
+            [body.id],
+            (row, language) => {
+                if (row.itemId !== body.id || language !== body.locale) return null;
+                const shape = shapeOf(row.name);
+                if (!shape.base || shape.base.startsWith('#') || shoppingKey(shape.base) === shoppingKey(name)) return null;
+                return { name: formatShape({ ...shape, base: name }) };
+            },
+            user.name
+        );
+        return NextResponse.json({ renamed: true, recipes });
+    }
+
+    if (body.action === 'setRowAmount') {
+        // One recipe row's amount replaced by hand ("Loads of" → "1 Bund"), and its translation's beside it.
+        const row = await prisma.ingredient.findUnique({ where: { id: body.rowId }, select: { itemId: true, recipeId: true } });
+        if (!row || row.itemId === null) refuse(404, 'That recipe row is gone.');
+        const changed = await rewriteRows(
+            [row.itemId],
+            (candidate, language) => (candidate.rowId === body.rowId ? { amount: amountIn(body.amount, language) } : null),
+            user.name,
+            undefined,
+            row.recipeId
+        );
+        return NextResponse.json({ replaced: changed });
     }
 
     if (body.action === 'convertRows') return NextResponse.json(await convertRows(body.id, body.measure, user.name));

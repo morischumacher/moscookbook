@@ -104,6 +104,8 @@ export default {
         control: token('--color-control'),
         surface: token('--color-surface'),
         success: token('--color-success'),
+        warning: token('--color-warning'),
+        info: token('--color-info'),
         scrim: token('--color-scrim'),
         'on-scrim': token('--color-on-scrim'),
         accent: {

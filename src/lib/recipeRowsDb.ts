@@ -26,10 +26,11 @@ export interface RowEdit {
 }
 
 /**
- * One row's change, or null to leave it. `itemId` is the recipe row's, also
- * for the translation's row beside it; `language` the language of the text.
+ * One row's change, or null to leave it. `rowId` and `itemId` are the recipe
+ * row's, also for the translation's row beside it; `language` the language
+ * of the text.
  */
-export type RowEditor = (row: { itemId: number | null; name: string; amount: string }, language: RecipeLanguage) => RowEdit | null;
+export type RowEditor = (row: { rowId: number; itemId: number | null; name: string; amount: string }, language: RecipeLanguage) => RowEdit | null;
 
 const select = {
     id: true,
@@ -52,12 +53,14 @@ const select = {
 /**
  * Changes the rows of the recipes using any of `itemIds` — or of the one
  * recipe `only`, just imported, which keeps no version from before (there
- * was none). Returns how many recipes changed.
+ * was none), or of the one `recipe`, which does. Returns how many recipes
+ * changed.
  */
-export async function rewriteRows(itemIds: number[], edit: RowEditor, editedBy: string | null, only?: number): Promise<number> {
+export async function rewriteRows(itemIds: number[], edit: RowEditor, editedBy: string | null, only?: number, recipe?: number): Promise<number> {
     if (itemIds.length === 0) return 0;
+    const pick = only ?? recipe;
     const recipes = await prisma.recipe.findMany({
-        where: { ingredients: { some: { itemId: { in: itemIds } } }, ...(only !== undefined ? { id: only } : {}) },
+        where: { ingredients: { some: { itemId: { in: itemIds } } }, ...(pick !== undefined ? { id: pick } : {}) },
         select,
         orderBy: { id: 'asc' },
     });
@@ -66,7 +69,7 @@ export async function rewriteRows(itemIds: number[], edit: RowEditor, editedBy: 
         const language: RecipeLanguage =
             recipe.language === 'de' || recipe.language === 'en' ? recipe.language : guessLanguage([recipe.title, ...recipe.ingredients.map((row) => row.name)].join(' '));
         const rows = recipe.ingredients.map((row) => {
-            const change = edit({ itemId: row.itemId, name: row.name, amount: row.raw }, language);
+            const change = edit({ rowId: row.id, itemId: row.itemId, name: row.name, amount: row.raw }, language);
             return { ...row, name: change?.name ?? row.name, raw: change?.amount ?? row.raw };
         });
         const moved = rows.some((row, index) => row.name !== recipe.ingredients[index].name || row.raw !== recipe.ingredients[index].raw);
@@ -78,7 +81,7 @@ export async function rewriteRows(itemIds: number[], edit: RowEditor, editedBy: 
             if (items.length !== recipe.ingredients.length || (translation.locale !== 'de' && translation.locale !== 'en')) return { translation, next: stored, moved: false };
             const next = [...stored];
             items.forEach(({ row, index }, at) => {
-                const change = edit({ itemId: recipe.ingredients[at].itemId, name: row.item, amount: row.amount }, translation.locale as RecipeLanguage);
+                const change = edit({ rowId: recipe.ingredients[at].id, itemId: recipe.ingredients[at].itemId, name: row.item, amount: row.amount }, translation.locale as RecipeLanguage);
                 if (change) next[index] = { ...row, item: change.name ?? row.item, amount: change.amount ?? row.amount };
             });
             return { translation, next, moved: next.some((row, index) => row.item !== stored[index].item || row.amount !== stored[index].amount) };

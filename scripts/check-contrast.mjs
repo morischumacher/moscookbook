@@ -72,6 +72,8 @@ const RULES = [
     ['faint', 4.5, 'eyebrows and counts — small, so the text threshold applies'],
     ['danger', 4.5, 'error messages'],
     ['success', 4.5, 'confirmations'],
+    ['warning', 4.5, 'something to decide (a similar ingredient, another unit)'],
+    ['info', 4.5, 'something new (an ingredient to be added)'],
     ['accent-text', 4.5, 'links and labels in the brand colour'],
     ['accent', 3.0, 'the oyster and other shapes — a graphic, not words'],
     ['control', 3.0, 'the outline of a chip, select or field — WCAG 1.4.11'],

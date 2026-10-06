@@ -1,4 +1,5 @@
 import { toBase } from './units';
+import { formatAmount, splitAmount } from './ingredientParts';
 import { choiceFor, choiceLabel, type UnitChoice } from './unitChoice';
 import type { Units } from './shoppingParts';
 
@@ -85,11 +86,13 @@ export function factorBetween(from: string, to: string, units: Units | null): nu
     return a && b ? a / b : null;
 }
 
-const nice = (value: number) => {
+/** Rounded as a cook writes it: counted things to halves ("1½ Bund"), grams and millilitres to what reads. */
+const nice = (value: number, measure: string) => {
+    if (measure.startsWith('count:')) return Math.max(0.5, Math.round(value * 2) / 2);
     if (value >= 100) return Math.round(value / 5) * 5;
     if (value >= 10) return Math.round(value);
-    // Halves for the small ones: "1½ Bund", "2,5 EL".
-    return Math.max(0.5, Math.round(value * 2) / 2);
+    if (value >= 1) return Math.round(value * 10) / 10;
+    return Math.round(value * 100) / 100;
 };
 
 /**
@@ -105,7 +108,7 @@ export function convertQuantity(quantity: number, fromUnit: string, toUnit: stri
     if (!from || !to || !fromBase || !toBase) return null;
     const factor = factorBetween(from, to, units);
     if (factor === null) return null;
-    return nice((quantity * fromBase * factor) / toBase);
+    return nice((quantity * fromBase * factor) / toBase, to);
 }
 
 export interface UnitUse {
@@ -159,4 +162,18 @@ export function missingConversions(kinds: string[], units: Units | null, standar
     if (distinct.length <= 1) return [];
     const buy = units?.buy ?? (standard !== null ? measureOf(standard) : null) ?? distinct[0];
     return distinct.filter((kind) => kind !== buy && factorBetween(kind, buy, units ?? { buy, factors: {} }) === null);
+}
+
+/**
+ * An amount typed in one language, written in another: "1 Bund" → "1 bunch",
+ * "2 EL" → "2 tbsp" — for the translation's row beside a row changed on
+ * admin → Zutaten. A unit of its own ("Dose") is kept as typed.
+ */
+export function amountIn(amount: string, language: 'de' | 'en'): string {
+    const parts = splitAmount(amount);
+    if (parts.quantity === null) return amount.trim();
+    const key = unitKey(parts.unit);
+    if (key !== '' && choiceFor(key) === 'custom') return amount.trim();
+    const many = (parts.quantityMax ?? parts.quantity) > 1;
+    return formatAmount({ quantity: parts.quantity, quantityMax: parts.quantityMax, unit: key === '' ? null : unitLabel(key, language, many) }, 1, language);
 }

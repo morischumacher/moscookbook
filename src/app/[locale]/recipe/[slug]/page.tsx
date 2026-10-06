@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { after } from 'next/server';
 import { ensureConvention } from '@/lib/ingredientConventionDb';
 import { ensureVoice } from '@/lib/recipeVoiceDb';
+import { ensureUnitsInLine } from '@/lib/ingredientUnitsDb';
 import { failed } from '@/lib/reportServerError';
 import { cache } from 'react';
 import { notFound, redirect } from 'next/navigation';
@@ -108,6 +109,9 @@ export default async function RecipePage({
             // And the German method and tips in the du voice (lib/recipeVoiceDb).
             .then(() => ensureVoice())
             .catch((error) => failed('recipe voice', error))
+            // And every recipe in its ingredients' standard units where that is sure (lib/ingredientUnitsDb).
+            .then(() => ensureUnitsInLine())
+            .catch((error) => failed('standard units', error))
     );
     const { slug, locale } = await params;
 
