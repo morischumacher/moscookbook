@@ -272,7 +272,15 @@
     "ingredients": "Zutaten"
   },
   "RecipeForm": {
-    "hintConvMissing": "Trag die Umrechnung ein – oder lass die KI entscheiden.",
+    "usAmount": "In Cups/oz: {amount}",
+    "hintConvertMetric": "Auf {amount} umrechnen",
+    "hintNotEuropean": "{unit} ist keine europäische Einheit.",
+    "hintTheCard": "Die Karte",
+    "hintThisRow": "Diese Zeile",
+    "hintConversion": "Umrechnung",
+    "hintRenameTo": "In „{name}“ umbenennen",
+    "hintTakeShort": "Nehmen",
+    "hintConvMissing": "Fehlt noch – eintragen oder KI fragen.",
     "hintKeepUnit": "{unit} auf die Karte nehmen",
     "hintConvertTo": "Zeile in {unit} umrechnen",
     "hintConvB": "entspricht in {unit}",
@@ -293,7 +301,7 @@
     "hintConvert": "Auf {amount} umrechnen",
     "hintUnit": "{name} steht sonst in {unit}.",
     "hintKeepNew": "Neue Zutat anlegen",
-    "hintAlike": "Ähnliche Zutat im Verzeichnis – welche ist es?",
+    "hintAlike": "Ähnlich im Verzeichnis – ist es eine davon?",
     "hintNewExplain": "Wird beim Speichern als neue Zutat angelegt.",
     "hintNew": "Neue Zutat",
     "newRecipe": "Neues Rezept",
@@ -1650,6 +1658,11 @@
     "failed": "Das hat nicht geklappt. Versuch es bitte noch einmal."
   },
   "Ingredients": {
+    "newName": "Neue Zutat",
+    "createNamed": "„{name}“ als neue Zutat anlegen",
+    "newIngredient": "+ Neue Zutat",
+    "qRemove": "{unit} entfernen (Rezepte in {main} umrechnen)",
+    "pendingUnit": "{unit} – noch nicht auf der Karte",
     "fewer": "Weniger zeigen",
     "moreRows": "+ {count} weitere",
     "translatedDone": "Fehlende Übersetzungen ergänzt.",

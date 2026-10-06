@@ -1,6 +1,6 @@
 import { shoppingKey } from './shopping';
 import { NOISE } from './ingredientNames';
-import { shapeOf } from './ingredientShape';
+import { formatShape, shapeOf } from './ingredientShape';
 import { distance } from './ingredientDoubles';
 
 /**
@@ -63,6 +63,17 @@ export function matchIn<T extends MatchableItem>(name: string, items: T[]): T | 
     return found;
 }
 
+/**
+ * Words many ingredients share and that say nothing about which one it is:
+ * "turmeric powder" is not like "onion powder" because both are powders.
+ */
+const GENERIC = new Set([
+    'powder', 'pulver', 'sauce', 'soße', 'sosse', 'paste', 'oil', 'öl', 'oel', 'flakes', 'flocken', 'seeds', 'samen', 'juice', 'saft',
+    'vinegar', 'essig', 'stock', 'brühe', 'broth', 'leaves', 'blätter', 'fresh', 'frisch', 'dried', 'getrocknet', 'ground', 'gemahlen',
+    'whole', 'ganz', 'white', 'weiß', 'weiss', 'black', 'schwarz', 'red', 'rot', 'rote', 'green', 'grün', 'grüne', 'sweet', 'süß',
+    'light', 'dark', 'hell', 'dunkel', 'extra', 'virgin',
+]);
+
 const plain = (name: string) => name.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, ' ').replace(/\s+/g, ' ').trim();
 
 /**
@@ -75,7 +86,7 @@ const plain = (name: string) => name.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu,
 export function similarIn<T extends MatchableItem>(name: string, items: T[], limit = 3): T[] {
     const core = plain(coreName(name));
     if (core.length < 3) return [];
-    const words = new Set(core.split(/[\s-]+/).filter((word) => word.length >= 4));
+    const words = new Set(core.split(/[\s-]+/).filter((word) => word.length >= 4 && !GENERIC.has(word)));
     const scored: { item: T; score: number }[] = [];
     for (const item of items) {
         let best = 0;
@@ -84,10 +95,29 @@ export function similarIn<T extends MatchableItem>(name: string, items: T[], lim
             const shorter = Math.min(other.length, core.length);
             if (shorter >= 4 && distance(other, core, 2) <= (shorter >= 9 ? 2 : 1)) best = Math.max(best, 3);
             // A whole word of one inside the other: "Pasta" in "Vollkornpasta", "Tomaten" in "Kirschtomaten".
-            else if (shorter >= 4 && (other.includes(core) || core.includes(other))) best = Math.max(best, 2);
+            else if (shorter >= 4 && !GENERIC.has(shorter === core.length ? core : other) && (other.includes(core) || core.includes(other))) best = Math.max(best, 2);
             else if ([...words].some((word) => other.split(/[\s-]+/).includes(word))) best = Math.max(best, 1);
         }
         if (best > 0) scored.push({ item, score: best });
     }
     return scored.sort((a, b) => b.score - a.score).slice(0, limit).map((entry) => entry.item);
+}
+
+/**
+ * The row beside an edited one, in the recipe's other language, given the
+ * list's name for the ingredient the edited row now is: "Frühlingszwiebeln,
+ * gehackt" chosen above makes the English row "spring onions, chopped" —
+ * its own preparation and notes kept. Rows are paired by their place among
+ * the rows that are filled in, as a translation is made from them.
+ */
+export function syncedRows<T extends { item: string }>(rows: T[], sourceRows: { item: string }[], index: number, name: string): T[] {
+    if (!name.trim() || !sourceRows[index]?.item.trim() || sourceRows[index].item.trim().startsWith('#')) return rows;
+    const place = sourceRows.slice(0, index).filter((row) => row.item.trim()).length;
+    const target = rows.map((row, at) => ({ row, at })).filter(({ row }) => row.item.trim())[place];
+    if (!target || target.row.item.trim().startsWith('#')) return rows;
+    const shape = shapeOf(target.row.item);
+    if (shoppingKey(shape.base) === shoppingKey(name)) return rows;
+    const next = [...rows];
+    next[target.at] = { ...target.row, item: formatShape({ ...shape, base: name }) };
+    return next;
 }

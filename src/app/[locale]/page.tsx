@@ -5,6 +5,7 @@ import { ensureConvention } from '@/lib/ingredientConventionDb';
 import { ensureVoice } from '@/lib/recipeVoiceDb';
 import { ensureUnitsInLine } from '@/lib/ingredientUnitsDb';
 import { ensureCatalogTidy } from '@/lib/ingredientDecideDb';
+import { ensureDescriptionsTidy } from '@/lib/descriptionTidyDb';
 import { failed } from '@/lib/reportServerError';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { visibleTo } from '@/lib/recipeVisibility';
@@ -161,6 +162,9 @@ export default async function HomePage({
             // And, once a day, unused leftovers out of the ingredient list (lib/ingredientDecideDb).
             .then(() => ensureCatalogTidy())
             .catch((error) => failed('ingredient tidy-up', error))
+            // And imported descriptions that were a whole social caption, tidied (lib/descriptionTidyDb).
+            .then(() => ensureDescriptionsTidy())
+            .catch((error) => failed('description tidy-up', error))
     );
     const t = await getTranslations('Home');
     const locale = await getLocale();

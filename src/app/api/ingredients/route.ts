@@ -48,6 +48,7 @@ import { conversionText, familyOf, isEuropean, measureOf, perUnit, unitForFamily
  *   aiRow {question}: one amber row of the recipe form, answered by the AI (applied by the form);
  *   aiCheck: the AI looks for doubles the rules miss (they become questions) and fills missing names;
  *   aiTranslate: the missing other-language names filled by an AI, at once;
+ *   create {de, en}: a new card by hand;
  *   linkAll: every recipe row not yet pointed at an ingredient, pointed;
  *   deleteUnused: every unused ingredient that is not the starting stock.
  */
@@ -183,6 +184,7 @@ const postBody = z.discriminatedUnion('action', [
             z.object({ kind: z.literal('unit'), name: z.string().max(200), main: unit, unit, amount: z.string().max(60) }),
         ]),
     }),
+    z.object({ action: z.literal('create'), de: name, en: name }),
     z.object({ action: z.literal('linkAll') }),
     z.object({ action: z.literal('deleteUnused') }),
     z.object({ action: z.literal('aiCheck') }),
@@ -229,6 +231,16 @@ export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the
             const answer = await aiRow(body.question);
             if (!answer) refuse(501, 'The AI is switched off or has no key.');
             return NextResponse.json(answer);
+        }
+        case 'create': {
+            // A card made by hand (admin → Zutaten "+ Neue Zutat"): kept even before a recipe uses it.
+            const de = germanName(body.de);
+            if (!de && !body.en) refuse(400, 'An ingredient needs a name.');
+            const keys = itemKeys({ de, en: body.en, aliases: [] });
+            const clash = await prisma.ingredientItem.findFirst({ where: { keys: { hasSome: keys } }, select: { id: true } });
+            if (clash) refuse(409, 'That ingredient is already in the list.');
+            const created = await prisma.ingredientItem.create({ data: { de, en: body.en, keys, handEdited: true }, select: { id: true } });
+            return NextResponse.json(created);
         }
         case 'linkAll':
             return NextResponse.json(await linkAllUnlinked(2000));

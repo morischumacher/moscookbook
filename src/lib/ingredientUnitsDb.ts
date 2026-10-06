@@ -251,7 +251,7 @@ export async function alignTranslationNames(editedBy: string | null): Promise<nu
 }
 
 const ALIGNED = 'ingredients.unitsInLine';
-const ALIGNED_VERSION = '3';
+const ALIGNED_VERSION = '4';
 let aligned = false;
 
 /** Once after a deploy: every existing recipe in its ingredients' main units, and its translation in the list's names. Cheap after the first time. */

@@ -21,6 +21,7 @@ import LabelPicker from './LabelPicker';
 import DietPicker from './DietPicker';
 import { CATEGORY_PRESETS, CUISINE_PRESETS } from '@/lib/recipeLabels';
 import { KNOWN_TAGS } from '@/lib/tags';
+import { syncedRows } from '@/lib/ingredientMatch';
 
 export interface RecipeFormValues {
     id?: number;
@@ -573,7 +574,13 @@ export default function RecipeForm({
                     onError={(message) => (message ? failWith(message) : setError(''))}
                 />
 
-                <IngredientEditor ingredients={ingredients} onChange={setIngredients} language={language} />
+                <IngredientEditor
+                    ingredients={ingredients}
+                    onChange={setIngredients}
+                    language={language}
+                    // A row matched to the list: its translation's row takes the list's name in that language.
+                    onKnown={(index, names) => setTranslation((current) => (current ? { ...current, ingredients: syncedRows(current.ingredients, ingredients, index, names[current.locale]) } : current))}
+                />
 
                 <div>
                     <div className="mb-2 flex items-baseline justify-between gap-4">
@@ -654,6 +661,7 @@ export default function RecipeForm({
                         setTranslation(next);
                     }}
                     available={aiEnabled}
+                    onKnown={(index, names, rows) => setIngredients((current) => syncedRows(current, rows, index, names[language]))}
                 />
 
                 <div className="flex flex-wrap items-center gap-4">

@@ -46,7 +46,8 @@ export function choiceFor(unit: string): UnitChoice {
 
 /** "200 g" → 200 and g; "1 kleine Dose" → 1 and "kleine Dose"; "etwas" → nothing and "etwas". */
 export function splitForEditor(amount: string): AmountFields {
-    const text = amount.trim();
+    // "7 bis 8", "2 to 3": a range, as the stored amount reads it — not a unit called "bis 8".
+    const text = amount.trim().replace(/^((?:ca\.|circa|etwa|about|~)?\s*[\d½¼¾⅓⅔⅛⅜⅝⅞]+(?:[.,/]\d+)?)\s+(?:bis|to)\s+(?=[\d½¼¾⅓⅔])/i, '$1-');
     const match = QUANTITY.exec(text);
     const quantity = match ? match[1].trim() : '';
     const rest = match ? match[2].trim() : text;

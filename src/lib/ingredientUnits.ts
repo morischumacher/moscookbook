@@ -159,11 +159,16 @@ export interface UnitState {
  */
 export function unitState(item: { unit: string | null; moreUnits: string[] }, uses: UnitUse[], units: Units | null = null): UnitState {
     const used = uses.filter((use) => use.count > 0);
-    const usual = [...used].sort((a, b) => b.count - a.count)[0];
-    const main = item.unit ?? (usual ? usual.unit : null);
+    // A main unit is always one a European kitchen writes: the most used of those, else the metric
+    // unit of the most used one ("cups" → ml, "oz" → g).
+    const sorted = [...used].sort((a, b) => b.count - a.count);
+    const european = sorted.find((use) => isEuropean(use.unit) || use.unit === '');
+    const fallback = sorted[0] ? familyOf(measureOf(sorted[0].unit)) : null;
+    const usual = european?.unit ?? (fallback ? unitForFamily(fallback === 'volume' ? 'volume' : fallback) : null);
+    const main = item.unit !== null && (isEuropean(item.unit) || item.unit === '') ? item.unit : usual;
     if (main === null) return { unit: null, chosen: false, odd: [] };
     const families = [...new Set(used.map((use) => familyOf(measureOf(use.unit))).filter((kind): kind is string => kind !== null))];
-    return { unit: main, chosen: item.unit !== null, odd: families.filter((family) => !listedFits(family, main, item.moreUnits, units)) };
+    return { unit: main, chosen: item.unit !== null && main === item.unit, odd: families.filter((family) => !listedFits(family, main, item.moreUnits, units)) };
 }
 
 /** Whether a family of unit is on the card: the main unit's own, or listed with a conversion to it. */
@@ -178,6 +183,8 @@ function listedFits(family: string, main: string, moreUnits: string[], units: Un
 
 /** Whether a row's unit is fine for this card (green in the recipe form). */
 export function unitFits(item: { unit: string | null; moreUnits: string[]; units: Units | null }, written: string): boolean {
+    // "cups", "oz": never fine, whatever the card says — they are converted.
+    if (written.trim() && !isEuropean(unitKey(written))) return false;
     if (item.unit === null) return true;
     const family = familyOf(measureOf(written));
     return family === null || listedFits(family, item.unit, item.moreUnits, item.units);

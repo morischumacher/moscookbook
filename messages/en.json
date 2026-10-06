@@ -272,7 +272,15 @@
     "ingredients": "Ingredients"
   },
   "RecipeForm": {
-    "hintConvMissing": "Enter the conversion – or let the AI decide.",
+    "usAmount": "In cups/oz: {amount}",
+    "hintConvertMetric": "Convert to {amount}",
+    "hintNotEuropean": "{unit} is not a European unit.",
+    "hintTheCard": "The card",
+    "hintThisRow": "This row",
+    "hintConversion": "Conversion",
+    "hintRenameTo": "Rename to “{name}”",
+    "hintTakeShort": "Use",
+    "hintConvMissing": "Still missing – enter it or ask the AI.",
     "hintKeepUnit": "Add {unit} to the card",
     "hintConvertTo": "Convert the row to {unit}",
     "hintConvB": "equals in {unit}",
@@ -293,7 +301,7 @@
     "hintConvert": "Convert to {amount}",
     "hintUnit": "{name} is usually in {unit}.",
     "hintKeepNew": "Add as new ingredient",
-    "hintAlike": "A similar ingredient is in the list – which is it?",
+    "hintAlike": "Similar in the list – is it one of these?",
     "hintNewExplain": "Saving adds it as a new ingredient.",
     "hintNew": "New ingredient",
     "newRecipe": "New recipe",
@@ -1650,6 +1658,11 @@
     "failed": "That did not work. Please try again."
   },
   "Ingredients": {
+    "newName": "New ingredient",
+    "createNamed": "Add “{name}” as a new ingredient",
+    "newIngredient": "+ New ingredient",
+    "qRemove": "Remove {unit} (convert the recipes to {main})",
+    "pendingUnit": "{unit} – not on the card yet",
     "fewer": "Show fewer",
     "moreRows": "+ {count} more",
     "translatedDone": "Missing translations filled in.",

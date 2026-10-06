@@ -1,7 +1,7 @@
 /** An ingredient's standard unit, conflicts, conversions without AI, and how the form finds a name */
 import { suite, check, equal } from './harness';
 import { amountIn, conversionText, convertQuantity, factorBetween, isEuropean, rebased, storedFactor, unitFits, measureOf, missingConversions, unitKey, unitLabel, unitState } from '../src/lib/ingredientUnits';
-import { matchIn, similarIn, itemKeys } from '../src/lib/ingredientMatch';
+import { matchIn, similarIn, itemKeys, syncedRows } from '../src/lib/ingredientMatch';
 import { converted, unitsOf } from '../src/lib/shoppingParts';
 import { withGlossary } from '../src/lib/recipeTranslation';
 
@@ -41,6 +41,8 @@ export default function ingredientUnitsTests() {
     equal('chosen g, a recipe in pieces: that kind is odd', unitState({ unit: 'g', moreUnits: [] }, [{ unit: 'g', count: 3 }, { unit: '', count: 1 }]).odd, ['count:']);
     equal('on the card without a conversion: still a question', unitState({ unit: 'g', moreUnits: ['count:'] }, [{ unit: 'g', count: 3 }, { unit: '', count: 1 }]).odd, ['count:']);
     equal('on the card with its conversion: fine', unitState({ unit: 'g', moreUnits: ['count:'] }, [{ unit: 'g', count: 3 }, { unit: '', count: 1 }], { buy: 'mass', factors: { 'count:': 150 } }).odd, []);
+    equal('a main unit is never cups: the metric one instead', unitState({ unit: null, moreUnits: [] }, [{ unit: 'cups', count: 3 }]).unit, 'ml');
+    check('cups never fit, whatever the card', !unitFits({ unit: 'ml', moreUnits: [], units: null }, 'cups'));
     check('TL fits a card in EL (green)', unitFits({ unit: 'tbsp', moreUnits: [], units: null }, 'TL'));
     check('Stück does not fit a card in g', !unitFits({ unit: 'g', moreUnits: [], units: null }, ''));
     check('cups are not European', !isEuropean('cups'));
@@ -68,6 +70,12 @@ export default function ingredientUnitsTests() {
     equal("the list's name, the model's preparation", translated.ingredients[0].item, 'spring onions, finely sliced');
     equal('what the list does not know stays the model\'s', translated.ingredients[1].item, 'salt');
 
+    suite('ingredient match: the other language follows');
+    const english = [{ amount: '', item: '## Sauce' }, { amount: '2', item: 'scallions, chopped' }, { amount: '1 tsp', item: 'salt' }];
+    const german = [{ amount: '', item: '## Soße' }, { amount: '2', item: 'Lauchzwiebeln, gehackt' }, { amount: '1 TL', item: 'Salz' }, { amount: '', item: '' }];
+    equal("the row beside gets the list's name, its own preparation kept", syncedRows(english, german, 1, 'spring onions')[1].item, 'spring onions, chopped');
+    equal('a heading is never renamed', syncedRows(english, german, 0, 'x')[0].item, '## Sauce');
+
     suite('ingredient match: the form finds names');
     const catalog = [item(1, 'Pasta', 'pasta', ['Nudeln']), item(2, 'Frühlingszwiebeln', 'spring onions'), item(3, 'Tomaten', 'tomatoes')];
     equal('a known name', matchIn('Pasta', catalog)?.id, 1);
@@ -76,4 +84,6 @@ export default function ingredientUnitsTests() {
     check('new, but alike: a word more', similarIn('Vollkornpasta', catalog).some((entry) => entry.id === 1));
     check('new, but alike: a typo', similarIn('Frühlingzwiebeln', catalog).some((entry) => entry.id === 2));
     equal('nothing alike', similarIn('Safran', catalog), []);
+    const powders = [item(10, 'Chilipulver', 'chili powder'), item(11, 'Backpulver', 'baking powder'), item(12, 'Kurkuma', 'turmeric')];
+    equal('a shared "powder" is no likeness', similarIn('turmeric powder', powders).map((entry) => entry.id), [12]);
 }
