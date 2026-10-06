@@ -8,6 +8,7 @@ import { messageFrom } from '@/lib/apiMessage';
 import { useCopy } from '@/components/ui/useCopy';
 import { sharePayload } from '@/lib/sharePayload';
 import { buttonPrimarySmall } from '@/lib/ui';
+import ShareIcon from '@/components/ui/ShareIcon';
 import {
     planFor,
     stageOf,
@@ -258,7 +259,8 @@ export default function ShareDialog({
                         />
 
                         <div className="flex flex-wrap items-center gap-3">
-                            <button type="button" onClick={() => void handOver()} className={buttonPrimarySmall}>
+                            <button type="button" onClick={() => void handOver()} className={`${buttonPrimarySmall} inline-flex items-center gap-1.5`}>
+                                <ShareIcon />
                                 {t('share')}
                             </button>
                             <button

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import ErrorsPanel from './ErrorsPanel';
 import TicketsPanel from './TicketsPanel';
@@ -37,6 +38,27 @@ export default function Reports({
     const tAdmin = useTranslations('Admin');
     const [side, setSide] = useState<Side>(toConfirm > 0 ? 'work' : openTickets > 0 ? 'tickets' : 'errors');
 
+    /*
+     * The badges follow the lists (work #54). Counted once by the page, they
+     * kept saying "3" after the three were confirmed, until a reload: every
+     * list now reports what still needs you whenever it loads, after every
+     * confirm, send back, share or delete. The admin menu's badge is counted
+     * by the layout, so a change asks the server for it again.
+     */
+    const router = useRouter();
+    const [counts, setCounts] = useState<Record<Side, number>>({ errors: openErrors, tickets: openTickets, work: toConfirm });
+    const known = useRef(counts);
+    // Stable, so a panel's loading does not start over at every render.
+    const [onErrors, onTickets, onWork] = useMemo(() => {
+        const report = (which: Side) => (count: number) => {
+            if (known.current[which] === count) return;
+            known.current = { ...known.current, [which]: count };
+            setCounts(known.current);
+            router.refresh();
+        };
+        return [report('errors'), report('tickets'), report('work')];
+    }, [router]);
+
     const tab = (value: Side, label: string, count: number) => {
         const here = side === value;
 
@@ -69,9 +91,9 @@ export default function Reports({
             <PageHeader title={t('title')} />
 
             <div className="mb-8 -mt-2 flex gap-6 border-b border-line">
-                {tab('errors', t('errors'), openErrors)}
-                {tab('tickets', t('tickets'), openTickets)}
-                {tab('work', tWork('tab'), toConfirm)}
+                {tab('errors', t('errors'), counts.errors)}
+                {tab('tickets', t('tickets'), counts.tickets)}
+                {tab('work', tWork('tab'), counts.work)}
             </div>
 
             {/*
@@ -81,13 +103,13 @@ export default function Reports({
                 a list that has not changed.
             */}
             <div hidden={side !== 'errors'}>
-                <ErrorsPanel onShowWork={() => setSide('work')} />
+                <ErrorsPanel onShowWork={() => setSide('work')} onCount={onErrors} />
             </div>
             <div hidden={side !== 'tickets'}>
-                <TicketsPanel onShowWork={() => setSide('work')} />
+                <TicketsPanel onShowWork={() => setSide('work')} onCount={onTickets} />
             </div>
             {/* Only mounted when opened: it is the list least often looked at. */}
-            {side === 'work' && <WorkPanel />}
+            {side === 'work' && <WorkPanel onCount={onWork} />}
         </main>
     );
 }

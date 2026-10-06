@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import ShareDialog from './ShareDialog';
+import ShareIcon from '@/components/ui/ShareIcon';
 import { useCopy } from '@/components/ui/useCopy';
 import { sharePayload } from '@/lib/sharePayload';
 import type { ShareKind } from '@/lib/shareStage';
@@ -42,6 +43,7 @@ export default function ShareButton({
     mayChange,
     label,
     className,
+    icon = true,
 }: {
     id: number;
     kind: ShareKind;
@@ -56,6 +58,8 @@ export default function ShareButton({
     mayChange: boolean;
     label?: string;
     className?: string;
+    /** The share symbol before the word; off where the button is about who can see, not about sending. */
+    icon?: boolean;
 }) {
     const t = useTranslations('Share');
     const [open, setOpen] = useState(false);
@@ -79,8 +83,9 @@ export default function ShareButton({
             <button
                 type="button"
                 onClick={() => (mayChange ? setOpen(true) : void justShare())}
-                className={className}
+                className={icon ? `inline-flex items-center gap-1.5 ${className ?? ''}` : className}
             >
+                {icon && <ShareIcon />}
                 {copied === 'own' ? t('copied') : (label ?? t('share'))}
             </button>
 

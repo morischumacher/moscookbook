@@ -45,7 +45,7 @@ interface Lists {
  * shows as a failure — "nothing is failing" must never be said when the
  * truth is "could not ask".
  */
-export default function ErrorsPanel({ onShowWork }: { onShowWork?: () => void }) {
+export default function ErrorsPanel({ onShowWork, onCount }: { onShowWork?: () => void; /** How many need you, whenever that changes (the tab's badge). */ onCount?: (count: number) => void }) {
     const t = useTranslations('Errors');
     const tList = useTranslations('ReportList');
     // The site's language, not the browser's.
@@ -68,14 +68,16 @@ export default function ErrorsPanel({ onShowWork }: { onShowWork?: () => void })
         try {
             const res = await fetch('/api/errors', { cache: 'no-store' });
             if (!res.ok) throw new Error(t('loadFailed'));
-            setLists(await res.json());
+            const next: Lists = await res.json();
+            setLists(next);
+            onCount?.(next.todo.length);
         } catch (err) {
             setLists({ todo: [], done: [], withAi: 0 });
             setError(err instanceof Error ? err.message : t('loadFailed'));
         } finally {
             setLoading(false);
         }
-    }, [t]);
+    }, [t, onCount]);
 
     useEffect(() => {
         void load();

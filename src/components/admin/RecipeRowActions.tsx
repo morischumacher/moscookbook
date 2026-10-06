@@ -67,6 +67,7 @@ export default function RecipeRowActions({
                 ownUrl={url}
                 mayChange
                 label={t('visibility')}
+                icon={false}
                 className="underline underline-offset-4 hover:text-muted"
             />
         </span>
