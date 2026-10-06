@@ -1650,6 +1650,8 @@
     "failed": "Das hat nicht geklappt. Versuch es bitte noch einmal."
   },
   "Ingredients": {
+    "fewer": "Weniger zeigen",
+    "moreRows": "+ {count} weitere",
     "translatedDone": "Fehlende Übersetzungen ergänzt.",
     "deletedUnused": "{count, plural, one {# Zutat gelöscht.} other {# Zutaten gelöscht.}}",
     "deleteUnusedQuestion": "{count, plural, one {# ungenutzte Zutat löschen?} other {# ungenutzte Zutaten löschen?}}",
