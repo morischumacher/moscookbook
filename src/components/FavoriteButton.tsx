@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import styles from './FavoriteButton.module.css';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { messageFrom } from '@/lib/apiMessage';
+import { useRouter } from '@/i18n/routing';
 
 interface FavoriteButtonProps {
     recipeId: number;
@@ -19,6 +20,7 @@ export default function FavoriteButton({ recipeId, initialFavorited, disabled = 
     const [isFavorited, setIsFavorited] = useState(initialFavorited);
     const [isLoading, setIsLoading] = useState(false);
     const [ask, dialog] = useConfirm();
+    const router = useRouter();
 
     const toggleFavorite = async () => {
         if (disabled || isLoading) return;
@@ -33,6 +35,8 @@ export default function FavoriteButton({ recipeId, initialFavorited, disabled = 
         try {
             const res = await fetch(`/api/recipes/${recipeId}/favorite`, { method });
 
+            // The pages the browser kept (the list behind a recipe) are dropped, as after a rating (work #51).
+            if (res.ok) router.refresh();
             if (!res.ok) {
                 // Revert
                 setIsFavorited(previousState);

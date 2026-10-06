@@ -112,3 +112,28 @@ jobs:
           SECRET_COOKIE_PASSWORD: ci-placeholder-secret-at-least-32-characters
           NEXT_PUBLIC_SITE_URL: https://example.com
         run: npm run build
+
+      # The pages at an iPhone's size, with touch, as a visitor, a member and
+      # the admin: nothing wider than the screen, nothing too small to tap,
+      # the list's menu inside what is visible (scripts/mobile-check.mjs).
+      # The pictures of every page are kept with the run, to look at.
+      - name: Phone check
+        env:
+          POSTGRES_PRISMA_URL: postgresql://postgres:postgres@localhost:5432/migrations
+          POSTGRES_URL_NON_POOLING: postgresql://postgres:postgres@localhost:5432/migrations
+          SECRET_COOKIE_PASSWORD: ci-placeholder-secret-at-least-32-characters
+          BASE: http://localhost:3000
+        run: |
+          npx ts-node --transpile-only --project tests/tsconfig.json scripts/mobile-seed.ts
+          npx playwright install --with-deps chromium
+          (npm start -- -p 3000 > server.log 2>&1 &)
+          for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:3000/de/login && break; sleep 1; done
+          node scripts/mobile-check.mjs || (tail -40 server.log; exit 1)
+
+      - name: Phone pictures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-shots
+          path: mobile-shots/
+          if-no-files-found: ignore

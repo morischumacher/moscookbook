@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/routing';
 import Oyster from './brand/Oyster';
 import styles from './Rating.module.css';
 
@@ -55,6 +56,7 @@ export default function Rating({
     useEffect(() => {
         if (focusOnShow) first.current?.focus();
     }, [focusOnShow]);
+    const router = useRouter();
     const t = useTranslations('Rating');
     // "4,5" on a German page, not "4.5".
     const oneDecimal = new Intl.NumberFormat(useLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -92,6 +94,9 @@ export default function Rating({
                 average: data.average ?? 0,
                 totalRatings: data.totalRatings ?? 0,
             });
+            // The list behind this page was kept by the browser as it was: back
+            // on it, the card showed no rating (work #51). Its copy is dropped.
+            router.refresh();
         } catch {
             setError(t('error'));
         } finally {

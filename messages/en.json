@@ -1206,8 +1206,6 @@
     "addPlaceholder": "e.g. 500 g flour",
     "add": "Add",
     "empty": "The list is empty.",
-    "emptyHint": "Add a recipe or a whole collection on its page, or something by hand below.",
-    "toRecipes": "To the recipes",
     "allDone": "Everything is in the trolley.",
     "clearAll": "Empty the list",
     "clearAllQuestion": "Empty the whole shopping list?",
@@ -1316,7 +1314,9 @@
     "simplify": "Combine units",
     "severalUnits": "On the list in more than one unit: {names}.",
     "simplified": "{count, plural, =0 {Nothing to combine.} one {One line combined.} other {# lines combined.}}",
-    "simplifyOpen": "Could not convert: {names}. An admin can set the conversion under Ingredients."
+    "simplifyOpen": "Could not convert: {names}. An admin can set the conversion under Ingredients.",
+    "addRecipeToList": "+ Add a recipe",
+    "listOptions": "Share, rename and more …"
   },
   "Tags": {
     "vegetarian": "Vegetarian",

@@ -143,6 +143,8 @@ const FACET_NEUTRAL = new Set([
     'src/app/api/recipes/[id]/visibility/route.ts',
     'scripts/reindex-search.ts',
     'scripts/restore.mjs',
+    // Seeds an empty CI database for the phone check: no cache exists yet.
+    'scripts/mobile-seed.ts',
 ]);
 
 const FACET_WRITES = /prisma\.recipe\.(create|update|updateMany|upsert|createMany|delete|deleteMany)\s*\(/;

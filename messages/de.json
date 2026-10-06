@@ -1206,8 +1206,6 @@
     "addPlaceholder": "z. B. 500 g Mehl",
     "add": "Hinzufügen",
     "empty": "Die Liste ist leer.",
-    "emptyHint": "Füge ein Rezept oder eine ganze Sammlung auf ihrer Seite hinzu, oder unten etwas von Hand.",
-    "toRecipes": "Zu den Rezepten",
     "allDone": "Alles ist im Wagen.",
     "clearAll": "Liste leeren",
     "clearAllQuestion": "Die ganze Einkaufsliste leeren?",
@@ -1316,7 +1314,9 @@
     "simplify": "Einheiten zusammenfassen",
     "severalUnits": "In mehreren Einheiten auf der Liste: {names}.",
     "simplified": "{count, plural, =0 {Nichts zusammenzufassen.} one {Eine Zeile zusammengefasst.} other {# Zeilen zusammengefasst.}}",
-    "simplifyOpen": "Nicht umrechenbar: {names}. Die Umrechnung kann ein Admin unter Zutaten festlegen."
+    "simplifyOpen": "Nicht umrechenbar: {names}. Die Umrechnung kann ein Admin unter Zutaten festlegen.",
+    "addRecipeToList": "+ Rezept hinzufügen",
+    "listOptions": "Teilen, umbenennen und mehr …"
   },
   "Tags": {
     "vegetarian": "Vegetarisch",

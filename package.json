@@ -38,7 +38,8 @@
     "test": "ts-node --transpile-only --project tests/tsconfig.json tests/run.ts",
     "backup": "node scripts/backup.mjs",
     "sweep": "node scripts/sweep-blobs.mjs",
-    "restore": "node scripts/restore.mjs"
+    "restore": "node scripts/restore.mjs",
+    "check:mobile": "node scripts/mobile-check.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -69,6 +70,7 @@
     "autoprefixer": "^10.4.24",
     "eslint": "^9",
     "eslint-config-next": "^16.3.5",
+    "playwright": "^1.56.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
     "ts-node": "^10.9.2",

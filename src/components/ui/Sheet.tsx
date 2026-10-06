@@ -28,8 +28,11 @@ export default function Sheet({ title, onClose, children }: { title: string; onC
     }, []);
 
     return (
+        // To the bottom of what is visible (dvh), not of the layout viewport:
+        // on an iPhone Safari's toolbar floats over that, and covered the
+        // sheet's last rows (work #52).
         <div
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-scrim/40 sm:items-center sm:p-4"
+            className="fixed inset-x-0 top-0 z-[200] flex h-[100dvh] items-end justify-center bg-scrim/40 sm:items-center sm:p-4"
             onPointerDown={(event) => {
                 if (!card.current?.contains(event.target as Node)) onClose();
             }}
@@ -40,7 +43,7 @@ export default function Sheet({ title, onClose, children }: { title: string; onC
                 aria-modal="true"
                 aria-label={title}
                 tabIndex={-1}
-                className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-line bg-page p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl outline-none sm:rounded-2xl"
+                className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-line bg-page p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl outline-none sm:rounded-2xl"
             >
                 <div className="mb-3 flex items-center justify-between gap-3">
                     <h2 className="text-base font-bold">{title}</h2>

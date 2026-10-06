@@ -156,7 +156,7 @@ export function useConfirm(): [(request: ConfirmRequest) => Promise<boolean>, Re
             // Above every sheet, dialog and lightbox: a question is always
             // about something already open, and asked under it, it was not
             // seen at all ("Rezept entfernen" from the list's recipes sheet).
-            className="fixed inset-0 z-[400] flex items-center justify-center bg-scrim/40 p-6"
+            className="fixed inset-x-0 top-0 z-[400] flex h-[100dvh] items-center justify-center bg-scrim/40 p-6"
             // A tap outside is a cancel, which is what people expect of a
             // sheet on a phone. Keyboard users have Escape; this is not the
             // only way out, so it needs no role of its own.

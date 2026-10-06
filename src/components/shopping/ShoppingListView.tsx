@@ -519,11 +519,18 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                         <BusyLabel busy={adding}>{t('add')}</BusyLabel>
                     </button>
                 </form>
-            ) : (
-                <button type="button" onClick={() => setAdderOpen(true)} className="min-h-11 text-sm font-medium underline underline-offset-4">
-                    {t('addSomething')}
-                </button>
-            )}
+            ) : items.length > 0 ? (
+                <span className="flex flex-wrap gap-x-5">
+                    <button type="button" onClick={() => setAdderOpen(true)} className="min-h-11 text-sm font-medium underline underline-offset-4">
+                        {t('addSomething')}
+                    </button>
+                    {mode.kind === 'account' && (
+                        <button type="button" onClick={() => setSheet('recipes')} className="min-h-11 text-sm font-medium underline underline-offset-4">
+                            {t('addRecipeToList')}
+                        </button>
+                    )}
+                </span>
+            ) : null}
         </div>
     );
 
@@ -560,6 +567,10 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                 {note}
             </p>
 
+            {/* With nothing on the list there is nothing to search, and a lone "…"
+                at the right edge looked lost on a phone (work #53): the empty
+                list says what to do instead, the menu among it. */}
+            {items.length > 0 && (
             <div className="flex items-center gap-2">
                 {items.length > 0 && (
                     <>
@@ -588,6 +599,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                     </button>
                 )}
             </div>
+            )}
 
             {together && items.length > 0 && (
                 <div role="group" aria-label={t('filterLabel')} className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
@@ -609,15 +621,24 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
             )}
 
             {items.length === 0 ? (
-                <div className="py-12 text-center text-muted">
+                <div className="py-10 text-center text-muted">
                     <p>{t('empty')}</p>
-                    {mode.kind !== 'shared' && (
-                        <p className="mt-2 text-sm">
-                            {t('emptyHint')}{' '}
-                            <Link href="/" className="underline underline-offset-4">
-                                {t('toRecipes')}
-                            </Link>
-                        </p>
+                    {mode.kind === 'account' && (
+                        <div className="mt-5 flex flex-col items-center gap-3">
+                            <span className="flex flex-wrap justify-center gap-2">
+                                <button type="button" onClick={() => setSheet('recipes')} className={buttonSecondary}>
+                                    {t('addRecipeToList')}
+                                </button>
+                                {canEdit && (
+                                    <button type="button" onClick={() => setAdderOpen(true)} className={buttonSecondary}>
+                                        {t('addSomething')}
+                                    </button>
+                                )}
+                            </span>
+                            <button type="button" onClick={() => setSheet('menu')} aria-haspopup="dialog" className="min-h-11 text-sm underline underline-offset-4 hover:text-ink">
+                                {t('listOptions')}
+                            </button>
+                        </div>
                     )}
                 </div>
             ) : (
