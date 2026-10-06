@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { conventionalRows } from '@/lib/ingredientShape';
-import { linkRecipe } from '@/lib/ingredientCatalog';
+import { linkRecipe, glossaryFor } from '@/lib/ingredientCatalog';
 import { applyStandardUnits } from '@/lib/ingredientUnitsDb';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
@@ -130,6 +130,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         const result = await processCapture(capture, ai, {
             force: parsed.data.action === 'askAi',
             onModel: usage.report,
+            glossary: glossaryFor,
             onLearn: learning.report,
             ...siteLearning(ai),
         });

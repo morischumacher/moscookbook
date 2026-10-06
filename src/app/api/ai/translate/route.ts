@@ -4,8 +4,7 @@ import { clientKey, rateLimitShared } from '@/lib/rateLimitShared';
 import { canUseAi, completeWithKey, extractJson } from '@/lib/aiImport';
 import { aiCapability } from '@/lib/aiConfig';
 import { otherLanguage, translateRecipe, translateRequestSchema } from '@/lib/recipeTranslation';
-import { coreName, matchItem } from '@/lib/ingredientCatalog';
-import prisma from '@/lib/prisma';
+import { glossaryFor } from '@/lib/ingredientCatalog';
 import { usageRecorder } from '@/lib/tokenUsageDb';
 
 /**
@@ -46,14 +45,7 @@ export async function POST(req: NextRequest) {
     // other language: the translation uses them, so "Frühlingszwiebeln" is
     // "spring onions" here as in every other recipe (lib/ingredientCatalog).
     const to = otherLanguage(from);
-    const glossary: Record<string, string> = {};
-    for (const row of recipe.ingredients) {
-        const name = coreName(row.item);
-        if (!name || name.startsWith('#') || glossary[name]) continue;
-        const id = await matchItem(name).catch(() => null);
-        const item = id ? await prisma.ingredientItem.findUnique({ where: { id }, select: { de: true, en: true } }) : null;
-        if (item?.[to]) glossary[name] = item[to];
-    }
+    const glossary = await glossaryFor(recipe.ingredients, to);
 
     const usage = usageRecorder('translate');
     const outcome = await translateRecipe(

@@ -1152,6 +1152,10 @@ model IngredientItem {
   /// Further kinds of unit it may be written in ("mass", "count:" …), so a
   /// row in one is no conflict.
   moreUnits   String[]     @default([])
+  /// Last seen in a recipe or on a shopping list (the daily tidy-up, lib/ingredientDecideDb).
+  lastUsedAt  DateTime?
+  /// Changed by the admin by hand: never tidied away.
+  handEdited  Boolean      @default(false)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   ingredients Ingredient[]

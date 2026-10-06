@@ -23,7 +23,7 @@ import { NOISE } from './ingredientNames';
 export interface DoubleCandidate {
     a: number;
     b: number;
-    reason: 'sameName' | 'contained' | 'typo';
+    reason: 'sameName' | 'contained' | 'typo' | 'ai';
 }
 
 interface Named {

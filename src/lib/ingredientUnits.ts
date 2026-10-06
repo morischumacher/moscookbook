@@ -74,6 +74,21 @@ export function plainFactor(from: string, to: string): number | null {
     return null;
 }
 
+/**
+ * The same knowledge measured against another buy unit — the card's main
+ * unit: what converts to it stays, what does not is left out.
+ */
+export function rebased(units: Units, buy: string): Units {
+    if (units.buy === buy) return units;
+    const factors: Record<string, number> = {};
+    for (const measure of new Set([units.buy, ...Object.keys(units.factors)])) {
+        if (measure === buy) continue;
+        const factor = factorBetween(measure, buy, units);
+        if (factor) factors[measure] = Math.round(factor * 1e6) / 1e6;
+    }
+    return { buy, factors };
+}
+
 /** How much of `to` one of `from` is for this ingredient — its own factors, else plain arithmetic. */
 export function factorBetween(from: string, to: string, units: Units | null): number | null {
     const plain = plainFactor(from, to);
@@ -118,38 +133,106 @@ export interface UnitUse {
 }
 
 export interface UnitState {
-    /** The standard unit: set by the admin, else the one every row is written in; null when undecided. */
+    /** The main unit: set by the admin, else the one most rows are written in; null with no rows and none set. */
     unit: string | null;
     /** Whether it was set by the admin (rather than read off the recipes). */
     chosen: boolean;
-    /** The families of unit (familyOf) the rows use that are neither the standard's nor allowed: what is to decide. */
+    /**
+     * The families of unit (familyOf) its rows use that the card does not
+     * list with a conversion — each one question "a new unit?" on admin →
+     * Zutaten: convert those recipes, or take the unit onto the card.
+     */
     odd: string[];
 }
 
 /**
- * Where an ingredient stands with its units: its standard one, and the rows
- * in a kind that is neither that one nor allowed. Undecided (no standard) is
- * only a conflict when the rows use two kinds.
+ * Where an ingredient stands with its units — the card (admin → Zutaten):
+ *
+ *     Frühlingszwiebeln
+ *       Einheiten: Bund (main unit)
+ *                  Stück   7 Stück = 1 Bund
+ *                  g       100 g = 1 Bund
+ *
+ * The main unit is the one set, else the most used. A row in the main
+ * unit's family is fine (kg beside g, TL beside EL); a row in a family the
+ * card lists with a known conversion is fine; any other is a question.
  */
-export function unitState(item: { unit: string | null; moreUnits: string[] }, uses: UnitUse[]): UnitState {
+export function unitState(item: { unit: string | null; moreUnits: string[] }, uses: UnitUse[], units: Units | null = null): UnitState {
     const used = uses.filter((use) => use.count > 0);
-    const kinds = [...new Set(used.map((use) => familyOf(measureOf(use.unit))).filter((kind): kind is string => kind !== null))];
-    if (item.unit !== null) {
-        const allowed = new Set([familyOf(measureOf(item.unit)), ...item.moreUnits]);
-        return { unit: item.unit, chosen: true, odd: kinds.filter((kind) => !allowed.has(kind)) };
-    }
-    if (kinds.length <= 1) {
-        const usual = [...used].sort((a, b) => b.count - a.count)[0];
-        return { unit: usual ? usual.unit : null, chosen: false, odd: [] };
-    }
-    const allowed = new Set(item.moreUnits);
-    const open = kinds.filter((kind) => !allowed.has(kind));
-    // Every kind but one allowed: the one left over is the standard.
-    if (open.length <= 1) {
-        const usual = [...used].filter((use) => open.length === 0 || familyOf(measureOf(use.unit)) === open[0]).sort((a, b) => b.count - a.count)[0];
-        return { unit: usual ? usual.unit : null, chosen: false, odd: [] };
-    }
-    return { unit: null, chosen: false, odd: open };
+    const usual = [...used].sort((a, b) => b.count - a.count)[0];
+    const main = item.unit ?? (usual ? usual.unit : null);
+    if (main === null) return { unit: null, chosen: false, odd: [] };
+    const families = [...new Set(used.map((use) => familyOf(measureOf(use.unit))).filter((kind): kind is string => kind !== null))];
+    return { unit: main, chosen: item.unit !== null, odd: families.filter((family) => !listedFits(family, main, item.moreUnits, units)) };
+}
+
+/** Whether a family of unit is on the card: the main unit's own, or listed with a conversion to it. */
+function listedFits(family: string, main: string, moreUnits: string[], units: Units | null): boolean {
+    const mainMeasure = measureOf(main);
+    if (!mainMeasure) return true;
+    if (family === familyOf(mainMeasure)) return true;
+    // Millilitres and spoons are one family: a conversion for either will do.
+    const measures = family === 'volume' ? ['volume', 'spoon'] : [family];
+    return moreUnits.includes(family) && measures.some((measure) => factorBetween(measure, mainMeasure, units) !== null);
+}
+
+/** Whether a row's unit is fine for this card (green in the recipe form). */
+export function unitFits(item: { unit: string | null; moreUnits: string[]; units: Units | null }, written: string): boolean {
+    if (item.unit === null) return true;
+    const family = familyOf(measureOf(written));
+    return family === null || listedFits(family, item.unit, item.moreUnits, item.units);
+}
+
+/** The unit a family is written in when nothing else says: g, ml, EL, Stück, or the family's own word. */
+export function unitForFamily(family: string): string {
+    if (family === 'mass') return 'g';
+    if (family === 'volume') return 'ml';
+    if (family === 'spoon') return 'tbsp';
+    if (family === 'count:') return '';
+    const word = family.slice('count:'.length);
+    return unitKey(word);
+}
+
+/** A unit a European kitchen writes ("g", "EL", "Bund", "Dose") — not "cups" or "oz", which are always converted. */
+export function isEuropean(unit: string): boolean {
+    const measure = measureOf(unit);
+    if (measure === null) return false;
+    return choiceFor(unit) !== 'custom' || measure.startsWith('count:');
+}
+
+const tidyNumber = (value: number) => (value >= 10 ? Math.round(value) : Math.round(value * 100) / 100);
+
+/**
+ * A conversion as the card writes it, the smaller side a whole one: "7 Stück
+ * = 1 Bund", "1 EL = 14 g". `factor` is how much of the main unit one of
+ * `unit` is (in the units themselves, not their base).
+ */
+export function conversionText(unit: string, main: string, factor: number, locale: 'de' | 'en'): { a: number; b: number; text: string } {
+    const [a, b] = factor >= 1 ? [1, tidyNumber(factor)] : [tidyNumber(1 / factor), 1];
+    return { a, b, text: `${a} ${unitLabel(unit, locale, a > 1)} = ${b} ${unitLabel(main, locale, b > 1)}` };
+}
+
+/** How much of `main` one of `unit` is, in the units themselves ("1 Bund" per "1 Stück": 0.14); null when unknown. */
+export function perUnit(unit: string, main: string, units: Units | null): number | null {
+    const from = measureOf(unit);
+    const to = measureOf(main);
+    const fromBase = baseOf(unit);
+    const toBase = baseOf(main);
+    if (!from || !to || !fromBase || !toBase) return null;
+    const factor = factorBetween(from, to, units);
+    return factor === null ? null : (fromBase * factor) / toBase;
+}
+
+/**
+ * The factor to store for "a `unit` = b `main`", against the main unit's
+ * measure (lib/shoppingParts Units): grams per gram, bunches per piece.
+ */
+export function storedFactor(unit: string, a: number, main: string, b: number): { measure: string; factor: number } | null {
+    const measure = measureOf(unit);
+    const fromBase = baseOf(unit);
+    const toBase = baseOf(main);
+    if (!measure || !fromBase || !toBase || !(a > 0) || !(b > 0)) return null;
+    return { measure, factor: Math.round(((b * toBase) / (a * fromBase)) * 1e6) / 1e6 };
 }
 
 /**

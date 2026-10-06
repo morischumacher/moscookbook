@@ -573,7 +573,7 @@ export default function RecipeForm({
                     onError={(message) => (message ? failWith(message) : setError(''))}
                 />
 
-                <IngredientEditor ingredients={ingredients} onChange={setIngredients} />
+                <IngredientEditor ingredients={ingredients} onChange={setIngredients} language={language} />
 
                 <div>
                     <div className="mb-2 flex items-baseline justify-between gap-4">

@@ -7,7 +7,7 @@ import AdminNav from '@/components/admin/AdminNav';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { titled } from '@/lib/metaTitle';
-import { ingredientTodo } from '@/lib/ingredientUnitsDb';
+import { ingredientTodo } from '@/lib/ingredientDecideDb';
 
 /** "Verwaltung — mo'scookbook" for every admin page that does not name itself. */
 export const generateMetadata = titled('Navigation', 'admin', false);
@@ -51,10 +51,10 @@ export default async function AdminLayout({
         needsYouCount('error'),
         needsYouCount('ticket'),
         prisma.workItem.count({ where: { doneAt: { not: null }, closedAt: null, dismissedAt: null } }).catch(() => 0),
-        // Unit conflicts to decide, and the gathered conversions once it is time for the AI (lib/ingredientUnitsDb).
-        ingredientTodo().catch(() => ({ conflicts: 0, conversions: 0, due: false })),
+        // The questions waiting on admin → Zutaten: the same ingredient? a new unit? (lib/ingredientDecideDb).
+        ingredientTodo().catch(() => 0),
     ]);
-    const ingredientCount = ingredients.conflicts + (ingredients.due ? ingredients.conversions : 0);
+    const ingredientCount = ingredients;
     const unresolvedReports = errorCount + ticketCount + toConfirm;
 
     // The admin's tools are a navigation of their own, rendered once here

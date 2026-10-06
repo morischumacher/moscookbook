@@ -30,7 +30,7 @@ export interface RowEdit {
  * row's, also for the translation's row beside it; `language` the language
  * of the text.
  */
-export type RowEditor = (row: { rowId: number; itemId: number | null; name: string; amount: string }, language: RecipeLanguage) => RowEdit | null;
+export type RowEditor = (row: { rowId: number; itemId: number | null; name: string; amount: string }, language: RecipeLanguage, side: 'recipe' | 'translation') => RowEdit | null;
 
 const select = {
     id: true,
@@ -69,7 +69,7 @@ export async function rewriteRows(itemIds: number[], edit: RowEditor, editedBy: 
         const language: RecipeLanguage =
             recipe.language === 'de' || recipe.language === 'en' ? recipe.language : guessLanguage([recipe.title, ...recipe.ingredients.map((row) => row.name)].join(' '));
         const rows = recipe.ingredients.map((row) => {
-            const change = edit({ rowId: row.id, itemId: row.itemId, name: row.name, amount: row.raw }, language);
+            const change = edit({ rowId: row.id, itemId: row.itemId, name: row.name, amount: row.raw }, language, 'recipe');
             return { ...row, name: change?.name ?? row.name, raw: change?.amount ?? row.raw };
         });
         const moved = rows.some((row, index) => row.name !== recipe.ingredients[index].name || row.raw !== recipe.ingredients[index].raw);
@@ -81,7 +81,7 @@ export async function rewriteRows(itemIds: number[], edit: RowEditor, editedBy: 
             if (items.length !== recipe.ingredients.length || (translation.locale !== 'de' && translation.locale !== 'en')) return { translation, next: stored, moved: false };
             const next = [...stored];
             items.forEach(({ row, index }, at) => {
-                const change = edit({ rowId: recipe.ingredients[at].id, itemId: recipe.ingredients[at].itemId, name: row.item, amount: row.amount }, translation.locale as RecipeLanguage);
+                const change = edit({ rowId: recipe.ingredients[at].id, itemId: recipe.ingredients[at].itemId, name: row.item, amount: row.amount }, translation.locale as RecipeLanguage, 'translation');
                 if (change) next[index] = { ...row, item: change.name ?? row.item, amount: change.amount ?? row.amount };
             });
             return { translation, next, moved: next.some((row, index) => row.item !== stored[index].item || row.amount !== stored[index].amount) };

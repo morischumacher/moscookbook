@@ -16,7 +16,7 @@
  * below, from an AI asked once by the admin, or from admin → Zutaten.
  */
 
-import { measureOf, plainFactor } from './ingredientUnits';
+import { measureOf, plainFactor, rebased } from './ingredientUnits';
 
 export interface Part {
     /** The recipe, or null for a line typed by hand. */
@@ -144,19 +144,18 @@ export function lessPart(parts: Part[], source: string | null, amount: number | 
 
 /**
  * The units an ingredient is bought in: its own, else the defaults for a
- * common one, else its standard unit's kind (lib/ingredientUnits), else none.
+ * common one — always against its card's main unit when it has one (admin →
+ * Zutaten, lib/ingredientUnits): the list buys what the card says.
  */
 export function unitsOf(item: { buyMeasure: string | null; factors: unknown; unit?: string | null }, commonId: string | null): Units | null {
     const fallback = commonId ? DEFAULT_UNITS[commonId] : undefined;
     const own = item.factors && typeof item.factors === 'object' && !Array.isArray(item.factors) ? (item.factors as Record<string, unknown>) : {};
     const factors = Object.fromEntries(Object.entries(own).filter((entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0 && Number.isFinite(entry[1])));
-    if (item.buyMeasure) {
-        // Its own buy unit; the defaults only fill in when they are for the same one.
-        return { buy: item.buyMeasure, factors: fallback && fallback.buy === item.buyMeasure ? { ...fallback.factors, ...factors } : factors };
-    }
-    if (fallback) return fallback;
-    const standard = item.unit !== undefined && item.unit !== null ? measureOf(item.unit) : null;
-    return standard ? { buy: standard, factors } : null;
+    // Its own buy unit; the defaults only fill in when they are for the same one.
+    const known = item.buyMeasure ? { buy: item.buyMeasure, factors: fallback && fallback.buy === item.buyMeasure ? { ...fallback.factors, ...factors } : factors } : (fallback ?? null);
+    const main = item.unit !== undefined && item.unit !== null ? measureOf(item.unit) : null;
+    if (!main) return known;
+    return known ? rebased(known, main) : { buy: main, factors };
 }
 
 /** A shopping measure the list knows: "mass", "volume", "spoon", or "count:" and a unit word. */

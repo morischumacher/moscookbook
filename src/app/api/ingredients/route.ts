@@ -3,113 +3,127 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { refuse, route } from '@/lib/route';
 import { itemKeys, linkAllUnlinked } from '@/lib/ingredientCatalog';
-import { findDoubles, pairKey } from '@/lib/ingredientDoubles';
 import { aiCapability } from '@/lib/aiConfig';
 import { canUseAi, completeWithKey, extractJson } from '@/lib/aiImport';
 import { usageRecorder } from '@/lib/tokenUsageDb';
-import { commonIngredient, germanName } from '@/lib/ingredientNames';
-import { isMeasure, unitsOf } from '@/lib/shoppingParts';
+import { germanName } from '@/lib/ingredientNames';
 import { aisleOf, CHOOSABLE_AISLES, isAisle, shoppingKey } from '@/lib/shopping';
 import { formatShape, shapeOf } from '@/lib/ingredientShape';
 import { rewriteRows } from '@/lib/recipeRowsDb';
-import { alignRecipes, DUE_COUNT, learnPending, unitOverview } from '@/lib/ingredientUnitsDb';
-import { amountIn, convertQuantity, familyOf, measureOf, unitKey, unitLabel } from '@/lib/ingredientUnits';
-import { splitAmount, formatAmount } from '@/lib/ingredientParts';
+import { itemSelect, unitOverview } from '@/lib/ingredientUnitsDb';
+import {
+    addAiDoubles,
+    aiResolve,
+    aiRow,
+    deleteUnused,
+    isStock,
+    markDifferent,
+    merge,
+    openQuestions,
+    removeUnit,
+    resolveUnit,
+    saveUnits,
+    setMainUnit,
+    setRowAmount,
+} from '@/lib/ingredientDecideDb';
+import { conversionText, familyOf, isEuropean, measureOf, perUnit, unitForFamily, unitKey } from '@/lib/ingredientUnits';
 
 /**
- * The ingredient catalogue for admin → Zutaten (lib/ingredientCatalog).
+ * The ingredient list for admin → Zutaten (lib/ingredientCatalog): one card
+ * per ingredient — a German and an English name, each with further names,
+ * and its units (a main one, and further ones with their conversion) — and
+ * the questions to decide (lib/ingredientDecideDb).
  *
- * GET: every ingredient with how many recipe rows use it, the probable
- *   doubles found by rules (lib/ingredientDoubles), and whether an AI can help.
- * PATCH {id, de, en, aliases}: names corrected; what it is found by follows.
+ * GET: every card with how many recipe rows use it, the open questions, and whether an AI can help.
+ * PATCH {id, de, en, aliases, aisle?}: names (and aisle) corrected; what it is found by follows.
  * DELETE ?id=: an ingredient no recipe uses any more.
  * POST {action}:
- *   merge {into, from}: several into one — rows, shopping lines and names move
- *     over, and the recipes' rows are renamed to the one kept (not the method);
- *   setUnit {id, unit}: its standard unit ('g', 'bunch', '' for pieces; null: read off the recipes),
- *     the recipes following where that is sure;
- *   renameItem {id, name, locale}: renamed (the old name kept as a further one), the recipes' rows too;
- *   allowUnit {id, measure}: a further kind of unit it may be written in;
- *   convertRows {id, measure}: the recipes' rows in that kind rewritten in the standard unit;
- *   aiUnits: the gathered conversions the shopping list lacks, asked of the AI;
- *   notDouble {a, b}: a proposed pair is two things, and is not proposed again;
+ *   merge {into, from} / notDouble {a, b} / sameAgain {a, b}: "the same ingredient?" answered (or asked again);
+ *   resolveUnit {id, unit, a, b, choice}: "a new unit?" answered — convert the recipes, or keep the unit;
+ *   removeUnit {id, family}: a unit taken off a card (the undo of keeping it);
+ *   saveUnits {id, main, rows}: the card's units as written; setMain {id, unit}: another main unit;
+ *   setRowAmount {rowId, amount}: one recipe row's amount by hand (also in its translation);
+ *   renameItem {id, name, locale}: renamed (the old name a further one), the recipes' rows too;
+ *   aiResolve {double?, unit?}: questions decided by the AI — all, or one;
+ *   aiRow {question}: one amber row of the recipe form, answered by the AI (applied by the form);
+ *   aiCheck: the AI looks for doubles the rules miss (they become questions) and fills missing names;
+ *   aiTranslate: the missing other-language names filled by an AI, at once;
  *   linkAll: every recipe row not yet pointed at an ingredient, pointed;
- *   aiCheck: an AI's proposals — doubles and missing names — to confirm one by one;
- *   aiTranslate: the missing other-language names filled by an AI, at once.
+ *   deleteUnused: every unused ingredient that is not the starting stock.
  */
-
-const NOT_DOUBLES = 'ingredients.notDoubles';
-
-async function notDoubles(): Promise<Set<string>> {
-    const row = await prisma.appSetting.findUnique({ where: { key: NOT_DOUBLES }, select: { value: true } }).catch(() => null);
-    try {
-        return new Set(JSON.parse(row?.value ?? '[]') as string[]);
-    } catch {
-        return new Set();
-    }
-}
 
 async function catalogue() {
     const items = await prisma.ingredientItem.findMany({
         orderBy: [{ de: 'asc' }, { en: 'asc' }],
-        select: {
-            id: true,
-            de: true,
-            en: true,
-            aliases: true,
-            buyMeasure: true,
-            factors: true,
-            aisle: true,
-            unit: true,
-            moreUnits: true,
-            createdAt: true,
-            _count: { select: { ingredients: true } },
-        },
+        select: { ...itemSelect, aliases: true, aisle: true, _count: { select: { ingredients: true, shopping: true } } },
     });
     const overview = await unitOverview(items);
-    // For the ingredients in a unit conflict: the recipe rows themselves, to see where and to change them.
-    const conflicted = items.filter((item) => (overview.get(item.id)?.state.odd.length ?? 0) > 0).map((item) => item.id);
-    const rows = conflicted.length
+    return items.map((item) => {
+        const entry = overview.get(item.id);
+        const main = entry?.state.unit ?? null;
+        // The card's further units, each with its conversion to the main one ("7 Stück = 1 Bund").
+        const further = main === null ? [] : item.moreUnits.filter((family) => family !== familyOf(measureOf(main)));
+        return {
+            id: item.id,
+            de: item.de,
+            en: item.en,
+            aliases: item.aliases,
+            uses: item._count.ingredients,
+            onLists: item._count.shopping,
+            stock: isStock(item),
+            createdAt: item.createdAt.toISOString(),
+            aisle: isAisle(item.aisle) ? item.aisle : null,
+            ruleAisle: aisleOf(item.de || item.en),
+            main,
+            mainChosen: entry?.state.chosen ?? false,
+            units: further.map((family) => {
+                const used = entry?.uses.filter((use) => familyOf(measureOf(use.unit)) === family).sort((a, b) => b.count - a.count)[0];
+                const unit = used?.unit ?? unitForFamily(family);
+                const factor = main === null ? null : perUnit(unit, main, entry?.units ?? null);
+                return { family, unit, ...(factor ? conversionText(unit, main!, factor, 'de') : { a: null, b: null, text: null }) };
+            }),
+            unitUses: (entry?.uses ?? []).sort((a, b) => b.count - a.count),
+        };
+    });
+}
+
+/** The open questions, with what each card needs to show them: the rows of a unit question, a proposal for its conversion. */
+async function questions(items: Awaited<ReturnType<typeof catalogue>>) {
+    const open = await openQuestions();
+    const byId = new Map(items.map((item) => [item.id, item]));
+    const unitItems = [...new Set(open.units.map((question) => question.itemId))];
+    const rows = unitItems.length
         ? await prisma.ingredient.findMany({
-              where: { itemId: { in: conflicted } },
+              where: { itemId: { in: unitItems } },
               orderBy: [{ recipeId: 'asc' }, { position: 'asc' }],
-              select: { id: true, raw: true, name: true, unit: true, itemId: true, recipe: { select: { id: true, title: true, slug: true } } },
+              select: { id: true, raw: true, name: true, unit: true, itemId: true, recipe: { select: { title: true, slug: true } } },
           })
         : [];
-    return items.map((item) => ({
-        id: item.id,
-        de: item.de,
-        en: item.en,
-        aliases: item.aliases,
-        uses: item._count.ingredients,
-        // What the shopping list converts with (lib/shoppingParts): its own, or the defaults for a common one.
-        units: unitsOf(item, commonIngredient(item.de)?.id ?? commonIngredient(item.en)?.id ?? null),
-        ownUnits: item.buyMeasure !== null,
-        createdAt: item.createdAt.toISOString(),
-        // Set by hand, or null; and where the rules would put it, to show beside "automatic".
-        aisle: isAisle(item.aisle) ? item.aisle : null,
-        ruleAisle: aisleOf(item.de || item.en),
-        // Its standard unit, the units its rows use, the kinds in conflict and those still to convert (lib/ingredientUnits).
-        unit: overview.get(item.id)?.state.unit ?? null,
-        unitChosen: overview.get(item.id)?.state.chosen ?? false,
-        moreUnits: item.moreUnits,
-        unitUses: (overview.get(item.id)?.uses ?? []).sort((a, b) => b.count - a.count),
-        oddUnits: overview.get(item.id)?.state.odd ?? [],
-        missingConversions: overview.get(item.id)?.missing ?? [],
-        conflictRows: rows
-            .filter((row) => row.itemId === item.id)
-            .map((row) => ({ rowId: row.id, recipeId: row.recipe.id, title: row.recipe.title, slug: row.recipe.slug, amount: row.raw, name: row.name, unit: unitKey(row.unit) })),
-    }));
+    const overview = await unitOverview(
+        await prisma.ingredientItem.findMany({ where: { id: { in: unitItems } }, select: itemSelect })
+    );
+    return {
+        doubles: open.doubles.filter((pair) => byId.has(pair.a) && byId.has(pair.b)),
+        units: open.units.map((question) => {
+            const main = byId.get(question.itemId)?.main ?? '';
+            const factor = perUnit(question.unit, main, overview.get(question.itemId)?.units ?? null);
+            return {
+                ...question,
+                main,
+                // Kept on the card only if a European kitchen writes it so; "cups" are always converted.
+                keepable: isEuropean(question.unit),
+                proposal: factor ? conversionText(question.unit, main, factor, 'de') : null,
+                rows: rows
+                    .filter((row) => row.itemId === question.itemId && familyOf(measureOf(row.unit)) === question.family)
+                    .map((row) => ({ rowId: row.id, amount: row.raw, name: row.name, title: row.recipe.title, slug: row.recipe.slug })),
+            };
+        }),
+    };
 }
 
 export const GET = route({ access: 'admin', label: 'The ingredient catalogue' }, async () => {
-    const [items, skip, ai, unlinked] = await Promise.all([
-        catalogue(),
-        notDoubles(),
-        aiCapability(),
-        prisma.ingredient.count({ where: { itemId: null } }),
-    ]);
-    return NextResponse.json({ items, doubles: findDoubles(items, skip), aiAvailable: canUseAi(ai), unlinked, dueCount: DUE_COUNT });
+    const [items, ai, unlinked] = await Promise.all([catalogue(), aiCapability(), prisma.ingredient.count({ where: { itemId: null } })]);
+    return NextResponse.json({ items, questions: await questions(items), aiAvailable: canUseAi(ai), unlinked });
 });
 
 const name = z.string().trim().max(120);
@@ -118,14 +132,6 @@ const patchBody = z.object({
     de: name,
     en: name,
     aliases: z.array(name).max(30).transform((list) => [...new Set(list.filter(Boolean))]),
-    // The units it is bought in; null puts it back to the defaults. Left out: unchanged.
-    units: z
-        .object({
-            buy: z.string().max(40).refine(isMeasure),
-            factors: z.record(z.string().max(40).refine(isMeasure), z.number().positive().max(100_000)),
-        })
-        .nullable()
-        .optional(),
     // The shop aisle by hand; null puts it back to the rules. Left out: unchanged.
     aisle: z.string().refine((value) => (CHOOSABLE_AISLES as string[]).includes(value)).nullable().optional(),
 });
@@ -139,7 +145,7 @@ export const PATCH = route({ access: 'admin', body: patchBody, label: 'Correctin
             en: body.en,
             aliases: body.aliases,
             keys: itemKeys(body),
-            ...(body.units === undefined ? {} : body.units === null ? { buyMeasure: null, factors: {} } : { buyMeasure: body.units.buy, factors: body.units.factors }),
+            handEdited: true,
             ...(body.aisle === undefined ? {} : { aisle: body.aisle }),
         },
     });
@@ -156,105 +162,115 @@ export const DELETE = route({ access: 'admin', label: 'Deleting an ingredient' }
     return NextResponse.json({ ok: true });
 });
 
+const id = z.number().int().positive();
+const unit = z.string().trim().max(40);
+const amount = z.number().positive().max(100_000);
 const postBody = z.discriminatedUnion('action', [
-    z.object({ action: z.literal('merge'), into: z.number().int().positive(), from: z.array(z.number().int().positive()).min(1).max(50) }),
-    z.object({ action: z.literal('notDouble'), a: z.number().int().positive(), b: z.number().int().positive() }),
+    z.object({ action: z.literal('merge'), into: id, from: z.array(id).min(1).max(50) }),
+    z.object({ action: z.literal('notDouble'), a: id, b: id }),
+    z.object({ action: z.literal('sameAgain'), a: id, b: id }),
+    z.object({ action: z.literal('resolveUnit'), id, unit, a: amount, b: amount, choice: z.enum(['convert', 'keep']) }),
+    z.object({ action: z.literal('removeUnit'), id, family: z.string().max(40) }),
+    z.object({ action: z.literal('saveUnits'), id, main: unit, rows: z.array(z.object({ unit, a: amount, b: amount })).max(12) }),
+    z.object({ action: z.literal('setMain'), id, unit: unit.nullable() }),
+    z.object({ action: z.literal('setRowAmount'), rowId: id, amount: z.string().trim().min(1).max(60) }),
+    z.object({ action: z.literal('renameItem'), id, name: z.string().trim().min(1).max(120), locale: z.enum(['de', 'en']) }),
+    z.object({ action: z.literal('aiResolve'), double: z.tuple([id, id]).optional(), unit: z.object({ itemId: id, family: z.string().max(40) }).optional() }),
+    z.object({
+        action: z.literal('aiRow'),
+        question: z.discriminatedUnion('kind', [
+            z.object({ kind: z.literal('alike'), name: z.string().max(200), options: z.array(z.object({ id, name: z.string().max(120) })).min(1).max(5) }),
+            z.object({ kind: z.literal('unit'), name: z.string().max(200), main: unit, unit, amount: z.string().max(60) }),
+        ]),
+    }),
     z.object({ action: z.literal('linkAll') }),
+    z.object({ action: z.literal('deleteUnused') }),
     z.object({ action: z.literal('aiCheck') }),
     z.object({ action: z.literal('aiTranslate') }),
-    z.object({ action: z.literal('setUnit'), id: z.number().int().positive(), unit: z.string().trim().max(40).nullable() }),
-    z.object({ action: z.literal('allowUnit'), id: z.number().int().positive(), measure: z.string().max(40).refine(isMeasure).optional(), measures: z.array(z.string().max(40).refine(isMeasure)).max(12).optional() }),
-    z.object({ action: z.literal('renameItem'), id: z.number().int().positive(), name: z.string().trim().min(1).max(120), locale: z.enum(['de', 'en']) }),
-    z.object({ action: z.literal('setRowAmount'), rowId: z.number().int().positive(), amount: z.string().trim().max(60) }),
-    z.object({ action: z.literal('convertRows'), id: z.number().int().positive(), measure: z.string().max(40).refine(isMeasure) }),
-    z.object({ action: z.literal('aiUnits') }),
 ]);
 
 export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the ingredient catalogue' }, async ({ body, user }) => {
-    if (body.action === 'merge') return NextResponse.json(await merge(body.into, body.from.filter((id) => id !== body.into), user.name));
-
-    if (body.action === 'setUnit') {
-        const unit = body.unit === null ? null : unitKey(body.unit);
-        if (unit !== null && measureOf(unit) === null) refuse(400, 'That unit is not known.');
-        // A kind made the standard is no longer a further one.
-        const item = await prisma.ingredientItem.findUnique({ where: { id: body.id }, select: { moreUnits: true } });
-        if (!item) refuse(404, 'That ingredient is gone.');
-        const kind = unit === null ? null : familyOf(measureOf(unit));
-        await prisma.ingredientItem.update({ where: { id: body.id }, data: { unit, moreUnits: item.moreUnits.filter((other) => other !== kind) } });
-        // The recipes follow where that is sure: "1 kg" → "1000 g", other kinds with a known conversion (lib/ingredientUnitsDb).
-        const recipes = unit === null ? 0 : await alignRecipes([body.id], user.name);
-        return NextResponse.json(recipes > 0 ? { recipes, skipped: 0 } : { ok: true });
+    switch (body.action) {
+        case 'merge':
+            return NextResponse.json(await merge(body.into, body.from.filter((other) => other !== body.into), user.name));
+        case 'notDouble':
+            await markDifferent(body.a, body.b);
+            return NextResponse.json({ ok: true });
+        case 'sameAgain':
+            await markDifferent(body.a, body.b, false);
+            return NextResponse.json({ ok: true });
+        case 'resolveUnit': {
+            if (measureOf(unitKey(body.unit)) === null) refuse(400, 'That unit is not known.');
+            return NextResponse.json(await resolveUnit(body.id, unitKey(body.unit), body.a, body.b, body.choice, user.name));
+        }
+        case 'removeUnit':
+            await removeUnit(body.id, body.family);
+            return NextResponse.json({ ok: true });
+        case 'saveUnits': {
+            const main = unitKey(body.main);
+            if (measureOf(main) === null) refuse(400, 'That unit is not known.');
+            return NextResponse.json({ recipes: await saveUnits(body.id, main, body.rows.map((row) => ({ ...row, unit: unitKey(row.unit) })), user.name) });
+        }
+        case 'setMain': {
+            const main = body.unit === null ? null : unitKey(body.unit);
+            if (main !== null && measureOf(main) === null) refuse(400, 'That unit is not known.');
+            return NextResponse.json({ recipes: await setMainUnit(body.id, main, user.name) });
+        }
+        case 'setRowAmount':
+            return NextResponse.json({ replaced: await setRowAmount(body.rowId, body.amount, user.name) });
+        case 'renameItem':
+            return NextResponse.json(await renameItem(body.id, body.name, body.locale, user.name));
+        case 'aiResolve': {
+            const done = await aiResolve(body.double ? { double: body.double } : body.unit ? { unit: body.unit } : null, user.name);
+            if (!done) refuse(501, 'The AI is switched off or has no key.');
+            return NextResponse.json(done);
+        }
+        case 'aiRow': {
+            const answer = await aiRow(body.question);
+            if (!answer) refuse(501, 'The AI is switched off or has no key.');
+            return NextResponse.json(answer);
+        }
+        case 'linkAll':
+            return NextResponse.json(await linkAllUnlinked(2000));
+        case 'deleteUnused':
+            return NextResponse.json({ deleted: await deleteUnused() });
+        default:
+            return NextResponse.json(await aiNames(body.action));
     }
+});
 
-    if (body.action === 'allowUnit') {
-        const item = await prisma.ingredientItem.findUnique({ where: { id: body.id }, select: { moreUnits: true } });
-        if (!item) refuse(404, 'That ingredient is gone.');
-        // One kind, or every kind at once ("accept both").
-        const added = [...(body.measure ? [body.measure] : []), ...(body.measures ?? [])];
-        if (added.length === 0) refuse(400, 'Allow which unit?');
-        await prisma.ingredientItem.update({ where: { id: body.id }, data: { moreUnits: [...new Set([...item.moreUnits, ...added])].slice(0, 12) } });
-        return NextResponse.json({ ok: true });
-    }
+/**
+ * The ingredient we have, overwritten with a new name ("Nudeln" → "Pasta"):
+ * the old name stays a further name, and the recipes' rows are renamed in
+ * that language, as when two are merged.
+ */
+async function renameItem(itemId: number, wanted: string, locale: 'de' | 'en', editedBy: string) {
+    const item = await prisma.ingredientItem.findUnique({ where: { id: itemId }, select: { de: true, en: true, aliases: true } });
+    if (!item) refuse(404, 'That ingredient is gone.');
+    const next = locale === 'de' ? germanName(wanted) : wanted;
+    const old = item[locale];
+    const renamed = { ...item, [locale]: next, aliases: [...new Set([...item.aliases, ...(old && old !== next ? [old] : [])])].filter((alias) => alias !== next).slice(0, 60) };
+    const clash = await prisma.ingredientItem.findFirst({ where: { id: { not: itemId }, keys: { hasSome: itemKeys({ de: next, en: '', aliases: [] }) } }, select: { id: true } });
+    if (clash) refuse(409, 'Another ingredient already has that name. Merge the two instead.');
+    await prisma.ingredientItem.update({ where: { id: itemId }, data: { [locale]: next, aliases: renamed.aliases, keys: itemKeys(renamed), handEdited: true } });
+    const recipes = await rewriteRows(
+        [itemId],
+        (row, language) => {
+            if (row.itemId !== itemId || language !== locale) return null;
+            const shape = shapeOf(row.name);
+            if (!shape.base || shape.base.startsWith('#') || shoppingKey(shape.base) === shoppingKey(next)) return null;
+            return { name: formatShape({ ...shape, base: next }) };
+        },
+        editedBy
+    );
+    return { renamed: true, recipes };
+}
 
-    if (body.action === 'renameItem') {
-        // The ingredient we have, overwritten with the name of a new one ("Nudeln" → "Pasta"): the old name stays
-        // a further name, and the recipes' rows are renamed in that language, as when two are merged.
-        const item = await prisma.ingredientItem.findUnique({ where: { id: body.id }, select: { de: true, en: true, aliases: true } });
-        if (!item) refuse(404, 'That ingredient is gone.');
-        const name = body.locale === 'de' ? germanName(body.name) : body.name;
-        const old = item[body.locale];
-        const next = { ...item, [body.locale]: name, aliases: [...new Set([...item.aliases, ...(old && old !== name ? [old] : [])])].slice(0, 60) };
-        const clash = await prisma.ingredientItem.findFirst({ where: { id: { not: body.id }, keys: { hasSome: itemKeys({ de: name, en: '', aliases: [] }) } }, select: { id: true } });
-        if (clash) refuse(409, 'Another ingredient already has that name. Merge the two instead.');
-        await prisma.ingredientItem.update({ where: { id: body.id }, data: { [body.locale]: name, aliases: next.aliases, keys: itemKeys(next) } });
-        const recipes = await rewriteRows(
-            [body.id],
-            (row, language) => {
-                if (row.itemId !== body.id || language !== body.locale) return null;
-                const shape = shapeOf(row.name);
-                if (!shape.base || shape.base.startsWith('#') || shoppingKey(shape.base) === shoppingKey(name)) return null;
-                return { name: formatShape({ ...shape, base: name }) };
-            },
-            user.name
-        );
-        return NextResponse.json({ renamed: true, recipes });
-    }
-
-    if (body.action === 'setRowAmount') {
-        // One recipe row's amount replaced by hand ("Loads of" → "1 Bund"), and its translation's beside it.
-        const row = await prisma.ingredient.findUnique({ where: { id: body.rowId }, select: { itemId: true, recipeId: true } });
-        if (!row || row.itemId === null) refuse(404, 'That recipe row is gone.');
-        const changed = await rewriteRows(
-            [row.itemId],
-            (candidate, language) => (candidate.rowId === body.rowId ? { amount: amountIn(body.amount, language) } : null),
-            user.name,
-            undefined,
-            row.recipeId
-        );
-        return NextResponse.json({ replaced: changed });
-    }
-
-    if (body.action === 'convertRows') return NextResponse.json(await convertRows(body.id, body.measure, user.name));
-
-    if (body.action === 'aiUnits') {
-        const ai = await aiCapability();
-        if (!canUseAi(ai)) refuse(501, 'The AI is switched off or has no key.');
-        return NextResponse.json(await learnPending());
-    }
-
-    if (body.action === 'notDouble') {
-        const skip = await notDoubles();
-        skip.add(pairKey(body.a, body.b));
-        const value = JSON.stringify([...skip].slice(-2000));
-        await prisma.appSetting.upsert({ where: { key: NOT_DOUBLES }, update: { value }, create: { key: NOT_DOUBLES, value } });
-        return NextResponse.json({ ok: true });
-    }
-
-    if (body.action === 'linkAll') return NextResponse.json(await linkAllUnlinked(2000));
-
+/** The AI asked about the names: doubles the rules miss (kept as questions) and missing names (filled). */
+async function aiNames(action: 'aiCheck' | 'aiTranslate') {
     const ai = await aiCapability();
     if (!canUseAi(ai)) refuse(501, 'The AI is switched off or has no key.');
-    const items = await catalogue();
+    const items = await prisma.ingredientItem.findMany({ select: { id: true, de: true, en: true, aliases: true } });
     const usage = usageRecorder('ingredients');
     const ask = async (system: string, text: string): Promise<unknown> => {
         for (const key of ai.keys) {
@@ -267,145 +283,43 @@ export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the
         return null;
     };
     const known = new Set(items.map((item) => item.id));
-    const list = items.map((item) => `${item.id}: ${item.de || '—'} | ${item.en || '—'}`).join('\n');
-
-    try {
-        if (body.action === 'aiCheck') {
-            const answer = z
-                .object({
-                    doubles: z.array(z.array(z.number())).default([]),
-                    translations: z.array(z.object({ id: z.number(), de: z.string().optional(), en: z.string().optional() })).default([]),
-                })
-                .safeParse(await ask(CHECK_PROMPT, list));
-            if (!answer.success) refuse(502, 'The AI did not answer usefully. Nothing was changed.');
-            return NextResponse.json({
-                // Only what it was shown, two or more of them: nothing is applied here.
-                doubles: answer.data.doubles.map((group) => [...new Set(group.filter((id) => known.has(id)))]).filter((group) => group.length > 1),
-                translations: answer.data.translations
-                    .filter((row) => known.has(row.id))
-                    .map((row) => ({ id: row.id, de: germanName((row.de ?? '').slice(0, 120)), en: (row.en ?? '').trim().slice(0, 120) })),
-            });
-        }
-
-        // aiTranslate: only the empty side of each, written at once.
-        const missing = items.filter((item) => !item.de || !item.en).slice(0, 150);
-        if (missing.length === 0) return NextResponse.json({ filled: 0 });
-        const answer = z
-            .object({ translations: z.array(z.object({ id: z.number(), de: z.string().optional(), en: z.string().optional() })).default([]) })
-            .safeParse(await ask(TRANSLATE_PROMPT, missing.map((item) => `${item.id}: ${item.de || '—'} | ${item.en || '—'}`).join('\n')));
-        if (!answer.success) refuse(502, 'The AI did not answer usefully. Nothing was changed.');
+    const translation = z.object({ id: z.number(), de: z.string().optional(), en: z.string().optional() });
+    const fill = async (rows: z.infer<typeof translation>[]) => {
         let filled = 0;
-        for (const row of answer.data.translations) {
-            const item = missing.find((candidate) => candidate.id === row.id);
-            if (!item) continue;
+        for (const row of rows) {
+            const item = items.find((candidate) => candidate.id === row.id);
+            if (!item || (item.de && item.en)) continue;
             const next = { ...item, de: item.de || germanName((row.de ?? '').slice(0, 120)), en: item.en || (row.en ?? '').trim().slice(0, 120) };
             if (next.de === item.de && next.en === item.en) continue;
             await prisma.ingredientItem.update({ where: { id: item.id }, data: { de: next.de, en: next.en, keys: itemKeys(next) } });
             filled += 1;
         }
-        return NextResponse.json({ filled });
+        return filled;
+    };
+    try {
+        if (action === 'aiCheck') {
+            const answer = z
+                .object({ doubles: z.array(z.array(z.number())).default([]), translations: z.array(translation).default([]) })
+                .safeParse(await ask(CHECK_PROMPT, items.map((item) => `${item.id}: ${item.de || '—'} | ${item.en || '—'}`).join('\n')));
+            if (!answer.success) refuse(502, 'The AI did not answer usefully. Nothing was changed.');
+            // Its doubles become questions ("the same ingredient?"), each pair of a group against the first.
+            const pairs = answer.data.doubles
+                .map((group) => [...new Set(group.filter((other) => known.has(other)))])
+                .filter((group) => group.length > 1)
+                .flatMap((group) => group.slice(1).map((other) => [group[0], other] as [number, number]));
+            await addAiDoubles(pairs);
+            return { doubles: pairs.length, filled: await fill(answer.data.translations) };
+        }
+        const missing = items.filter((item) => !item.de || !item.en).slice(0, 150);
+        if (missing.length === 0) return { filled: 0 };
+        const answer = z
+            .object({ translations: z.array(translation).default([]) })
+            .safeParse(await ask(TRANSLATE_PROMPT, missing.map((item) => `${item.id}: ${item.de || '—'} | ${item.en || '—'}`).join('\n')));
+        if (!answer.success) refuse(502, 'The AI did not answer usefully. Nothing was changed.');
+        return { filled: await fill(answer.data.translations) };
     } finally {
         await usage.flush();
     }
-});
-
-/**
- * Several ingredients made one: every recipe row and shopping line moves to
- * the one kept, which takes the others' names as further names (so a recipe
- * written with them later still finds it), and an empty language from them.
- */
-async function merge(into: number, from: number[], editedBy: string) {
-    if (from.length === 0) refuse(400, 'Merge which ingredients?');
-    const itemSelect = { de: true, en: true, aliases: true, buyMeasure: true, factors: true, aisle: true, unit: true, moreUnits: true } as const;
-    const kept = await prisma.ingredientItem.findUnique({ where: { id: into }, select: itemSelect });
-    const gone = await prisma.ingredientItem.findMany({ where: { id: { in: from } }, select: itemSelect });
-    if (!kept || gone.length === 0) refuse(404, 'That ingredient is gone.');
-    const de = germanName(kept.de || gone.find((item) => item.de)?.de || '');
-    const en = kept.en || gone.find((item) => item.en)?.en || '';
-
-    // The recipes' rows renamed to the one kept, in each text's language, with
-    // their form, notes and "(optional)" as they were: "Nudeln, gekocht" →
-    // "Pasta, gekocht". The method is left alone. Done before the rows move,
-    // while they can still be told apart.
-    const renamed = await rewriteRows(
-        from,
-        (row, language) => {
-            if (row.itemId === null || !from.includes(row.itemId)) return null;
-            const name = language === 'de' ? de : en;
-            const shape = shapeOf(row.name);
-            if (!name || !shape.base || shape.base.startsWith('#') || shoppingKey(shape.base) === shoppingKey(name)) return null;
-            return { name: formatShape({ ...shape, base: name }) };
-        },
-        editedBy
-    );
-
-    return prisma.$transaction(async (tx) => {
-        const aliases = [...new Set([...kept.aliases, ...gone.flatMap((item) => [item.de, item.en, ...item.aliases])].filter((alias) => alias && alias !== de && alias !== en))].slice(0, 60);
-        // What only the others knew comes along: the aisle, the units they are bought and written in.
-        const withUnits = kept.buyMeasure ? kept : (gone.find((item) => item.buyMeasure) ?? kept);
-        const factors = {
-            ...Object.assign({}, ...gone.filter((item) => item.buyMeasure === withUnits.buyMeasure).map((item) => item.factors as object)),
-            ...(withUnits.factors as object),
-        };
-        const unit = kept.unit ?? gone.find((item) => item.unit !== null)?.unit ?? null;
-        await tx.ingredient.updateMany({ where: { itemId: { in: from } }, data: { itemId: into } });
-        await tx.shoppingItem.updateMany({ where: { itemId: { in: from } }, data: { itemId: into } });
-        await tx.ingredientItem.deleteMany({ where: { id: { in: from } } });
-        await tx.ingredientItem.update({
-            where: { id: into },
-            data: {
-                de,
-                en,
-                aliases,
-                keys: itemKeys({ de, en, aliases }),
-                aisle: kept.aisle ?? gone.find((item) => item.aisle)?.aisle ?? null,
-                buyMeasure: withUnits.buyMeasure,
-                factors,
-                unit,
-                moreUnits: [...new Set([...kept.moreUnits, ...gone.flatMap((item) => item.moreUnits)])].filter((kind) => unit === null || kind !== familyOf(measureOf(unit))).slice(0, 12),
-            },
-        });
-        return { merged: gone.length, recipes: renamed };
-    });
-}
-
-/**
- * Every recipe row of an ingredient written in one kind of unit, rewritten
- * in its standard unit — "2 EL" → "30 ml", "14 Stück" → "2 Bund" — in the
- * recipe and its translation. Rows whose amount cannot be converted (no
- * number, no known way) stay as they are and are counted.
- */
-async function convertRows(id: number, measure: string, editedBy: string) {
-    const item = await prisma.ingredientItem.findUnique({ where: { id }, select: { de: true, en: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true } });
-    if (!item) refuse(404, 'That ingredient is gone.');
-    const overview = (await unitOverview([{ id, ...item }])).get(id);
-    const standard = overview?.state.unit ?? null;
-    if (standard === null) refuse(409, 'Choose its standard unit first.');
-    let skipped = 0;
-    const changed = await rewriteRows(
-        [id],
-        (row, language) => {
-            if (row.itemId !== id) return null;
-            const parts = splitAmount(row.amount);
-            if (familyOf(measureOf(parts.unit)) !== measure) return null;
-            if (parts.quantity === null) {
-                skipped += 1;
-                return null;
-            }
-            const quantity = convertQuantity(parts.quantity, parts.unit ?? '', standard, overview?.units ?? null);
-            const quantityMax = parts.quantityMax === null ? null : convertQuantity(parts.quantityMax, parts.unit ?? '', standard, overview?.units ?? null);
-            if (quantity === null) {
-                skipped += 1;
-                return null;
-            }
-            const many = (quantityMax ?? quantity) > 1;
-            const unit = standard === '' ? null : unitLabel(standard, language, many);
-            // "½ Bund", "1,5 EL" written as the recipe writes amounts.
-            return { amount: formatAmount({ quantity, quantityMax, unit }, 1, language) };
-        },
-        editedBy
-    );
-    return { recipes: changed, skipped };
 }
 
 const CHECK_PROMPT = `You tidy the ingredient list of a German/English personal cookbook.

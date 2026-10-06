@@ -4,6 +4,8 @@ import { route } from '@/lib/route';
 import { linkAllUnlinked } from '@/lib/ingredientCatalog';
 import { germanName } from '@/lib/ingredientNames';
 import { unitOverview } from '@/lib/ingredientUnitsDb';
+import { aiCapability } from '@/lib/aiConfig';
+import { canUseAi } from '@/lib/aiProviders';
 
 /**
  * The names the ingredient field suggests while typing: the cookbook's
@@ -54,5 +56,5 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
             units: entry?.units ?? null,
         };
     });
-    return NextResponse.json({ names, items: catalog }, { headers: { 'Cache-Control': 'private, max-age=60' } });
+    return NextResponse.json({ names, items: catalog, aiAvailable: canUseAi(await aiCapability()) }, { headers: { 'Cache-Control': 'private, max-age=60' } });
 });

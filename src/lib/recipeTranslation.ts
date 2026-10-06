@@ -1,8 +1,9 @@
 import { z } from 'zod';
-import { CONVENTION_RULE } from './ingredientShape';
+import { CONVENTION_RULE, formatShape, shapeOf } from './ingredientShape';
 import { GERMAN_VOICE } from './writingVoice';
 import type { AiKey } from './aiImport';
 import { scrub } from './secretBox';
+import { coreName } from './ingredientMatch';
 import { sectionHeading, toStructuredIngredients, withHeadingRows, type StructuredIngredient } from './ingredientParts';
 import type { Ingredient } from './recipe';
 
@@ -277,6 +278,27 @@ export function readTranslation(
     return result.success ? result.data : null;
 }
 
+/**
+ * The cookbook's names put in, whatever the model wrote: a row whose
+ * ingredient the list knows gets the list's name in the target language,
+ * with the model's preparation and notes after it ("Frühlingszwiebeln, fein
+ * geschnitten" → "spring onions, finely sliced") — never a word of its own.
+ */
+export function withGlossary<T extends { ingredients: Ingredient[] }>(translation: T, original: { ingredients: Ingredient[] }, glossary: Record<string, string>): T {
+    if (Object.keys(glossary).length === 0) return translation;
+    const rows = filled(original.ingredients);
+    return {
+        ...translation,
+        ingredients: translation.ingredients.map((row, index) => {
+            const source = rows[index];
+            if (!source || sectionHeading(source) !== null) return row;
+            const name = glossary[coreName(source.item)];
+            if (!name) return row;
+            return { ...row, item: formatShape({ ...shapeOf(row.item), base: name }) };
+        }),
+    };
+}
+
 export type TranslateOutcome =
     | { ok: true; translation: RecipeTranslationInput }
     | { ok: false; reason: 'no-keys' | 'unusable' | 'error'; message: string };
@@ -317,7 +339,7 @@ export async function translateRecipe(
         try {
             const answer = await call(key, translatePrompt(from, to) + glossaryRule(glossary), payload);
             const translation = readTranslation(parse(answer), original, to, source);
-            if (translation) return { ok: true, translation };
+            if (translation) return { ok: true, translation: withGlossary(translation, original, glossary) };
             failures.push('an answer that did not match the recipe');
         } catch (error) {
             failures.push(scrub(error instanceof Error ? error.message : String(error), key.apiKey));

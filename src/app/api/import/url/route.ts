@@ -9,6 +9,7 @@ import { processCapture } from '@/lib/captureProcess';
 import { siteLearning } from '@/lib/siteProfileDb';
 import { failed } from '@/lib/reportServerError';
 import { usageRecorder } from '@/lib/tokenUsageDb';
+import { glossaryFor } from '@/lib/ingredientCatalog';
 
 const importSchema = z.object({
     url: z.string().trim().min(1).max(2048),
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
         const result = await processCapture(classified, ai, {
             force: parsed.data.force === true,
             onModel: usage.report,
+            glossary: glossaryFor,
             onLearn: learning.report,
             ...siteLearning(ai),
         });

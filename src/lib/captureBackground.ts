@@ -9,6 +9,7 @@ import { toJsonObject } from './json';
 import { failed } from './reportServerError';
 import { usageRecorder } from './tokenUsageDb';
 import { syncWorkItem } from './workItemsDb';
+import { glossaryFor } from './ingredientCatalog';
 
 /**
  * Reads a capture that has just been stored, after the answer has gone.
@@ -37,6 +38,7 @@ export function readInBackground(captureId: number, classified: ClassifiedCaptur
                 ai,
                 {
                     onModel: usage.report,
+            glossary: glossaryFor,
                     onLearn: learning.report,
                     ...siteLearning(ai),
                 }

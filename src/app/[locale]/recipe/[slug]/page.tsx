@@ -3,6 +3,7 @@ import { after } from 'next/server';
 import { ensureConvention } from '@/lib/ingredientConventionDb';
 import { ensureVoice } from '@/lib/recipeVoiceDb';
 import { ensureUnitsInLine } from '@/lib/ingredientUnitsDb';
+import { ensureCatalogTidy } from '@/lib/ingredientDecideDb';
 import { failed } from '@/lib/reportServerError';
 import { cache } from 'react';
 import { notFound, redirect } from 'next/navigation';
@@ -112,6 +113,9 @@ export default async function RecipePage({
             // And every recipe in its ingredients' standard units where that is sure (lib/ingredientUnitsDb).
             .then(() => ensureUnitsInLine())
             .catch((error) => failed('standard units', error))
+            // And, once a day, unused leftovers out of the ingredient list (lib/ingredientDecideDb).
+            .then(() => ensureCatalogTidy())
+            .catch((error) => failed('ingredient tidy-up', error))
     );
     const { slug, locale } = await params;
 

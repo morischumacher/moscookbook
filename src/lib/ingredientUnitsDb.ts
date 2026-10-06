@@ -3,27 +3,23 @@ import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { commonIngredient } from './ingredientNames';
 import { isMeasure, unitsOf, type Units } from './shoppingParts';
-import { convertQuantity, familyOf, measureOf, missingConversions, unitKey, unitLabel, unitState, type UnitState, type UnitUse } from './ingredientUnits';
+import { convertQuantity, familyOf, isEuropean, measureOf, unitKey, unitLabel, unitState, type UnitState, type UnitUse } from './ingredientUnits';
 import { formatAmount, splitAmount } from './ingredientParts';
+import { toMetric } from './units';
 import { rewriteRows, type RowEditor } from './recipeRowsDb';
+import { formatShape, shapeOf } from './ingredientShape';
+import { shoppingKey } from './shopping';
 import { aiCapability } from './aiConfig';
 import { canUseAi, completeWithKey, extractJson } from './aiImport';
 import { usageRecorder } from './tokenUsageDb';
 
 /**
  * The ingredients' units as the database has them (lib/ingredientUnits for
- * the rules): which units their recipe rows use, which ingredients are in a
- * conflict, and which conversions the shopping list still lacks — gathered
- * up until the admin has the AI fill them in, with one tap on admin → Zutaten
- * ("KI-Umrechnungen berechnen"). Nothing here asks an AI by itself.
+ * the rules): which units their recipe rows use, each card's main unit and
+ * the families that are a question, the recipes brought into the main units
+ * where that is sure, and conversions learned from the AI. Nothing here asks
+ * an AI by itself.
  */
-
-/** What the AI was already asked, per ingredient: the kinds it was shown. Not asked again for the same. */
-const ASKED = 'ingredients.unitsAsked';
-
-/** When the gathered conversions are worth a tap: this many, or one waiting this long. */
-export const DUE_COUNT = 5;
-const DUE_AGE = 14 * 24 * 3600_000;
 
 /** Every ingredient's recipe rows, counted by unit (its stored form); without one recipe's, when given. */
 export async function unitUses(withoutRecipe?: number): Promise<Map<number, UnitUse[]>> {
@@ -43,66 +39,26 @@ export async function unitUses(withoutRecipe?: number): Promise<Map<number, Unit
     return new Map([...uses].map(([itemId, counts]) => [itemId, [...counts].map(([unit, count]) => ({ unit, count }))]));
 }
 
-async function asked(): Promise<Record<string, string>> {
-    const row = await prisma.appSetting.findUnique({ where: { key: ASKED }, select: { value: true } }).catch(() => null);
-    try {
-        return JSON.parse(row?.value ?? '{}') as Record<string, string>;
-    } catch {
-        return {};
-    }
-}
-
-const askedKey = (kinds: string[]) => [...kinds].sort().join(',');
-
 export interface UnitOverview {
     state: UnitState;
     uses: UnitUse[];
     units: Units | null;
-    /** Kinds the shopping list cannot yet turn into the buy unit, the AI not yet asked about. */
-    missing: string[];
 }
 
-type ItemRow = { id: number; de: string; en: string; buyMeasure: string | null; factors: unknown; unit: string | null; moreUnits: string[]; createdAt: Date };
+export const itemSelect = { id: true, de: true, en: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true } as const;
 
-/** Every ingredient's units: its standard one, its conflicts, and what is still to convert. */
+export type ItemRow = { id: number; de: string; en: string; buyMeasure: string | null; factors: unknown; unit: string | null; moreUnits: string[]; createdAt: Date };
+
+/** Every ingredient's units: its main one, the families that are a question, and how it converts. */
 export async function unitOverview(items?: ItemRow[], withoutRecipe?: number): Promise<Map<number, UnitOverview>> {
-    const [all, uses, done] = await Promise.all([
-        items ??
-            prisma.ingredientItem.findMany({ select: { id: true, de: true, en: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true } }),
-        unitUses(withoutRecipe),
-        asked(),
-    ]);
+    const [all, uses] = await Promise.all([items ?? prisma.ingredientItem.findMany({ select: itemSelect }), unitUses(withoutRecipe)]);
     const overview = new Map<number, UnitOverview>();
     for (const item of all) {
         const mine = uses.get(item.id) ?? [];
-        const state = unitState(item, mine);
         const units = unitsOf(item, commonIngredient(item.de)?.id ?? commonIngredient(item.en)?.id ?? null);
-        const kinds = [...mine.map((use) => measureOf(use.unit)), ...(state.unit !== null ? [measureOf(state.unit)] : []), ...item.moreUnits].filter(
-            (kind): kind is string => kind !== null
-        );
-        const open = missingConversions(kinds, units, state.unit);
-        overview.set(item.id, { state, uses: mine, units, missing: open.length > 0 && done[String(item.id)] === askedKey(kinds) ? [] : open });
+        overview.set(item.id, { state: unitState(item, mine, units), uses: mine, units });
     }
     return overview;
-}
-
-/** What waits for the admin on admin → Zutaten: unit conflicts, and conversions for the AI (counted only once due). */
-export async function ingredientTodo(): Promise<{ conflicts: number; conversions: number; due: boolean }> {
-    const items = await prisma.ingredientItem.findMany({ select: { id: true, de: true, en: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true } });
-    const overview = await unitOverview(items);
-    let conflicts = 0;
-    let conversions = 0;
-    let oldest = Infinity;
-    for (const item of items) {
-        const entry = overview.get(item.id);
-        if (!entry) continue;
-        if (entry.state.odd.length > 0) conflicts += 1;
-        if (entry.missing.length > 0) {
-            conversions += 1;
-            oldest = Math.min(oldest, item.createdAt.getTime());
-        }
-    }
-    return { conflicts, conversions, due: conversions >= DUE_COUNT || (conversions > 0 && Date.now() - oldest > DUE_AGE) };
 }
 
 export interface Missing {
@@ -118,8 +74,7 @@ const answerShape = z.object({
 
 /**
  * The AI asked once for all of them; what it says is kept on each
- * ingredient, and that it was asked is kept too, so an ingredient it could
- * not convert is not offered again. Returns how many it taught.
+ * ingredient. Returns how many it taught.
  */
 export async function learnConversions(missing: Missing[]): Promise<number> {
     if (missing.length === 0) return 0;
@@ -160,31 +115,10 @@ export async function learnConversions(missing: Missing[]): Promise<number> {
             });
             taught += 1;
         }
-        // Asked, whatever the answer: "cannot be converted" is an answer too.
-        const done = await asked();
-        for (const group of batch) done[String(group.itemId)] = askedKey(group.measures);
-        const value = JSON.stringify(done);
-        await prisma.appSetting.upsert({ where: { key: ASKED }, update: { value }, create: { key: ASKED, value } });
         return taught;
     } finally {
         await usage.flush();
     }
-}
-
-/** Every gathered conversion, asked of the AI at once (40 ingredients a tap). Returns how many it taught and how many are left. */
-export async function learnPending(): Promise<{ taught: number; left: number }> {
-    const items = await prisma.ingredientItem.findMany({ select: { id: true, de: true, en: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true } });
-    const overview = await unitOverview(items);
-    const pending: Missing[] = items.flatMap((item) => {
-        const entry = overview.get(item.id);
-        if (!entry || entry.missing.length === 0) return [];
-        const kinds = [...new Set([...entry.uses.map((use) => measureOf(use.unit)), ...(entry.state.unit !== null ? [measureOf(entry.state.unit)] : []), ...item.moreUnits])].filter(
-            (kind): kind is string => kind !== null
-        );
-        return [{ itemId: item.id, name: item.de || item.en, measures: kinds, units: entry.units }];
-    });
-    const taught = await learnConversions(pending);
-    return { taught, left: Math.max(0, pending.length - 40) };
 }
 
 const UNITS_PROMPT = `You help a German/English cookbook convert one ingredient's amounts from one unit into another.
@@ -223,10 +157,9 @@ export async function applyStandardUnits(recipeId: number): Promise<boolean> {
     if (itemIds.length === 0) return false;
     const items = await prisma.ingredientItem.findMany({ where: { id: { in: itemIds } }, select: itemSelect });
     const overview = await unitOverview(items, recipeId);
-    return (await rewriteRows(itemIds, toStandard(overview, items), null, recipeId)) > 0;
+    return (await rewriteRows(itemIds, metricThenStandard(overview, items), null, recipeId)) > 0;
 }
 
-const itemSelect = { id: true, de: true, en: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true } as const;
 
 /**
  * The row editor that writes an amount in its ingredient's standard unit
@@ -263,6 +196,25 @@ function toStandard(overview: Map<number, UnitOverview>, items: ItemRow[]): RowE
 }
 
 /**
+ * First "cups", "oz", "lb" in grams or millilitres — the cookbook's kitchen is
+ * European, and no card is needed for that (lib/units toMetric) — then the
+ * card's main unit where that is sure (toStandard). Spoons stay spoons.
+ */
+function metricThenStandard(overview: Map<number, UnitOverview>, items: ItemRow[]): RowEditor {
+    const standard = toStandard(overview, items);
+    return (row, language, side) => {
+        const parts = splitAmount(row.amount);
+        let amount = row.amount;
+        if (parts.quantity !== null && parts.unit && !isEuropean(unitKey(parts.unit))) {
+            const metric = toMetric(parts, row.name, language);
+            if (metric.unit !== parts.unit) amount = formatAmount(metric, 1, language);
+        }
+        const next = standard({ ...row, amount }, language, side);
+        return next ?? (amount !== row.amount ? { amount } : null);
+    };
+}
+
+/**
  * The existing recipes brought into line with their ingredients' standard
  * units, as an import is (toStandard): all of them, or those using `itemIds`
  * — after the admin set an ingredient's standard unit. Every recipe changed
@@ -273,14 +225,35 @@ export async function alignRecipes(itemIds: number[] | null, editedBy: string | 
     if (items.length === 0) return 0;
     const overview = await unitOverview(items);
     const decided = items.filter((item) => overview.get(item.id)?.state.unit !== null).map((item) => item.id);
-    return rewriteRows(decided, toStandard(overview, items), editedBy);
+    return rewriteRows(itemIds ? decided : items.map((item) => item.id), metricThenStandard(overview, items), editedBy);
+}
+
+/**
+ * Every translation's ingredient rows named as the list names them in that
+ * language: a recipe with "Frühlingszwiebeln" has "spring onions" in its
+ * English version, not whatever the model once wrote. The preparation and
+ * notes after the name stay. Every recipe changed keeps its version.
+ */
+export async function alignTranslationNames(editedBy: string | null): Promise<number> {
+    const items = new Map((await prisma.ingredientItem.findMany({ select: { id: true, de: true, en: true } })).map((item) => [item.id, item]));
+    return rewriteRows(
+        [...items.keys()],
+        (row, language, side) => {
+            if (side !== 'translation' || row.itemId === null) return null;
+            const name = items.get(row.itemId)?.[language];
+            const shape = shapeOf(row.name);
+            if (!name || !shape.base || shape.base.startsWith('#') || shoppingKey(shape.base) === shoppingKey(name)) return null;
+            return { name: formatShape({ ...shape, base: name }) };
+        },
+        editedBy
+    );
 }
 
 const ALIGNED = 'ingredients.unitsInLine';
-const ALIGNED_VERSION = '1';
+const ALIGNED_VERSION = '3';
 let aligned = false;
 
-/** Once after a deploy: every existing recipe in its ingredients' standard units (alignRecipes). Cheap after the first time. */
+/** Once after a deploy: every existing recipe in its ingredients' main units, and its translation in the list's names. Cheap after the first time. */
 export async function ensureUnitsInLine(): Promise<void> {
     if (aligned) return;
     const row = await prisma.appSetting.findUnique({ where: { key: ALIGNED }, select: { value: true } }).catch(() => null);
@@ -299,6 +272,7 @@ export async function ensureUnitsInLine(): Promise<void> {
               .catch(() => false);
     if (!claimed) return;
     await alignRecipes(null, null);
+    await alignTranslationNames(null);
     await prisma.appSetting.update({ where: { key: ALIGNED }, data: { value: ALIGNED_VERSION } });
     aligned = true;
 }

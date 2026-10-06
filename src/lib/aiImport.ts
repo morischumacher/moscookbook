@@ -89,6 +89,8 @@ Rules:
   they are.
 - "amount" holds the quantity and unit together, e.g. "200 g", "2 EL", "1/2".
   Leave it as an empty string when the source gives no quantity.
+- Amounts are in European units: g, kg, ml, l, EL, TL, Prise, Zehe, Bund, pieces.
+  Cups, ounces, pounds and fluid ounces are converted to g (dry things) or ml (liquids).
 - "item" is the ingredient alone, without the quantity.
 ${CONVENTION_RULE}
 - "instructions" is markdown: one numbered list item per step, separated by blank lines.

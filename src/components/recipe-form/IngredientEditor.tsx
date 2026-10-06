@@ -7,8 +7,8 @@ import { parseIngredientLine } from '@/lib/recipeParser';
 import { conventionalRows } from '@/lib/ingredientShape';
 import { choiceFor, joinFromEditor, splitForEditor } from '@/lib/unitChoice';
 import { itemKeys, matchIn } from '@/lib/ingredientMatch';
-import { familyOf, measureOf, unitLabel } from '@/lib/ingredientUnits';
-import IngredientHint, { type FormCatalogItem } from './IngredientHint';
+import { familyOf, measureOf, rebased, storedFactor, unitLabel } from '@/lib/ingredientUnits';
+import IngredientHint, { type FormCatalogItem, type RowAnswer } from './IngredientHint';
 import { sectionHeading } from '@/lib/ingredientParts';
 import { fieldBase, fieldClass, labelClass } from './formStyles';
 import AmountInput from './AmountInput';
@@ -26,9 +26,12 @@ export default function IngredientEditor({
     ingredients,
     onChange,
     hints = true,
+    language,
 }: {
     ingredients: Ingredient[];
     onChange: (next: Ingredient[]) => void;
+    /** The recipe's language: names and units are written and shown in it. Default: the page's. */
+    language?: 'de' | 'en';
     /** The green / amber / blue line under each row (IngredientHint); off for the translation's rows. */
     hints?: boolean;
 }) {
@@ -57,21 +60,23 @@ export default function IngredientEditor({
     const [catalog, setCatalog] = useState<FormCatalogItem[]>([]);
     // Names the admin chose to keep as new ingredients, not to be asked about again here.
     const [keptNew, setKeptNew] = useState<Set<string>>(new Set());
-    const lang = locale === 'en' ? 'en' : 'de';
+    const lang: 'de' | 'en' = language ?? (locale === 'en' ? 'en' : 'de');
+    const [aiAvailable, setAiAvailable] = useState(false);
     useEffect(() => {
         let gone = false;
-        fetch(`/api/ingredients/names?locale=${locale}`)
+        fetch(`/api/ingredients/names?locale=${lang}`)
             .then((res) => (res.ok ? res.json() : { names: [] }))
-            .then((data: { names: string[]; items?: FormCatalogItem[] }) => {
+            .then((data: { names: string[]; items?: FormCatalogItem[]; aiAvailable?: boolean }) => {
                 if (gone) return;
                 setNames(data.names);
                 setCatalog(data.items ?? []);
+                setAiAvailable(Boolean(data.aiAvailable));
             })
             .catch(() => undefined);
         return () => {
             gone = true;
         };
-    }, [locale]);
+    }, [lang]);
 
     const update = (index: number, field: keyof Ingredient, value: string) => {
         const next = ingredients.map((row, position) => {
@@ -112,17 +117,44 @@ export default function IngredientEditor({
         void send({ action: 'renameItem', id, name, locale: lang });
     };
 
-    /** A row's unit made the ingredient's standard one; the recipes follow where that is sure. */
+    /** A row's unit made the card's main unit; the old one stays as a further unit (admin → Zutaten does the same). */
     const overwriteUnit = (id: number, unit: string) => {
-        const kind = familyOf(measureOf(unit));
-        setCatalog((current) => current.map((entry) => (entry.id === id ? { ...entry, unit, moreUnits: entry.moreUnits.filter((other) => other !== kind) } : entry)));
-        void send({ action: 'setUnit', id, unit });
+        setCatalog((current) =>
+            current.map((entry) => {
+                if (entry.id !== id) return entry;
+                const old = entry.unit === null ? null : familyOf(measureOf(entry.unit));
+                const mainMeasure = measureOf(unit);
+                return {
+                    ...entry,
+                    unit,
+                    moreUnits: [...entry.moreUnits, ...(old ? [old] : [])].filter((other) => other !== familyOf(mainMeasure)),
+                    units: entry.units && mainMeasure ? rebased(entry.units, mainMeasure) : entry.units,
+                };
+            })
+        );
+        void send({ action: 'setMain', id, unit });
     };
 
-    /** "Allow this unit too", saved on the ingredient at once (admin → Zutaten shows the same). */
-    const allowUnit = (id: number, measure: string) => {
-        setCatalog((current) => current.map((entry) => (entry.id === id ? { ...entry, moreUnits: [...entry.moreUnits, measure] } : entry)));
-        void fetch('/api/ingredients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'allowUnit', id, measure }) }).catch(() => undefined);
+    /** A row's unit added to the card, with its conversion: "1 EL = 14 g". */
+    const keepUnit = (id: number, unit: string, a: number, b: number) => {
+        setCatalog((current) =>
+            current.map((entry) => {
+                if (entry.id !== id || entry.unit === null) return entry;
+                const mainMeasure = measureOf(entry.unit);
+                const stored = storedFactor(unit, a, entry.unit, b);
+                const family = familyOf(measureOf(unit));
+                if (!mainMeasure || !stored || !family) return entry;
+                const base = entry.units ? rebased(entry.units, mainMeasure) : { buy: mainMeasure, factors: {} };
+                return { ...entry, moreUnits: [...entry.moreUnits, family], units: { buy: mainMeasure, factors: { ...base.factors, [stored.measure]: stored.factor } } };
+            })
+        );
+        void send({ action: 'resolveUnit', id, unit, a, b, choice: 'keep' });
+    };
+
+    /** One amber row left to the AI (applied by the hint, as a tap would). */
+    const askAi = async (question: object): Promise<RowAnswer | null> => {
+        const res = await fetch('/api/ingredients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'aiRow', question }) }).catch(() => null);
+        return res?.ok ? ((await res.json()) as RowAnswer) : null;
     };
 
     const addRow = (afterIndex?: number) => {
@@ -231,15 +263,19 @@ export default function IngredientEditor({
                             </div>
                             {hints && (
                                 <IngredientHint
+                                    // A fresh hint for each name and amount: its conversion fields start from them.
+                                    key={`${row.item}|${row.amount}`}
                                     item={row.item}
                                     amount={row.amount}
                                     catalog={catalog}
-                                    locale={lang}
+                                    language={lang}
+                                    aiAvailable={aiAvailable}
+                                    onAi={askAi}
+                                    onKeepUnit={keepUnit}
                                     keptNew={keptNew.has(row.item.trim().toLowerCase())}
                                     onItem={(next) => update(index, 'item', next)}
                                     onAmount={(next) => update(index, 'amount', next)}
                                     onKeepNew={() => setKeptNew((current) => new Set(current).add(row.item.trim().toLowerCase()))}
-                                    onAllow={allowUnit}
                                     onOverwriteName={overwriteName}
                                     onOverwriteUnit={overwriteUnit}
                                     onRename={() => {
