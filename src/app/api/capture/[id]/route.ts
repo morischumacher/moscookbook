@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { conventionalRows } from '@/lib/ingredientShape';
 import { linkRecipe } from '@/lib/ingredientCatalog';
+import { applyStandardUnits } from '@/lib/ingredientUnitsDb';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
@@ -225,6 +226,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         await releaseCaptureScreenshots(captureId, picture ? [picture] : []).catch(() => undefined);
         // Its ingredients into the catalogue now, as a recipe saved by hand is (lib/ingredientCatalog).
         await linkRecipe(recipe.id).catch(() => 0);
+        // And in the cookbook's standard units where that is sure (lib/ingredientUnitsDb).
+        await applyStandardUnits(recipe.id).catch(() => false);
 
         await prisma.capture.update({
             where: { id: captureId },

@@ -48,7 +48,7 @@ import { adminSectionFor } from '@/lib/navigation';
  *   - the edge fades while there is more to the right, which is what says
  *     "this scrolls" without a scrollbar.
  */
-export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?: number }) {
+export default function AdminNav({ unresolvedReports = 0, ingredientTodo = 0 }: { unresolvedReports?: number; /** Unit conflicts, and conversions once due (admin → Zutaten). */ ingredientTodo?: number }) {
     const t = useTranslations('Admin');
     const tInbox = useTranslations('Inbox');
     const tDrafts = useTranslations('Drafts');
@@ -90,7 +90,7 @@ export default function AdminNav({ unresolvedReports = 0 }: { unresolvedReports?
             { href: '/admin/drafts', label: tDrafts('nav') },
             { href: '/admin', label: t('dashboard') },
             { href: '/admin/collections', label: tCollections('adminNav') },
-            { href: '/admin/ingredients', label: t('ingredients') },
+            { href: '/admin/ingredients', label: t('ingredients'), count: ingredientTodo },
             { href: '/admin/posts', label: tBlog('adminNav') },
         ],
         [

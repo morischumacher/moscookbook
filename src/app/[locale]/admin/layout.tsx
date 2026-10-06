@@ -7,6 +7,7 @@ import AdminNav from '@/components/admin/AdminNav';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { titled } from '@/lib/metaTitle';
+import { ingredientTodo } from '@/lib/ingredientUnitsDb';
 
 /** "Verwaltung — mo'scookbook" for every admin page that does not name itself. */
 export const generateMetadata = titled('Navigation', 'admin', false);
@@ -46,11 +47,14 @@ export default async function AdminLayout({
      * reports done and waits for your confirmation. Counting every open
      * error kept a number up that nobody but the AI could bring down.
      */
-    const [errorCount, ticketCount, toConfirm]: [number, number, number] = await Promise.all([
+    const [errorCount, ticketCount, toConfirm, ingredients] = await Promise.all([
         needsYouCount('error'),
         needsYouCount('ticket'),
         prisma.workItem.count({ where: { doneAt: { not: null }, closedAt: null, dismissedAt: null } }).catch(() => 0),
+        // Unit conflicts to decide, and the gathered conversions once it is time for the AI (lib/ingredientUnitsDb).
+        ingredientTodo().catch(() => ({ conflicts: 0, conversions: 0, due: false })),
     ]);
+    const ingredientCount = ingredients.conflicts + (ingredients.due ? ingredients.conversions : 0);
     const unresolvedReports = errorCount + ticketCount + toConfirm;
 
     // The admin's tools are a navigation of their own, rendered once here
@@ -60,7 +64,7 @@ export default async function AdminLayout({
         // Every translation, including the admin's own, which the site-wide
         // provider leaves out. See i18n/clientMessages.
         <NextIntlClientProvider messages={await getMessages()}>
-            <AdminNav unresolvedReports={unresolvedReports} />
+            <AdminNav unresolvedReports={unresolvedReports} ingredientTodo={ingredientCount} />
             {children}
         </NextIntlClientProvider>
     );

@@ -227,6 +227,11 @@ export default function ErrorsPanel({ onShowWork, onCount }: { onShowWork?: () =
 
             {lists.done.length > 0 && (
                 <DoneFold title={t('doneHeading')} count={lists.done.length} open={doneOpen} onToggle={setDoneOpen}>
+                    {/* Where the finished ones are, as on the task list: select, then delete. */}
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-sm text-muted">{tList('doneSelectHint')}</p>
+                        <SelectToggle selection={selection} />
+                    </div>
                     <ul className="flex flex-col gap-2">
                         {lists.done.map((row) => (
                             <ItemCard key={row.id} tone="quiet" selecting={selection.selecting} selected={selection.picked.includes(row.id)} onToggle={() => selection.toggle(row.id)} label={row.message}>

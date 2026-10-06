@@ -16,6 +16,8 @@
  * below, from an AI asked once by the admin, or from admin → Zutaten.
  */
 
+import { measureOf, plainFactor } from './ingredientUnits';
+
 export interface Part {
     /** The recipe, or null for a line typed by hand. */
     s: string | null;
@@ -79,7 +81,8 @@ export function converted(line: { measure: string | null; amount: number | null;
     if (line.measure === units.buy) return { measure: units.buy, amount: line.amount, parts: line.parts };
     // "Ingwer" with no amount beside "150 g Ingwer": the recipe is kept, nothing added.
     if (line.measure === null && line.amount === null) return { measure: units.buy, amount: null, parts: line.parts.map((part) => ({ s: part.s, a: null })) };
-    const factor = line.measure ? units.factors[line.measure] : undefined;
+    // Its own factor, else plain arithmetic (spoons are millilitres) — lib/ingredientUnits.
+    const factor = line.measure ? (units.factors[line.measure] ?? plainFactor(line.measure, units.buy) ?? undefined) : undefined;
     if (!factor || !(factor > 0)) return null;
     return {
         measure: units.buy,
@@ -139,8 +142,11 @@ export function lessPart(parts: Part[], source: string | null, amount: number | 
     });
 }
 
-/** The units an ingredient is bought in: its own, else the defaults for a common one, else none. */
-export function unitsOf(item: { buyMeasure: string | null; factors: unknown }, commonId: string | null): Units | null {
+/**
+ * The units an ingredient is bought in: its own, else the defaults for a
+ * common one, else its standard unit's kind (lib/ingredientUnits), else none.
+ */
+export function unitsOf(item: { buyMeasure: string | null; factors: unknown; unit?: string | null }, commonId: string | null): Units | null {
     const fallback = commonId ? DEFAULT_UNITS[commonId] : undefined;
     const own = item.factors && typeof item.factors === 'object' && !Array.isArray(item.factors) ? (item.factors as Record<string, unknown>) : {};
     const factors = Object.fromEntries(Object.entries(own).filter((entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0 && Number.isFinite(entry[1])));
@@ -148,7 +154,9 @@ export function unitsOf(item: { buyMeasure: string | null; factors: unknown }, c
         // Its own buy unit; the defaults only fill in when they are for the same one.
         return { buy: item.buyMeasure, factors: fallback && fallback.buy === item.buyMeasure ? { ...fallback.factors, ...factors } : factors };
     }
-    return fallback ?? null;
+    if (fallback) return fallback;
+    const standard = item.unit !== undefined && item.unit !== null ? measureOf(item.unit) : null;
+    return standard ? { buy: standard, factors } : null;
 }
 
 /** A shopping measure the list knows: "mass", "volume", "spoon", or "count:" and a unit word. */
