@@ -85,7 +85,9 @@ export default function IngredientHint({
     if (catalog.length === 0 || name.length < 3 || name.startsWith('#')) return null;
 
     const nameOf = (entry: MatchableItem) => (language === 'de' ? entry.de || entry.en : entry.en || entry.de);
-    const chip = 'min-h-9 rounded-full border border-control px-3 text-xs text-ink hover:border-ink disabled:opacity-50';
+    const chip = 'min-h-9 rounded-full border border-control bg-page px-3 text-xs text-ink hover:border-ink disabled:cursor-not-allowed disabled:opacity-40';
+    // An amber question sits in a box of its own, so its answers read as one group under the row.
+    const box = 'basis-full rounded-xl border border-line bg-surface p-3 text-xs text-muted';
     const status = (tone: 'success' | 'warning' | 'info', text: string) => (
         <span className={`inline-flex items-center gap-1.5 font-medium ${tone === 'success' ? 'text-success' : tone === 'warning' ? 'text-warning' : 'text-info'}`}>
             <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-current" />
@@ -114,19 +116,31 @@ export default function IngredientHint({
             );
         }
         const take = (entry: MatchableItem) => onItem(formatShape({ ...shapeOf(name), base: nameOf(entry) }));
+        const base = shapeOf(name).base;
+        const otherName = (entry: MatchableItem) => (language === 'de' ? entry.en : entry.de);
         return (
-            <div className="basis-full text-xs text-muted" role="note">
+            <div className={box} role="note">
                 {status('warning', t('hintAlike'))}
-                <span className="mt-1 flex flex-wrap items-center gap-2">
+                {/* Each look-alike on its line, with both of its answers: take it, or rename it to this name. */}
+                <ul className="mt-2 divide-y divide-line">
                     {alike.map((entry) => (
-                        <button key={entry.id} type="button" onClick={() => take(entry)} className={chip}>
-                            {t('hintTake', { name: nameOf(entry) })}
-                        </button>
+                        <li key={entry.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5">
+                            <span className="text-sm text-ink">
+                                {nameOf(entry)}
+                                {otherName(entry) && <span className="text-muted"> · {otherName(entry)}</span>}
+                            </span>
+                            <span className="flex flex-wrap gap-2">
+                                <button type="button" onClick={() => take(entry)} className={chip}>
+                                    {t('hintTakeShort')}
+                                </button>
+                                <button type="button" onClick={() => onOverwriteName(entry.id, base)} className={chip}>
+                                    {t('hintRenameTo', { name: base })}
+                                </button>
+                            </span>
+                        </li>
                     ))}
-                    {/* The closest one overwritten with this name: "Nudeln" becomes "Pasta", in every recipe. */}
-                    <button type="button" onClick={() => onOverwriteName(alike[0].id, shapeOf(name).base)} className={chip}>
-                        {t('hintOverwriteName', { old: nameOf(alike[0]), name: shapeOf(name).base })}
-                    </button>
+                </ul>
+                <div className="mt-2 flex flex-wrap gap-2 border-t border-line pt-2">
                     <button type="button" onClick={onKeepNew} className={chip}>
                         {t('hintKeepNew')}
                     </button>
@@ -135,7 +149,7 @@ export default function IngredientHint({
                         if (chosen) take(chosen);
                         else if (answer.choice === null) onKeepNew();
                     })}
-                </span>
+                </div>
             </div>
         );
     }
@@ -176,33 +190,42 @@ export default function IngredientHint({
         if (quantity === null) return;
         onAmount(formatAmount({ quantity, quantityMax, unit: main === '' ? null : unitLabel(main, language, (quantityMax ?? quantity) > 1) }, 1, language));
     };
-    const field = 'w-16 rounded-lg border border-control bg-transparent px-2 py-1 text-base text-ink outline-none focus:border-ink';
+    const field = 'w-16 rounded-lg border border-control bg-page px-2 py-1 text-base text-ink outline-none focus:border-ink';
+    const group = 'mt-2 flex flex-wrap items-center gap-2';
+    const groupLabel = 'w-full text-faint sm:w-24';
     return (
-        <div className="basis-full text-xs text-muted" role="note">
+        <div className={box} role="note">
             {status('warning', t('hintUnitQuestion', { name: nameOf(known), unit: rowLabel, main: mainLabel }))}
-            <span className="mt-1 flex flex-wrap items-center gap-2">
+            {/* The conversion first: both "convert this row" and "add the unit" need it. */}
+            <div className={group}>
+                <span className={groupLabel}>{t('hintConversion')}</span>
                 <input value={a} onChange={(event) => setA(event.target.value)} inputMode="decimal" aria-label={t('hintConvA', { unit: rowLabel })} className={field} />
-                <span>{rowLabel} =</span>
+                <span className="text-ink">{rowLabel} =</span>
                 <input value={b} onChange={(event) => setB(event.target.value)} inputMode="decimal" placeholder="?" aria-label={t('hintConvB', { unit: mainLabel })} className={field} />
-                <span>{mainLabel}</span>
-            </span>
-            <span className="mt-1 flex flex-wrap items-center gap-2">
+                <span className="text-ink">{mainLabel}</span>
+                {!ready && <span className="text-faint">{t('hintConvMissing')}</span>}
+            </div>
+            <div className={group}>
+                <span className={groupLabel}>{t('hintThisRow')}</span>
                 <button type="button" disabled={!ready} onClick={() => convert(number(a), number(b))} className={chip}>
                     {t('hintConvertTo', { unit: mainLabel })}
                 </button>
-                {isEuropean(rowUnit) && (
-                    <button type="button" disabled={!ready} onClick={() => onKeepUnit(known.id, rowUnit, number(a), number(b))} className={chip}>
-                        {t('hintKeepUnit', { unit: rowLabel })}
-                    </button>
-                )}
-                {isEuropean(rowUnit) && (
-                    <button type="button" onClick={() => onOverwriteUnit(known.id, rowUnit)} className={chip}>
-                        {t('hintOverwriteUnit', { unit: rowLabel })}
-                    </button>
-                )}
                 <button type="button" onClick={onRename} className={chip}>
                     {t('hintOther')}
                 </button>
+            </div>
+            {isEuropean(rowUnit) && (
+                <div className={group}>
+                    <span className={groupLabel}>{t('hintTheCard')}</span>
+                    <button type="button" disabled={!ready} onClick={() => onKeepUnit(known.id, rowUnit, number(a), number(b))} className={chip}>
+                        {t('hintKeepUnit', { unit: rowLabel })}
+                    </button>
+                    <button type="button" onClick={() => onOverwriteUnit(known.id, rowUnit)} className={chip}>
+                        {t('hintOverwriteUnit', { unit: rowLabel })}
+                    </button>
+                </div>
+            )}
+            <div className="mt-2 border-t border-line pt-2">
                 {aiButton({ kind: 'unit', name: nameOf(known), main, unit: rowUnit, amount }, (answer) => {
                     if (!answer.factor) return;
                     const [one, other] = answer.factor >= 1 ? [1, Math.round(answer.factor * 100) / 100] : [Math.round((1 / answer.factor) * 100) / 100, 1];
@@ -211,8 +234,7 @@ export default function IngredientHint({
                     if (answer.keep && isEuropean(rowUnit)) onKeepUnit(known.id, rowUnit, one, other);
                     else convert(one, other);
                 })}
-            </span>
-            {!ready && <span className="mt-1 block text-faint">{t('hintConvMissing')}</span>}
+            </div>
         </div>
     );
 }

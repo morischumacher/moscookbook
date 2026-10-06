@@ -41,7 +41,7 @@ export default function IngredientEditor({
     const itemRefs = useRef<(HTMLInputElement | null)[]>([]);
     // Rows dragged by their handle, or moved with the arrow keys on it (work #48).
     const list = useRef<HTMLDivElement>(null);
-    const { handle, rowStyle } = useDragReorder(list, (from, to) => onChange(moved(ingredients, from, to)));
+    const { drag, handle, rowStyle } = useDragReorder(list, (from, to) => onChange(moved(ingredients, from, to)));
     const grip = (index: number) => (
         <button
             type="button"
@@ -261,7 +261,8 @@ export default function IngredientEditor({
                                     ×
                                 </button>
                             </div>
-                            {hints && (
+                            {/* Folded away while a row is dragged: every row its compact self, so the places add up. */}
+                            {hints && !drag && (
                                 <IngredientHint
                                     // A fresh hint for each name and amount: its conversion fields start from them.
                                     key={`${row.item}|${row.amount}`}

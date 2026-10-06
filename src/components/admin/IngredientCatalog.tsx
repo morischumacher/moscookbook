@@ -94,6 +94,8 @@ export default function IngredientCatalog() {
     const [decisions, setDecisions] = useState<AiDecision[] | null>(null);
     const [busy, setBusy] = useState<string | null>(null);
     const [note, setNote] = useState('');
+    // A card just made by hand: shown open, to fill in.
+    const [created, setCreated] = useState<number | null>(null);
 
     const load = useCallback(async () => {
         const res = await fetch('/api/ingredients', { cache: 'no-store' }).catch(() => null);
@@ -178,6 +180,17 @@ export default function IngredientCatalog() {
         else await refresh();
     };
 
+    /** "+ Neue Zutat": a card named from the search (or empty), opened to fill in. */
+    const create = async (typed: string) => {
+        const text = typed.trim();
+        const done = (await post('create', { action: 'create', de: locale === 'de' ? text || t('newName') : '', en: locale === 'en' ? text || t('newName') : '' })) as { id: number } | null;
+        if (!done) return;
+        setCreated(done.id);
+        setQuery('');
+        setView('newest');
+        await refresh();
+    };
+
     const removeUnused = async (count: number) => {
         if (!(await ask({ title: t('deleteUnusedQuestion', { count }), confirmLabel: t('delete'), destructive: true }))) return;
         const done = (await post('deleteUnused', { action: 'deleteUnused' })) as { deleted: number } | null;
@@ -225,6 +238,36 @@ export default function IngredientCatalog() {
             return next;
         });
 
+    // Each card's open unit questions, and the cards that have any.
+    const pendingFor = (id: number) => unitQuestions.filter((question) => question.itemId === id);
+    const pendingItems = [...new Set(unitQuestions.map((question) => question.itemId))].map((id) => byId.get(id)).filter((item): item is Item => Boolean(item));
+    const handlers: PendingHandlers = {
+        busy,
+        aiAvailable,
+        onResolve: (question, choice, a, b) => void act(`uq-${question.itemId}`, { action: 'resolveUnit', id: question.itemId, unit: question.unit, a, b, choice }),
+        onRow: (rowId, amount) => void act(`row-${rowId}`, { action: 'setRowAmount', rowId, amount }, t('rowReplaced')),
+        onAi: (question, key) => void aiResolve({ unit: { itemId: question.itemId, family: question.family } }, key),
+    };
+    // One card, the same everywhere: in the lists closed, under "Zu entscheiden" open.
+    const rowFor = (item: Item, open: boolean) => (
+        <ItemRow
+            key={`${item.id}-${item.de}-${item.en}-${item.aliases.join('|')}-${item.main}-${JSON.stringify(item.units)}-${pendingFor(item.id).length}`}
+            item={item}
+            locale={locale}
+            detail={current === 'newest' && !q ? 'date' : 'uses'}
+            selected={selected.has(item.id)}
+            busy={busy !== null}
+            onSelect={() => toggle(item.id)}
+            onSave={(next) => request(`save-${item.id}`, { method: 'PATCH', body: JSON.stringify({ id: item.id, ...next }) }).then((ok) => ok && refresh())}
+            onMain={(unit) => void act(`main-${item.id}`, { action: 'setMain', id: item.id, unit })}
+            onUnits={(main, rows) => void act(`units-${item.id}`, { action: 'saveUnits', id: item.id, main, rows }, t('unitsSaved'))}
+            onDelete={() => void remove(item)}
+            pending={pendingFor(item.id)}
+            handlers={handlers}
+            defaultOpen={open || item.id === created}
+        />
+    );
+
     if (items === null) return <p className="text-muted">{note || t('loading')}</p>;
 
     return (
@@ -246,17 +289,22 @@ export default function IngredientCatalog() {
                 <label htmlFor="ingredient-search" className="sr-only">
                     {t('search')}
                 </label>
-                <input
-                    id="ingredient-search"
-                    type="search"
-                    value={query}
-                    onChange={(event) => {
-                        setQuery(event.target.value);
-                        setShown(60);
-                    }}
-                    placeholder={t('searchAll', { count: items.length })}
-                    className="w-full rounded-full border border-control bg-transparent px-4 py-2 outline-none focus:border-ink"
-                />
+                <div className="flex gap-2">
+                    <input
+                        id="ingredient-search"
+                        type="search"
+                        value={query}
+                        onChange={(event) => {
+                            setQuery(event.target.value);
+                            setShown(60);
+                        }}
+                        placeholder={t('searchAll', { count: items.length })}
+                        className="min-w-0 flex-1 rounded-full border border-control bg-transparent px-4 py-2 outline-none focus:border-ink"
+                    />
+                    <button type="button" disabled={busy !== null} onClick={() => void create(query)} className={`shrink-0 ${buttonSecondary}`}>
+                        {t('newIngredient')}
+                    </button>
+                </div>
                 {!q && (
                     <div role="tablist" aria-label={t('views')} className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0">
                         {views.map((entry) => (
@@ -355,25 +403,10 @@ export default function IngredientCatalog() {
                                     </li>
                                 );
                             })}
-                            {unitQuestions.slice(0, shown).map((question) => {
-                                const item = byId.get(question.itemId);
-                                if (!item) return null;
-                                return (
-                                    <UnitQuestionCard
-                                        key={`u-${question.itemId}-${question.family}`}
-                                        question={question}
-                                        item={item}
-                                        name={label(item)}
-                                        locale={locale}
-                                        busy={busy}
-                                        aiAvailable={aiAvailable}
-                                        onResolve={(choice, a, b) => void act(`uq-${question.itemId}`, { action: 'resolveUnit', id: item.id, unit: question.unit, a, b, choice })}
-                                        onRow={(rowId, amount) => void act(`row-${rowId}`, { action: 'setRowAmount', rowId, amount }, t('rowReplaced'))}
-                                        onAi={(key) => void aiResolve({ unit: { itemId: item.id, family: question.family } }, key)}
-                                    />
-                                );
-                            })}
                         </ul>
+
+                        {/* The cards with a unit to decide, open, the same card as everywhere — the question inside its list of units. */}
+                        {pendingItems.length > 0 && <ul className="mt-3 divide-y divide-line border-y border-line">{pendingItems.slice(0, shown).map((item) => rowFor(item, true))}</ul>}
 
                         {/* The rules find doubles by spelling; the AI also sees "Frühlingszwiebeln" and "green onions". */}
                         {aiAvailable && (
@@ -406,25 +439,16 @@ export default function IngredientCatalog() {
                             </button>
                         )}
                         {visible.length === 0 ? (
-                            <p className="mt-6 text-muted">{q ? t('nothingFound') : t('nothingHere')}</p>
+                            <div className="mt-6 text-muted">
+                                <p>{q ? t('nothingFound') : t('nothingHere')}</p>
+                                {q && (
+                                    <button type="button" disabled={busy !== null} onClick={() => void create(query)} className={`mt-3 ${buttonSecondary}`}>
+                                        {t('createNamed', { name: query.trim() })}
+                                    </button>
+                                )}
+                            </div>
                         ) : (
-                            <ul className="mt-3 divide-y divide-line border-y border-line">
-                                {visible.slice(0, shown).map((item) => (
-                                    <ItemRow
-                                        key={`${item.id}-${item.de}-${item.en}-${item.aliases.join('|')}-${item.main}-${JSON.stringify(item.units)}`}
-                                        item={item}
-                                        locale={locale}
-                                        detail={current === 'newest' && !q ? 'date' : 'uses'}
-                                        selected={selected.has(item.id)}
-                                        busy={busy !== null}
-                                        onSelect={() => toggle(item.id)}
-                                        onSave={(next) => request(`save-${item.id}`, { method: 'PATCH', body: JSON.stringify({ id: item.id, ...next }) }).then((ok) => ok && refresh())}
-                                        onMain={(unit) => void act(`main-${item.id}`, { action: 'setMain', id: item.id, unit })}
-                                        onUnits={(main, rows) => void act(`units-${item.id}`, { action: 'saveUnits', id: item.id, main, rows }, t('unitsSaved'))}
-                                        onDelete={() => void remove(item)}
-                                    />
-                                ))}
-                            </ul>
+                            <ul className="mt-3 divide-y divide-line border-y border-line">{visible.slice(0, shown).map((item) => rowFor(item, false))}</ul>
                         )}
                     </>
                 )}
@@ -540,56 +564,47 @@ function MiniCard({ item, locale }: { item: Item; locale: 'de' | 'en' }) {
     );
 }
 
-/**
- * "A new unit?": recipes write an ingredient in a unit its card does not
- * know. The conversion first (proposed where it is known), then: convert
- * those recipes to the main unit, take the unit onto the card, or the AI.
- */
-function UnitQuestionCard({
-    question,
-    item,
-    name,
-    locale,
-    busy,
-    aiAvailable,
-    onResolve,
-    onRow,
-    onAi,
-}: {
-    question: UnitQuestion;
-    item: Item;
-    name: string;
-    locale: 'de' | 'en';
+/** What a card needs to answer its "new unit?" questions in place. */
+interface PendingHandlers {
     busy: string | null;
     aiAvailable: boolean;
-    onResolve: (choice: 'convert' | 'keep', a: number, b: number) => void;
+    onResolve: (question: UnitQuestion, choice: 'convert' | 'keep', a: number, b: number) => void;
     onRow: (rowId: number, amount: string) => void;
-    onAi: (key: string) => void;
-}) {
+    onAi: (question: UnitQuestion, key: string) => void;
+}
+
+/**
+ * A unit the card does not know yet, inside the card's own list of units,
+ * marked amber: the recipe rows that write it (each a link, each
+ * replaceable), its conversion (proposed where known), and its two answers —
+ * take it onto the card, or remove it (those recipes in the main unit) — or
+ * the AI. Cups and oz can only be removed.
+ */
+function PendingUnit({ question, locale, handlers }: { question: UnitQuestion; locale: 'de' | 'en'; handlers: PendingHandlers }) {
     const t = useTranslations('Ingredients');
+    const { busy, aiAvailable } = handlers;
     const [a, setA] = useState(question.proposal ? String(question.proposal.a) : '1');
     const [b, setB] = useState(question.proposal ? String(question.proposal.b).replace('.', ',') : '');
-    const [open, setOpen] = useState(false);
+    const [all, setAll] = useState(false);
     const [editing, setEditing] = useState<number | null>(null);
     const [draft, setDraft] = useState('');
     const number = (text: string) => Number(text.replace(',', '.'));
     const ready = number(a) > 0 && number(b) > 0;
     const unit = unitLabel(question.unit, locale);
     const main = unitLabel(question.main, locale);
-    const field = 'w-20 rounded-lg border border-control bg-transparent px-2 py-1 text-base outline-none focus:border-ink';
+    const field = 'w-16 rounded-lg border border-control bg-page px-2 py-1 text-base outline-none focus:border-ink';
+    const inline = 'inline-flex min-h-6 items-center';
+    const chip = 'min-h-9 rounded-full border border-control bg-page px-3 text-xs text-ink hover:border-ink disabled:cursor-not-allowed disabled:opacity-40';
+    const key = `ai-u-${question.itemId}-${question.family}`;
     return (
-        <li className="rounded-xl border border-line p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('qUnit')}</p>
-            <p className="mt-1">
-                <span className="font-medium">{name}</span>{' '}
-                <span className="text-muted">
-                    · {t('mainUnit')}: {main}
-                </span>
+        <li className="rounded-xl border border-line bg-surface p-3">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-warning">
+                <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-current" />
+                {t('pendingUnit', { unit })}
             </p>
-            {/* Where: the rows themselves, in sight — three, and the rest a tap away. */}
-            <p className="mt-2 text-sm text-muted">{t('qUnitRecipes', { count: question.rows.length, unit })}:</p>
+            <p className="mt-1 text-xs text-muted">{t('qUnitRecipes', { count: question.rows.length, unit })}:</p>
             <ul className="mt-1 flex flex-col gap-1 text-sm">
-                {(open ? question.rows : question.rows.slice(0, 3)).map((row) => (
+                {(all ? question.rows : question.rows.slice(0, 3)).map((row) => (
                     <li key={row.rowId} className="flex flex-wrap items-center gap-x-2">
                         {editing === row.rowId ? (
                             <form
@@ -597,7 +612,7 @@ function UnitQuestionCard({
                                 onSubmit={(event) => {
                                     event.preventDefault();
                                     if (!draft.trim()) return;
-                                    onRow(row.rowId, draft.trim());
+                                    handlers.onRow(row.rowId, draft.trim());
                                     setEditing(null);
                                 }}
                             >
@@ -619,11 +634,13 @@ function UnitQuestionCard({
                             </form>
                         ) : (
                             <>
-                                <span>
-                                    <span className="font-medium">{row.amount || '—'}</span> {row.name}
+                                <span className={inline}>
+                                    <span className="font-medium">{row.amount || '—'}</span>&nbsp;{row.name}
                                 </span>
-                                <span className="text-faint">·</span>
-                                <Link href={`/recipe/${row.slug}`} target="_blank" className="min-h-8 text-muted underline underline-offset-4 hover:text-ink">
+                                <span aria-hidden className={`${inline} text-faint`}>
+                                    ·
+                                </span>
+                                <Link href={`/recipe/${row.slug}`} target="_blank" className={`${inline} text-muted underline underline-offset-4 hover:text-ink`}>
                                     {row.title}
                                 </Link>
                                 <button
@@ -632,7 +649,7 @@ function UnitQuestionCard({
                                         setEditing(row.rowId);
                                         setDraft(row.amount);
                                     }}
-                                    className="min-h-8 px-1 text-muted underline underline-offset-4 hover:text-ink"
+                                    className={`${inline} px-1 text-muted underline underline-offset-4 hover:text-ink`}
                                 >
                                     {t('replaceRow')}
                                 </button>
@@ -642,28 +659,29 @@ function UnitQuestionCard({
                 ))}
             </ul>
             {question.rows.length > 3 && (
-                <button type="button" aria-expanded={open} onClick={() => setOpen((on) => !on)} className="mt-1 min-h-9 text-sm text-muted underline underline-offset-4 hover:text-ink">
-                    {open ? t('fewer') : t('moreRows', { count: question.rows.length - 3 })}
+                <button type="button" aria-expanded={all} onClick={() => setAll((on) => !on)} className="mt-1 min-h-9 text-xs text-muted underline underline-offset-4 hover:text-ink">
+                    {all ? t('fewer') : t('moreRows', { count: question.rows.length - 3 })}
                 </button>
             )}
-            {/* The conversion both answers need: proposed where known, always editable. */}
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
                 <input value={a} onChange={(event) => setA(event.target.value)} inputMode="decimal" aria-label={t('convA', { unit })} className={field} />
                 <span>{unit} =</span>
                 <input value={b} onChange={(event) => setB(event.target.value)} inputMode="decimal" aria-label={t('convB', { unit: main })} placeholder="?" className={field} />
                 <span>{main}</span>
+                {!ready && <span className="text-xs text-faint">{t('convMissing')}</span>}
             </div>
-            {!ready && <p className="mt-1 text-xs text-faint">{t('convMissing')}</p>}
             <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" disabled={busy !== null || !ready} onClick={() => onResolve('convert', number(a), number(b))} className={buttonSecondary}>
-                    {t('qConvert', { unit: main })}
-                </button>
                 {question.keepable && (
-                    <button type="button" disabled={busy !== null || !ready} onClick={() => onResolve('keep', number(a), number(b))} className={buttonSecondary}>
+                    <button type="button" disabled={busy !== null || !ready} onClick={() => handlers.onResolve(question, 'keep', number(a), number(b))} className={chip}>
                         {t('qKeep', { unit })}
                     </button>
                 )}
-                <AiButton busy={busy} id={`ai-u-${item.id}-${question.family}`} available={aiAvailable} onClick={onAi} />
+                <button type="button" disabled={busy !== null || !ready} onClick={() => handlers.onResolve(question, 'convert', number(a), number(b))} className={chip}>
+                    {t('qRemove', { unit, main })}
+                </button>
+                <button type="button" disabled={busy !== null || !aiAvailable} title={aiAvailable ? undefined : t('noAiShort')} onClick={() => handlers.onAi(question, key)} className={chip}>
+                    <BusyLabel busy={busy === key}>{t('aiDecide')}</BusyLabel>
+                </button>
             </div>
             {!question.keepable && <p className="mt-2 text-xs text-faint">{t('qNotEuropean', { unit })}</p>}
         </li>
@@ -682,6 +700,9 @@ function ItemRow({
     onMain,
     onUnits,
     onDelete,
+    pending = [],
+    handlers,
+    defaultOpen = false,
 }: {
     item: Item;
     locale: 'de' | 'en';
@@ -693,10 +714,15 @@ function ItemRow({
     onMain: (unit: string | null) => void;
     onUnits: (main: string, rows: { unit: string; a: number; b: number }[]) => void;
     onDelete: () => void;
+    /** Units its recipes write that the card does not know: answered in its list of units. */
+    pending?: UnitQuestion[];
+    handlers: PendingHandlers;
+    /** Open from the start: under "Zu entscheiden", where the card is the question. */
+    defaultOpen?: boolean;
 }) {
     const t = useTranslations('Ingredients');
     const tShop = useTranslations('Shopping');
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(defaultOpen);
     const [de, setDe] = useState(item.de);
     const [en, setEn] = useState(item.en);
     const [deAlso, setDeAlso] = useState(item.aliases.filter(isGermanName).join(', '));
@@ -787,7 +813,7 @@ function ItemRow({
                     </button>
                 )}
 
-                <CardUnits item={item} locale={locale} busy={busy} onMain={onMain} onUnits={onUnits} />
+                <CardUnits item={item} locale={locale} busy={busy} onMain={onMain} onUnits={onUnits} pending={pending} handlers={handlers} />
 
                 {/* Where it goes on the shopping list; beats every rule. */}
                 <label className="flex flex-wrap items-center gap-2 text-xs text-muted">
@@ -833,12 +859,16 @@ function CardUnits({
     busy,
     onMain,
     onUnits,
+    pending,
+    handlers,
 }: {
     item: Item;
     locale: 'de' | 'en';
     busy: boolean;
     onMain: (unit: string | null) => void;
     onUnits: (main: string, rows: { unit: string; a: number; b: number }[]) => void;
+    pending: UnitQuestion[];
+    handlers: PendingHandlers;
 }) {
     const t = useTranslations('Ingredients');
     const choices = [...new Set([...UNIT_CHOICES, ...item.unitUses.map((use) => use.unit), ...item.units.map((row) => row.unit), ...(item.main !== null ? [item.main] : [])])];
@@ -914,6 +944,14 @@ function CardUnits({
                                 ×
                             </button>
                         </li>
+                    ))}
+                </ul>
+            )}
+            {/* Units its recipes write that the card does not know yet: decided right here. */}
+            {pending.length > 0 && (
+                <ul className="mt-3 flex flex-col gap-2">
+                    {pending.map((question) => (
+                        <PendingUnit key={`${question.itemId}-${question.family}`} question={question} locale={locale} handlers={handlers} />
                     ))}
                 </ul>
             )}

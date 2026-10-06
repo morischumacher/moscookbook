@@ -76,4 +76,6 @@ export default function ingredientUnitsTests() {
     check('new, but alike: a word more', similarIn('Vollkornpasta', catalog).some((entry) => entry.id === 1));
     check('new, but alike: a typo', similarIn('Frühlingzwiebeln', catalog).some((entry) => entry.id === 2));
     equal('nothing alike', similarIn('Safran', catalog), []);
+    const powders = [item(10, 'Chilipulver', 'chili powder'), item(11, 'Backpulver', 'baking powder'), item(12, 'Kurkuma', 'turmeric')];
+    equal('a shared "powder" is no likeness', similarIn('turmeric powder', powders).map((entry) => entry.id), [12]);
 }

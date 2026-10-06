@@ -9,6 +9,7 @@ import { readableText } from './readableText';
 import { assessDraft, nameFromParagraph, worthAsking } from './draftQuality';
 import { assistsText, canUseAi, capabilityFromEnv, completeWithKey, extractJson, extractRecipeWithAi, type AiCapability } from './aiImport';
 import { foreignLanguage, translateRecipe } from './recipeTranslation';
+import { tidyDescription } from './descriptionTidy';
 import { applyProfile, hostOf, NO_PROFILES } from './siteProfile';
 import { learnSiteProfile } from './siteLearn';
 import type { AiTrace, ProcessableCapture, ProcessedCapture, ProcessOptions } from './captureTypes';
@@ -626,7 +627,19 @@ export async function processCapture(
     ai: AiCapability = capabilityFromEnv(),
     options: ProcessOptions = {}
 ): Promise<ProcessedCapture> {
-    return withAName(await inGerman(await readCapture(capture, ai, options), ai, options));
+    // The description tidied before it is translated (no caption counters for the model) and after a name was cut from the title.
+    return withADescription(withAName(await inGerman(withADescription(await readCapture(capture, ai, options)), ai, options)));
+}
+
+/**
+ * Whatever read it, the description is words about the dish — not a social
+ * caption with its counters and hashtags, and not the recipe a second time
+ * (lib/descriptionTidy). For every source at once.
+ */
+function withADescription(result: ProcessedCapture): ProcessedCapture {
+    if (!result.draft) return result;
+    const description = tidyDescription(result.draft.description, result.draft.ingredients);
+    return description === result.draft.description ? result : { ...result, draft: { ...result.draft, description } };
 }
 
 /**

@@ -63,6 +63,17 @@ export function matchIn<T extends MatchableItem>(name: string, items: T[]): T | 
     return found;
 }
 
+/**
+ * Words many ingredients share and that say nothing about which one it is:
+ * "turmeric powder" is not like "onion powder" because both are powders.
+ */
+const GENERIC = new Set([
+    'powder', 'pulver', 'sauce', 'soße', 'sosse', 'paste', 'oil', 'öl', 'oel', 'flakes', 'flocken', 'seeds', 'samen', 'juice', 'saft',
+    'vinegar', 'essig', 'stock', 'brühe', 'broth', 'leaves', 'blätter', 'fresh', 'frisch', 'dried', 'getrocknet', 'ground', 'gemahlen',
+    'whole', 'ganz', 'white', 'weiß', 'weiss', 'black', 'schwarz', 'red', 'rot', 'rote', 'green', 'grün', 'grüne', 'sweet', 'süß',
+    'light', 'dark', 'hell', 'dunkel', 'extra', 'virgin',
+]);
+
 const plain = (name: string) => name.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, ' ').replace(/\s+/g, ' ').trim();
 
 /**
@@ -75,7 +86,7 @@ const plain = (name: string) => name.toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu,
 export function similarIn<T extends MatchableItem>(name: string, items: T[], limit = 3): T[] {
     const core = plain(coreName(name));
     if (core.length < 3) return [];
-    const words = new Set(core.split(/[\s-]+/).filter((word) => word.length >= 4));
+    const words = new Set(core.split(/[\s-]+/).filter((word) => word.length >= 4 && !GENERIC.has(word)));
     const scored: { item: T; score: number }[] = [];
     for (const item of items) {
         let best = 0;
@@ -84,7 +95,7 @@ export function similarIn<T extends MatchableItem>(name: string, items: T[], lim
             const shorter = Math.min(other.length, core.length);
             if (shorter >= 4 && distance(other, core, 2) <= (shorter >= 9 ? 2 : 1)) best = Math.max(best, 3);
             // A whole word of one inside the other: "Pasta" in "Vollkornpasta", "Tomaten" in "Kirschtomaten".
-            else if (shorter >= 4 && (other.includes(core) || core.includes(other))) best = Math.max(best, 2);
+            else if (shorter >= 4 && !GENERIC.has(shorter === core.length ? core : other) && (other.includes(core) || core.includes(other))) best = Math.max(best, 2);
             else if ([...words].some((word) => other.split(/[\s-]+/).includes(word))) best = Math.max(best, 1);
         }
         if (best > 0) scored.push({ item, score: best });
