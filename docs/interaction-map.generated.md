@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-48 screens · 96 endpoints · 96 link edges · 99 call edges
+48 screens · 96 endpoints · 94 link edges · 99 call edges
 
 ## Screens
 
@@ -51,9 +51,9 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/recipe/[slug]` | decides | steps aside | `* /api/collections/[id]/share`<br>`* /api/collections/[id]/visibility`<br>`* /api/posts/[id]/share`<br>`* /api/posts/[id]/visibility`<br>`* /api/recipes/[id]/favorite`<br>`* /api/recipes/[id]/share`<br>`* /api/recipes/[id]/visibility`<br>`DELETE /api/recipes/[id]/cooked`<br>`DELETE /api/recipes/[id]/cooked/photos`<br>`GET /api/shopping/lists`<br>`PATCH /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked`<br>`POST /api/recipes/[id]/cooked/photos`<br>`POST /api/recipes/[id]/draft`<br>`POST /api/recipes/[id]/rate`<br>`POST /api/recipes/[id]/translation`<br>`POST /api/recipes/[id]/view`<br>`POST /api/shopping`<br>`POST /api/shopping/remove` | `/[locale]`<br>`/[locale]/admin/edit/[id]`<br>`/[locale]/admin/posts/new`<br>`/[locale]/blog/[id]`<br>`/[locale]/login`<br>`/[locale]/recipe/[id]`<br>`/[locale]/shopping` |
 | `/[locale]/register` | open | steps aside | `POST /api/auth/register` | `/[locale]/login` |
 | `/[locale]/reset` | open | steps aside | `POST /api/auth/reset` | `/[locale]/forgot` |
-| `/[locale]/s/[token]` | open | steps aside | `* /api/shopping`<br>`* /api/shopping/share`<br>`* /api/shopping/shared/[id]`<br>`DELETE /api/shopping`<br>`DELETE /api/shopping/[id]`<br>`DELETE /api/shopping/lists`<br>`DELETE /api/shopping/members`<br>`GET /api/shopping/members`<br>`GET /api/shopping/recipes`<br>`PATCH /api/shopping/[id]`<br>`PATCH /api/shopping/lists`<br>`PATCH /api/shopping/share`<br>`POST /api/shopping`<br>`POST /api/shopping/members`<br>`POST /api/shopping/remove`<br>`POST /api/shopping/simplify` | `/[locale]`<br>`/[locale]/login`<br>`/[locale]/shopping` |
+| `/[locale]/s/[token]` | open | steps aside | `* /api/shopping`<br>`* /api/shopping/share`<br>`* /api/shopping/shared/[id]`<br>`DELETE /api/shopping`<br>`DELETE /api/shopping/[id]`<br>`DELETE /api/shopping/lists`<br>`DELETE /api/shopping/members`<br>`GET /api/shopping/members`<br>`GET /api/shopping/recipes`<br>`PATCH /api/shopping/[id]`<br>`PATCH /api/shopping/lists`<br>`PATCH /api/shopping/share`<br>`POST /api/shopping`<br>`POST /api/shopping/members`<br>`POST /api/shopping/remove`<br>`POST /api/shopping/simplify` | `/[locale]/login`<br>`/[locale]/shopping` |
 | `/[locale]/share` | account | requires session | `POST /api/capture/share` | `/[locale]/admin/inbox` |
-| `/[locale]/shopping` | account | requires session | `* /api/shopping`<br>`* /api/shopping/share`<br>`* /api/shopping/shared/[id]`<br>`DELETE /api/shopping`<br>`DELETE /api/shopping/[id]`<br>`DELETE /api/shopping/lists`<br>`DELETE /api/shopping/members`<br>`GET /api/shopping/members`<br>`GET /api/shopping/recipes`<br>`PATCH /api/shopping/[id]`<br>`PATCH /api/shopping/lists`<br>`PATCH /api/shopping/share`<br>`POST /api/shopping`<br>`POST /api/shopping/invitations`<br>`POST /api/shopping/lists`<br>`POST /api/shopping/members`<br>`POST /api/shopping/remove`<br>`POST /api/shopping/simplify` | `/[locale]`<br>`/[locale]/login`<br>`/[locale]/shopping` |
+| `/[locale]/shopping` | account | requires session | `* /api/shopping`<br>`* /api/shopping/share`<br>`* /api/shopping/shared/[id]`<br>`DELETE /api/shopping`<br>`DELETE /api/shopping/[id]`<br>`DELETE /api/shopping/lists`<br>`DELETE /api/shopping/members`<br>`GET /api/shopping/members`<br>`GET /api/shopping/recipes`<br>`PATCH /api/shopping/[id]`<br>`PATCH /api/shopping/lists`<br>`PATCH /api/shopping/share`<br>`POST /api/shopping`<br>`POST /api/shopping/invitations`<br>`POST /api/shopping/lists`<br>`POST /api/shopping/members`<br>`POST /api/shopping/remove`<br>`POST /api/shopping/simplify` | `/[locale]/login`<br>`/[locale]/shopping` |
 | `/[locale]/tickets` | account | requires session | `* /api/report-photos`<br>`POST /api/tickets` | `/[locale]` |
 | `/[locale]/verify` | open | steps aside | `POST /api/auth/verify` | `/[locale]` |
 | `/[locale]/welcome` | account | requires session | `PATCH /api/account/avatar`<br>`POST /api/account/avatar` | `/[locale]/login` |
@@ -367,11 +367,9 @@ flowchart LR
   n__locale__recipe__slug_ --> n__locale__shopping
   n__locale__register --> n__locale__login
   n__locale__reset --> n__locale__forgot
-  n__locale__s__token_ --> n__locale_
   n__locale__s__token_ --> n__locale__login
   n__locale__s__token_ --> n__locale__shopping
   n__locale__share --> n__locale__admin_inbox
-  n__locale__shopping --> n__locale_
   n__locale__shopping --> n__locale__login
   n__locale__tickets --> n__locale_
   n__locale__verify --> n__locale_

@@ -127,7 +127,7 @@ export default function Lightbox({
             // the opposite of what a lightbox is for: the surround goes dark
             // so the photograph is the only thing lit. The ink follows the
             // colour scheme; this must not. See globals.css.
-            className="fixed inset-0 z-[300] flex items-center justify-center bg-scrim"
+            className="fixed inset-x-0 top-0 z-[300] flex h-[100dvh] items-center justify-center bg-scrim"
             onClick={onClose}
             onTouchStart={(event) => {
                 const point = event.touches[0];

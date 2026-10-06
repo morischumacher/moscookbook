@@ -12,3 +12,7 @@
 4. **Prisma Type Synchronization**: If Prisma types are out of sync during `npm run verify` / `tsc`, run `npx prisma generate` to rebuild `@prisma/client` types before running typecheck.
 5. **Source Link Visibility**: External source links (`RecipeSource` / `sourceUrl`) on recipe pages must only be visible to admin users (`isAdmin === true`). They must never be rendered to regular users or guests on shared recipe pages.
 
+
+## Phone-first UI
+1. **Check every UI change at phone size**: run the app with the seed (`scripts/mobile-seed.ts`) and `npm run check:mobile` (iPhone viewport, touch): it fails on sideways scrolling, content past the right edge, crowded tap targets under 24 px and a sheet reaching below the screen, and photographs every page to `mobile-shots/`. Look at the pictures — the script cannot tell whether a page looks good. CI runs it on every push and keeps the pictures as the `mobile-shots` artifact.
+2. **Heights in `dvh`, never `vh`**: on an iPhone Safari's toolbar floats over the bottom of the `vh` screen. A full-screen dialog is `fixed inset-x-0 top-0 h-[100dvh]`, never `fixed inset-0` with its content at the bottom (`check:design` refuses both).

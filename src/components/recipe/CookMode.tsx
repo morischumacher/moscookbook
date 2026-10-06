@@ -128,7 +128,7 @@ export default function CookMode({
             aria-modal="true"
             aria-label={t('cookMode')}
             tabIndex={-1}
-            className="fixed inset-0 z-[200] flex flex-col bg-page text-ink outline-none"
+            className="fixed inset-x-0 top-0 z-[200] flex h-[100dvh] flex-col bg-page text-ink outline-none"
         >
             {/* Top: where you are. */}
             <header className="border-b border-line px-4 pb-2 pt-3">

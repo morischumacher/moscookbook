@@ -194,7 +194,7 @@ export default function ShareDialog({
 
     return (
         <div
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-scrim/40 p-4 sm:items-center"
+            className="fixed inset-x-0 top-0 z-[200] flex h-[100dvh] items-end justify-center bg-scrim/40 p-4 sm:items-center"
             // A press on the ground behind the card closes it, the way every
             // sheet on a phone does.
             onPointerDown={(event) => {

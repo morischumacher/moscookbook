@@ -109,8 +109,14 @@ export default function RatingDisplay({
                 </span>
             </span>
 
-            <span aria-hidden="true">•</span>
-            <span>{tRecipe('views', { count: views })}</span>
+            {/* The dot only beside the rating: on a phone the views wrap to a
+                line of their own, where a dot in front of them was a stray. */}
+            <span className="whitespace-nowrap">
+                <span aria-hidden="true" className="mr-5 hidden sm:inline">
+                    •
+                </span>
+                {tRecipe('views', { count: views })}
+            </span>
         </div>
     );
 }

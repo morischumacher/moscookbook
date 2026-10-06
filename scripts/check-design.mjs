@@ -98,6 +98,23 @@ for (const file of walk('src')) {
         });
     }
 
+    /*
+     * The phone's visible height is dvh, not vh: on an iPhone Safari's toolbar
+     * floats over the bottom of the vh screen, and a sheet anchored there had
+     * its last rows under it (work #52). A dialog over the whole screen is
+     * `fixed inset-x-0 top-0 h-[100dvh]`, never `fixed inset-0` with its
+     * content at the bottom.
+     */
+    lines.forEach((line, index) => {
+        const where = `${relative('.', file)}:${index + 1}`;
+        if (/(?:max-h|h|min-h)-\[\d+vh\]/.test(line)) {
+            problems.push(`${where}  a height in vh\n    Use dvh ([85dvh]): on a phone vh reaches under the browser's toolbar.`);
+        }
+        if (/fixed inset-0\b[^"'`]*\b(?:items-end|bottom-0)/.test(line)) {
+            problems.push(`${where}  a dialog anchored to the bottom of fixed inset-0\n    Use fixed inset-x-0 top-0 h-[100dvh]: on an iPhone the bottom of inset-0 is under Safari's toolbar.`);
+        }
+    });
+
     lines.forEach((line, index) => {
         for (const match of line.matchAll(LITERAL)) {
             problems.push(

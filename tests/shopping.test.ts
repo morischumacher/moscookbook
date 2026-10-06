@@ -27,6 +27,7 @@ export default function shoppingTests() {
     equal('shallots are vegetables', aisleOf('Schalotten'), 'produce');
     equal('Thai basil is hard to get', aisleOf('Thai Basilikum'), 'special');
     equal('so is sticky rice', aisleOf('Klebreis'), 'special');
+    equal('and fermented shrimp, which are no fresh fish', aisleOf('fermentierte, gesalzene Garnelen mit der salzigen Lauge'), 'special');
     equal('tofu in the fridge', aisleOf('Seidentofu'), 'dairy');
     equal('tomato paste is no tomato', aisleOf('Tomatenmark'), 'pantry');
     equal('coconut milk is no milk', aisleOf('Kokosmilch'), 'pantry');
