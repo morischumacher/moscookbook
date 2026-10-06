@@ -3,6 +3,7 @@ import { canonicalCategory, canonicalCuisine } from '@/lib/recipeLabels';
 import { after } from 'next/server';
 import { ensureConvention } from '@/lib/ingredientConventionDb';
 import { ensureVoice } from '@/lib/recipeVoiceDb';
+import { ensureUnitsInLine } from '@/lib/ingredientUnitsDb';
 import { failed } from '@/lib/reportServerError';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { visibleTo } from '@/lib/recipeVisibility';
@@ -153,6 +154,9 @@ export default async function HomePage({
             // And the German method and tips in the du voice (lib/recipeVoiceDb).
             .then(() => ensureVoice())
             .catch((error) => failed('recipe voice', error))
+            // And every recipe in its ingredients' standard units where that is sure (lib/ingredientUnitsDb).
+            .then(() => ensureUnitsInLine())
+            .catch((error) => failed('standard units', error))
     );
     const t = await getTranslations('Home');
     const locale = await getLocale();

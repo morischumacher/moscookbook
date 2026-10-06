@@ -7,6 +7,7 @@ import { sayable } from '@/lib/apiMessage';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
 import Sheet from '@/components/ui/Sheet';
+import { Link } from '@/i18n/routing';
 import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 import type { Units } from '@/lib/shoppingParts';
 import { CHOOSABLE_AISLES } from '@/lib/shopping';
@@ -39,6 +40,8 @@ interface Item {
     oddUnits: string[];
     /** Kinds the shopping list cannot yet convert, waiting for the AI. */
     missingConversions: string[];
+    /** For one in a unit conflict: its recipe rows, to see where and to change them. */
+    conflictRows: { rowId: number; recipeId: number; title: string; slug: string; amount: string; name: string; unit: string }[];
 }
 
 /** The ways into the list: what needs looking at first, then by age and use. */
@@ -190,9 +193,10 @@ export default function IngredientCatalog() {
     };
 
     const unitAction = async (key: string, body: object) => {
-        const done = (await call(key, { method: 'POST', body: JSON.stringify(body) })) as { recipes?: number; skipped?: number } | null;
+        const done = (await call(key, { method: 'POST', body: JSON.stringify(body) })) as { recipes?: number; skipped?: number; replaced?: number } | null;
         if (!done) return;
-        if (typeof done.recipes === 'number') setNote(t('rowsConverted', { count: done.recipes, skipped: done.skipped ?? 0 }));
+        if (typeof done.replaced === 'number') setNote(t('rowReplaced'));
+        else if (typeof done.recipes === 'number') setNote(t('rowsConverted', { count: done.recipes, skipped: done.skipped ?? 0 }));
         await load();
         router.refresh();
     };
@@ -730,9 +734,13 @@ function ItemRow({
 }
 
 /**
- * One ingredient written in two kinds of unit, and the ways out: which unit
- * is its standard (when nobody chose yet), then for every other kind either
- * "it may be written so too" or "rewrite those recipes in the standard unit".
+ * One ingredient written in two kinds of unit, and the ways out:
+ *
+ * - see where: every recipe row, by unit, with a link to its recipe;
+ * - change a row by hand ("Loads of" → "1 Bund"), here and in its translation;
+ * - accept every unit it is written in at once ("several units");
+ * - or decide: its standard unit (when nobody chose yet), then per other
+ *   unit "convert those recipes" or "allow it too".
  */
 function UnitConflict({
     item,
@@ -745,21 +753,98 @@ function UnitConflict({
     name: string;
     locale: 'de' | 'en';
     busy: boolean;
-    onAction: (body: { action: 'setUnit'; unit: string } | { action: 'allowUnit' | 'convertRows'; measure: string }) => void;
+    onAction: (
+        body:
+            | { action: 'setUnit'; unit: string }
+            | { action: 'allowUnit'; measure?: string; measures?: string[] }
+            | { action: 'convertRows'; measure: string }
+            | { action: 'setRowAmount'; rowId: number; amount: string }
+    ) => void;
 }) {
     const t = useTranslations('Ingredients');
+    const [editing, setEditing] = useState<number | null>(null);
+    const [draft, setDraft] = useState('');
     const usesOf = (kind: string) => item.unitUses.filter((use) => familyOf(measureOf(use.unit)) === kind);
     const kindLabel = (kind: string) =>
         usesOf(kind)
             .map((use) => unitLabel(use.unit, locale))
             .join(' / ') || kind;
     const quiet = 'min-h-11 rounded-full border border-control px-3 text-sm hover:border-ink disabled:opacity-50';
+    // Every kind its rows use: what "accept them all" allows.
+    const kinds = [...new Set(item.unitUses.map((use) => familyOf(measureOf(use.unit))).filter((kind): kind is string => kind !== null))];
     return (
         <li className="py-3">
             <p className="font-medium">{name}</p>
-            <p className="text-xs text-faint">{item.unitUses.map((use) => `${unitLabel(use.unit, locale)}: ${t('recipesCount', { count: use.count })}`).join(' · ')}</p>
+
+            {/* Where it is: every row, grouped by unit. */}
+            <ul className="mt-2 flex flex-col gap-1">
+                {item.unitUses.map((use) => (
+                    <li key={use.unit}>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                            {unitLabel(use.unit, locale)} · {t('recipesCount', { count: use.count })}
+                        </p>
+                        <ul>
+                            {item.conflictRows
+                                .filter((row) => row.unit === use.unit)
+                                .map((row) => (
+                                    <li key={row.rowId} className="flex flex-wrap items-center gap-x-2 text-sm">
+                                        {editing === row.rowId ? (
+                                            <form
+                                                className="flex w-full flex-wrap items-center gap-2 py-1"
+                                                onSubmit={(event) => {
+                                                    event.preventDefault();
+                                                    if (!draft.trim()) return;
+                                                    onAction({ action: 'setRowAmount', rowId: row.rowId, amount: draft.trim() });
+                                                    setEditing(null);
+                                                }}
+                                            >
+                                                <input
+                                                    value={draft}
+                                                    onChange={(event) => setDraft(event.target.value)}
+                                                    aria-label={t('rowAmount', { recipe: row.title })}
+                                                    placeholder={t('rowAmountPlaceholder')}
+                                                    autoFocus
+                                                    className="w-32 rounded-lg border border-control bg-transparent px-2 py-1 text-base outline-none focus:border-ink"
+                                                />
+                                                <span className="text-muted">{row.name}</span>
+                                                <button type="submit" disabled={busy || !draft.trim()} className={buttonPrimarySmall}>
+                                                    {t('save')}
+                                                </button>
+                                                <button type="button" onClick={() => setEditing(null)} className="min-h-11 px-2 text-sm text-muted underline underline-offset-4">
+                                                    {t('cancel')}
+                                                </button>
+                                            </form>
+                                        ) : (
+                                            <>
+                                                <span>
+                                                    <span className="font-medium">{row.amount || '—'}</span> {row.name}
+                                                </span>
+                                                <span className="text-faint">·</span>
+                                                <Link href={`/recipe/${row.slug}`} target="_blank" className="min-h-8 text-muted underline underline-offset-4 hover:text-ink">
+                                                    {row.title}
+                                                </Link>
+                                                <button
+                                                    type="button"
+                                                    disabled={busy}
+                                                    onClick={() => {
+                                                        setEditing(row.rowId);
+                                                        setDraft(row.amount);
+                                                    }}
+                                                    className="min-h-8 px-1 text-muted underline underline-offset-4 hover:text-ink"
+                                                >
+                                                    {t('replaceRow')}
+                                                </button>
+                                            </>
+                                        )}
+                                    </li>
+                                ))}
+                        </ul>
+                    </li>
+                ))}
+            </ul>
+
             {item.unit === null ? (
-                <div className="mt-2">
+                <div className="mt-3">
                     <p className="text-sm text-muted">{t('pickStandard')}</p>
                     <div className="mt-1 flex flex-wrap gap-2">
                         {item.unitUses.map((use) => (
@@ -767,13 +852,16 @@ function UnitConflict({
                                 {unitLabel(use.unit, locale)}
                             </button>
                         ))}
+                        <button type="button" disabled={busy} onClick={() => onAction({ action: 'allowUnit', measures: kinds })} className={quiet}>
+                            {t(kinds.length > 2 ? 'allowAll' : 'allowBoth')}
+                        </button>
                     </div>
                 </div>
             ) : (
                 item.oddUnits.map((kind) => {
                     const count = usesOf(kind).reduce((sum, use) => sum + use.count, 0);
                     return (
-                        <div key={kind} className="mt-2">
+                        <div key={kind} className="mt-3">
                             <p className="text-sm text-muted">
                                 {t('oddUnit', { count, unit: kindLabel(kind), standard: unitLabel(item.unit!, locale) })}
                             </p>

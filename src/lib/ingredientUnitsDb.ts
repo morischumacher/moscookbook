@@ -5,7 +5,7 @@ import { commonIngredient } from './ingredientNames';
 import { isMeasure, unitsOf, type Units } from './shoppingParts';
 import { convertQuantity, familyOf, measureOf, missingConversions, unitKey, unitLabel, unitState, type UnitState, type UnitUse } from './ingredientUnits';
 import { formatAmount, splitAmount } from './ingredientParts';
-import { rewriteRows } from './recipeRowsDb';
+import { rewriteRows, type RowEditor } from './recipeRowsDb';
 import { aiCapability } from './aiConfig';
 import { canUseAi, completeWithKey, extractJson } from './aiImport';
 import { usageRecorder } from './tokenUsageDb';
@@ -221,36 +221,84 @@ export async function applyStandardUnits(recipeId: number): Promise<boolean> {
     const rows = await prisma.ingredient.findMany({ where: { recipeId, itemId: { not: null } }, select: { itemId: true } });
     const itemIds = [...new Set(rows.map((row) => row.itemId!))];
     if (itemIds.length === 0) return false;
-    const items = await prisma.ingredientItem.findMany({
-        where: { id: { in: itemIds } },
-        select: { id: true, de: true, en: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true },
-    });
+    const items = await prisma.ingredientItem.findMany({ where: { id: { in: itemIds } }, select: itemSelect });
     const overview = await unitOverview(items, recipeId);
-    const changed = await rewriteRows(
-        itemIds,
-        (row, language) => {
-            const entry = row.itemId === null ? undefined : overview.get(row.itemId);
-            const standard = entry?.state.unit ?? null;
-            const item = items.find((candidate) => candidate.id === row.itemId);
-            if (!entry || standard === null || !item) return null;
-            const parts = splitAmount(row.amount);
-            if (parts.quantity === null) return null;
-            const written = parts.unit ?? '';
-            const kind = familyOf(measureOf(written));
-            const standardKind = familyOf(measureOf(standard));
-            if (!kind || !standardKind || item.moreUnits.includes(kind)) return null;
-            if (kind === standardKind) {
-                // Only sizes of grams and millilitres; "2 EL" stays "2 EL", a spoon is how one cooks.
-                if ((kind !== 'mass' && kind !== 'volume') || measureOf(written) === 'spoon' || measureOf(standard) === 'spoon' || unitKey(written) === standard) return null;
-            }
-            const quantity = convertQuantity(parts.quantity, written, standard, entry.units);
-            const quantityMax = parts.quantityMax === null ? null : convertQuantity(parts.quantityMax, written, standard, entry.units);
-            if (quantity === null || (parts.quantityMax !== null && quantityMax === null)) return null;
-            const unit = standard === '' ? null : unitLabel(standard, language, (quantityMax ?? quantity) > 1);
-            return { amount: formatAmount({ quantity, quantityMax, unit }, 1, language) };
-        },
-        null,
-        recipeId
-    );
-    return changed > 0;
+    return (await rewriteRows(itemIds, toStandard(overview, items), null, recipeId)) > 0;
+}
+
+const itemSelect = { id: true, de: true, en: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true } as const;
+
+/**
+ * The row editor that writes an amount in its ingredient's standard unit
+ * where that is sure (see applyStandardUnits): sizes of grams and
+ * millilitres, and other kinds with a known conversion. Spoons stay spoons.
+ */
+function toStandard(overview: Map<number, UnitOverview>, items: ItemRow[]): RowEditor {
+    return (row, language) => {
+        const entry = row.itemId === null ? undefined : overview.get(row.itemId);
+        const standard = entry?.state.unit ?? null;
+        const item = items.find((candidate) => candidate.id === row.itemId);
+        if (!entry || standard === null || !item) return null;
+        // Read off the recipes rather than chosen: only when it is clearly the most used, never a tie.
+        if (!entry.state.chosen) {
+            const mine = entry.uses.find((use) => use.unit === standard)?.count ?? 0;
+            if (entry.uses.some((use) => use.unit !== standard && use.count >= mine)) return null;
+        }
+        const parts = splitAmount(row.amount);
+        if (parts.quantity === null) return null;
+        const written = parts.unit ?? '';
+        const kind = familyOf(measureOf(written));
+        const standardKind = familyOf(measureOf(standard));
+        if (!kind || !standardKind || item.moreUnits.includes(kind)) return null;
+        if (kind === standardKind) {
+            // Only sizes of grams and millilitres; "2 EL" stays "2 EL", a spoon is how one cooks.
+            if ((kind !== 'mass' && kind !== 'volume') || measureOf(written) === 'spoon' || measureOf(standard) === 'spoon' || unitKey(written) === standard) return null;
+        }
+        const quantity = convertQuantity(parts.quantity, written, standard, entry.units);
+        const quantityMax = parts.quantityMax === null ? null : convertQuantity(parts.quantityMax, written, standard, entry.units);
+        if (quantity === null || (parts.quantityMax !== null && quantityMax === null)) return null;
+        const unit = standard === '' ? null : unitLabel(standard, language, (quantityMax ?? quantity) > 1);
+        return { amount: formatAmount({ quantity, quantityMax, unit }, 1, language) };
+    };
+}
+
+/**
+ * The existing recipes brought into line with their ingredients' standard
+ * units, as an import is (toStandard): all of them, or those using `itemIds`
+ * — after the admin set an ingredient's standard unit. Every recipe changed
+ * keeps its version from before. Returns how many changed.
+ */
+export async function alignRecipes(itemIds: number[] | null, editedBy: string | null): Promise<number> {
+    const items = await prisma.ingredientItem.findMany({ where: itemIds ? { id: { in: itemIds } } : {}, select: itemSelect });
+    if (items.length === 0) return 0;
+    const overview = await unitOverview(items);
+    const decided = items.filter((item) => overview.get(item.id)?.state.unit !== null).map((item) => item.id);
+    return rewriteRows(decided, toStandard(overview, items), editedBy);
+}
+
+const ALIGNED = 'ingredients.unitsInLine';
+const ALIGNED_VERSION = '1';
+let aligned = false;
+
+/** Once after a deploy: every existing recipe in its ingredients' standard units (alignRecipes). Cheap after the first time. */
+export async function ensureUnitsInLine(): Promise<void> {
+    if (aligned) return;
+    const row = await prisma.appSetting.findUnique({ where: { key: ALIGNED }, select: { value: true } }).catch(() => null);
+    if (row?.value === ALIGNED_VERSION) {
+        aligned = true;
+        return;
+    }
+    const running = /^running:(\d+)$/.exec(row?.value ?? '');
+    if (running && Date.now() - Number(running[1]) < 10 * 60_000) return;
+    const claim = `running:${Date.now()}`;
+    const claimed = row
+        ? (await prisma.appSetting.updateMany({ where: { key: ALIGNED, value: row.value }, data: { value: claim } })).count === 1
+        : await prisma.appSetting
+              .create({ data: { key: ALIGNED, value: claim } })
+              .then(() => true)
+              .catch(() => false);
+    if (!claimed) return;
+    await alignRecipes(null, null);
+    await prisma.appSetting.update({ where: { key: ALIGNED }, data: { value: ALIGNED_VERSION } });
+    aligned = true;
 }
