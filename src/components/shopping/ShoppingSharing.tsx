@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 import Avatar from '@/components/Avatar';
+import ShareIcon from '@/components/ui/ShareIcon';
 
 interface Person {
     id: number;
@@ -223,7 +224,8 @@ export default function ShoppingSharing({
                             {t('linkActive')}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                            <button type="button" onClick={send} className={buttonPrimarySmall}>
+                            <button type="button" onClick={send} className={`inline-flex items-center gap-1.5 ${buttonPrimarySmall}`}>
+                                <ShareIcon />
                                 {t('sendLink')}
                             </button>
                             <button type="button" onClick={copy} className={buttonSecondary}>
@@ -251,7 +253,8 @@ export default function ShoppingSharing({
                         </button>
                     </>
                 ) : (
-                    <button type="button" disabled={busy === 'link'} onClick={() => void toggleLink()} className={`mt-3 ${buttonSecondary}`}>
+                    <button type="button" disabled={busy === 'link'} onClick={() => void toggleLink()} className={`mt-3 inline-flex items-center gap-1.5 ${buttonSecondary}`}>
+                        <ShareIcon />
                         {t('share')}
                     </button>
                 )}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { BusyLabel } from '@/components/ui/Busy';
 import { buttonSecondary } from '@/lib/ui';
+import ShareIcon from '@/components/ui/ShareIcon';
 
 /**
  * The guests' link: the card and nothing else. Made on request, withdrawn
@@ -57,7 +58,8 @@ export default function MenuShare({ id, initialToken }: { id: number; initialTok
             )}
             <div className="mt-3 flex flex-wrap items-center gap-3">
                 {url && (
-                    <button type="button" onClick={() => void copy()} className={buttonSecondary}>
+                    <button type="button" onClick={() => void copy()} className={`inline-flex items-center gap-1.5 ${buttonSecondary}`}>
+                        <ShareIcon />
                         {copied ? t('copied') : t('copy')}
                     </button>
                 )}

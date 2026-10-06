@@ -48,7 +48,7 @@ interface Lists {
  * whose job is "here is what people told you", "nothing" would be the most
  * misleading thing it could say.
  */
-export default function TicketsPanel({ onShowWork }: { onShowWork?: () => void }) {
+export default function TicketsPanel({ onShowWork, onCount }: { onShowWork?: () => void; /** How many need you, whenever that changes (the tab's badge). */ onCount?: (count: number) => void }) {
     const t = useTranslations('Tickets');
     const tList = useTranslations('ReportList');
     const locale = useLocale();
@@ -69,14 +69,16 @@ export default function TicketsPanel({ onShowWork }: { onShowWork?: () => void }
         try {
             const res = await fetch('/api/tickets', { cache: 'no-store' });
             if (!res.ok) throw new Error(t('loadFailed'));
-            setLists(await res.json());
+            const next: Lists = await res.json();
+            setLists(next);
+            onCount?.(next.todo.length);
         } catch {
             setLists({ todo: [], done: [], withAi: 0 });
             setError(t('loadFailed'));
         } finally {
             setLoading(false);
         }
-    }, [t]);
+    }, [t, onCount]);
 
     useEffect(() => {
         void load();

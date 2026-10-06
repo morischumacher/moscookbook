@@ -39,7 +39,7 @@ interface Item {
  * prompt and the key for the AI are on the AI page (ConnectAi) — set up once,
  * and found where the rest of the AI is.
  */
-export default function WorkPanel() {
+export default function WorkPanel({ onCount }: { /** How many wait for your confirmation, whenever that changes (the tab's badge). */ onCount?: (count: number) => void } = {}) {
     const t = useTranslations('Work');
     const tList = useTranslations('ReportList');
     const [items, setItems] = useState<Item[] | null>(null);
@@ -55,9 +55,12 @@ export default function WorkPanel() {
         () =>
             fetch('/api/work-items', { cache: 'no-store' })
                 .then((res) => (res.ok ? res.json() : { items: [] }))
-                .then((data: { items: Item[] }) => setItems(data.items))
+                .then((data: { items: Item[] }) => {
+                    setItems(data.items);
+                    onCount?.(data.items.filter((item) => item.doneAt && !item.closedAt && !item.dismissed).length);
+                })
                 .catch(() => setItems([])),
-        []
+        [onCount]
     );
 
     useEffect(() => {

@@ -11,6 +11,7 @@ import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
 import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 import Sheet, { sheetItem } from '@/components/ui/Sheet';
+import ShareIcon from '@/components/ui/ShareIcon';
 import Avatar from '@/components/Avatar';
 import ShoppingSharing from './ShoppingSharing';
 import ListSettings from './ListSettings';
@@ -691,7 +692,8 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                                             {others.length > 0 ? t('sharedWith', { names: others.join(', ') }) : shareToken ? t('linkActive') : t('menuShareNone')}
                                         </span>
                                     </span>
-                                    <span aria-hidden className="text-faint">›</span>
+                                    {/* At the row's end, where the others keep their ›: the words stay in one column. */}
+                                    <ShareIcon className="h-5 w-5 text-muted" />
                                 </button>
                             </li>
                         ) : (
@@ -714,6 +716,7 @@ export default function ShoppingListView({ initial, mode }: { initial: ShoppingI
                             <li>
                                 <button type="button" onClick={() => void sendText()} className={sheetItem}>
                                     {t('sendAsText')}
+                                    <ShareIcon className="h-5 w-5 text-muted" />
                                 </button>
                             </li>
                         )}
