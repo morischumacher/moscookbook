@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { conventionalRows } from '@/lib/ingredientShape';
 import { linkRecipe } from '@/lib/ingredientCatalog';
+import { applyStandardUnits } from '@/lib/ingredientUnitsDb';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { route } from '@/lib/route';
@@ -101,6 +102,8 @@ export const POST = route({ access: 'admin', body, label: 'Importing recipes' },
             })
         );
         await linkRecipe(made.id).catch(() => 0);
+        // And in the cookbook's standard units where that is sure (lib/ingredientUnitsDb).
+        await applyStandardUnits(made.id).catch(() => false);
         created += 1;
     }
 

@@ -193,7 +193,7 @@ const asJson = (parts: Part[]) => parts as unknown as Prisma.InputJsonValue;
 
 /** The units each ingredient is bought in, as far as known without asking anybody. */
 export async function knownUnits(client: Pick<Tx, 'ingredientItem'>, itemIds: number[]): Promise<Map<number, { name: string; units: Units | null }>> {
-    const items = await client.ingredientItem.findMany({ where: { id: { in: itemIds } }, select: { id: true, de: true, en: true, buyMeasure: true, factors: true } });
+    const items = await client.ingredientItem.findMany({ where: { id: { in: itemIds } }, select: { id: true, de: true, en: true, buyMeasure: true, factors: true, unit: true } });
     return new Map(items.map((item) => [item.id, { name: item.de || item.en, units: unitsOf(item, commonIngredient(item.de)?.id ?? commonIngredient(item.en)?.id ?? null) }]));
 }
 

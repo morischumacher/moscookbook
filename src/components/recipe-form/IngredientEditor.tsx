@@ -4,8 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
-import { conventionalRows, shapeOf } from '@/lib/ingredientShape';
+import { conventionalRows } from '@/lib/ingredientShape';
 import { choiceFor, joinFromEditor, splitForEditor } from '@/lib/unitChoice';
+import { matchIn } from '@/lib/ingredientMatch';
+import { unitLabel } from '@/lib/ingredientUnits';
+import IngredientHint, { type FormCatalogItem } from './IngredientHint';
 import { sectionHeading } from '@/lib/ingredientParts';
 import { fieldBase, fieldClass, labelClass } from './formStyles';
 import AmountInput from './AmountInput';
@@ -41,16 +44,19 @@ export default function IngredientEditor({
     // The names already in the cookbook, for the suggestions (ItemInput).
     const locale = useLocale();
     const [names, setNames] = useState<string[]>([]);
-    // name → the unit it is usually written with in this cookbook.
-    const [units, setUnits] = useState<Record<string, string>>({});
+    // The catalogue: each ingredient's names, standard unit and conversions (IngredientHint).
+    const [catalog, setCatalog] = useState<FormCatalogItem[]>([]);
+    // Names the admin chose to keep as new ingredients, not to be asked about again here.
+    const [keptNew, setKeptNew] = useState<Set<string>>(new Set());
+    const lang = locale === 'en' ? 'en' : 'de';
     useEffect(() => {
         let gone = false;
         fetch(`/api/ingredients/names?locale=${locale}`)
             .then((res) => (res.ok ? res.json() : { names: [] }))
-            .then((data: { names: string[]; units?: Record<string, string> }) => {
+            .then((data: { names: string[]; items?: FormCatalogItem[] }) => {
                 if (gone) return;
                 setNames(data.names);
-                setUnits(data.units ?? {});
+                setCatalog(data.items ?? []);
             })
             .catch(() => undefined);
         return () => {
@@ -68,17 +74,23 @@ export default function IngredientEditor({
     };
 
     /*
-     * A row with no unit yet takes the one this ingredient is usually written
-     * with ("Minze" → "Bund"); one chosen by hand is never replaced, and
-     * whatever is saved becomes the usual one for next time.
+     * A row with no unit yet takes the ingredient's standard unit ("Minze" →
+     * "Bund", lib/ingredientUnits); one chosen by hand is never replaced —
+     * when it is of another kind, the hint below the row asks about it.
      */
     const withUsualUnit = (row: Ingredient): Ingredient => {
         const fields = splitForEditor(row.amount);
         if (fields.choice !== '') return row;
-        const usual = units[shapeOf(row.item).base.trim().toLowerCase()];
-        if (!usual) return row;
-        const choice = choiceFor(usual);
-        return { ...row, amount: joinFromEditor({ quantity: fields.quantity, choice, custom: choice === 'custom' ? usual : '' }, locale === 'en' ? 'en' : 'de') };
+        const known = matchIn(row.item, catalog);
+        if (!known || !known.unit) return row;
+        const choice = choiceFor(known.unit);
+        return { ...row, amount: joinFromEditor({ quantity: fields.quantity, choice, custom: choice === 'custom' ? unitLabel(known.unit, lang) : '' }, lang) };
+    };
+
+    /** "Allow this unit too", saved on the ingredient at once (admin → Zutaten shows the same). */
+    const allowUnit = (id: number, measure: string) => {
+        setCatalog((current) => current.map((entry) => (entry.id === id ? { ...entry, moreUnits: [...entry.moreUnits, measure] } : entry)));
+        void fetch('/api/ingredients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'allowUnit', id, measure }) }).catch(() => undefined);
     };
 
     const addRow = (afterIndex?: number) => {
@@ -199,6 +211,17 @@ export default function IngredientEditor({
                                 ×
                             </button>
                         </div>
+                        <IngredientHint
+                            item={row.item}
+                            amount={row.amount}
+                            catalog={catalog}
+                            locale={lang}
+                            keptNew={keptNew.has(row.item.trim().toLowerCase())}
+                            onItem={(next) => update(index, 'item', next)}
+                            onAmount={(next) => update(index, 'amount', next)}
+                            onKeepNew={() => setKeptNew((current) => new Set(current).add(row.item.trim().toLowerCase()))}
+                            onAllow={allowUnit}
+                        />
                     </div>
                     )
                 )}

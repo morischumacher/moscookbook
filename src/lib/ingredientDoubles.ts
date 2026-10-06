@@ -33,7 +33,7 @@ interface Named {
 }
 
 /** How many letters apart two names are, giving up past `max`. */
-function distance(a: string, b: string, max: number): number {
+export function distance(a: string, b: string, max: number): number {
     if (Math.abs(a.length - b.length) > max) return max + 1;
     let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
     for (let i = 1; i <= a.length; i += 1) {

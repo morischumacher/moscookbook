@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { sayable } from '@/lib/apiMessage';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
@@ -10,6 +11,8 @@ import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 import type { Units } from '@/lib/shoppingParts';
 import { CHOOSABLE_AISLES } from '@/lib/shopping';
 import { buyLabel, conversionLines, readConversion } from '@/lib/unitConversion';
+import { familyOf, measureOf, unitLabel, type UnitUse } from '@/lib/ingredientUnits';
+import { UNIT_CHOICES } from '@/lib/unitChoice';
 
 interface Item {
     id: number;
@@ -25,10 +28,21 @@ interface Item {
     aisle: string | null;
     ruleAisle: string;
     createdAt: string;
+    /** Its standard unit ('g', 'bunch', '' for pieces), set or read off the recipes; null when undecided. */
+    unit: string | null;
+    unitChosen: boolean;
+    /** Further kinds of unit allowed ("mass", "count:"). */
+    moreUnits: string[];
+    /** Its recipe rows, counted by unit. */
+    unitUses: UnitUse[];
+    /** Kinds of unit its rows use that are neither the standard's nor allowed. */
+    oddUnits: string[];
+    /** Kinds the shopping list cannot yet convert, waiting for the AI. */
+    missingConversions: string[];
 }
 
 /** The ways into the list: what needs looking at first, then by age and use. */
-type View = 'doubles' | 'missing' | 'newest' | 'used' | 'unused' | 'all';
+type View = 'doubles' | 'units' | 'missing' | 'newest' | 'used' | 'unused' | 'all';
 
 interface Double {
     a: number;
@@ -51,11 +65,14 @@ export default function IngredientCatalog() {
     const t = useTranslations('Ingredients');
     const locale = useLocale() === 'en' ? 'en' : 'de';
     const [ask, dialog] = useConfirm();
+    // The admin menu's count of what waits here is the server's: asked again after a change.
+    const router = useRouter();
 
     const [items, setItems] = useState<Item[] | null>(null);
     const [doubles, setDoubles] = useState<Double[]>([]);
     const [aiAvailable, setAiAvailable] = useState(false);
     const [unlinked, setUnlinked] = useState(0);
+    const [dueCount, setDueCount] = useState(5);
     const [query, setQuery] = useState('');
     const [view, setView] = useState<View | null>(null);
     const [shown, setShown] = useState(60);
@@ -79,11 +96,13 @@ export default function IngredientCatalog() {
             doubles: Double[];
             aiAvailable: boolean;
             unlinked: number;
+            dueCount: number;
         };
         setItems(data.items);
         setDoubles(data.doubles);
         setAiAvailable(data.aiAvailable);
         setUnlinked(data.unlinked);
+        setDueCount(data.dueCount);
     }, [t]);
 
     useEffect(() => {
@@ -119,6 +138,7 @@ export default function IngredientCatalog() {
         setSelected(new Set());
         setNote(t('merged', { name: label(byId.get(into)) }));
         await load();
+        router.refresh();
     };
 
     const notDouble = async (pair: Double) => {
@@ -169,6 +189,23 @@ export default function IngredientCatalog() {
         if (done) setAiProposals(done);
     };
 
+    const unitAction = async (key: string, body: object) => {
+        const done = (await call(key, { method: 'POST', body: JSON.stringify(body) })) as { recipes?: number; skipped?: number } | null;
+        if (!done) return;
+        if (typeof done.recipes === 'number') setNote(t('rowsConverted', { count: done.recipes, skipped: done.skipped ?? 0 }));
+        await load();
+        router.refresh();
+    };
+
+    const aiUnits = async () => {
+        const done = (await call('aiUnits', { method: 'POST', body: JSON.stringify({ action: 'aiUnits' }) })) as { taught: number; left: number } | null;
+        if (done) {
+            setNote(t('unitsLearned', { count: done.taught, left: done.left }));
+            await load();
+            router.refresh();
+        }
+    };
+
     const aiTranslate = async () => {
         const done = (await call('aiTranslate', {
             method: 'POST',
@@ -183,8 +220,11 @@ export default function IngredientCatalog() {
     const all = items ?? [];
     const missing = all.filter((item) => !item.de || !item.en).length;
     const unused = all.filter((item) => item.uses === 0).length;
+    const conflicts = all.filter((item) => item.oddUnits.length > 0);
+    const toConvert = all.filter((item) => item.missingConversions.length > 0);
     const views: { id: View; count: number | null; attention?: boolean }[] = [
         { id: 'doubles', count: doubles.length, attention: true },
+        { id: 'units', count: conflicts.length, attention: true },
         { id: 'missing', count: missing, attention: true },
         { id: 'newest', count: null },
         { id: 'used', count: null },
@@ -192,7 +232,7 @@ export default function IngredientCatalog() {
         { id: 'all', count: all.length },
     ];
     // First what needs a look; with nothing to look at, the newest.
-    const current: View = view ?? (doubles.length > 0 ? 'doubles' : missing > 0 ? 'missing' : 'newest');
+    const current: View = view ?? (doubles.length > 0 ? 'doubles' : conflicts.length > 0 ? 'units' : missing > 0 ? 'missing' : 'newest');
     const viewHint = current === 'missing' ? t('hint_missing') : current === 'unused' ? t('hint_unused') : current === 'newest' ? t('hint_newest') : '';
 
     const q = query.trim().toLowerCase();
@@ -249,6 +289,38 @@ export default function IngredientCatalog() {
                 )}
             </div>
             {!aiAvailable && <p className="mt-2 text-sm text-faint">{t('noAi')}</p>}
+
+            {/*
+                Conversions the shopping list still lacks, gathered rather than
+                asked one by one: a quiet line while there are few, a box that
+                asks for the tap once it is time (lib/ingredientUnitsDb).
+            */}
+            {toConvert.length > 0 &&
+                (toConvert.length >= dueCount ? (
+                    <section className="mt-6 rounded-xl border border-ink p-4">
+                        <h2 className="flex items-center gap-2 font-bold">
+                            <span aria-hidden className="h-2 w-2 rounded-full bg-accent" />
+                            {t('conversionsDue', { count: toConvert.length })}
+                        </h2>
+                        <p className="mt-1 text-sm text-muted">{t('conversionsExplain', { names: toConvert.slice(0, 6).map((item) => label(item)).join(', ') })}</p>
+                        {aiAvailable ? (
+                            <button type="button" disabled={busy !== null} onClick={() => void aiUnits()} className={`mt-3 ${buttonPrimarySmall}`}>
+                                <BusyLabel busy={busy === 'aiUnits'}>{t('aiUnits')}</BusyLabel>
+                            </button>
+                        ) : (
+                            <p className="mt-2 text-sm text-faint">{t('aiUnitsNoAi')}</p>
+                        )}
+                    </section>
+                ) : (
+                    <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+                        {t('conversionsWaiting', { count: toConvert.length, due: dueCount })}
+                        {aiAvailable && (
+                            <button type="button" disabled={busy !== null} onClick={() => void aiUnits()} className="min-h-11 underline underline-offset-4 hover:text-ink">
+                                <BusyLabel busy={busy === 'aiUnits'}>{t('aiUnitsNow')}</BusyLabel>
+                            </button>
+                        )}
+                    </p>
+                ))}
 
             {aiProposals && (
                 <section className="mt-8 rounded-xl border border-ink p-4">
@@ -346,7 +418,27 @@ export default function IngredientCatalog() {
                     </div>
                 )}
 
-                {!q && current === 'doubles' ? (
+                {!q && current === 'units' ? (
+                    conflicts.length === 0 ? (
+                        <p className="mt-6 text-muted">{t('noConflicts')}</p>
+                    ) : (
+                        <>
+                            <p className="mt-3 text-sm text-muted">{t('conflictsExplain')}</p>
+                            <ul className="mt-2 divide-y divide-line">
+                                {conflicts.slice(0, shown).map((item) => (
+                                    <UnitConflict
+                                        key={`${item.id}-${item.unit}-${item.oddUnits.join()}`}
+                                        item={item}
+                                        name={label(item)}
+                                        locale={locale}
+                                        busy={busy !== null}
+                                        onAction={(body) => void unitAction(`unit-${item.id}`, { id: item.id, ...body })}
+                                    />
+                                ))}
+                            </ul>
+                        </>
+                    )
+                ) : !q && current === 'doubles' ? (
                     doubles.length === 0 ? (
                         <p className="mt-6 text-muted">{t('noDoubles')}</p>
                     ) : (
@@ -412,6 +504,7 @@ export default function IngredientCatalog() {
                                                 await load();
                                         }}
                                         onDelete={() => void remove(item)}
+                                        onUnit={(unit) => void unitAction(`unit-${item.id}`, { action: 'setUnit', id: item.id, unit })}
                                     />
                                 ))}
                             </ul>
@@ -483,6 +576,7 @@ function ItemRow({
     onSelect,
     onSave,
     onDelete,
+    onUnit,
 }: {
     item: Item;
     locale: 'de' | 'en';
@@ -492,9 +586,13 @@ function ItemRow({
     onSelect: () => void;
     onSave: (next: { de: string; en: string; aliases: string[]; units?: Units | null; aisle?: string | null }) => Promise<void>;
     onDelete: () => void;
+    /** Its standard unit set; null: read off its recipes again. */
+    onUnit: (unit: string | null) => void;
 }) {
     const t = useTranslations('Ingredients');
     const tShop = useTranslations('Shopping');
+    // The units on offer: the editor's, and any of its own its recipes use ("Dose").
+    const unitChoices = [...new Set([...UNIT_CHOICES, ...item.unitUses.map((use) => use.unit), ...(item.unit !== null ? [item.unit] : [])])];
     const [open, setOpen] = useState(false);
     const [de, setDe] = useState(item.de);
     const [en, setEn] = useState(item.en);
@@ -561,6 +659,23 @@ function ItemRow({
                 </label>
             </div>
             <div className="pl-11">
+                {/* The unit it is written in: what a new row takes, and what other units are measured against. */}
+                <label className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+                    {t('standardUnit')}
+                    <select
+                        value={item.unitChosen && item.unit !== null ? item.unit : '__auto'}
+                        onChange={(event) => onUnit(event.target.value === '__auto' ? null : event.target.value)}
+                        className="min-h-9 rounded-lg border border-control bg-transparent px-2 text-sm text-ink"
+                    >
+                        <option value={'__auto'}>{item.unit !== null && !item.unitChosen ? t('unitAuto', { unit: unitLabel(item.unit, locale) }) : t('unitUndecided')}</option>
+                        {unitChoices.map((unit) => (
+                            <option key={unit} value={unit}>
+                                {unitLabel(unit, locale)}
+                            </option>
+                        ))}
+                    </select>
+                    {item.unitUses.length > 0 && <span className="text-faint">{item.unitUses.map((use) => `${unitLabel(use.unit, locale)} ${use.count}×`).join(' · ')}</span>}
+                </label>
                 <UnitsEditor units={item.units} own={item.ownUnits} locale={locale} onSave={(units) => onSave({ de: item.de, en: item.en, aliases: item.aliases, units })} />
                 {/* Where it goes on the shopping list; beats every rule. */}
                 <label className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
@@ -610,6 +725,70 @@ function ItemRow({
                     )}
                 </span>
             </div>
+        </li>
+    );
+}
+
+/**
+ * One ingredient written in two kinds of unit, and the ways out: which unit
+ * is its standard (when nobody chose yet), then for every other kind either
+ * "it may be written so too" or "rewrite those recipes in the standard unit".
+ */
+function UnitConflict({
+    item,
+    name,
+    locale,
+    busy,
+    onAction,
+}: {
+    item: Item;
+    name: string;
+    locale: 'de' | 'en';
+    busy: boolean;
+    onAction: (body: { action: 'setUnit'; unit: string } | { action: 'allowUnit' | 'convertRows'; measure: string }) => void;
+}) {
+    const t = useTranslations('Ingredients');
+    const usesOf = (kind: string) => item.unitUses.filter((use) => familyOf(measureOf(use.unit)) === kind);
+    const kindLabel = (kind: string) =>
+        usesOf(kind)
+            .map((use) => unitLabel(use.unit, locale))
+            .join(' / ') || kind;
+    const quiet = 'min-h-11 rounded-full border border-control px-3 text-sm hover:border-ink disabled:opacity-50';
+    return (
+        <li className="py-3">
+            <p className="font-medium">{name}</p>
+            <p className="text-xs text-faint">{item.unitUses.map((use) => `${unitLabel(use.unit, locale)}: ${t('recipesCount', { count: use.count })}`).join(' · ')}</p>
+            {item.unit === null ? (
+                <div className="mt-2">
+                    <p className="text-sm text-muted">{t('pickStandard')}</p>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                        {item.unitUses.map((use) => (
+                            <button key={use.unit} type="button" disabled={busy} onClick={() => onAction({ action: 'setUnit', unit: use.unit })} className={quiet}>
+                                {unitLabel(use.unit, locale)}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                item.oddUnits.map((kind) => {
+                    const count = usesOf(kind).reduce((sum, use) => sum + use.count, 0);
+                    return (
+                        <div key={kind} className="mt-2">
+                            <p className="text-sm text-muted">
+                                {t('oddUnit', { count, unit: kindLabel(kind), standard: unitLabel(item.unit!, locale) })}
+                            </p>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                                <button type="button" disabled={busy} onClick={() => onAction({ action: 'convertRows', measure: kind })} className={quiet}>
+                                    {t('convertTo', { unit: unitLabel(item.unit!, locale) })}
+                                </button>
+                                <button type="button" disabled={busy} onClick={() => onAction({ action: 'allowUnit', measure: kind })} className={quiet}>
+                                    {t('allowUnit', { unit: kindLabel(kind) })}
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })
+            )}
         </li>
     );
 }

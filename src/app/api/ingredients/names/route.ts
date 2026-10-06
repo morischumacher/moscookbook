@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { route } from '@/lib/route';
 import { linkAllUnlinked } from '@/lib/ingredientCatalog';
 import { germanName } from '@/lib/ingredientNames';
+import { unitOverview } from '@/lib/ingredientUnitsDb';
 
 /**
  * The names the ingredient field suggests while typing: the cookbook's
@@ -11,7 +12,9 @@ import { germanName } from '@/lib/ingredientNames';
  * English one "spring onions" — the most used first, with their other names
  * after. Choosing one gives the row the name the catalogue already knows, so
  * the same thing is the same ingredient everywhere. For the recipe form,
- * which is the admin's.
+ * which is the admin's. With every ingredient's names, standard unit and
+ * conversions, so the form can say "that one you have, usually in g" or
+ * "new — but Nudeln looks alike" (lib/ingredientMatch, lib/ingredientUnits).
  *
  * Also where recipes from before the catalogue are given their ingredients,
  * a batch at a time, the first times the form is opened.
@@ -20,19 +23,11 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
     const locale = new URL(req.url).searchParams.get('locale') === 'en' ? 'en' : 'de';
     await linkAllUnlinked(100).catch(() => undefined);
     const items = await prisma.ingredientItem.findMany({
-        select: { id: true, de: true, en: true, aliases: true, _count: { select: { ingredients: true } } },
+        select: { id: true, de: true, en: true, aliases: true, keys: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true, _count: { select: { ingredients: true } } },
     });
-    // The unit each is usually written with ("Minze" → "Bund"), offered when a row has none yet.
-    // Rows with no unit count too: onions usually counted are not offered the one "1 kg".
-    const used = await prisma.ingredient.groupBy({ by: ['itemId', 'unit'], where: { itemId: { not: null } }, _count: { _all: true } });
-    const usual = new Map<number, { unit: string; count: number }>();
-    for (const row of used) {
-        const unit = (row.unit ?? '').trim();
-        if (row.itemId === null) continue;
-        const best = usual.get(row.itemId);
-        if (!best || row._count._all > best.count) usual.set(row.itemId, { unit, count: row._count._all });
-    }
-    const units: Record<string, string> = {};
+    // Each with its standard unit ("Minze" → Bund): offered to a row with none
+    // yet, and the reason for "Pasta is usually in g" when a row says otherwise.
+    const overview = await unitOverview(items);
     items.sort((a, b) => b._count.ingredients - a._count.ingredients);
     const seen = new Set<string>();
     const names: string[] = [];
@@ -46,9 +41,18 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
     // Each in the page's language first, else the other; then every other name it goes by.
     for (const item of items) add(locale === 'de' ? item.de || item.en : item.en || item.de);
     for (const item of items) for (const alias of item.aliases) add(alias);
-    for (const item of items) {
-        const unit = usual.get(item.id)?.unit;
-        if (unit) for (const name of [item.de, item.en, ...item.aliases]) if (name.trim()) units[name.trim().toLowerCase()] = unit;
-    }
-    return NextResponse.json({ names, units }, { headers: { 'Cache-Control': 'private, max-age=60' } });
+    const catalog = items.map((item) => {
+        const entry = overview.get(item.id);
+        return {
+            id: item.id,
+            de: item.de,
+            en: item.en,
+            aliases: item.aliases,
+            keys: item.keys,
+            unit: entry?.state.unit ?? null,
+            moreUnits: item.moreUnits,
+            units: entry?.units ?? null,
+        };
+    });
+    return NextResponse.json({ names, items: catalog }, { headers: { 'Cache-Control': 'private, max-age=60' } });
 });

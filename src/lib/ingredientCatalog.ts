@@ -1,9 +1,8 @@
 import prisma from './prisma';
-import { shoppingKey } from './shopping';
-import { germanName, NOISE } from './ingredientNames';
+import { germanName } from './ingredientNames';
+import { coreName, itemKeys, keysFor, namesIn } from './ingredientMatch';
 import { guessLanguage, storedRows, type RecipeLanguage } from './recipeTranslation';
 import { sectionHeading } from './ingredientParts';
-import { shapeOf } from './ingredientShape';
 
 /**
  * The cookbook's ingredients, once each, in both languages.
@@ -20,42 +19,13 @@ import { shapeOf } from './ingredientShape';
  * imports — and are found and merged on admin → Zutaten, with or without AI.
  */
 
+export { coreName, itemKeys, keysFor } from './ingredientMatch';
+
 export interface CatalogItem {
     id: number;
     de: string;
     en: string;
     aliases: string[];
-}
-
-/**
- * A row's name without what is not the thing: the form after the comma, the
- * notes in brackets, "(optional)", and a form written before it ("frischer
- * Ingwer") — the cookbook's convention (lib/ingredientShape).
- */
-export function coreName(name: string): string {
-    return shapeOf(name)
-        .base.replace(/\([^)]*\)/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-}
-
-/** "green onions/scallions" → two names; "chicken breast or firm tofu" → two names. */
-function partsOf(name: string): string[] {
-    return coreName(name)
-        .split(/\s*\/\s*|\s+(?:or|oder)\s+/i)
-        .map((part) => part.trim())
-        .filter(Boolean);
-}
-
-/** The folded forms a name may be known by: as written, and without "fresh", "fein gehackt" and the like. */
-export function keysFor(name: string): string[] {
-    const plain = name.replace(NOISE, ' ').replace(/\s+/g, ' ').trim();
-    return [...new Set([shoppingKey(name), shoppingKey(plain)].filter(Boolean))];
-}
-
-/** Every key an item is found by: its names in both languages and its further ones. */
-export function itemKeys(item: { de: string; en: string; aliases: string[] }): string[] {
-    return [...new Set([item.de, item.en, ...item.aliases].filter((name) => name.trim()).flatMap((name) => keysFor(name)))];
 }
 
 /**
@@ -66,7 +36,7 @@ export function itemKeys(item: { de: string; en: string; aliases: string[] }): s
 type Client = Pick<typeof prisma, 'ingredientItem'>;
 
 export async function matchItem(name: string, client: Client = prisma): Promise<number | null> {
-    const parts = partsOf(name);
+    const parts = namesIn(name);
     if (parts.length === 0) return null;
     let found: number | null = null;
     for (const part of parts) {

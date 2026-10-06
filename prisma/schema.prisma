@@ -1145,6 +1145,13 @@ model IngredientItem {
   factors     Json         @default("{}")
   /// The shop aisle, set by hand on admin → Zutaten; null: by the rules (lib/shopping aisleOf).
   aisle       String?
+  /// The unit it is written in, as the editor's choice ('g', 'tbsp', 'bunch',
+  /// '' for pieces, or a word of its own); null: read off its recipes
+  /// (lib/ingredientUnits).
+  unit        String?
+  /// Further kinds of unit it may be written in ("mass", "count:" …), so a
+  /// row in one is no conflict.
+  moreUnits   String[]     @default([])
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   ingredients Ingredient[]
