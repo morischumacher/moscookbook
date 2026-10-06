@@ -7,6 +7,7 @@ import { formatShape, shapeOf } from '@/lib/ingredientShape';
 import { matchIn, similarIn, type MatchableItem } from '@/lib/ingredientMatch';
 import { convertQuantity, familyOf, isEuropean, measureOf, perUnit, conversionText, rebased, storedFactor, unitFits, unitKey, unitLabel } from '@/lib/ingredientUnits';
 import type { Units } from '@/lib/shoppingParts';
+import { toMetric } from '@/lib/units';
 
 export interface FormCatalogItem extends MatchableItem {
     /** Its main unit ('g', 'bunch', '' for pieces), or null with none yet. */
@@ -150,6 +151,24 @@ export default function IngredientHint({
                         else if (answer.choice === null) onKeepNew();
                     })}
                 </div>
+            </div>
+        );
+    }
+
+    // "cups", "oz": not a European unit — converted with plain arithmetic, no card needed (lib/units toMetric).
+    if (known && parts.quantity !== null && written && !isEuropean(unitKey(written))) {
+        const metric = toMetric(parts, name, language);
+        const converted = metric.unit !== parts.unit ? formatAmount(metric, 1, language) : null;
+        return (
+            <div className={box} role="note">
+                {status('warning', t('hintNotEuropean', { unit: written }))}
+                {converted && (
+                    <div className="mt-2">
+                        <button type="button" onClick={() => onAmount(converted)} className={chip}>
+                            {t('hintConvertMetric', { amount: converted })}
+                        </button>
+                    </div>
+                )}
             </div>
         );
     }

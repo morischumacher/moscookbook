@@ -31,6 +31,7 @@ export default function TranslationPanel({
     translation,
     onTranslation,
     available,
+    onKnown,
 }: {
     original: TranslatableRecipe;
     language: RecipeLanguage;
@@ -39,6 +40,8 @@ export default function TranslationPanel({
     onTranslation: (next: RecipeTranslationInput | null) => void;
     /** False when the AI is off: the button is drawn, greyed, with where to turn it on. */
     available: boolean;
+    /** A translation row matched to the list: the original's row beside it takes the list's name. */
+    onKnown?: (index: number, names: { de: string; en: string }, rows: { item: string }[]) => void;
 }) {
     const t = useTranslations('RecipeForm');
     const tAi = useTranslations('Ai');
@@ -171,7 +174,9 @@ export default function TranslationPanel({
                     <IngredientEditor
                         ingredients={current.ingredients}
                         onChange={(rows) => edit({ ingredients: rows })}
-                        hints={false}
+                        // The same green / amber / blue as above, in the translation's language.
+                        language={current.locale}
+                        onKnown={(index, names) => onKnown?.(index, names, current.ingredients)}
                     />
 
                     <div>

@@ -9,11 +9,12 @@ import { choiceFor, joinFromEditor, splitForEditor } from '@/lib/unitChoice';
 import { itemKeys, matchIn } from '@/lib/ingredientMatch';
 import { familyOf, measureOf, rebased, storedFactor, unitLabel } from '@/lib/ingredientUnits';
 import IngredientHint, { type FormCatalogItem, type RowAnswer } from './IngredientHint';
-import { sectionHeading } from '@/lib/ingredientParts';
 import { fieldBase, fieldClass, labelClass } from './formStyles';
 import AmountInput from './AmountInput';
 import ItemInput from './ItemInput';
 import { moved, useDragReorder } from '@/components/ui/useDragReorder';
+import { formatAmount, sectionHeading, splitAmount } from '@/lib/ingredientParts';
+import { toUS } from '@/lib/units';
 
 export const EMPTY_ROW: Ingredient = { amount: '', item: '' };
 
@@ -27,11 +28,14 @@ export default function IngredientEditor({
     onChange,
     hints = true,
     language,
+    onKnown,
 }: {
     ingredients: Ingredient[];
     onChange: (next: Ingredient[]) => void;
     /** The recipe's language: names and units are written and shown in it. Default: the page's. */
     language?: 'de' | 'en';
+    /** A row became an ingredient of the list: its names, for the row beside it in the other language. */
+    onKnown?: (index: number, names: { de: string; en: string }) => void;
     /** The green / amber / blue line under each row (IngredientHint); off for the translation's rows. */
     hints?: boolean;
 }) {
@@ -85,6 +89,11 @@ export default function IngredientEditor({
             return field === 'item' ? withUsualUnit(changed) : changed;
         });
         onChange(next);
+        // The other language follows at once: the list's name there (lib/ingredientMatch syncedRows).
+        if (field === 'item') {
+            const known = matchIn(value, catalog);
+            if (known) onKnown?.(index, { de: known.de, en: known.en });
+        }
     };
 
     /*
@@ -155,6 +164,16 @@ export default function IngredientEditor({
     const askAi = async (question: object): Promise<RowAnswer | null> => {
         const res = await fetch('/api/ingredients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'aiRow', question }) }).catch(() => null);
         return res?.ok ? ((await res.json()) as RowAnswer) : null;
+    };
+
+    /** The row in cups and ounces, when it is in grams or millilitres; null otherwise. */
+    const usAmount = (row: Ingredient): string | null => {
+        const parts = splitAmount(row.amount);
+        if (parts.quantity === null || !parts.unit) return null;
+        const kind = measureOf(parts.unit);
+        if (kind !== 'mass' && kind !== 'volume') return null;
+        const us = toUS(parts, row.item, lang);
+        return us.unit && us.unit !== parts.unit ? formatAmount(us, 1, lang) : null;
     };
 
     const addRow = (afterIndex?: number) => {
@@ -261,6 +280,8 @@ export default function IngredientEditor({
                                     ×
                                 </button>
                             </div>
+                            {/* The amount as an American reader sees it ("480 ml" → "2 cups"): to round a number that came out crooked. */}
+                            {!drag && usAmount(row) && <p className="basis-full text-xs text-faint">{t('usAmount', { amount: usAmount(row)! })}</p>}
                             {/* Folded away while a row is dragged: every row its compact self, so the places add up. */}
                             {hints && !drag && (
                                 <IngredientHint

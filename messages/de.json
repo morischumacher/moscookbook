@@ -272,6 +272,9 @@
     "ingredients": "Zutaten"
   },
   "RecipeForm": {
+    "usAmount": "In Cups/oz: {amount}",
+    "hintConvertMetric": "Auf {amount} umrechnen",
+    "hintNotEuropean": "{unit} ist keine europäische Einheit.",
     "hintTheCard": "Die Karte",
     "hintThisRow": "Diese Zeile",
     "hintConversion": "Umrechnung",

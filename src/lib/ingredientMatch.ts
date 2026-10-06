@@ -1,6 +1,6 @@
 import { shoppingKey } from './shopping';
 import { NOISE } from './ingredientNames';
-import { shapeOf } from './ingredientShape';
+import { formatShape, shapeOf } from './ingredientShape';
 import { distance } from './ingredientDoubles';
 
 /**
@@ -101,4 +101,23 @@ export function similarIn<T extends MatchableItem>(name: string, items: T[], lim
         if (best > 0) scored.push({ item, score: best });
     }
     return scored.sort((a, b) => b.score - a.score).slice(0, limit).map((entry) => entry.item);
+}
+
+/**
+ * The row beside an edited one, in the recipe's other language, given the
+ * list's name for the ingredient the edited row now is: "Frühlingszwiebeln,
+ * gehackt" chosen above makes the English row "spring onions, chopped" —
+ * its own preparation and notes kept. Rows are paired by their place among
+ * the rows that are filled in, as a translation is made from them.
+ */
+export function syncedRows<T extends { item: string }>(rows: T[], sourceRows: { item: string }[], index: number, name: string): T[] {
+    if (!name.trim() || !sourceRows[index]?.item.trim() || sourceRows[index].item.trim().startsWith('#')) return rows;
+    const place = sourceRows.slice(0, index).filter((row) => row.item.trim()).length;
+    const target = rows.map((row, at) => ({ row, at })).filter(({ row }) => row.item.trim())[place];
+    if (!target || target.row.item.trim().startsWith('#')) return rows;
+    const shape = shapeOf(target.row.item);
+    if (shoppingKey(shape.base) === shoppingKey(name)) return rows;
+    const next = [...rows];
+    next[target.at] = { ...target.row, item: formatShape({ ...shape, base: name }) };
+    return next;
 }

@@ -272,6 +272,9 @@
     "ingredients": "Ingredients"
   },
   "RecipeForm": {
+    "usAmount": "In cups/oz: {amount}",
+    "hintConvertMetric": "Convert to {amount}",
+    "hintNotEuropean": "{unit} is not a European unit.",
     "hintTheCard": "The card",
     "hintThisRow": "This row",
     "hintConversion": "Conversion",
