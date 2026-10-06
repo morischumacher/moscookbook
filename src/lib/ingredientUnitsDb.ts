@@ -25,7 +25,8 @@ import { usageRecorder } from './tokenUsageDb';
 export async function unitUses(withoutRecipe?: number): Promise<Map<number, UnitUse[]>> {
     const groups = await prisma.ingredient.groupBy({
         by: ['itemId', 'unit'],
-        where: { itemId: { not: null }, ...(withoutRecipe !== undefined ? { recipeId: { not: withoutRecipe } } : {}) },
+        // A row with no amount at all ("Chiliöl, zum Servieren") says nothing about the unit: not counted as pieces.
+        where: { itemId: { not: null }, OR: [{ quantity: { not: null } }, { unit: { not: null } }], ...(withoutRecipe !== undefined ? { recipeId: { not: withoutRecipe } } : {}) },
         _count: { _all: true },
     });
     const uses = new Map<number, Map<string, number>>();

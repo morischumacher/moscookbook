@@ -291,7 +291,12 @@ export default function IngredientCatalog() {
                                         <li key={index} className="flex flex-wrap items-center justify-between gap-2 py-2">
                                             <span>{describe(decision, t, locale)}</span>
                                             {decision.kind !== 'merged' && decision.kind !== 'open' && (
-                                                <button type="button" disabled={busy !== null} onClick={() => void undo(decision, index)} className="min-h-11 px-2 text-muted underline underline-offset-4 hover:text-ink">
+                                                <button
+                                                    type="button"
+                                                    disabled={busy !== null}
+                                                    onClick={() => void undo(decision, index)}
+                                                    className="min-h-11 px-2 text-muted underline underline-offset-4 hover:text-ink"
+                                                >
                                                     {t('undo')}
                                                 </button>
                                             )}
@@ -307,7 +312,13 @@ export default function IngredientCatalog() {
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <p className="text-sm text-muted">{questionCount === 0 ? t('nothingToDecide') : t('decideExplain')}</p>
                             {questionCount > 0 && (
-                                <button type="button" disabled={busy !== null || !aiAvailable} title={aiAvailable ? undefined : t('noAiShort')} onClick={() => void aiResolve({}, 'ai-all')} className={buttonPrimarySmall}>
+                                <button
+                                    type="button"
+                                    disabled={busy !== null || !aiAvailable}
+                                    title={aiAvailable ? undefined : t('noAiShort')}
+                                    onClick={() => void aiResolve({}, 'ai-all')}
+                                    className={buttonPrimarySmall}
+                                >
                                     <BusyLabel busy={busy === 'ai-all'}>{t('aiAll', { count: questionCount })}</BusyLabel>
                                 </button>
                             )}
@@ -331,7 +342,12 @@ export default function IngredientCatalog() {
                                             <button type="button" disabled={busy !== null} onClick={() => void merge(keep.id, [gone.id])} className={buttonSecondary}>
                                                 {t('qMerge', { name: label(keep) })}
                                             </button>
-                                            <button type="button" disabled={busy !== null} onClick={() => void act(`nd-${pair.a}`, { action: 'notDouble', a: pair.a, b: pair.b })} className={buttonSecondary}>
+                                            <button
+                                                type="button"
+                                                disabled={busy !== null}
+                                                onClick={() => void act(`nd-${pair.a}`, { action: 'notDouble', a: pair.a, b: pair.b })}
+                                                className={buttonSecondary}
+                                            >
                                                 {t('qDifferent')}
                                             </button>
                                             <AiButton busy={busy} id={`ai-d-${pair.a}-${pair.b}`} available={aiAvailable} onClick={(key) => void aiResolve({ double: [pair.a, pair.b] }, key)} />
@@ -375,7 +391,12 @@ export default function IngredientCatalog() {
                     <>
                         {(q || viewHint) && <p className="mt-3 text-sm text-muted">{q ? t('count', { count: visible.length, total: items.length }) : viewHint}</p>}
                         {!q && current === 'missing' && missing > 0 && aiAvailable && (
-                            <button type="button" disabled={busy !== null} onClick={() => void act('aiTranslate', { action: 'aiTranslate' }, t('translatedDone'))} className={`mt-2 ${buttonSecondary}`}>
+                            <button
+                                type="button"
+                                disabled={busy !== null}
+                                onClick={() => void act('aiTranslate', { action: 'aiTranslate' }, t('translatedDone'))}
+                                className={`mt-2 ${buttonSecondary}`}
+                            >
                                 <BusyLabel busy={busy === 'aiTranslate'}>{t('aiTranslate', { count: missing })}</BusyLabel>
                             </button>
                         )}
@@ -440,7 +461,12 @@ export default function IngredientCatalog() {
                                     <button
                                         type="button"
                                         disabled={busy !== null}
-                                        onClick={() => void merge(item.id, mergeSheet.filter((id) => id !== item.id))}
+                                        onClick={() =>
+                                            void merge(
+                                                item.id,
+                                                mergeSheet.filter((id) => id !== item.id),
+                                            )
+                                        }
                                         className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-line px-3 text-left hover:border-ink disabled:opacity-50"
                                     >
                                         <span>
@@ -466,7 +492,10 @@ function describe(decision: AiDecision, t: ReturnType<typeof useTranslations>, l
         case 'different':
             return t('aiDifferent', { a: decision.names[0], b: decision.names[1] });
         case 'kept':
-            return t('aiKept', { name: decision.name, conversion: `${decision.a} ${unitLabel(decision.unit, locale, decision.a > 1)} = ${decision.b} ${unitLabel(decision.main, locale, decision.b > 1)}` });
+            return t('aiKept', {
+                name: decision.name,
+                conversion: `${decision.a} ${unitLabel(decision.unit, locale, decision.a > 1)} = ${decision.b} ${unitLabel(decision.main, locale, decision.b > 1)}`,
+            });
         case 'converted':
             return t('aiConverted', {
                 name: decision.name,
@@ -552,58 +581,70 @@ function UnitQuestionCard({
         <li className="rounded-xl border border-line p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('qUnit')}</p>
             <p className="mt-1">
-                <span className="font-medium">{name}</span> <span className="text-muted">· {t('mainUnit')}: {main}</span>
+                <span className="font-medium">{name}</span>{' '}
+                <span className="text-muted">
+                    · {t('mainUnit')}: {main}
+                </span>
             </p>
-            <button type="button" aria-expanded={open} onClick={() => setOpen((on) => !on)} className="mt-1 min-h-9 text-sm text-muted hover:text-ink">
-                {t('qUnitRecipes', { count: question.rows.length, unit })} <span aria-hidden>{open ? '▾' : '▸'}</span>
-            </button>
-            {open && (
-                <ul className="mt-1 flex flex-col gap-1 text-sm">
-                    {question.rows.map((row) => (
-                        <li key={row.rowId} className="flex flex-wrap items-center gap-x-2">
-                            {editing === row.rowId ? (
-                                <form
-                                    className="flex w-full flex-wrap items-center gap-2 py-1"
-                                    onSubmit={(event) => {
-                                        event.preventDefault();
-                                        if (!draft.trim()) return;
-                                        onRow(row.rowId, draft.trim());
-                                        setEditing(null);
+            {/* Where: the rows themselves, in sight — three, and the rest a tap away. */}
+            <p className="mt-2 text-sm text-muted">{t('qUnitRecipes', { count: question.rows.length, unit })}:</p>
+            <ul className="mt-1 flex flex-col gap-1 text-sm">
+                {(open ? question.rows : question.rows.slice(0, 3)).map((row) => (
+                    <li key={row.rowId} className="flex flex-wrap items-center gap-x-2">
+                        {editing === row.rowId ? (
+                            <form
+                                className="flex w-full flex-wrap items-center gap-2 py-1"
+                                onSubmit={(event) => {
+                                    event.preventDefault();
+                                    if (!draft.trim()) return;
+                                    onRow(row.rowId, draft.trim());
+                                    setEditing(null);
+                                }}
+                            >
+                                <input
+                                    value={draft}
+                                    onChange={(event) => setDraft(event.target.value)}
+                                    aria-label={t('rowAmount', { recipe: row.title })}
+                                    placeholder={t('rowAmountPlaceholder')}
+                                    autoFocus
+                                    className={`${field} w-32`}
+                                />
+                                <span className="text-muted">{row.name}</span>
+                                <button type="submit" disabled={busy !== null || !draft.trim()} className={buttonPrimarySmall}>
+                                    {t('save')}
+                                </button>
+                                <button type="button" onClick={() => setEditing(null)} className="min-h-11 px-2 text-sm text-muted underline underline-offset-4">
+                                    {t('cancel')}
+                                </button>
+                            </form>
+                        ) : (
+                            <>
+                                <span>
+                                    <span className="font-medium">{row.amount || '—'}</span> {row.name}
+                                </span>
+                                <span className="text-faint">·</span>
+                                <Link href={`/recipe/${row.slug}`} target="_blank" className="min-h-8 text-muted underline underline-offset-4 hover:text-ink">
+                                    {row.title}
+                                </Link>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setEditing(row.rowId);
+                                        setDraft(row.amount);
                                     }}
+                                    className="min-h-8 px-1 text-muted underline underline-offset-4 hover:text-ink"
                                 >
-                                    <input value={draft} onChange={(event) => setDraft(event.target.value)} aria-label={t('rowAmount', { recipe: row.title })} placeholder={t('rowAmountPlaceholder')} autoFocus className={`${field} w-32`} />
-                                    <span className="text-muted">{row.name}</span>
-                                    <button type="submit" disabled={busy !== null || !draft.trim()} className={buttonPrimarySmall}>
-                                        {t('save')}
-                                    </button>
-                                    <button type="button" onClick={() => setEditing(null)} className="min-h-11 px-2 text-sm text-muted underline underline-offset-4">
-                                        {t('cancel')}
-                                    </button>
-                                </form>
-                            ) : (
-                                <>
-                                    <span>
-                                        <span className="font-medium">{row.amount || '—'}</span> {row.name}
-                                    </span>
-                                    <span className="text-faint">·</span>
-                                    <Link href={`/recipe/${row.slug}`} target="_blank" className="min-h-8 text-muted underline underline-offset-4 hover:text-ink">
-                                        {row.title}
-                                    </Link>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setEditing(row.rowId);
-                                            setDraft(row.amount);
-                                        }}
-                                        className="min-h-8 px-1 text-muted underline underline-offset-4 hover:text-ink"
-                                    >
-                                        {t('replaceRow')}
-                                    </button>
-                                </>
-                            )}
-                        </li>
-                    ))}
-                </ul>
+                                    {t('replaceRow')}
+                                </button>
+                            </>
+                        )}
+                    </li>
+                ))}
+            </ul>
+            {question.rows.length > 3 && (
+                <button type="button" aria-expanded={open} onClick={() => setOpen((on) => !on)} className="mt-1 min-h-9 text-sm text-muted underline underline-offset-4 hover:text-ink">
+                    {open ? t('fewer') : t('moreRows', { count: question.rows.length - 3 })}
+                </button>
             )}
             {/* The conversion both answers need: proposed where known, always editable. */}
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
@@ -674,7 +715,14 @@ function ItemRow({
     const second = locale === 'de' ? item.en : item.de;
     const head = (
         <div className="flex items-center gap-2">
-            <button type="button" role="checkbox" aria-checked={selected} aria-label={t('selectName', { name: first || second })} onClick={onSelect} className="flex h-11 w-9 shrink-0 items-center justify-center">
+            <button
+                type="button"
+                role="checkbox"
+                aria-checked={selected}
+                aria-label={t('selectName', { name: first || second })}
+                onClick={onSelect}
+                className="flex h-11 w-9 shrink-0 items-center justify-center"
+            >
                 <span aria-hidden className={`flex h-5 w-5 items-center justify-center rounded-md border text-xs ${selected ? 'border-transparent bg-ink text-page' : 'border-control'}`}>
                     {selected ? '✓' : ''}
                 </span>
@@ -806,7 +854,13 @@ function CardUnits({
         <div className="text-sm">
             <p className="text-xs text-muted">{t('units')}</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
-                <select value={main ?? ''} onChange={(event) => onMain(event.target.value === '' && main === null ? null : event.target.value)} disabled={busy} aria-label={t('mainUnit')} className={select}>
+                <select
+                    value={main ?? ''}
+                    onChange={(event) => onMain(event.target.value === '' && main === null ? null : event.target.value)}
+                    disabled={busy}
+                    aria-label={t('mainUnit')}
+                    className={select}
+                >
                     {main === null && <option value="">—</option>}
                     {choices.map((unit) => (
                         <option key={unit} value={unit}>
@@ -820,8 +874,19 @@ function CardUnits({
                 <ul className="mt-2 flex flex-col gap-2">
                     {rows.map((row, index) => (
                         <li key={index} className="flex flex-wrap items-center gap-2">
-                            <input value={row.a} onChange={(event) => setRows((now) => now.map((other, at) => (at === index ? { ...other, a: event.target.value } : other)))} inputMode="decimal" aria-label={t('convA', { unit: unitLabel(row.unit, locale) })} className={field} />
-                            <select value={row.unit} onChange={(event) => setRows((now) => now.map((other, at) => (at === index ? { ...other, unit: event.target.value } : other)))} aria-label={t('furtherUnit')} className={select}>
+                            <input
+                                value={row.a}
+                                onChange={(event) => setRows((now) => now.map((other, at) => (at === index ? { ...other, a: event.target.value } : other)))}
+                                inputMode="decimal"
+                                aria-label={t('convA', { unit: unitLabel(row.unit, locale) })}
+                                className={field}
+                            />
+                            <select
+                                value={row.unit}
+                                onChange={(event) => setRows((now) => now.map((other, at) => (at === index ? { ...other, unit: event.target.value } : other)))}
+                                aria-label={t('furtherUnit')}
+                                className={select}
+                            >
                                 {choices
                                     .filter((unit) => unit !== main)
                                     .map((unit) => (
@@ -831,9 +896,21 @@ function CardUnits({
                                     ))}
                             </select>
                             <span>=</span>
-                            <input value={row.b} onChange={(event) => setRows((now) => now.map((other, at) => (at === index ? { ...other, b: event.target.value } : other)))} inputMode="decimal" placeholder="?" aria-label={t('convB', { unit: unitLabel(main, locale) })} className={field} />
+                            <input
+                                value={row.b}
+                                onChange={(event) => setRows((now) => now.map((other, at) => (at === index ? { ...other, b: event.target.value } : other)))}
+                                inputMode="decimal"
+                                placeholder="?"
+                                aria-label={t('convB', { unit: unitLabel(main, locale) })}
+                                className={field}
+                            />
                             <span>{unitLabel(main, locale)}</span>
-                            <button type="button" onClick={() => setRows((now) => now.filter((_, at) => at !== index))} aria-label={t('removeUnit', { unit: unitLabel(row.unit, locale) })} className="flex h-9 w-9 items-center justify-center text-faint hover:text-danger">
+                            <button
+                                type="button"
+                                onClick={() => setRows((now) => now.filter((_, at) => at !== index))}
+                                aria-label={t('removeUnit', { unit: unitLabel(row.unit, locale) })}
+                                className="flex h-9 w-9 items-center justify-center text-faint hover:text-danger"
+                            >
                                 ×
                             </button>
                         </li>
@@ -842,11 +919,25 @@ function CardUnits({
             )}
             {main !== null && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <button type="button" onClick={() => setRows((now) => [...now, { unit: choices.find((unit) => unit !== main && !now.some((row) => row.unit === unit)) ?? '', a: '1', b: '' }])} className="min-h-9 rounded-full border border-control px-3 text-xs hover:border-ink">
+                    <button
+                        type="button"
+                        onClick={() => setRows((now) => [...now, { unit: choices.find((unit) => unit !== main && !now.some((row) => row.unit === unit)) ?? '', a: '1', b: '' }])}
+                        className="min-h-9 rounded-full border border-control px-3 text-xs hover:border-ink"
+                    >
                         {t('addUnit')}
                     </button>
                     {dirty && (
-                        <button type="button" disabled={busy || !valid} onClick={() => onUnits(main, rows.map((row) => ({ unit: row.unit, a: number(row.a), b: number(row.b) })))} className={buttonPrimarySmall}>
+                        <button
+                            type="button"
+                            disabled={busy || !valid}
+                            onClick={() =>
+                                onUnits(
+                                    main,
+                                    rows.map((row) => ({ unit: row.unit, a: number(row.a), b: number(row.b) })),
+                                )
+                            }
+                            className={buttonPrimarySmall}
+                        >
                             {t('save')}
                         </button>
                     )}
