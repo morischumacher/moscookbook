@@ -21,7 +21,7 @@ import LabelPicker from './LabelPicker';
 import DietPicker from './DietPicker';
 import { CATEGORY_PRESETS, CUISINE_PRESETS } from '@/lib/recipeLabels';
 import { KNOWN_TAGS } from '@/lib/tags';
-import { mirroredRows, syncedRows } from '@/lib/ingredientMatch';
+import { followedRows, syncedRows } from '@/lib/ingredientMatch';
 
 export interface RecipeFormValues {
     id?: number;
@@ -576,10 +576,13 @@ export default function RecipeForm({
 
                 <IngredientEditor
                     ingredients={ingredients}
+                    recipeId={initial?.id}
                     onChange={(next) => {
+                        const before = ingredients;
                         setIngredients(next);
-                        // The amounts are the same in both languages: the translation's follow at once.
-                        setTranslation((current) => (current ? { ...current, ingredients: mirroredRows(current.ingredients, next, current.locale) } : current));
+                        // The amounts are the same in both languages, row for row: the translation's follow at once,
+                        // and a row moved, added or removed here is there too (lib/ingredientMatch followedRows).
+                        setTranslation((current) => (current ? { ...current, ingredients: followedRows(before, next, current.ingredients, current.locale) ?? current.ingredients } : current));
                     }}
                     language={language}
                     // A row matched to the list: its translation's row takes the list's name in that language.
@@ -662,9 +665,12 @@ export default function RecipeForm({
                     translation={translation}
                     onTranslation={(next) => {
                         if (next) setChosenLanguage(language);
+                        const before = translation?.ingredients;
                         setTranslation(next);
-                        // An amount changed in the translation is changed in the original too.
-                        if (next) setIngredients((current) => mirroredRows(current, next.ingredients, language));
+                        // An amount changed in the translation's rows is changed in the original's too — only when the
+                        // rows were what changed, and row for row (lib/ingredientMatch followedRows).
+                        // A translation made again (no row the same) is new words, not new amounts.
+                        if (next && before && next.ingredients !== before && next.ingredients.some((row) => before.includes(row))) setIngredients((current) => followedRows(before, next.ingredients, current, language) ?? current);
                     }}
                     available={aiEnabled}
                     onKnown={(index, names, rows) => setIngredients((current) => syncedRows(current, rows, index, names[language]))}

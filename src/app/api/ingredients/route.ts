@@ -17,6 +17,7 @@ import {
     aiResolve,
     aiRow,
     deleteUnused,
+    fillInfos,
     isStock,
     markDifferent,
     merge,
@@ -58,7 +59,7 @@ import { conversionText, familyOf, isEuropean, measureOf, perUnit, unitForFamily
 async function catalogue() {
     const items = await prisma.ingredientItem.findMany({
         orderBy: [{ de: 'asc' }, { en: 'asc' }],
-        select: { ...itemSelect, aliases: true, enAliases: true, aisle: true, _count: { select: { ingredients: true, shopping: true } } },
+        select: { ...itemSelect, aliases: true, enAliases: true, infoDe: true, infoEn: true, aisle: true, _count: { select: { ingredients: true, shopping: true } } },
     });
     const overview = await unitOverview(items);
     return items.map((item) => {
@@ -72,6 +73,8 @@ async function catalogue() {
             en: item.en,
             aliases: item.aliases,
             enAliases: item.enAliases,
+            infoDe: item.infoDe ?? '',
+            infoEn: item.infoEn ?? '',
             uses: item._count.ingredients,
             onLists: item._count.shopping,
             stock: isStock(item),
@@ -137,12 +140,20 @@ const patchBody = z.object({
     en: name,
     aliases: z.array(name).max(30).transform((list) => [...new Set(list.filter(Boolean).map(capitalized))]),
     enAliases: z.array(name).max(30).transform((list) => [...new Set(list.filter(Boolean).map(capitalized))]),
+    infoDe: z.string().trim().max(300).optional(),
+    infoEn: z.string().trim().max(300).optional(),
     // The shop aisle by hand; null puts it back to the rules. Left out: unchanged.
     aisle: z.string().refine((value) => (CHOOSABLE_AISLES as string[]).includes(value)).nullable().optional(),
 });
 
 export const PATCH = route({ access: 'admin', body: patchBody, label: 'Correcting an ingredient' }, async ({ body }) => {
     if (!body.de && !body.en) refuse(400, 'An ingredient needs a name.');
+    // A name another card has: two cards found by one name would each be matched by a different side.
+    // Only the names new to it: an aisle changed on a card is not refused for an old overlap.
+    const own = new Set((await prisma.ingredientItem.findUnique({ where: { id: body.id }, select: { keys: true } }))?.keys ?? []);
+    const added = itemKeys(body).filter((key) => !own.has(key));
+    const clash = added.length ? await prisma.ingredientItem.findFirst({ where: { id: { not: body.id }, keys: { hasSome: added } }, select: { id: true } }) : null;
+    if (clash) refuse(409, 'Another ingredient already has one of these names. Merge the two instead.');
     const updated = await prisma.ingredientItem.updateMany({
         where: { id: body.id },
         data: {
@@ -150,6 +161,8 @@ export const PATCH = route({ access: 'admin', body: patchBody, label: 'Correctin
             en: capitalized(body.en),
             aliases: body.aliases,
             enAliases: body.enAliases,
+            ...(body.infoDe === undefined ? {} : { infoDe: body.infoDe }),
+            ...(body.infoEn === undefined ? {} : { infoEn: body.infoEn }),
             keys: itemKeys(body),
             handEdited: true,
             ...(body.aisle === undefined ? {} : { aisle: body.aisle }),
@@ -191,6 +204,8 @@ const postBody = z.discriminatedUnion('action', [
     }),
     z.object({ action: z.literal('create'), de: name, en: name }),
     z.object({ action: z.literal('giveName'), id, language: z.enum(['de', 'en']), name: z.string().trim().min(1).max(120) }),
+    z.object({ action: z.literal('setInfo'), id, language: z.enum(['de', 'en']), info: z.string().trim().max(300) }),
+    z.object({ action: z.literal('aiInfo') }),
     z.object({ action: z.literal('linkAll') }),
     z.object({ action: z.literal('deleteUnused') }),
     z.object({ action: z.literal('aiCheck') }),
@@ -237,6 +252,17 @@ export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the
             const answer = await aiRow(body.question);
             if (!answer) refuse(501, 'The AI is switched off or has no key.');
             return NextResponse.json(answer);
+        }
+        case 'setInfo': {
+            // What it is, in one language; shown beside it in every recipe. Typed by hand: kept.
+            const updated = await prisma.ingredientItem.updateMany({ where: { id: body.id }, data: { [body.language === 'de' ? 'infoDe' : 'infoEn']: body.info, handEdited: true } });
+            if (updated.count !== 1) refuse(404, 'That ingredient is gone.');
+            return NextResponse.json({ ok: true });
+        }
+        case 'aiInfo': {
+            const filled = await fillInfos(null);
+            if (filled === null) refuse(501, 'The AI is switched off or has no key.');
+            return NextResponse.json({ filled });
         }
         case 'giveName':
             // "The German version of an English card": its missing name, or the two halves made one (giveName).

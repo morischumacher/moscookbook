@@ -1,4 +1,4 @@
-import { toBase } from './units';
+import { toBase, unitOf, unitSpelling } from './units';
 import { formatAmount, splitAmount } from './ingredientParts';
 import { choiceFor, choiceLabel, type UnitChoice } from './unitChoice';
 import type { Units } from './shoppingParts';
@@ -260,12 +260,22 @@ export function missingConversions(kinds: string[], units: Units | null, standar
  * admin → Zutaten. A unit of its own ("Dose") is kept as typed.
  */
 export function amountIn(amount: string, language: 'de' | 'en'): string {
-    const parts = splitAmount(amount);
-    if (parts.quantity === null) return amount.trim();
-    const key = unitKey(parts.unit);
-    if (key !== '' && choiceFor(key) === 'custom') return amount.trim();
+    const text = amount.trim();
+    const parts = splitAmount(text);
+    if (parts.quantity === null) return text;
+    // The number as typed — "ca. 12,5", "7-8" — in that language's decimal mark; only the unit word changes.
+    const number = (part: string) => (language === 'en' ? part.replace(/(\d),(\d)/g, '$1.$2') : part.replace(/(\d)\.(\d)/g, '$1,$2'));
     const many = (parts.quantityMax ?? parts.quantity) > 1;
-    return formatAmount({ quantity: parts.quantity, quantityMax: parts.quantityMax, unit: key === '' ? null : unitLabel(key, language, many) }, 1, language);
+    const written = parts.unit;
+    if (!written) return number(text);
+    const key = unitKey(written);
+    const known = unitOf(written);
+    // A unit of the list ("EL"), or a known one beyond it ("Tasse" → "cup"); a word of its own ("Dose") stays.
+    const label = key !== '' && choiceFor(key) !== 'custom' ? unitLabel(key, language, many) : known ? unitSpelling(written, many ? 2 : 1, language) : null;
+    if (!label) return text;
+    const at = text.lastIndexOf(written);
+    if (at === -1) return formatAmount({ quantity: parts.quantity, quantityMax: parts.quantityMax, unit: label }, 1, language);
+    return `${number(text.slice(0, at))}${label}${text.slice(at + written.length)}`;
 }
 
 /**

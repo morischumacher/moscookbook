@@ -4,14 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
-import { conventionalRows } from '@/lib/ingredientShape';
-import { choiceFor, joinFromEditor, splitForEditor } from '@/lib/unitChoice';
+import { conventionalRows, joinParts, partsOf, withBase, type IngredientShape } from '@/lib/ingredientShape';
 import { itemKeys, matchIn } from '@/lib/ingredientMatch';
-import { familyOf, measureOf, rebased, storedFactor, unitLabel } from '@/lib/ingredientUnits';
+import { familyOf, measureOf, rebased, storedFactor } from '@/lib/ingredientUnits';
 import IngredientHint, { MirrorHint, rowStatus, type FormCatalogItem, type RowAnswer } from './IngredientHint';
 import { fieldBase, fieldClass, labelClass } from './formStyles';
 import AmountInput from './AmountInput';
-import ItemInput from './ItemInput';
+import ItemInput, { type LinkableRecipe } from './ItemInput';
 import { moved, useDragReorder } from '@/components/ui/useDragReorder';
 import { formatAmount, sectionHeading, splitAmount } from '@/lib/ingredientParts';
 import { toUS } from '@/lib/units';
@@ -30,8 +29,11 @@ export default function IngredientEditor({
     language,
     onKnown,
     mirrorOf,
+    recipeId,
 }: {
     ingredients: Ingredient[];
+    /** The recipe being edited: not offered as an ingredient of itself. */
+    recipeId?: number;
     onChange: (next: Ingredient[]) => void;
     /** The recipe's language: names and units are written and shown in it. Default: the page's. */
     language?: 'de' | 'en';
@@ -46,6 +48,9 @@ export default function IngredientEditor({
     const [bulk, setBulk] = useState('');
     const [showBulk, setShowBulk] = useState(false);
     const itemRefs = useRef<(HTMLInputElement | null)[]>([]);
+    // The preparation and notes fields: a comma or a bracket typed into the ingredient moves on to them.
+    const formRefs = useRef<(HTMLInputElement | null)[]>([]);
+    const noteRefs = useRef<(HTMLInputElement | null)[]>([]);
     // Rows dragged by their handle, or moved with the arrow keys on it (work #48).
     const list = useRef<HTMLDivElement>(null);
     const { drag, handle, rowStyle } = useDragReorder(list, (from, to) => onChange(moved(ingredients, from, to)));
@@ -69,15 +74,18 @@ export default function IngredientEditor({
     const [keptNew, setKeptNew] = useState<Set<string>>(new Set());
     const lang: 'de' | 'en' = language ?? (locale === 'en' ? 'en' : 'de');
     const [aiAvailable, setAiAvailable] = useState(false);
+    // The cookbook's recipes, each in this language: a row can be one of them ("Kimchi").
+    const [recipes, setRecipes] = useState<LinkableRecipe[]>([]);
     useEffect(() => {
         let gone = false;
         fetch(`/api/ingredients/names?locale=${lang}`)
             .then((res) => (res.ok ? res.json() : { names: [] }))
-            .then((data: { names: string[]; items?: FormCatalogItem[]; aiAvailable?: boolean }) => {
+            .then((data: { names: string[]; items?: FormCatalogItem[]; aiAvailable?: boolean; recipes?: LinkableRecipe[] }) => {
                 if (gone) return;
                 setNames(data.names);
                 setCatalog(data.items ?? []);
                 setAiAvailable(Boolean(data.aiAvailable));
+                setRecipes(data.recipes ?? []);
             })
             .catch(() => undefined);
         return () => {
@@ -85,11 +93,22 @@ export default function IngredientEditor({
         };
     }, [lang]);
 
-    const update = (index: number, field: keyof Ingredient, value: string) => {
+    /** A row's ingredient, preparation, notes or "optional" changed: written back as one name, the one way (lib/ingredientShape). */
+    const setParts = (index: number, parts: IngredientShape) => update(index, 'item', joinParts(parts));
+
+    /** A row made one of the cookbook's recipes, or no longer one. */
+    const setLink = (index: number, recipe: LinkableRecipe | null) => {
+        onChange(
+            ingredients.map((row, position) =>
+                position !== index ? row : recipe ? { ...row, item: joinParts({ ...partsOf(row.item), base: recipe.title }), linkedRecipeId: recipe.id } : { ...row, linkedRecipeId: null }
+            )
+        );
+    };
+
+    const update = (index: number, field: 'amount' | 'item', value: string) => {
         const next = ingredients.map((row, position) => {
             if (position !== index) return row;
-            const changed = { ...row, [field]: value };
-            return field === 'item' ? withUsualUnit(changed) : changed;
+            return { ...row, [field]: value };
         });
         onChange(next);
         // The other language follows at once: the list's name there (lib/ingredientMatch syncedRows).
@@ -97,20 +116,6 @@ export default function IngredientEditor({
             const known = matchIn(value, catalog);
             if (known) onKnown?.(index, { de: known.de, en: known.en });
         }
-    };
-
-    /*
-     * A row with no unit yet takes the ingredient's standard unit ("Minze" →
-     * "Bund", lib/ingredientUnits); one chosen by hand is never replaced —
-     * when it is of another kind, the hint below the row asks about it.
-     */
-    const withUsualUnit = (row: Ingredient): Ingredient => {
-        const fields = splitForEditor(row.amount);
-        if (fields.choice !== '') return row;
-        const known = matchIn(row.item, catalog);
-        if (!known || !known.unit) return row;
-        const choice = choiceFor(known.unit);
-        return { ...row, amount: joinFromEditor({ quantity: fields.quantity, choice, custom: choice === 'custom' ? unitLabel(known.unit, lang) : '' }, lang) };
     };
 
     const send = (body: object) =>
@@ -174,6 +179,13 @@ export default function IngredientEditor({
             })
         );
         void send({ action: 'giveName', id, language: lang, name });
+    };
+
+    /** A card's explanation in this language, kept on the card for every recipe. */
+    const setInfo = (id: number, info: string) => {
+        const field = lang === 'de' ? 'infoDe' : 'infoEn';
+        setCatalog((current) => current.map((entry) => (entry.id === id ? { ...entry, [field]: info } : entry)));
+        void send({ action: 'setInfo', id, language: lang, info });
     };
 
     /** One amber row left to the AI (applied by the hint, as a tap would). */
@@ -272,14 +284,22 @@ export default function IngredientEditor({
                         // On a phone two lines: the ingredient across the width,
                         // then its amount, unit and the row's buttons.
                         <div key={index} data-drag-row style={rowStyle(index)} className={`flex flex-wrap items-center gap-2 border-b border-line bg-page pb-2 sm:border-0 sm:pb-0`}>
-                            <AmountInput amount={row.amount} number={index + 1} onChange={(next) => update(index, 'amount', next)} />
+                            {/* With the ingredient's usual unit chosen while the amount is empty ("Minze" → Bund); one chosen by hand is never replaced. */}
+                            <AmountInput amount={row.amount} number={index + 1} language={lang} usual={matchIn(row.item, catalog)?.unit} onChange={(next) => update(index, 'amount', next)} />
                             <ItemInput
                                 inputRef={(element) => {
                                     itemRefs.current[index] = element;
                                 }}
-                                value={row.item}
+                                value={partsOf(row.item).base}
                                 names={names}
-                                onChange={(next) => update(index, 'item', next)}
+                                recipes={mirrorOf ? [] : recipes.filter((recipe) => recipe.id !== recipeId)}
+                                onChange={(next) => {
+                                    setParts(index, withBase(partsOf(row.item), next));
+                                    // "Knoblauch," goes on in the preparation, "Knoblauch (" in the notes.
+                                    const field = next.includes('(') ? noteRefs : next.includes(',') ? formRefs : null;
+                                    if (field) requestAnimationFrame(() => field.current[index]?.focus());
+                                }}
+                                onRecipe={(recipe) => setLink(index, recipe)}
                                 onEnter={() => addRow(index)}
                                 placeholder={t('itemPlaceholder')}
                                 label={t('itemLabel', { number: index + 1 })}
@@ -296,6 +316,66 @@ export default function IngredientEditor({
                                     ×
                                 </button>
                             </div>
+                            {/* The rest of the one way of writing it, each in its own field: "Knoblauch" · "gehackt" · "große Zehen" · optional. */}
+                            {(() => {
+                                const parts = partsOf(row.item);
+                                return (
+                                    <div className="flex basis-full items-center gap-2">
+                                        <input
+                                            ref={(element) => {
+                                                formRefs.current[index] = element;
+                                            }}
+                                            type="text"
+                                            value={parts.form}
+                                            onChange={(event) => setParts(index, { ...parts, form: event.target.value.replace(/^\s+/, '') })}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                    event.preventDefault();
+                                                    addRow(index);
+                                                }
+                                            }}
+                                            placeholder={t('formPlaceholder')}
+                                            aria-label={t('formLabel', { number: index + 1 })}
+                                            className={fieldBase + ' w-0 flex-1 py-1.5 text-sm'}
+                                        />
+                                        <input
+                                            ref={(element) => {
+                                                noteRefs.current[index] = element;
+                                            }}
+                                            type="text"
+                                            value={parts.note}
+                                            onChange={(event) => setParts(index, { ...parts, note: event.target.value.replace(/^\s+/, '') })}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                    event.preventDefault();
+                                                    addRow(index);
+                                                }
+                                            }}
+                                            placeholder={t('notePlaceholder')}
+                                            aria-label={t('noteLabel', { number: index + 1 })}
+                                            className={fieldBase + ' w-0 flex-1 py-1.5 text-sm'}
+                                        />
+                                        <label className="flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 text-sm text-muted">
+                                            <input
+                                                type="checkbox"
+                                                checked={parts.optional}
+                                                onChange={(event) => setParts(index, { ...parts, optional: event.target.checked })}
+                                                className="h-5 w-5 accent-current"
+                                            />
+                                            {t('optionalRow')}
+                                        </label>
+                                    </div>
+                                );
+                            })()}
+                            {/* One of the cookbook's own recipes: it links there on the recipe page. */}
+                            {!mirrorOf && row.linkedRecipeId && (
+                                <p className="basis-full text-xs text-info">
+                                    {t('linkedRecipe', { title: recipes.find((recipe) => recipe.id === row.linkedRecipeId)?.title ?? partsOf(row.item).base })}{' '}
+                                    <button type="button" onClick={() => setLink(index, null)} className="ml-1 underline underline-offset-2">
+                                        {t('unlinkRecipe')}
+                                    </button>
+                                </p>
+                            )}
                             {/* The amount as an American reader sees it ("480 ml" → "2 cups"): to round a number that came out crooked. */}
                             {!drag && usAmount(row) && <p className="basis-full text-xs text-faint">{t('usAmount', { amount: usAmount(row)! })}</p>}
                             {/* Folded away while a row is dragged: every row its compact self, so the places add up. */}
@@ -306,7 +386,7 @@ export default function IngredientEditor({
                                 const status = source ? rowStatus(source.item, source.amount, catalog) : { tone: null, card: null };
                                 return <MirrorHint tone={status.tone} card={status.card} item={row.item} language={lang} onGiveName={giveName} />;
                             })()}
-                            {hints && !drag && !mirrorOf && (
+                            {hints && !drag && !mirrorOf && !row.linkedRecipeId && (
                                 <IngredientHint
                                     // A fresh hint for each name and amount: its conversion fields start from them.
                                     key={`${row.item}|${row.amount}`}
@@ -318,6 +398,7 @@ export default function IngredientEditor({
                                     onAi={askAi}
                                     onKeepUnit={keepUnit}
                                     onGiveName={giveName}
+                                    onInfo={setInfo}
                                     keptNew={keptNew.has(row.item.trim().toLowerCase())}
                                     onItem={(next) => update(index, 'item', next)}
                                     onAmount={(next) => update(index, 'amount', next)}

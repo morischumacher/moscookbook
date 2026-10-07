@@ -144,7 +144,19 @@ export function ingredientRows(ingredients: StructuredIngredient[]) {
         name: row.name,
         raw: row.raw,
         section: row.section ?? null,
+        linkedRecipeId: row.linkedRecipeId ?? null,
     }));
+}
+
+/**
+ * The rows with only links to recipes that exist and are not this one: a
+ * link sent from an old form, or to a recipe deleted since, is dropped
+ * rather than failing the save.
+ */
+export async function liveLinks<T extends { linkedRecipeId?: number | null }>(rows: T[], self?: number): Promise<T[]> {
+    const ids = [...new Set(rows.map((row) => row.linkedRecipeId).filter((id): id is number => typeof id === 'number' && id !== self))];
+    const found = ids.length ? new Set((await prisma.recipe.findMany({ where: { id: { in: ids } }, select: { id: true } })).map((recipe) => recipe.id)) : new Set<number>();
+    return rows.map((row) => (row.linkedRecipeId && !found.has(row.linkedRecipeId) ? { ...row, linkedRecipeId: null } : row));
 }
 
 /**

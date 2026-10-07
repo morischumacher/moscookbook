@@ -31,7 +31,7 @@ interface EditableRecipe {
     prepMinutes: number | null;
     cookMinutes: number | null;
     images: { url: string }[];
-    ingredients: { raw: string; name: string; section: string | null }[];
+    ingredients: { raw: string; name: string; section: string | null; linkedRecipeId: number | null }[];
 }
 
 export default async function EditRecipePage({
@@ -96,7 +96,7 @@ export default async function EditRecipePage({
                 // Headings come back as rows of their own, where the section
                 // changes — the shape the editor writes them in.
                 ingredients: withHeadingRows(
-                    recipe.ingredients.map((row) => ({ amount: row.raw, item: row.name, section: row.section }))
+                    recipe.ingredients.map((row) => ({ amount: row.raw, item: row.name, section: row.section, linkedRecipeId: row.linkedRecipeId }))
                 ),
                 imageUrls: recipe.images.map((image) => image.url),
                 servings: recipe.servings,

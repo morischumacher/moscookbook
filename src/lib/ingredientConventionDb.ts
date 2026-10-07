@@ -47,6 +47,12 @@ export async function ensureConvention(): Promise<void> {
     // Being done right now, by a request not ten minutes ago.
     const running = /^running:(\d+)$/.exec(row?.value ?? '');
     if (running && Date.now() - Number(running[1]) < 10 * 60_000) return;
+    // Waiting for an AI: tried again a day later — checked before the claim, which would overwrite it.
+    const waiting = /^waiting:(\d+)$/.exec(row?.value ?? '');
+    if (waiting && Date.now() - Number(waiting[1]) < 24 * 3600_000) {
+        settled = true;
+        return;
+    }
 
     const claim = `running:${Date.now()}`;
     const claimed = row
@@ -56,13 +62,6 @@ export async function ensureConvention(): Promise<void> {
               .then(() => true)
               .catch(() => false);
     if (!claimed) return;
-
-    // Waiting for an AI: tried again a day later.
-    const waiting = /^waiting:(\d+)$/.exec(row?.value ?? '');
-    if (waiting && Date.now() - Number(waiting[1]) < 24 * 3600_000) {
-        settled = true;
-        return;
-    }
 
     const answers = await readAnswers();
     const unread = await askAi(answers);

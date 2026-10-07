@@ -73,7 +73,7 @@ export interface RecipeRow {
      * recipeInclude, because Prisma cannot aggregate inside an include.
      */
     rating: RatingSummary;
-    ingredients: StructuredIngredient[];
+    ingredients: (StructuredIngredient & { item?: IngredientExtras['item']; linkedRecipe?: IngredientExtras['linkedRecipe'] })[];
     /**
      * The share this recipe was made from, for its link and nothing else.
      * Optional: a recipe typed in by hand has no capture behind it, and the
@@ -89,7 +89,14 @@ export interface RecipeRow {
 /** What the page needs from the database, in one place so both routes agree. */
 export const recipeInclude = {
     images: { orderBy: { position: 'asc' } },
-    ingredients: { orderBy: { position: 'asc' } },
+    ingredients: {
+        orderBy: { position: 'asc' },
+        // What the ingredient is ("Koreanisches Chilipulver"), and the recipe of ours a row is.
+        include: {
+            item: { select: { infoDe: true, infoEn: true } },
+            linkedRecipe: { select: { slug: true, title: true, language: true, isDraft: true, onlyMe: true, translations: { select: { locale: true, title: true } } } },
+        },
+    },
     /*
      * The capture this recipe was made from, for the one field worth showing:
      * where it came from. One row, because a recipe is made from one share —
@@ -163,6 +170,8 @@ export default async function RecipeArticle({
 }: RecipeArticleProps) {
     // In the reader's language when it has been translated into it.
     const recipe = inLanguage(written, locale);
+    // Each row's explanation and recipe link, from the original's rows — a translation's are the same, row for row.
+    const extras = rowExtras(written.ingredients, recipe.ingredients.length, locale, mode === 'private', isAdmin);
     const t = await getTranslations('Recipe');
     const tTags = await getTranslations('Tags');
     const tagLabel = (tag: string) => (KNOWN_TAGS.includes(tag) ? tTags(tag as 'vegan') : `#${tag}`);
@@ -413,6 +422,7 @@ export default async function RecipeArticle({
                 <RecipeBody
                     recipeId={recipe.id}
                     ingredients={recipe.ingredients}
+                    extras={extras}
                     steps={stepTexts.map((step, index) => (
                         <ReactMarkdown key={index} components={{ img: StorePicture }}>
                             {step}
@@ -477,4 +487,26 @@ export default async function RecipeArticle({
         </article>
         </main>
     );
+}
+
+interface IngredientExtras {
+    item: { infoDe: string | null; infoEn: string | null } | null;
+    linkedRecipe: { slug: string; title: string; language: string | null; isDraft: boolean; onlyMe: boolean; translations: { locale: string; title: string }[] } | null;
+}
+
+/**
+ * Per row: what the ingredient is, in the reader's language, and where the
+ * recipe a row is ("Kimchi") can be read — only in the cookbook itself and
+ * only to a recipe the reader may see. Nothing when the rows shown are not
+ * the original's one for one.
+ */
+function rowExtras(rows: (Partial<IngredientExtras> & object)[], shown: number, locale: string, inside: boolean, isAdmin: boolean) {
+    if (rows.length !== shown) return undefined;
+    return rows.map((row) => {
+        const info = (locale === 'en' ? row.item?.infoEn : row.item?.infoDe)?.trim() || undefined;
+        const linked = row.linkedRecipe;
+        const visible = inside && linked && !linked.isDraft && (!linked.onlyMe || isAdmin);
+        const title = linked ? (linked.language !== locale && linked.translations.find((entry) => entry.locale === locale)?.title) || linked.title : '';
+        return { info, link: visible && linked ? { slug: linked.slug, title } : undefined };
+    });
 }

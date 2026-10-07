@@ -186,7 +186,9 @@ export const CONVENTION_RULE = `- "item" follows the cookbook's convention: "Ing
   The ingredient starts with a capital letter in both languages.
   Examples: "Knoblauch, gehackt (große Zehen)", "Ingwer, frisch gerieben", "Chiliflocken (optional)",
   "Red onion, thinly sliced", "Eggs (large)", "Butter, softened".
-  Every part but the first may be missing.`;
+  Every part but the first may be missing.
+  What an ingredient is ("Gochugaru (Korean chili flakes)", "Mirin, japanischer Reiswein") is not part of it:
+  leave such an explanation out — the cookbook explains its ingredients itself, beside them.`;
 
 /** A recipe's rows with every ingredient written the convention's way; headings as they are. */
 export function conventionalRows<T extends { amount: string; item: string }>(rows: T[]): T[] {
@@ -207,4 +209,55 @@ export function needsReading(name: string): boolean {
     if (base.includes(',') || count > 3) return true;
     if (/\b(mit|with|von|aus|from|in)\b/i.test(base)) return true;
     return /^\S+\s+[a-zäöüß]/.test(base) && /\s[A-ZÄÖÜ]/.test(base);
+}
+
+/**
+ * A name read strictly by its syntax, for the form's fields — nothing moved,
+ * nothing tidied, spaces as typed: what is before the first comma is the
+ * ingredient, after it the preparation, in brackets the notes, and
+ * "(optional)" the checkbox. `joinParts` writes them back, so a field typed
+ * into comes back the same on the next render.
+ */
+export function partsOf(name: string): IngredientShape {
+    if (name.trimStart().startsWith('#')) return { base: name, form: '', note: '', optional: false };
+    let optional = false;
+    const notes: string[] = [];
+    const text = name.replace(/\s?\(([^)]*)\)/g, (_, inner: string) => {
+        if (OPTIONAL_PHRASE.test(inner.trim())) optional = true;
+        else notes.push(inner);
+        return '';
+    });
+    const comma = text.indexOf(',');
+    return {
+        base: comma === -1 ? text : text.slice(0, comma),
+        form: comma === -1 ? '' : text.slice(comma + 1).replace(/^ /, ''),
+        note: notes.join(', '),
+        optional,
+    };
+}
+
+/** The form's fields written as one name: "Knoblauch, gehackt (große Zehen) (optional)". Brackets typed into a field are dropped. */
+export function joinParts(parts: IngredientShape): string {
+    const bare = (text: string) => text.replace(/[()]/g, '');
+    const base = bare(parts.base);
+    const form = bare(parts.form);
+    const note = bare(parts.note);
+    const head = base.trim() ? base.charAt(0).toLocaleUpperCase('de') + base.slice(1) : base;
+    return `${head}${form ? `, ${form}` : ''}${note ? ` (${note})` : ''}${parts.optional ? ' (optional)' : ''}`;
+}
+
+/**
+ * The ingredient field typed into: a comma or a bracket there starts the
+ * next part ("Knoblauch, gehackt" → ingredient "Knoblauch", preparation
+ * "gehackt"), so the one way of writing is kept whatever is typed.
+ */
+export function withBase(parts: IngredientShape, typed: string): IngredientShape {
+    if (!/[,(]/.test(typed)) return { ...parts, base: typed };
+    const read = partsOf(typed.replace(/\(([^)]*)$/, '($1)'));
+    return {
+        base: read.base,
+        form: [read.form, parts.form].filter((part) => part.trim()).join(', '),
+        note: [read.note, parts.note].filter((part) => part.trim()).join(', '),
+        optional: parts.optional || read.optional,
+    };
 }

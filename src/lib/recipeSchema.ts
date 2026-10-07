@@ -6,6 +6,7 @@ import { RECIPE_LANGUAGES, translationSchema } from './recipeTranslation';
 const ingredientSchema = z.object({
     amount: z.string().trim().max(120).default(''),
     item: z.string().trim().min(1, 'Ingredient name is required').max(200),
+    linkedRecipeId: z.number().int().positive().nullable().optional(),
 });
 
 /**

@@ -20,6 +20,8 @@ export interface StructuredIngredient extends AmountParts {
     raw: string;
     /** The heading it is listed under, or null. See `sectionHeading`. */
     section?: string | null;
+    /** Another recipe of the cookbook this row is ("Kimchi"), or null. */
+    linkedRecipeId?: number | null;
 }
 
 /**
@@ -31,10 +33,11 @@ export interface StructuredIngredient extends AmountParts {
 /**
  * An ingredient name as this cookbook writes it, in either language: the
  * first letter capital ("Gochugaru", "Spring onions", "Rote Zwiebeln"), the
- * rest as it was. Every writer of a name goes through it.
+ * rest as it was but for stray spaces. Every writer of a name goes through it.
  */
 export function capitalized(name: string): string {
-    const trimmed = name.trim();
+    // Spaces as they are left between fields: "Knoblauch ,  gehackt" → "Knoblauch, gehackt".
+    const trimmed = name.replace(/\s+/g, ' ').replace(/\s+([,)])/g, '$1').replace(/\(\s+/g, '(').trim();
     return trimmed ? trimmed.charAt(0).toLocaleUpperCase('de') + trimmed.slice(1) : trimmed;
 }
 
@@ -48,14 +51,14 @@ export function sectionHeading(row: { amount: string; item: string }): string | 
 }
 
 /** The editor's rows again, with a heading row wherever the section changes. */
-export function withHeadingRows(rows: { amount: string; item: string; section?: string | null }[]): Ingredient[] {
+export function withHeadingRows(rows: { amount: string; item: string; section?: string | null; linkedRecipeId?: number | null }[]): Ingredient[] {
     const out: Ingredient[] = [];
     let current: string | null = null;
     for (const row of rows) {
         const section = row.section ?? null;
         if (section !== current && section) out.push({ amount: '', item: `## ${section}` });
         current = section;
-        out.push({ amount: row.amount, item: row.item });
+        out.push({ amount: row.amount, item: row.item, ...(row.linkedRecipeId ? { linkedRecipeId: row.linkedRecipeId } : {}) });
     }
     return out;
 }
@@ -142,6 +145,7 @@ export function toStructuredIngredients(ingredients: Ingredient[], keepCase = fa
             name,
             raw: ingredient.amount.trim(),
             section,
+            ...(ingredient.linkedRecipeId ? { linkedRecipeId: ingredient.linkedRecipeId } : {}),
         });
     }
 

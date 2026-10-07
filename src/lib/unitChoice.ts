@@ -65,6 +65,8 @@ export function choiceLabel(choice: UnitChoice, locale: 'de' | 'en', plural = fa
 /** The two halves joined again into what is stored. */
 export function joinFromEditor(fields: AmountFields, locale: 'de' | 'en'): string {
     const plural = !/^\s*(?:ca\.\s*|about\s*)?(?:1|½|¼|¾|⅓|⅔|0[.,]\d+)\s*$/i.test(fields.quantity) && fields.quantity.trim() !== '';
+    // A unit with no number is no amount ("EL Ingwer"); "Prise" reads on its own.
+    if (!fields.quantity.trim() && fields.choice !== 'custom' && fields.choice !== 'pinch') return '';
     const unit = fields.choice === 'custom' ? fields.custom.trim() : choiceLabel(fields.choice, locale, plural);
     return [fields.quantity.trim(), unit].filter(Boolean).join(' ');
 }

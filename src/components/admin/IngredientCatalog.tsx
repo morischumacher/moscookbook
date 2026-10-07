@@ -28,6 +28,9 @@ interface Item {
     en: string;
     aliases: string[];
     enAliases: string[];
+    /** What it is, per language, shown beside it in every recipe; '' for none. */
+    infoDe: string;
+    infoEn: string;
     uses: number;
     onLists: number;
     /** Part of the starting stock: kept even when no recipe uses it. */
@@ -250,7 +253,7 @@ export default function IngredientCatalog() {
     // One card, the same everywhere: in the lists closed, under "Zu entscheiden" open.
     const rowFor = (item: Item, open: boolean) => (
         <ItemRow
-            key={`${item.id}-${item.de}-${item.en}-${item.aliases.join('|')}-${item.enAliases.join('|')}-${item.main}-${JSON.stringify(item.units)}-${pendingFor(item.id).length}`}
+            key={`${item.id}-${item.de}-${item.en}-${item.aliases.join('|')}-${item.enAliases.join('|')}-${item.infoDe}-${item.infoEn}-${item.main}-${JSON.stringify(item.units)}-${pendingFor(item.id).length}`}
             item={item}
             locale={locale}
             detail={current === 'newest' && !q ? 'date' : 'uses'}
@@ -467,6 +470,11 @@ export default function IngredientCatalog() {
                                 className={`mt-2 ${buttonSecondary}`}
                             >
                                 <BusyLabel busy={busy === 'aiTranslate'}>{t('aiTranslate', { count: missing })}</BusyLabel>
+                            </button>
+                        )}
+                        {!q && current === 'all' && aiAvailable && (
+                            <button type="button" disabled={busy !== null} onClick={() => void act('aiInfo', { action: 'aiInfo' }, t('infoDone'))} className={`mt-2 ${buttonSecondary}`}>
+                                <BusyLabel busy={busy === 'aiInfo'}>{t('aiInfo')}</BusyLabel>
                             </button>
                         )}
                         {!q && current === 'unused' && unused.length > 0 && (
@@ -747,7 +755,7 @@ function ItemRow({
     selected: boolean;
     busy: boolean;
     onSelect: () => void;
-    onSave: (next: { de: string; en: string; aliases: string[]; enAliases: string[]; aisle?: string | null }) => Promise<unknown>;
+    onSave: (next: { de: string; en: string; aliases: string[]; enAliases: string[]; infoDe?: string; infoEn?: string; aisle?: string | null }) => Promise<unknown>;
     onMain: (unit: string | null) => void;
     onUnits: (main: string, rows: { unit: string; a: number; b: number }[]) => void;
     onDelete: () => void;
@@ -764,6 +772,8 @@ function ItemRow({
     const [en, setEn] = useState(item.en);
     const [deAlso, setDeAlso] = useState(item.aliases.join(', '));
     const [enAlso, setEnAlso] = useState(item.enAliases.join(', '));
+    const [infoDe, setInfoDe] = useState(item.infoDe);
+    const [infoEn, setInfoEn] = useState(item.infoEn);
     const [saving, setSaving] = useState(false);
     const list = (text: string) =>
         text
@@ -772,7 +782,7 @@ function ItemRow({
             .filter(Boolean);
     const aliases = list(deAlso);
     const enAliases = list(enAlso);
-    const dirty = de !== item.de || en !== item.en || aliases.join('|') !== item.aliases.join('|') || enAliases.join('|') !== item.enAliases.join('|');
+    const dirty = de !== item.de || en !== item.en || aliases.join('|') !== item.aliases.join('|') || enAliases.join('|') !== item.enAliases.join('|') || infoDe !== item.infoDe || infoEn !== item.infoEn;
     const field = 'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none focus:border-ink';
 
     const first = locale === 'de' ? item.de : item.en;
@@ -835,6 +845,15 @@ function ItemRow({
                         {t('englishAlso')}
                         <input value={enAlso} onChange={(event) => setEnAlso(event.target.value)} className={`${field} mt-1 text-base text-ink`} placeholder={t('englishAlsoPlaceholder')} />
                     </label>
+                    {/* What it is, for a cook who may not know it: shown beside it in every recipe. */}
+                    <label className="text-xs text-muted">
+                        {t('infoDe')}
+                        <input value={infoDe} onChange={(event) => setInfoDe(event.target.value)} maxLength={300} className={`${field} mt-1 text-base text-ink`} placeholder={t('infoDePlaceholder')} />
+                    </label>
+                    <label className="text-xs text-muted">
+                        {t('infoEn')}
+                        <input value={infoEn} onChange={(event) => setInfoEn(event.target.value)} maxLength={300} className={`${field} mt-1 text-base text-ink`} placeholder={t('infoEnPlaceholder')} />
+                    </label>
                 </div>
                 {dirty && (
                     <button
@@ -842,7 +861,7 @@ function ItemRow({
                         disabled={saving || (!de.trim() && !en.trim())}
                         onClick={async () => {
                             setSaving(true);
-                            await onSave({ de: de.trim(), en: en.trim(), aliases, enAliases });
+                            await onSave({ de: de.trim(), en: en.trim(), aliases, enAliases, infoDe: infoDe.trim(), infoEn: infoEn.trim() });
                             setSaving(false);
                         }}
                         className={`self-start ${buttonPrimarySmall}`}
@@ -923,13 +942,14 @@ function CardUnits({
             <p className="text-xs text-muted">{t('units')}</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
                 <select
-                    value={main ?? ''}
-                    onChange={(event) => onMain(event.target.value === '' && main === null ? null : event.target.value)}
+                    // "—" has a value of its own: '' is "Stück", which can be chosen too.
+                    value={main ?? '__none'}
+                    onChange={(event) => event.target.value !== '__none' && onMain(event.target.value)}
                     disabled={busy}
                     aria-label={t('mainUnit')}
                     className={select}
                 >
-                    {main === null && <option value="">—</option>}
+                    {main === null && <option value="__none">—</option>}
                     {choices.map((unit) => (
                         <option key={unit} value={unit}>
                             {unitLabel(unit, locale)}
