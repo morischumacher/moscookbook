@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import { formatAmount, type StructuredIngredient } from '@/lib/ingredientParts';
 import ShareButton from '@/components/share/ShareButton';
 import AddToShopping from '@/components/shopping/AddToShopping';
@@ -17,6 +18,7 @@ import PrintSheet, { type PrintInfo } from './PrintSheet';
 export default function RecipeBody({
     recipeId,
     ingredients,
+    extras,
     steps,
     stepTexts,
     print,
@@ -30,6 +32,8 @@ export default function RecipeBody({
     /** Which recipe's progress is being remembered. */
     recipeId: number;
     ingredients: StructuredIngredient[];
+    /** Per row: what the ingredient is ("Koreanisches Chilipulver") and the recipe of ours it is ("Kimchi"). */
+    extras?: { info?: string; link?: { slug: string; title: string } }[];
     /**
      * The method, one rendered step each.
      *
@@ -509,7 +513,17 @@ export default function RecipeBody({
                                         <span className="w-24 shrink-0 font-sans font-bold text-ink sm:w-32">
                                             {ingredient.amount}
                                         </span>
-                                        <span>{ingredient.item}</span>
+                                        <span>
+                                            {extras?.[index]?.link ? (
+                                                // Our own recipe: read it from here.
+                                                <Link href={`/recipe/${extras[index].link!.slug}`} className="underline decoration-line underline-offset-4 hover:decoration-ink">
+                                                    {ingredient.item}
+                                                </Link>
+                                            ) : (
+                                                ingredient.item
+                                            )}
+                                            {extras?.[index]?.info && <span className="block font-sans text-sm text-muted">{extras[index].info}</span>}
+                                        </span>
                                     </div>
                                 </li>
                             );

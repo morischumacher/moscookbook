@@ -1,18 +1,32 @@
 'use client';
 
 import { useState, type KeyboardEvent, type Ref } from 'react';
+import { useTranslations } from 'next-intl';
 import { conventional } from '@/lib/ingredientShape';
+
+/** One of the cookbook's recipes, its title in the form's language: a row can be it ("Kimchi"). */
+export interface LinkableRecipe {
+    id: number;
+    title: string;
+}
+
+type Suggestion = { kind: 'name'; name: string } | { kind: 'recipe'; recipe: LinkableRecipe };
 
 /**
  * The ingredient field, suggesting the names the cookbook already uses
  * while typing ("Frü" → "Frühlingszwiebeln"): the same thing gets the same
  * name in every recipe, and the shopping list merges on the name. A
  * suggestion is a tap (or ↓ and Enter); typing on ignores them.
+ *
+ * The cookbook's own recipes are offered too ("Kimchi · Rezept"): chosen,
+ * the row is that recipe and links to it.
  */
 export default function ItemInput({
     value,
     names,
+    recipes = [],
     onChange,
+    onRecipe,
     onEnter,
     inputRef,
     placeholder,
@@ -21,7 +35,10 @@ export default function ItemInput({
 }: {
     value: string;
     names: string[];
+    recipes?: LinkableRecipe[];
     onChange: (next: string) => void;
+    /** A recipe of the cookbook chosen: the row becomes it. */
+    onRecipe?: (recipe: LinkableRecipe) => void;
     /** Enter with no suggestion chosen: the editor adds a row. */
     onEnter: () => void;
     inputRef?: Ref<HTMLInputElement>;
@@ -29,23 +46,33 @@ export default function ItemInput({
     label: string;
     className: string;
 }) {
+    const recipeLabel = useTranslations('RecipeForm')('recipeSuggestion');
     const [open, setOpen] = useState(false);
     const [active, setActive] = useState(-1);
     const [id] = useState(() => `item-suggest-${Math.random().toString(36).slice(2, 9)}`);
 
     const q = value.trim().toLowerCase();
-    const matches =
+    const byStart = <T,>(list: T[], text: (entry: T) => string) => [
+        ...list.filter((entry) => text(entry).toLowerCase().startsWith(q)),
+        ...list.filter((entry) => !text(entry).toLowerCase().startsWith(q) && text(entry).toLowerCase().includes(q)),
+    ];
+    const matches: Suggestion[] =
         open && q.length >= 2
             ? [
-                  ...names.filter((name) => name.toLowerCase().startsWith(q)),
-                  ...names.filter((name) => !name.toLowerCase().startsWith(q) && name.toLowerCase().includes(q)),
-              ]
-                  .filter((name) => name.toLowerCase() !== q)
-                  .slice(0, 6)
+                  // The recipes first: a few, and the reason to type "Kim" may well be the Kimchi we make ourselves.
+                  ...byStart(recipes, (recipe) => recipe.title)
+                      .slice(0, 2)
+                      .map((recipe): Suggestion => ({ kind: 'recipe', recipe })),
+                  ...byStart(names, (name) => name)
+                      .filter((name) => name.toLowerCase() !== q)
+                      .slice(0, 6)
+                      .map((name): Suggestion => ({ kind: 'name', name })),
+              ].slice(0, 7)
             : [];
 
-    const choose = (name: string) => {
-        onChange(name);
+    const choose = (choice: Suggestion) => {
+        if (choice.kind === 'recipe') onRecipe?.(choice.recipe);
+        else onChange(choice.name);
         setOpen(false);
         setActive(-1);
     };
@@ -98,19 +125,25 @@ export default function ItemInput({
             />
             {matches.length > 0 && (
                 <ul id={id} role="listbox" className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-line bg-page shadow-lg">
-                    {matches.map((name, index) => (
+                    {matches.map((choice, index) => (
                         <li
-                            key={name}
+                            key={choice.kind === 'recipe' ? `recipe-${choice.recipe.id}` : choice.name}
                             id={`${id}-${index}`}
                             role="option"
                             aria-selected={index === active}
                             onPointerDown={(event) => {
                                 event.preventDefault();
-                                choose(name);
+                                choose(choice);
                             }}
                             className={`cursor-pointer px-3 py-2.5 text-sm ${index === active ? 'bg-surface' : 'hover:bg-surface'}`}
                         >
-                            {name}
+                            {choice.kind === 'recipe' ? (
+                                <>
+                                    {choice.recipe.title} <span className="text-xs text-info">· {recipeLabel}</span>
+                                </>
+                            ) : (
+                                choice.name
+                            )}
                         </li>
                     ))}
                 </ul>

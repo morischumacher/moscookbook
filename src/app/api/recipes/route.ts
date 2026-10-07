@@ -6,7 +6,7 @@ import { linkRecipe } from '@/lib/ingredientCatalog';
 import { requireAdmin } from '@/lib/auth';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
-import { newRecipeData } from '@/lib/recipeRepo';
+import { liveLinks, newRecipeData } from '@/lib/recipeRepo';
 import { failed } from '@/lib/reportServerError';
 import { syncWorkItem } from '@/lib/workItemsDb';
 import { releaseCaptureScreenshots } from '@/lib/captureCleanup';
@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
          * is not published again: that made a second recipe and then deleted
          * the first one's picture along with the capture's screenshots.
          */
+        const structured = await liveLinks(toStructuredIngredients(ingredients));
         const recipe = await prisma.$transaction(async (tx) => {
             const made = await tx.recipe.create({
                 data: newRecipeData({
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
                     servings,
                     prepMinutes,
                     cookMinutes,
-                    ingredients: toStructuredIngredients(ingredients),
+                    ingredients: structured,
                     tags: parsed.data.tags,
                     categories: parsed.data.categories,
                     cuisines: parsed.data.cuisines,

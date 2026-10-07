@@ -158,10 +158,14 @@ export async function ensureTranslationPairs(): Promise<void> {
         paired = true;
         return;
     }
+    // Being done right now, by a request not ten minutes ago; one cut short is taken up again after that.
+    const running = /^running:(\d+)$/.exec(row?.value ?? '');
+    if (running && Date.now() - Number(running[1]) < 10 * 60_000) return;
+    const claim = `running:${Date.now()}`;
     const claimed = row
-        ? (await prisma.appSetting.updateMany({ where: { key: PAIRS, value: row.value }, data: { value: 'running' } })).count === 1
+        ? (await prisma.appSetting.updateMany({ where: { key: PAIRS, value: row.value }, data: { value: claim } })).count === 1
         : await prisma.appSetting
-              .create({ data: { key: PAIRS, value: 'running' } })
+              .create({ data: { key: PAIRS, value: claim } })
               .then(() => true)
               .catch(() => false);
     if (!claimed) return;
@@ -228,8 +232,15 @@ export async function merge(into: number, from: number[], editedBy: string | nul
         const aliases = further([...kept.aliases, ...gone.flatMap((item) => [item.de, ...item.aliases])], de);
         const enAliases = further([...kept.enAliases, ...gone.flatMap((item) => [item.en, ...item.enAliases])], en);
         const withUnits = kept.buyMeasure ? kept : (gone.find((item) => item.buyMeasure) ?? kept);
+        // Every card's conversions, each read against the unit the kept one is bought in; the kept one's win.
+        const factorsOf = (item: (typeof gone)[number]) =>
+            !item.buyMeasure || !withUnits.buyMeasure
+                ? {}
+                : item.buyMeasure === withUnits.buyMeasure
+                  ? (item.factors as Record<string, number>)
+                  : rebased({ buy: item.buyMeasure, factors: (item.factors ?? {}) as Record<string, number> }, withUnits.buyMeasure).factors;
         const factors = {
-            ...Object.assign({}, ...gone.filter((item) => item.buyMeasure === withUnits.buyMeasure).map((item) => item.factors as object)),
+            ...Object.assign({}, ...gone.filter((item) => item !== withUnits).map(factorsOf)),
             ...(withUnits.factors as object),
         };
         const unit = kept.unit ?? gone.find((item) => item.unit !== null)?.unit ?? null;
@@ -361,13 +372,17 @@ export async function setMainUnit(id: number, main: string | null, editedBy: str
     const old = overview?.state.unit ?? null;
     const oldFamily = old === null ? null : familyOf(measureOf(old));
     const family = familyOf(mainMeasure);
-    const factors = overview?.units ? rebased(overview.units, mainMeasure).factors : {};
+    // What converted to the old unit converts to the new one; when it cannot all be carried over
+    // ("Knolle" for ginger kept in grams), the stored conversions stay as they are — they are read
+    // against the main unit wherever they are used (lib/shoppingParts unitsOf).
+    const units = overview?.units ?? null;
+    const moved = units ? rebased(units, mainMeasure) : null;
+    const lossless = !units || !moved || Object.keys(moved.factors).length >= new Set([units.buy, ...Object.keys(units.factors)].filter((measure) => measure !== mainMeasure)).size;
     await prisma.ingredientItem.update({
         where: { id },
         data: {
             unit: main,
-            buyMeasure: mainMeasure,
-            factors: factors as Prisma.InputJsonValue,
+            ...(lossless ? { buyMeasure: mainMeasure, factors: (moved?.factors ?? {}) as Prisma.InputJsonValue } : {}),
             moreUnits: [...new Set([...item.moreUnits, ...(oldFamily ? [oldFamily] : [])])].filter((other) => other !== family).slice(0, 12),
             handEdited: true,
         },
@@ -575,6 +590,15 @@ as a cook in that language writes it on a shopping list (plural where one buys s
 export async function fillMissingNames(recipeId: number): Promise<number> {
     const ai = await aiCapability();
     if (!canUseAi(ai)) return 0;
+    // And, named, what the unusual ones are ("Gochugaru: koreanisches Chilipulver").
+    try {
+        return await namesFor(recipeId, ai);
+    } finally {
+        await fillInfos(recipeId).catch(() => null);
+    }
+}
+
+async function namesFor(recipeId: number, ai: Awaited<ReturnType<typeof aiCapability>>): Promise<number> {
     const rows = await prisma.ingredient.findMany({ where: { recipeId, itemId: { not: null } }, select: { itemId: true } });
     const ids = [...new Set(rows.map((row) => row.itemId!))];
     const missing = (await prisma.ingredientItem.findMany({ where: { id: { in: ids } }, select: { id: true, de: true, en: true } })).filter((item) => !item.de !== !item.en);
@@ -597,6 +621,63 @@ export async function fillMissingNames(recipeId: number): Promise<number> {
         await usage.flush();
     }
     return named;
+}
+
+const INFO_PROMPT = `You explain ingredients for a German/English personal cookbook read by home cooks in Germany.
+
+You receive lines "id: German name | English name".
+
+For each, decide whether a home cook in Germany might not know what it is (Gochugaru, Saeujeot,
+Mirin, Doenjang, Sumach, Asafoetida …). Only then write one short explanation in each language:
+what it is and what it tastes or does, at most 12 words, no recipe advice, no brand names
+("Koreanisches Chilipulver, grob gemahlen, fruchtig und mild scharf" / "Korean chili powder,
+coarse, fruity and mildly hot"). For everyday ingredients (Zwiebeln, Mehl, Butter, Sojasauce,
+Ingwer …) both are "".
+
+Return JSON only: {"<id>": {"de": "…", "en": "…"}, …} — one entry per line. No code fences.`;
+
+/**
+ * The cards never looked at for an explanation (infoDe/infoEn null) — of one
+ * recipe, or all of them (admin → Zutaten) — given one by the AI where a cook
+ * might not know them, and "" where none is needed, so each is asked once.
+ * Null without an AI; otherwise how many got an explanation.
+ */
+export async function fillInfos(recipeId: number | null): Promise<number | null> {
+    const ai = await aiCapability();
+    if (!canUseAi(ai)) return null;
+    const ids = recipeId === null ? null : [...new Set((await prisma.ingredient.findMany({ where: { recipeId, itemId: { not: null } }, select: { itemId: true } })).map((row) => row.itemId!))];
+    const open = await prisma.ingredientItem.findMany({
+        where: { ...(ids ? { id: { in: ids } } : {}), OR: [{ infoDe: null }, { infoEn: null }] },
+        select: { id: true, de: true, en: true, infoDe: true, infoEn: true },
+        take: 400,
+    });
+    if (open.length === 0) return 0;
+    const key = ai.keys[0];
+    const small = { ...key, model: key.small ?? smallModelFor(key) ?? key.model };
+    const usage = usageRecorder('ingredients');
+    const text = (value: unknown) => (typeof value === 'string' ? value.trim().slice(0, 200) : '');
+    let filled = 0;
+    try {
+        for (let at = 0; at < open.length; at += 80) {
+            const chunk = open.slice(at, at + 80);
+            const answer = extractJson(
+                await completeWithKey(small, { kind: 'raw', system: INFO_PROMPT, text: chunk.map((item) => `${item.id}: ${item.de || '—'} | ${item.en || '—'}`).join('\n') }, usage.report).catch(() => '')
+            ) as Record<string, { de?: unknown; en?: unknown }> | null;
+            if (!answer) continue;
+            for (const item of chunk) {
+                const given = answer[String(item.id)];
+                if (!given) continue;
+                // What the admin wrote stays; only the empty side is filled.
+                const de = item.infoDe ?? text(given.de);
+                const en = item.infoEn ?? text(given.en);
+                await prisma.ingredientItem.update({ where: { id: item.id }, data: { infoDe: de, infoEn: en } });
+                if ((de && !item.infoDe) || (en && !item.infoEn)) filled += 1;
+            }
+        }
+    } finally {
+        await usage.flush();
+    }
+    return filled;
 }
 
 const TIDY = 'ingredients.tidy';

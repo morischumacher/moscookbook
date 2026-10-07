@@ -1,7 +1,7 @@
 /** An ingredient's standard unit, conflicts, conversions without AI, and how the form finds a name */
 import { suite, check, equal } from './harness';
 import { amountIn, conversionText, convertQuantity, factorBetween, isEuropean, rebased, storedFactor, unitFits, measureOf, missingConversions, unitKey, unitLabel, unitState } from '../src/lib/ingredientUnits';
-import { brokenGermanName, coreName, matchIn, mirroredRows, similarIn, itemKeys, syncedRows } from '../src/lib/ingredientMatch';
+import { brokenGermanName, coreName, followedRows, matchIn, mirroredRows, similarIn, itemKeys, syncedRows } from '../src/lib/ingredientMatch';
 import { converted, unitsOf } from '../src/lib/shoppingParts';
 import { withGlossary } from '../src/lib/recipeTranslation';
 
@@ -72,9 +72,19 @@ export default function ingredientUnitsTests() {
 
     suite('ingredient match: the other language follows');
     const english = [{ amount: '', item: '## Sauce' }, { amount: '2', item: 'scallions, chopped' }, { amount: '1 tsp', item: 'salt' }];
-    const german = [{ amount: '', item: '## Soße' }, { amount: '2', item: 'Lauchzwiebeln, gehackt' }, { amount: '1 TL', item: 'Salz' }, { amount: '', item: '' }];
+    const german = [{ amount: '', item: '## Soße' }, { amount: '2', item: 'Lauchzwiebeln, gehackt' }, { amount: '1 TL', item: 'Salz' }];
     equal("the row beside gets the list's name, its own preparation kept", syncedRows(english, german, 1, 'spring onions')[1].item, 'Spring onions, chopped');
     equal('a heading is never renamed', syncedRows(english, german, 0, 'x')[0].item, '## Sauce');
+    equal('lists that do not line up: nothing renamed', syncedRows(english, [...german, { amount: '', item: 'Pfeffer' }], 1, 'spring onions'), english);
+
+    suite('ingredient match: the translation follows the rows');
+    const [mehl, eier] = [{ amount: '200 g', item: 'Mehl' }, { amount: '2', item: 'Eier' }];
+    const other = [{ amount: '200 g', item: 'Flour' }, { amount: '2', item: 'Eggs' }];
+    equal('a row moved is moved there too', followedRows([mehl, eier], [eier, mehl], other, 'en')?.map((row) => `${row.amount} ${row.item}`), ['2 Eggs', '200 g Flour']);
+    equal('a row added is an empty row there', followedRows([mehl, eier], [mehl, { amount: '', item: '' }, eier], other, 'en')?.map((row) => row.item), ['Flour', '', 'Eggs']);
+    equal('a row removed is removed there', followedRows([mehl, eier], [eier], other, 'en')?.map((row) => row.item), ['Eggs']);
+    equal('an amount edited reaches its own row', followedRows([mehl, eier], [{ ...mehl, amount: '250 g' }, eier], other, 'en')?.map((row) => row.amount), ['250 g', '2']);
+    equal('a list that does not line up is left alone', followedRows([mehl, eier], [eier, mehl], other.slice(0, 1), 'en'), null);
 
     suite('translation: the same amounts in both languages');
     const original = [{ amount: '480 ml', item: 'water' }, { amount: '2 tbsp', item: 'sugar' }, { amount: '1 can', item: 'tomatoes' }];
@@ -86,6 +96,7 @@ export default function ingredientUnitsTests() {
     equal('"Tomate, gehackt" is still Tomate', coreName('Tomate, gehackt'), 'Tomate');
     check('"Fermentierte" for "fermented salted shrimp" is broken', brokenGermanName({ de: 'Fermentierte', en: 'fermented salted shrimp' }));
     check('"Tomate" is not', !brokenGermanName({ de: 'Tomate', en: 'tomatoes' }));
+    check('"Gehacktes" is a name of its own', !brokenGermanName({ de: 'Gehacktes', en: 'Minced meat' }));
     check('"Gehackte Tomaten" is not', !brokenGermanName({ de: 'Gehackte Tomaten', en: 'chopped tomatoes' }));
 
     suite('ingredient match: the form finds names');

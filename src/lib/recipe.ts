@@ -1,6 +1,8 @@
 export interface Ingredient {
     amount: string;
     item: string;
+    /** Another recipe of the cookbook this row is ("Kimchi" in a Kimchi-Pfannkuchen); the original's rows only. */
+    linkedRecipeId?: number | null;
 }
 
 const GERMAN_TRANSLITERATIONS: Record<string, string> = {

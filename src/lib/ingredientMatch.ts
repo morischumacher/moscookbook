@@ -110,20 +110,63 @@ export function similarIn<T extends MatchableItem>(name: string, items: T[], lim
 /**
  * The row beside an edited one, in the recipe's other language, given the
  * list's name for the ingredient the edited row now is: "Frühlingszwiebeln,
- * gehackt" chosen above makes the English row "spring onions, chopped" —
- * its own preparation and notes kept. Rows are paired by their place among
- * the rows that are filled in, as a translation is made from them.
+ * gehackt" chosen above makes the English row "Spring onions, chopped" —
+ * its own preparation and notes kept. The two lists are paired row for row
+ * (followedRows keeps them so); when they have not the same number of rows,
+ * nothing is renamed rather than the wrong row.
  */
 export function syncedRows<T extends { item: string }>(rows: T[], sourceRows: { item: string }[], index: number, name: string): T[] {
+    if (rows.length !== sourceRows.length) return rows;
     if (!name.trim() || !sourceRows[index]?.item.trim() || sourceRows[index].item.trim().startsWith('#')) return rows;
-    const place = sourceRows.slice(0, index).filter((row) => row.item.trim()).length;
-    const target = rows.map((row, at) => ({ row, at })).filter(({ row }) => row.item.trim())[place];
-    if (!target || target.row.item.trim().startsWith('#')) return rows;
-    const shape = shapeOf(target.row.item);
+    const target = rows[index];
+    if (!target?.item.trim() || target.item.trim().startsWith('#')) return rows;
+    const shape = shapeOf(target.item);
     if (shoppingKey(shape.base) === shoppingKey(name)) return rows;
     const next = [...rows];
-    next[target.at] = { ...target.row, item: formatShape({ ...shape, base: name }) };
+    next[index] = { ...target, item: formatShape({ ...shape, base: name }) };
     return next;
+}
+
+/**
+ * The other language's rows after an edit of this one's (`before` → `after`):
+ * a row moved, added or removed here is moved, added (empty) or removed there
+ * too, and every row takes this one's amount — the same numbers and units,
+ * the unit word in that language (lib/ingredientUnits mirroredAmount). Rows
+ * are told apart by identity, as the editor keeps them: an edited row is a
+ * new one where the old one stood. Null when the other list does not line up
+ * with `before` (another number of rows): then it is left as it is, rather
+ * than given the amounts of the rows next to its own.
+ */
+export function followedRows<T extends { item: string; amount: string }>(
+    before: { item: string; amount: string }[],
+    after: { item: string; amount: string }[],
+    other: T[],
+    language: 'de' | 'en'
+): T[] | null {
+    if (other.length !== before.length) return null;
+    const used = new Set<number>();
+    const pairs = after.map((row) => {
+        const at = before.indexOf(row);
+        if (at === -1 || used.has(at)) return -1;
+        used.add(at);
+        return at;
+    });
+    if (before.length === after.length) {
+        pairs.forEach((at, index) => {
+            if (at === -1 && !used.has(index)) {
+                used.add(index);
+                pairs[index] = index;
+            }
+        });
+    }
+    return after.map((row, index) => {
+        const at = pairs[index];
+        if (at === -1) return { amount: '', item: row.item.trim().startsWith('#') ? '## ' : '' } as T;
+        const mine = other[at];
+        if (!row.item.trim() || row.item.trim().startsWith('#') || mine.item.trim().startsWith('#')) return mine;
+        const amount = mirroredAmount(row.amount, mine.amount, language);
+        return amount === mine.amount ? mine : { ...mine, amount };
+    });
 }
 
 /**
@@ -133,6 +176,8 @@ export function syncedRows<T extends { item: string }>(rows: T[], sourceRows: { 
  */
 export function brokenGermanName(item: { de: string; en: string }): boolean {
     const de = item.de.trim();
+    // "Gehacktes", "Geschnetzeltes": a participle made a noun is a name of its own.
+    if (/es$/.test(de)) return false;
     return !de.includes(' ') && LEADING_PARTICIPLE.test(de) && item.en.trim().split(/\s+/).length >= 2;
 }
 

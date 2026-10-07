@@ -25,7 +25,7 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
     const locale = new URL(req.url).searchParams.get('locale') === 'en' ? 'en' : 'de';
     await linkAllUnlinked(100).catch(() => undefined);
     const items = await prisma.ingredientItem.findMany({
-        select: { id: true, de: true, en: true, aliases: true, enAliases: true, keys: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true, _count: { select: { ingredients: true } } },
+        select: { id: true, de: true, en: true, aliases: true, enAliases: true, infoDe: true, infoEn: true, keys: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true, _count: { select: { ingredients: true } } },
     });
     // Each with its standard unit ("Minze" → Bund): offered to a row with none
     // yet, and the reason for "Pasta is usually in g" when a row says otherwise.
@@ -52,11 +52,21 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
             en: item.en,
             aliases: item.aliases,
             enAliases: item.enAliases,
+            infoDe: item.infoDe,
+            infoEn: item.infoEn,
             keys: item.keys,
             unit: entry?.state.unit ?? null,
             moreUnits: item.moreUnits,
             units: entry?.units ?? null,
         };
     });
-    return NextResponse.json({ names, items: catalog, aiAvailable: canUseAi(await aiCapability()) }, { headers: { 'Cache-Control': 'private, max-age=60' } });
+    // The cookbook's recipes, each titled in this language: a row can be one of them ("Kimchi").
+    const recipes = (
+        await prisma.recipe.findMany({
+            where: { isDraft: false },
+            orderBy: { title: 'asc' },
+            select: { id: true, title: true, language: true, translations: { where: { locale }, select: { title: true } } },
+        })
+    ).map((recipe) => ({ id: recipe.id, title: (recipe.language !== locale && recipe.translations[0]?.title) || recipe.title }));
+    return NextResponse.json({ names, items: catalog, recipes, aiAvailable: canUseAi(await aiCapability()) }, { headers: { 'Cache-Control': 'private, max-age=60' } });
 });

@@ -73,18 +73,24 @@ export async function rewriteRows(itemIds: number[], edit: RowEditor, editedBy: 
             return { ...row, name: change?.name ?? row.name, raw: change?.amount ?? row.raw };
         });
         const moved = rows.some((row, index) => row.name !== recipe.ingredients[index].name || row.raw !== recipe.ingredients[index].raw);
+        // Amounts are the same in both languages, names are each language's own: a changed amount must reach the translation.
+        const amountAt = rows.flatMap((row, index) => (row.raw !== recipe.ingredients[index].raw ? [index] : []));
 
         // The translation's rows beside the recipe's, only when the two lists match one for one.
         const translations = recipe.translations.map((translation) => {
             const stored = storedRows(translation.ingredients);
             const items = stored.map((row, index) => ({ row, index })).filter(({ row }) => sectionHeading(row) === null && row.item.trim() !== '');
-            if (items.length !== recipe.ingredients.length || (translation.locale !== 'de' && translation.locale !== 'en')) return { translation, next: stored, moved: false };
+            if (items.length !== recipe.ingredients.length || (translation.locale !== 'de' && translation.locale !== 'en')) return { translation, next: stored, moved: false, followed: amountAt.length === 0 };
             const next = [...stored];
+            const changedAt = new Set<number>();
             items.forEach(({ row, index }, at) => {
                 const change = edit({ rowId: recipe.ingredients[at].id, itemId: recipe.ingredients[at].itemId, name: row.item, amount: row.amount }, translation.locale as RecipeLanguage, 'translation');
                 if (change) next[index] = { ...row, item: change.name ?? row.item, amount: change.amount ?? row.amount };
+                if (change?.amount !== undefined) changedAt.add(at);
             });
-            return { translation, next, moved: next.some((row, index) => row.item !== stored[index].item || row.amount !== stored[index].amount) };
+            // Every amount changed in the recipe was changed here too: what was up to date stays so — otherwise it says it is behind.
+            const followed = amountAt.every((at) => changedAt.has(at));
+            return { translation, next, moved: next.some((row, index) => row.item !== stored[index].item || row.amount !== stored[index].amount), followed };
         });
         if (!moved && !translations.some((entry) => entry.moved)) continue;
 
@@ -107,8 +113,8 @@ export async function rewriteRows(itemIds: number[], edit: RowEditor, editedBy: 
                 const parts = row.raw === old.raw ? { quantity: old.quantity, quantityMax: old.quantityMax, unit: old.unit } : splitAmount(row.raw);
                 return [prisma.ingredient.update({ where: { id: row.id }, data: { name: row.name, raw: row.raw, quantity: parts.quantity, quantityMax: parts.quantityMax, unit: parts.unit } })];
             }),
-            ...translations.flatMap(({ translation, next, moved: rowsMoved }) => {
-                const fresh = Boolean(translation.source) && translation.source === before;
+            ...translations.flatMap(({ translation, next, moved: rowsMoved, followed }) => {
+                const fresh = followed && Boolean(translation.source) && translation.source === before;
                 if (!rowsMoved && !(fresh && before !== after)) return [];
                 return [
                     prisma.recipeTranslation.update({

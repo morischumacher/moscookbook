@@ -7,7 +7,7 @@ import { requireAdmin } from '@/lib/auth';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { recipeInputSchema, formatZodError, resolveImageUrls } from '@/lib/recipeSchema';
-import { ingredientRows as positioned, keptTranslation, recipeColumns, translationRow } from '@/lib/recipeRepo';
+import { ingredientRows as positioned, keptTranslation, liveLinks, recipeColumns, translationRow } from '@/lib/recipeRepo';
 import { changedFields, snapshotOf } from '@/lib/revisions';
 import { keepRevisionOf } from '@/lib/revisionsDb';
 import { positiveIntId } from '@/lib/routeParams';
@@ -62,7 +62,7 @@ export async function PUT(
 
         // Ingredient rows are replaced wholesale rather than diffed: the list is
         // short, order matters, and a rewrite keeps positions contiguous.
-        const structured = toStructuredIngredients(ingredients);
+        const structured = await liveLinks(toStructuredIngredients(ingredients), recipeId);
         const ingredientRows = positioned(structured).map((row) => ({ ...row, recipeId }));
 
         const sentTranslation = parsed.data.translation;

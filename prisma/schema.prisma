@@ -433,7 +433,9 @@ model Recipe {
   images         Image[]
   ratings        Rating[]
   favorites      Favorite[]
-  ingredients    Ingredient[]
+  ingredients    Ingredient[] @relation("RecipeRows")
+  /// Rows of other recipes that use this one as an ingredient ("Kimchi" in Kimchi-Pfannkuchen).
+  usedIn         Ingredient[] @relation("LinkedRecipe")
   captures       Capture[]
   menuItems      MenuItem[]
   revisions      RecipeRevision[]
@@ -473,7 +475,7 @@ model Recipe {
 model Ingredient {
   id          Int     @id @default(autoincrement())
   recipeId    Int
-  recipe      Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipe      Recipe  @relation("RecipeRows", fields: [recipeId], references: [id], onDelete: Cascade)
   position    Int
   /// 200 for "200 g"; 0.5 for "1/2"; null for "Salz"
   quantity    Float?
@@ -491,6 +493,9 @@ model Ingredient {
   /// Which ingredient of the cookbook's catalogue this is (lib/ingredientCatalog).
   itemId      Int?
   item        IngredientItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  /// Another recipe of the cookbook this row is: "Kimchi" in a Kimchi-Pfannkuchen.
+  linkedRecipeId Int?
+  linkedRecipe   Recipe? @relation("LinkedRecipe", fields: [linkedRecipeId], references: [id], onDelete: SetNull)
 
   @@unique([recipeId, position])
   @@index([itemId])
@@ -504,6 +509,7 @@ model Ingredient {
   /// 32,000 rows before, bitmap index scan after.
   @@index([name])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Ingredient_name_trgm_idx")
+  @@index([linkedRecipeId])
 }
 
 model Image {
@@ -1156,6 +1162,10 @@ model IngredientItem {
   moreUnits   String[]     @default([])
   /// Last seen in a recipe or on a shopping list (the daily tidy-up, lib/ingredientDecideDb).
   lastUsedAt  DateTime?
+  /// What it is, for a cook who may not know it ("Koreanisches Chilipulver …"),
+  /// shown beside it in every recipe. Null: never looked at; "": none needed.
+  infoDe      String?
+  infoEn      String?
   /// Changed by the admin by hand: never tidied away.
   handEdited  Boolean      @default(false)
   createdAt   DateTime     @default(now())

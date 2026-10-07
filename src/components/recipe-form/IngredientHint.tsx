@@ -14,6 +14,9 @@ export interface FormCatalogItem extends MatchableItem {
     unit: string | null;
     moreUnits: string[];
     units: Units | null;
+    /** What it is, per language ("Koreanisches Chilipulver"); null or '' for none. */
+    infoDe?: string | null;
+    infoEn?: string | null;
 }
 
 /** What the AI answered for one row (lib/ingredientDecideDb aiRow). */
@@ -52,6 +55,7 @@ export default function IngredientHint({
     onOverwriteUnit,
     onAi,
     onGiveName,
+    onInfo,
 }: {
     item: string;
     amount: string;
@@ -75,6 +79,8 @@ export default function IngredientHint({
     onAi: (question: object) => Promise<RowAnswer | null>;
     /** This row's name given to a card that has none in this language yet: "the German version of …". */
     onGiveName: (id: number, name: string) => void;
+    /** The card's explanation in this language changed (shown beside it in every recipe). */
+    onInfo?: (id: number, info: string) => void;
 }) {
     const t = useTranslations('RecipeForm');
     const [asking, setAsking] = useState(false);
@@ -214,6 +220,7 @@ export default function IngredientHint({
                             : t('hintKnownUnit', { name: nameOf(known), unit: showUnit })
                         : t('hintKnown', { name: nameOf(known) })
                 )}
+                {onInfo && <InfoLine key={known.id} info={(language === 'de' ? known.infoDe : known.infoEn) ?? ''} onSave={(info) => onInfo(known.id, info)} />}
             </div>
         );
     }
@@ -336,6 +343,50 @@ export function MirrorHint({ tone, card, item, language, onGiveName }: { tone: R
     return (
         <div className="basis-full text-xs" role="note">
             {line(tone === 'success' && card ? t('mirrorKnown', { name: card[language] }) : tone === 'warning' ? t('mirrorOpen') : t('mirrorNew'))}
+        </div>
+    );
+}
+
+/**
+ * A card's explanation, under its green line: what the ingredient is
+ * ("Koreanisches Chilipulver, grob gemahlen"), kept on the card and shown
+ * beside it in every recipe. Read, or written in place.
+ */
+function InfoLine({ info, onSave }: { info: string; onSave: (info: string) => void }) {
+    const t = useTranslations('RecipeForm');
+    const [editing, setEditing] = useState(false);
+    const [text, setText] = useState(info);
+    const link = 'ml-1 underline underline-offset-2 hover:text-ink';
+    if (!editing) {
+        return (
+            <p className="mt-0.5 text-muted">
+                {info ? <span>{info}</span> : null}
+                <button type="button" onClick={() => setEditing(true)} className={info ? link : 'underline underline-offset-2 hover:text-ink'}>
+                    {info ? t('infoEdit') : t('infoAdd')}
+                </button>
+            </p>
+        );
+    }
+    return (
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+            <input
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+                maxLength={300}
+                placeholder={t('infoPlaceholder')}
+                aria-label={t('infoLabel')}
+                className="min-w-0 flex-1 rounded-lg border border-control bg-page px-2 py-1 text-base text-ink outline-none focus:border-ink sm:text-xs"
+            />
+            <button
+                type="button"
+                onClick={() => {
+                    onSave(text.trim());
+                    setEditing(false);
+                }}
+                className="min-h-9 rounded-full border border-control bg-page px-3 text-xs text-ink hover:border-ink"
+            >
+                {t('infoSave')}
+            </button>
         </div>
     );
 }
