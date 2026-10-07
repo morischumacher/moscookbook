@@ -3,7 +3,7 @@ import { canonicalCategory, canonicalCuisine, canonicalList } from './recipeLabe
 import { isPrismaError } from './prismaErrors';
 import { slugify } from './recipe';
 import { searchFields } from './searchText';
-import type { StructuredIngredient } from './ingredientParts';
+import { capitalized, sectionHeading, type StructuredIngredient } from './ingredientParts';
 import { asLanguage, searchableTranslation, storedRows, type RecipeTranslationInput } from './recipeTranslation';
 
 /**
@@ -116,7 +116,8 @@ export function translationRow(translation: RecipeTranslationInput | null | unde
         description: translation.description,
         instructions: translation.instructions,
         tips: translation.tips,
-        ingredients: translation.ingredients,
+        // Written as the recipe's own rows are: each ingredient with a capital (lib/ingredientParts).
+        ingredients: translation.ingredients.map((row) => (sectionHeading(row) !== null ? row : { ...row, item: capitalized(row.item) })),
         source: translation.source,
     };
 }

@@ -1,13 +1,13 @@
-import { sectionHeading } from './ingredientParts';
+import { capitalized, sectionHeading } from './ingredientParts';
 
 /**
  * How an ingredient is written in this cookbook:
  *
  *     Zutat, Form (Zusatz) (optional)
  *     Knoblauch, gehackt (große Zehen) (optional)
- *     garlic, minced (large cloves) (optional)
+ *     Garlic, minced (large cloves) (optional)
  *
- * - the ingredient itself first: what is bought, what the catalogue
+ * - the ingredient itself first, with a capital in both languages: what is bought, what the catalogue
  *   (lib/ingredientCatalog) and the shopping list track;
  * - after the comma, how it goes into the dish: "gehackt", "in Streifen",
  *   "fein gerieben" — the same thing to buy, handled differently;
@@ -165,7 +165,7 @@ export function shapeOf(name: string): IngredientShape {
 /** The parts written the one way: "Knoblauch, gehackt (große Zehen) (optional)". */
 export function formatShape(shape: IngredientShape): string {
     if (!shape.base) return '';
-    return `${shape.base}${shape.form ? `, ${shape.form}` : ''}${shape.note ? ` (${shape.note})` : ''}${shape.optional ? ' (optional)' : ''}`;
+    return `${capitalized(shape.base)}${shape.form ? `, ${shape.form}` : ''}${shape.note ? ` (${shape.note})` : ''}${shape.optional ? ' (optional)' : ''}`;
 }
 
 /** A name in the cookbook's way of writing it. Safe to run twice. */
@@ -183,8 +183,9 @@ export function isOptional(name: string): boolean {
 export const CONVENTION_RULE = `- "item" follows the cookbook's convention: "Ingredient, preparation (other notes) (optional)".
   The ingredient itself first, as it is bought; after a comma how it is prepared;
   sizes and other notes in brackets; "(optional)" last when the recipe says it can be left out.
+  The ingredient starts with a capital letter in both languages.
   Examples: "Knoblauch, gehackt (große Zehen)", "Ingwer, frisch gerieben", "Chiliflocken (optional)",
-  "red onion, thinly sliced", "eggs (large)", "butter, softened".
+  "Red onion, thinly sliced", "Eggs (large)", "Butter, softened".
   Every part but the first may be missing.`;
 
 /** A recipe's rows with every ingredient written the convention's way; headings as they are. */
@@ -195,8 +196,8 @@ export function conventionalRows<T extends { amount: string; item: string }>(row
 /**
  * Whether the rules cannot vouch for a name being written the convention's
  * way, so it is worth one look by the AI: a long ingredient, one with a
- * comma or a "mit"/"with" in it, or one starting with a lower-case word in
- * German ("fermentierte, gesalzene Garnelen mit der salzigen Lauge").
+ * comma or a "mit"/"with" in it, or one with lower-case words before its
+ * noun ("Fermentierte gesalzene Garnelen").
  */
 export function needsReading(name: string): boolean {
     const shape = shapeOf(name);
@@ -205,5 +206,5 @@ export function needsReading(name: string): boolean {
     const count = base.split(' ').filter(Boolean).length;
     if (base.includes(',') || count > 3) return true;
     if (/\b(mit|with|von|aus|from|in)\b/i.test(base)) return true;
-    return /^[a-zäöüß]/.test(base) && /[A-ZÄÖÜ]/.test(base);
+    return /^\S+\s+[a-zäöüß]/.test(base) && /\s[A-ZÄÖÜ]/.test(base);
 }

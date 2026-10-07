@@ -1,12 +1,12 @@
 import prisma from './prisma';
 import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
-import { commonIngredient, germanName } from './ingredientNames';
+import { commonIngredient } from './ingredientNames';
 import { coreName, itemKeys, keysFor } from './ingredientMatch';
 import { findDoubles, pairKey, type DoubleCandidate } from './ingredientDoubles';
 import { formatShape, shapeOf } from './ingredientShape';
 import { shoppingKey } from './shopping';
-import { formatAmount, splitAmount } from './ingredientParts';
+import { capitalized, formatAmount, splitAmount } from './ingredientParts';
 import { amountIn, convertQuantity, familyOf, isEuropean, measureOf, rebased, storedFactor, unitLabel } from './ingredientUnits';
 import { alignRecipes, itemSelect, unitOverview } from './ingredientUnitsDb';
 import { rewriteRows } from './recipeRowsDb';
@@ -89,7 +89,7 @@ export interface UnitQuestion {
 
 /** Every open question: the doubles, and the units. */
 export async function openQuestions(): Promise<{ doubles: DoubleCandidate[]; units: UnitQuestion[] }> {
-    const items = await prisma.ingredientItem.findMany({ select: { ...itemSelect, aliases: true } });
+    const items = await prisma.ingredientItem.findMany({ select: { ...itemSelect, aliases: true, enAliases: true } });
     const [overview, skip] = await Promise.all([unitOverview(items), notDoubles()]);
     const units: UnitQuestion[] = [];
     for (const item of items) {
@@ -123,9 +123,9 @@ export const complementary = (a: { de: string; en: string }, b: { de: string; en
  * happened.
  */
 export async function giveName(itemId: number, language: 'de' | 'en', wanted: string, editedBy: string | null): Promise<'named' | 'merged' | 'asked' | 'kept'> {
-    const name = language === 'de' ? germanName(wanted.trim().slice(0, 120)) : wanted.trim().slice(0, 120);
+    const name = capitalized(wanted.trim().slice(0, 120));
     if (!name) return 'kept';
-    const item = await prisma.ingredientItem.findUnique({ where: { id: itemId }, select: { id: true, de: true, en: true, aliases: true } });
+    const item = await prisma.ingredientItem.findUnique({ where: { id: itemId }, select: { id: true, de: true, en: true, aliases: true, enAliases: true } });
     if (!item || item[language]) return 'kept';
     const other = await prisma.ingredientItem.findFirst({ where: { id: { not: itemId }, keys: { hasSome: keysFor(name) } }, orderBy: { id: 'asc' }, select: { id: true, de: true, en: true } });
     if (other) {
@@ -202,12 +202,12 @@ export async function ingredientTodo(): Promise<number> {
  * others knew come along.
  */
 export async function merge(into: number, from: number[], editedBy: string | null): Promise<{ merged: number; recipes: number }> {
-    const select = { de: true, en: true, aliases: true, buyMeasure: true, factors: true, aisle: true, unit: true, moreUnits: true } as const;
+    const select = { de: true, en: true, aliases: true, enAliases: true, buyMeasure: true, factors: true, aisle: true, unit: true, moreUnits: true } as const;
     const kept = await prisma.ingredientItem.findUnique({ where: { id: into }, select });
     const gone = await prisma.ingredientItem.findMany({ where: { id: { in: from } }, select });
     if (!kept || gone.length === 0) return { merged: 0, recipes: 0 };
-    const de = germanName(kept.de || gone.find((item) => item.de)?.de || '');
-    const en = kept.en || gone.find((item) => item.en)?.en || '';
+    const de = capitalized(kept.de || gone.find((item) => item.de)?.de || '');
+    const en = capitalized(kept.en || gone.find((item) => item.en)?.en || '');
 
     // Renamed before the rows move, while they can still be told apart.
     const recipes = await rewriteRows(
@@ -223,7 +223,10 @@ export async function merge(into: number, from: number[], editedBy: string | nul
     );
 
     await prisma.$transaction(async (tx) => {
-        const aliases = [...new Set([...kept.aliases, ...gone.flatMap((item) => [item.de, item.en, ...item.aliases])].filter((alias) => alias && alias !== de && alias !== en))].slice(0, 60);
+        // Each language's names stay in that language.
+        const further = (names: string[], own: string) => [...new Set(names.filter((alias) => alias && alias !== own))].slice(0, 60);
+        const aliases = further([...kept.aliases, ...gone.flatMap((item) => [item.de, ...item.aliases])], de);
+        const enAliases = further([...kept.enAliases, ...gone.flatMap((item) => [item.en, ...item.enAliases])], en);
         const withUnits = kept.buyMeasure ? kept : (gone.find((item) => item.buyMeasure) ?? kept);
         const factors = {
             ...Object.assign({}, ...gone.filter((item) => item.buyMeasure === withUnits.buyMeasure).map((item) => item.factors as object)),
@@ -239,7 +242,8 @@ export async function merge(into: number, from: number[], editedBy: string | nul
                 de,
                 en,
                 aliases,
-                keys: itemKeys({ de, en, aliases }),
+                enAliases,
+                keys: itemKeys({ de, en, aliases, enAliases }),
                 aisle: kept.aisle ?? gone.find((item) => item.aisle)?.aisle ?? null,
                 buyMeasure: withUnits.buyMeasure,
                 factors,
@@ -423,7 +427,7 @@ export async function aiResolve(only: { double: [number, number] } | { unit: { i
     const open = await openQuestions();
     const doubles = open.doubles.filter((pair) => !only || ('double' in only && pairKey(pair.a, pair.b) === pairKey(only.double[0], only.double[1])));
     const units = open.units.filter((question) => !only || ('unit' in only && question.itemId === only.unit.itemId && question.family === only.unit.family));
-    const items = new Map((await prisma.ingredientItem.findMany({ select: { ...itemSelect, aliases: true } })).map((item) => [item.id, item]));
+    const items = new Map((await prisma.ingredientItem.findMany({ select: { ...itemSelect, aliases: true, enAliases: true } })).map((item) => [item.id, item]));
     const overview = await unitOverview([...items.values()]);
     type Asked = { n: number; double?: DoubleCandidate; unit?: UnitQuestion; main?: string };
     const asked: Asked[] = [];

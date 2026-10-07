@@ -77,15 +77,18 @@ function filled(rows: Ingredient[]): Ingredient[] {
  * A short fingerprint of the original, so the form can say "the recipe has
  * changed since it was translated". Not security, only change detection:
  * FNV-1a over the text the translation was made from.
+ *
+ * `keepCase`: the key as it was built before every name started with a
+ * capital — what the translations made back then were stamped with.
  */
-export function sourceKey(recipe: TranslatableRecipe): string {
+export function sourceKey(recipe: TranslatableRecipe, keepCase = false): string {
     const text = JSON.stringify([
         recipe.title.trim(),
         recipe.description.trim(),
         recipe.instructions.trim(),
         // As stored, not as typed: "Für den Teig:" comes back from the
         // database as "## Für den Teig", and that is not a change.
-        toStructuredIngredients(recipe.ingredients).map((row) => [row.section ?? '', row.raw, row.name]),
+        toStructuredIngredients(recipe.ingredients, keepCase).map((row) => [row.section ?? '', row.raw, row.name]),
         // Only when there are any: every translation made before recipes had
         // tips would otherwise have turned stale on the day they arrived.
         ...((recipe.tips ?? '').trim() !== '' ? [(recipe.tips ?? '').trim()] : []),

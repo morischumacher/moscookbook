@@ -122,7 +122,8 @@ export default function IngredientEditor({
             current.map((entry) => {
                 if (entry.id !== id) return entry;
                 const old = entry[lang];
-                const next = { ...entry, [lang]: name, aliases: old && old !== name ? [...entry.aliases, old] : entry.aliases };
+                const field = lang === 'de' ? 'aliases' : 'enAliases';
+                const next = { ...entry, [lang]: name, [field]: old && old !== name ? [...entry[field], old] : entry[field] };
                 return { ...next, keys: itemKeys(next) };
             })
         );

@@ -1133,8 +1133,10 @@ model IngredientItem {
   id          Int          @id @default(autoincrement())
   de          String       @default("")
   en          String       @default("")
-  /// Further names, either language: "Lauchzwiebel", "scallion".
+  /// Further German names: "Lauchzwiebel".
   aliases     String[]     @default([])
+  /// Further English names: "Scallion".
+  enAliases   String[]     @default([])
   /// The folded names (lib/shopping shoppingKey) of de, en and the aliases:
   /// what a new name is matched against.
   keys        String[]     @default([])

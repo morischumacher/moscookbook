@@ -1,8 +1,7 @@
 import prisma from './prisma';
-import { germanName } from './ingredientNames';
 import { coreName, keysFor, namesIn } from './ingredientMatch';
 import { guessLanguage, storedRows, type RecipeLanguage } from './recipeTranslation';
-import { sectionHeading } from './ingredientParts';
+import { capitalized, sectionHeading } from './ingredientParts';
 
 /**
  * The cookbook's ingredients, once each, in both languages.
@@ -26,6 +25,7 @@ export interface CatalogItem {
     de: string;
     en: string;
     aliases: string[];
+    enAliases: string[];
 }
 
 /**
@@ -64,7 +64,7 @@ export async function itemFor(name: string, language: RecipeLanguage): Promise<n
         const again = await matchItem(name, tx);
         if (again !== null) return again;
         const created = await tx.ingredientItem.create({
-            data: { de: language === 'de' ? germanName(core) : '', en: language === 'en' ? core : '', keys: keysFor(core) },
+            data: { de: language === 'de' ? capitalized(core) : '', en: language === 'en' ? capitalized(core) : '', keys: keysFor(core) },
             select: { id: true },
         });
         return created.id;

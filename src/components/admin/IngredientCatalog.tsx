@@ -12,7 +12,6 @@ import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 import { CHOOSABLE_AISLES } from '@/lib/shopping';
 import { unitLabel, type UnitUse } from '@/lib/ingredientUnits';
 import { UNIT_CHOICES } from '@/lib/unitChoice';
-import { isGermanName } from '@/lib/ingredientMatch';
 import type { AiDecision } from '@/lib/ingredientDecideDb';
 
 /** A further unit on a card, with its conversion to the main one ("7 Stück = 1 Bund"). */
@@ -28,6 +27,7 @@ interface Item {
     de: string;
     en: string;
     aliases: string[];
+    enAliases: string[];
     uses: number;
     onLists: number;
     /** Part of the starting stock: kept even when no recipe uses it. */
@@ -218,7 +218,7 @@ export default function IngredientCatalog() {
     const q = query.trim().toLowerCase();
     const byName = (a: Item, b: Item) => label(a).localeCompare(label(b), locale);
     const visible = q
-        ? all.filter((item) => [item.de, item.en, ...item.aliases].some((name) => name.toLowerCase().includes(q))).sort(byName)
+        ? all.filter((item) => [item.de, item.en, ...item.aliases, ...item.enAliases].some((name) => name.toLowerCase().includes(q))).sort(byName)
         : current === 'missing'
           ? all.filter((item) => !item.de || !item.en).sort((a, b) => b.uses - a.uses)
           : current === 'newest'
@@ -250,7 +250,7 @@ export default function IngredientCatalog() {
     // One card, the same everywhere: in the lists closed, under "Zu entscheiden" open.
     const rowFor = (item: Item, open: boolean) => (
         <ItemRow
-            key={`${item.id}-${item.de}-${item.en}-${item.aliases.join('|')}-${item.main}-${JSON.stringify(item.units)}-${pendingFor(item.id).length}`}
+            key={`${item.id}-${item.de}-${item.en}-${item.aliases.join('|')}-${item.enAliases.join('|')}-${item.main}-${JSON.stringify(item.units)}-${pendingFor(item.id).length}`}
             item={item}
             locale={locale}
             detail={current === 'newest' && !q ? 'date' : 'uses'}
@@ -580,8 +580,6 @@ function AiButton({ busy, id, available, onClick }: { busy: string | null; id: s
 /** A card in short, to compare two of them. */
 function MiniCard({ item, locale }: { item: Item; locale: 'de' | 'en' }) {
     const t = useTranslations('Ingredients');
-    const de = item.aliases.filter(isGermanName);
-    const en = item.aliases.filter((alias) => !isGermanName(alias));
     const line = (code: string, name: string, also: string[]) => (
         <p className="flex gap-2">
             <span className="w-7 shrink-0 text-xs font-semibold uppercase text-faint">{code}</span>
@@ -593,8 +591,8 @@ function MiniCard({ item, locale }: { item: Item; locale: 'de' | 'en' }) {
     );
     return (
         <div className="flex flex-1 flex-col gap-1 rounded-lg bg-surface p-3 text-sm">
-            {line('DE', item.de, de)}
-            {line('EN', item.en, en)}
+            {line('DE', item.de, item.aliases)}
+            {line('EN', item.en, item.enAliases)}
             <p className="mt-1 text-xs text-faint">
                 {item.main !== null ? `${t('mainUnit')}: ${unitLabel(item.main, locale)} · ` : ''}
                 {t('uses', { count: item.uses })}
@@ -749,7 +747,7 @@ function ItemRow({
     selected: boolean;
     busy: boolean;
     onSelect: () => void;
-    onSave: (next: { de: string; en: string; aliases: string[]; aisle?: string | null }) => Promise<unknown>;
+    onSave: (next: { de: string; en: string; aliases: string[]; enAliases: string[]; aisle?: string | null }) => Promise<unknown>;
     onMain: (unit: string | null) => void;
     onUnits: (main: string, rows: { unit: string; a: number; b: number }[]) => void;
     onDelete: () => void;
@@ -764,16 +762,17 @@ function ItemRow({
     const [open, setOpen] = useState(defaultOpen);
     const [de, setDe] = useState(item.de);
     const [en, setEn] = useState(item.en);
-    const [deAlso, setDeAlso] = useState(item.aliases.filter(isGermanName).join(', '));
-    const [enAlso, setEnAlso] = useState(item.aliases.filter((alias) => !isGermanName(alias)).join(', '));
+    const [deAlso, setDeAlso] = useState(item.aliases.join(', '));
+    const [enAlso, setEnAlso] = useState(item.enAliases.join(', '));
     const [saving, setSaving] = useState(false);
     const list = (text: string) =>
         text
             .split(',')
             .map((name) => name.trim())
             .filter(Boolean);
-    const aliases = [...list(deAlso), ...list(enAlso)];
-    const dirty = de !== item.de || en !== item.en || aliases.join('|') !== [...item.aliases.filter(isGermanName), ...item.aliases.filter((alias) => !isGermanName(alias))].join('|');
+    const aliases = list(deAlso);
+    const enAliases = list(enAlso);
+    const dirty = de !== item.de || en !== item.en || aliases.join('|') !== item.aliases.join('|') || enAliases.join('|') !== item.enAliases.join('|');
     const field = 'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none focus:border-ink';
 
     const first = locale === 'de' ? item.de : item.en;
@@ -843,7 +842,7 @@ function ItemRow({
                         disabled={saving || (!de.trim() && !en.trim())}
                         onClick={async () => {
                             setSaving(true);
-                            await onSave({ de: de.trim(), en: en.trim(), aliases });
+                            await onSave({ de: de.trim(), en: en.trim(), aliases, enAliases });
                             setSaving(false);
                         }}
                         className={`self-start ${buttonPrimarySmall}`}
@@ -859,7 +858,7 @@ function ItemRow({
                     {t('aisle')}
                     <select
                         value={item.aisle ?? ''}
-                        onChange={(event) => void onSave({ de: item.de, en: item.en, aliases: item.aliases, aisle: event.target.value || null })}
+                        onChange={(event) => void onSave({ de: item.de, en: item.en, aliases: item.aliases, enAliases: item.enAliases, aisle: event.target.value || null })}
                         className="min-h-9 rounded-lg border border-control bg-transparent px-2 text-sm text-ink"
                     >
                         <option value="">{t('aisleAuto', { aisle: tShop(`aisle.${item.ruleAisle}`) })}</option>

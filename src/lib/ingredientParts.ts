@@ -28,6 +28,16 @@ export interface StructuredIngredient extends AmountParts {
  * the editor's "+ Section" button inserts — or "Für den Teig:", which is how
  * recipes write it and what a paste brings in. Returns the heading, or null.
  */
+/**
+ * An ingredient name as this cookbook writes it, in either language: the
+ * first letter capital ("Gochugaru", "Spring onions", "Rote Zwiebeln"), the
+ * rest as it was. Every writer of a name goes through it.
+ */
+export function capitalized(name: string): string {
+    const trimmed = name.trim();
+    return trimmed ? trimmed.charAt(0).toLocaleUpperCase('de') + trimmed.slice(1) : trimmed;
+}
+
 export function sectionHeading(row: { amount: string; item: string }): string | null {
     if (row.amount.trim() !== '') return null;
     const item = row.item.trim();
@@ -112,7 +122,7 @@ export function formatAmount(parts: AmountParts, factor = 1, locale: 'en' | 'de'
 }
 
 /** Turns the form's {amount, item} pairs into rows ready for the database. */
-export function toStructuredIngredients(ingredients: Ingredient[]): StructuredIngredient[] {
+export function toStructuredIngredients(ingredients: Ingredient[], keepCase = false): StructuredIngredient[] {
     let section: string | null = null;
     const rows: StructuredIngredient[] = [];
 
@@ -123,7 +133,7 @@ export function toStructuredIngredients(ingredients: Ingredient[]): StructuredIn
             continue;
         }
 
-        const name = ingredient.item.trim();
+        const name = keepCase ? ingredient.item.trim() : capitalized(ingredient.item);
         // Empty, or a heading that was added and never named.
         if (name === '' || (/^#+$/.test(name) && ingredient.amount.trim() === '')) continue;
 

@@ -16,3 +16,8 @@
 ## Phone-first UI
 1. **Check every UI change at phone size**: run the app with the seed (`scripts/mobile-seed.ts`) and `npm run check:mobile` (iPhone viewport, touch): it fails on sideways scrolling, content past the right edge, crowded tap targets under 24 px and a sheet reaching below the screen, and photographs every page to `mobile-shots/`. Look at the pictures — the script cannot tell whether a page looks good. CI runs it on every push and keeps the pictures as the `mobile-shots` artifact.
 2. **Heights in `dvh`, never `vh`**: on an iPhone Safari's toolbar floats over the bottom of the `vh` screen. A full-screen dialog is `fixed inset-x-0 top-0 h-[100dvh]`, never `fixed inset-0` with its content at the bottom (`check:design` refuses both).
+
+## Ingredient names
+1. **One way of writing them**: `Zutat, Zubereitung (Zusatz) (optional)` — `Knoblauch, gehackt (große Zehen) (optional)`, `Garlic, minced (large cloves) (optional)` (`src/lib/ingredientShape.ts`).
+2. **A capital first letter in both languages**: every writer goes through `capitalized` (`src/lib/ingredientParts.ts`) — recipe rows via `toStructuredIngredients`, translations via `translationRow`, catalogue cards in `/api/ingredients` and `ingredientDecideDb`. Never tell a language apart by its capitals.
+3. **Further names per language**: `IngredientItem.aliases` (German) and `enAliases` (English); a merge or rename keeps each name in its own language.

@@ -5,7 +5,7 @@ import { brokenGermanName, coreName, matchIn, mirroredRows, similarIn, itemKeys,
 import { converted, unitsOf } from '../src/lib/shoppingParts';
 import { withGlossary } from '../src/lib/recipeTranslation';
 
-const item = (id: number, de: string, en = '', aliases: string[] = []) => ({ id, de, en, aliases, keys: itemKeys({ de, en, aliases }) });
+const item = (id: number, de: string, en = '', aliases: string[] = [], enAliases: string[] = []) => ({ id, de, en, aliases, enAliases, keys: itemKeys({ de, en, aliases, enAliases }) });
 
 export default function ingredientUnitsTests() {
     suite('ingredient units: the stored form');
@@ -67,13 +67,13 @@ export default function ingredientUnitsTests() {
         { ingredients: [{ amount: '2', item: 'Frühlingszwiebeln, fein geschnitten' }, { amount: '1 TL', item: 'Salz' }] },
         { Frühlingszwiebeln: 'spring onions' }
     );
-    equal("the list's name, the model's preparation", translated.ingredients[0].item, 'spring onions, finely sliced');
+    equal("the list's name, the model's preparation", translated.ingredients[0].item, 'Spring onions, finely sliced');
     equal('what the list does not know stays the model\'s', translated.ingredients[1].item, 'salt');
 
     suite('ingredient match: the other language follows');
     const english = [{ amount: '', item: '## Sauce' }, { amount: '2', item: 'scallions, chopped' }, { amount: '1 tsp', item: 'salt' }];
     const german = [{ amount: '', item: '## Soße' }, { amount: '2', item: 'Lauchzwiebeln, gehackt' }, { amount: '1 TL', item: 'Salz' }, { amount: '', item: '' }];
-    equal("the row beside gets the list's name, its own preparation kept", syncedRows(english, german, 1, 'spring onions')[1].item, 'spring onions, chopped');
+    equal("the row beside gets the list's name, its own preparation kept", syncedRows(english, german, 1, 'spring onions')[1].item, 'Spring onions, chopped');
     equal('a heading is never renamed', syncedRows(english, german, 0, 'x')[0].item, '## Sauce');
 
     suite('translation: the same amounts in both languages');

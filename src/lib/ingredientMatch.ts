@@ -38,15 +38,18 @@ export function keysFor(name: string): string[] {
 }
 
 /** Every key an item is found by: its names in both languages and its further ones. */
-export function itemKeys(item: { de: string; en: string; aliases: string[] }): string[] {
-    return [...new Set([item.de, item.en, ...item.aliases].filter((name) => name.trim()).flatMap((name) => keysFor(name)))];
+export function itemKeys(item: { de: string; en: string; aliases: string[]; enAliases: string[] }): string[] {
+    return [...new Set([item.de, item.en, ...item.aliases, ...item.enAliases].filter((name) => name.trim()).flatMap((name) => keysFor(name)))];
 }
 
 export interface MatchableItem {
     id: number;
     de: string;
     en: string;
+    /** Further German names. */
     aliases: string[];
+    /** Further English names. */
+    enAliases: string[];
     keys: string[];
 }
 
@@ -91,7 +94,7 @@ export function similarIn<T extends MatchableItem>(name: string, items: T[], lim
     const scored: { item: T; score: number }[] = [];
     for (const item of items) {
         let best = 0;
-        for (const other of [item.de, item.en, ...item.aliases].map(plain).filter((text) => text.length >= 3)) {
+        for (const other of [item.de, item.en, ...item.aliases, ...item.enAliases].map(plain).filter((text) => text.length >= 3)) {
             if (other === core) continue;
             const shorter = Math.min(other.length, core.length);
             if (shorter >= 4 && distance(other, core, 2) <= (shorter >= 9 ? 2 : 1)) best = Math.max(best, 3);
@@ -151,5 +154,3 @@ export function mirroredRows<T extends { item: string; amount: string }>(rows: T
     });
 }
 
-/** A further name's language: a German one has a capitalised word ("gelbe Zwiebel") or an umlaut, an English one neither. */
-export const isGermanName = (name: string) => /(^|[\s-])[A-ZÄÖÜ]/.test(name) || /[äöüß]/i.test(name);
