@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { idFrom, refuse, route } from '@/lib/route';
 import { readSnapshot, snapshotOf } from '@/lib/revisions';
 import { trimRevisions } from '@/lib/revisionsDb';
-import { keptTranslation, recipeColumns } from '@/lib/recipeRepo';
+import { keptTranslation, liveLinks, recipeColumns } from '@/lib/recipeRepo';
 import { splitAmount } from '@/lib/ingredientParts';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { toJsonObject } from '@/lib/json';
@@ -39,7 +39,11 @@ export const POST = route<'admin', undefined, { id: string; revisionId: string }
         const snapshot = readSnapshot(revision.snapshot);
         if (!snapshot) refuse(422, 'That version cannot be read.');
 
-        const ingredients = snapshot.ingredients.map((row) => ({ ...splitAmount(row.raw), name: row.name, raw: row.raw, section: row.section }));
+        // With the recipes its rows were (a link to a recipe deleted since is dropped).
+        const ingredients = await liveLinks(
+            snapshot.ingredients.map((row) => ({ ...splitAmount(row.raw), name: row.name, raw: row.raw, section: row.section, linkedRecipeId: row.linkedRecipeId })),
+            recipeId
+        );
 
         /*
          * The version being replaced is kept in the same transaction as the

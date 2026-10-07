@@ -123,23 +123,28 @@ async function rewriteSome(): Promise<number> {
             const recipe = target.recipe;
             if (target.translationId === null) {
                 // The original changed: its version is kept, and its translations stay as fresh as they were.
-                const keyWith = (fields: { instructions: string; tips: string }) =>
-                    sourceKey({
+                const keyWith = (fields: { instructions: string; tips: string }, keepCase = false) =>
+                    sourceKey(
+                        {
                         title: recipe.title,
                         description: recipe.description ?? '',
                         instructions: fields.instructions,
                         tips: fields.tips,
                         ingredients: withHeadingRows(recipe.ingredients.map((row) => ({ amount: row.raw, item: row.name, section: row.section }))),
-                    });
-                const before = keyWith({ instructions: recipe.instructions, tips: recipe.tips ?? '' });
+                        },
+                        keepCase
+                    );
+                // Stamped either way: as keys are built now, or as before names were tidied (lib/recipeTranslation).
+                const stamps = [keyWith({ instructions: recipe.instructions, tips: recipe.tips ?? '' }), keyWith({ instructions: recipe.instructions, tips: recipe.tips ?? '' }, true)];
+                const isBefore = (source: string) => stamps.includes(source);
                 const next = { instructions: recipe.instructions, tips: recipe.tips ?? '', [target.field]: answer };
                 const after = keyWith(next);
                 await keepRevisionOf(recipe.id, snapshotOf({ ...recipe, tips: recipe.tips ?? '' }), null);
                 await prisma.$transaction(
-                    recipe.translations.filter((row) => row.source === before).map((row) => prisma.recipeTranslation.update({ where: { id: row.id }, data: { source: after } }))
+                    recipe.translations.filter((row) => row.source && isBefore(row.source)).map((row) => prisma.recipeTranslation.update({ where: { id: row.id }, data: { source: after } }))
                 );
                 recipe[target.field] = answer;
-                for (const row of recipe.translations) if (row.source === before) row.source = after;
+                for (const row of recipe.translations) if (row.source && isBefore(row.source)) row.source = after;
             } else {
                 await prisma.recipeTranslation.update({ where: { id: target.translationId }, data: { [target.field]: answer } });
             }

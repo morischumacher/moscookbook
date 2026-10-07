@@ -655,13 +655,16 @@ const INFO_PROMPT = `You explain ingredients for a German/English personal cookb
 You receive lines "id: German name | English name".
 
 For each, decide whether a home cook in Germany might not know what it is (Gochugaru, Saeujeot,
-Mirin, Doenjang, Sumach, Asafoetida …). Only then write one short explanation in each language:
-what it is and what it tastes or does, at most 12 words, no recipe advice, no brand names
-("Koreanisches Chilipulver, grob gemahlen, fruchtig und mild scharf" / "Korean chili powder,
-coarse, fruity and mildly hot"). For everyday ingredients (Zwiebeln, Mehl, Butter, Sojasauce,
-Ingwer …) both are "".
+Mirin, Doenjang, Sumach, Asafoetida …). Only then write, in each language:
+- "de" / "en": what it is in a few words, at most 6, as one would say it instead of the name
+  ("Gesalzene, fermentierte Garnelen" / "Salted fermented shrimp");
+- "aboutDe" / "aboutEn": one or two sentences — what it is, where it comes from, how it tastes and
+  what it does in a dish ("Saeujeot is a Korean condiment made from small shrimp that are heavily
+  salted and fermented. It adds a salty, savoury umami flavour and is a traditional ingredient in kimchi.").
+No recipe advice, no brand names. For everyday ingredients (Zwiebeln, Mehl, Butter, Sojasauce,
+Ingwer …) all four are "".
 
-Return JSON only: {"<id>": {"de": "…", "en": "…"}, …} — one entry per line. No code fences.`;
+Return JSON only: {"<id>": {"de": "…", "en": "…", "aboutDe": "…", "aboutEn": "…"}, …} — one entry per line. No code fences.`;
 
 /**
  * The cards never looked at for an explanation (infoDe/infoEn null) — of one
@@ -674,31 +677,35 @@ export async function fillInfos(recipeId: number | null): Promise<number | null>
     if (!canUseAi(ai)) return null;
     const ids = recipeId === null ? null : [...new Set((await prisma.ingredient.findMany({ where: { recipeId, itemId: { not: null } }, select: { itemId: true } })).map((row) => row.itemId!))];
     const open = await prisma.ingredientItem.findMany({
-        where: { ...(ids ? { id: { in: ids } } : {}), OR: [{ infoDe: null }, { infoEn: null }] },
-        select: { id: true, de: true, en: true, infoDe: true, infoEn: true },
+        where: { ...(ids ? { id: { in: ids } } : {}), OR: [{ infoDe: null }, { infoEn: null }, { aboutDe: null }, { aboutEn: null }] },
+        select: { id: true, de: true, en: true, infoDe: true, infoEn: true, aboutDe: true, aboutEn: true },
         take: 400,
     });
     if (open.length === 0) return 0;
     const key = ai.keys[0];
     const small = { ...key, model: key.small ?? smallModelFor(key) ?? key.model };
     const usage = usageRecorder('ingredients');
-    const text = (value: unknown) => (typeof value === 'string' ? value.trim().slice(0, 200) : '');
+    const text = (value: unknown, max: number) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
     let filled = 0;
     try {
         for (let at = 0; at < open.length; at += 80) {
             const chunk = open.slice(at, at + 80);
             const answer = extractJson(
                 await completeWithKey(small, { kind: 'raw', system: INFO_PROMPT, text: chunk.map((item) => `${item.id}: ${item.de || '—'} | ${item.en || '—'}`).join('\n') }, usage.report).catch(() => '')
-            ) as Record<string, { de?: unknown; en?: unknown }> | null;
+            ) as Record<string, { de?: unknown; en?: unknown; aboutDe?: unknown; aboutEn?: unknown }> | null;
             if (!answer) continue;
             for (const item of chunk) {
                 const given = answer[String(item.id)];
                 if (!given) continue;
-                // What the admin wrote stays; only the empty side is filled.
-                const de = item.infoDe ?? text(given.de);
-                const en = item.infoEn ?? text(given.en);
-                await prisma.ingredientItem.update({ where: { id: item.id }, data: { infoDe: de, infoEn: en } });
-                if ((de && !item.infoDe) || (en && !item.infoEn)) filled += 1;
+                // What the admin wrote stays — also when written while the AI was being asked: only a side still never looked at is filled.
+                let wrote = false;
+                for (const field of ['infoDe', 'infoEn', 'aboutDe', 'aboutEn'] as const) {
+                    if (item[field] !== null) continue;
+                    const value = text(given[field === 'infoDe' ? 'de' : field === 'infoEn' ? 'en' : field], field.startsWith('about') ? 600 : 120);
+                    const count = (await prisma.ingredientItem.updateMany({ where: { id: item.id, [field]: null }, data: { [field]: value } })).count;
+                    if (count && value) wrote = true;
+                }
+                if (wrote) filled += 1;
             }
         }
     } finally {

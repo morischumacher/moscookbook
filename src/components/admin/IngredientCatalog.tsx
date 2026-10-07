@@ -31,6 +31,9 @@ interface Item {
     /** What it is, per language, shown beside it in every recipe; '' for none. */
     infoDe: string;
     infoEn: string;
+    /** What it is at more length, opened from the short one in a recipe. */
+    aboutDe: string;
+    aboutEn: string;
     uses: number;
     onLists: number;
     /** Part of the starting stock: kept even when no recipe uses it. */
@@ -259,7 +262,7 @@ export default function IngredientCatalog() {
     // One card, the same everywhere: in the lists closed, under "Zu entscheiden" open.
     const rowFor = (item: Item, open: boolean) => (
         <ItemRow
-            key={`${item.id}-${item.de}-${item.en}-${item.aliases.join('|')}-${item.enAliases.join('|')}-${item.infoDe}-${item.infoEn}-${item.main}-${JSON.stringify(item.units)}-${pendingFor(item.id).length}`}
+            key={`${item.id}-${item.de}-${item.en}-${item.aliases.join('|')}-${item.enAliases.join('|')}-${item.infoDe}-${item.infoEn}-${item.aboutDe.length}-${item.aboutEn.length}-${item.main}-${JSON.stringify(item.units)}-${pendingFor(item.id).length}`}
             item={item}
             locale={locale}
             detail={current === 'newest' && !q ? 'date' : 'uses'}
@@ -761,7 +764,7 @@ function ItemRow({
     selected: boolean;
     busy: boolean;
     onSelect: () => void;
-    onSave: (next: { de: string; en: string; aliases: string[]; enAliases: string[]; infoDe?: string; infoEn?: string; aisle?: string | null }) => Promise<unknown>;
+    onSave: (next: { de: string; en: string; aliases: string[]; enAliases: string[]; infoDe?: string; infoEn?: string; aboutDe?: string; aboutEn?: string; aisle?: string | null }) => Promise<unknown>;
     onMain: (unit: string | null) => void;
     onUnits: (main: string, rows: { unit: string; a: number; b: number }[]) => void;
     onDelete: () => void;
@@ -780,6 +783,8 @@ function ItemRow({
     const [enAlso, setEnAlso] = useState(item.enAliases.join(', '));
     const [infoDe, setInfoDe] = useState(item.infoDe);
     const [infoEn, setInfoEn] = useState(item.infoEn);
+    const [aboutDe, setAboutDe] = useState(item.aboutDe);
+    const [aboutEn, setAboutEn] = useState(item.aboutEn);
     const [saving, setSaving] = useState(false);
     const list = (text: string) =>
         text
@@ -788,7 +793,7 @@ function ItemRow({
             .filter(Boolean);
     const aliases = list(deAlso);
     const enAliases = list(enAlso);
-    const dirty = de !== item.de || en !== item.en || aliases.join('|') !== item.aliases.join('|') || enAliases.join('|') !== item.enAliases.join('|') || infoDe !== item.infoDe || infoEn !== item.infoEn;
+    const dirty = de !== item.de || en !== item.en || aliases.join('|') !== item.aliases.join('|') || enAliases.join('|') !== item.enAliases.join('|') || infoDe !== item.infoDe || infoEn !== item.infoEn || aboutDe !== item.aboutDe || aboutEn !== item.aboutEn;
     const field = 'w-full rounded-lg border border-control bg-transparent px-3 py-2 outline-none focus:border-ink';
 
     const first = locale === 'de' ? item.de : item.en;
@@ -860,6 +865,15 @@ function ItemRow({
                         {t('infoEn')}
                         <input value={infoEn} onChange={(event) => setInfoEn(event.target.value)} maxLength={300} className={`${field} mt-1 text-base text-ink`} placeholder={t('infoEnPlaceholder')} />
                     </label>
+                    {/* And at more length: opened from the short one in a recipe. */}
+                    <label className="text-xs text-muted">
+                        {t('aboutDe')}
+                        <textarea value={aboutDe} onChange={(event) => setAboutDe(event.target.value)} maxLength={1000} rows={3} className={`${field} mt-1 text-base text-ink`} placeholder={t('aboutDePlaceholder')} />
+                    </label>
+                    <label className="text-xs text-muted">
+                        {t('aboutEn')}
+                        <textarea value={aboutEn} onChange={(event) => setAboutEn(event.target.value)} maxLength={1000} rows={3} className={`${field} mt-1 text-base text-ink`} placeholder={t('aboutEnPlaceholder')} />
+                    </label>
                 </div>
                 {dirty && (
                     <button
@@ -867,7 +881,8 @@ function ItemRow({
                         disabled={saving || (!de.trim() && !en.trim())}
                         onClick={async () => {
                             setSaving(true);
-                            await onSave({ de: de.trim(), en: en.trim(), aliases, enAliases, infoDe: infoDe.trim(), infoEn: infoEn.trim() });
+                            // The explanations only when changed: an untouched empty one stays "never looked at", for the AI.
+                            await onSave({ de: de.trim(), en: en.trim(), aliases, enAliases, ...(infoDe !== item.infoDe ? { infoDe: infoDe.trim() } : {}), ...(infoEn !== item.infoEn ? { infoEn: infoEn.trim() } : {}), ...(aboutDe !== item.aboutDe ? { aboutDe: aboutDe.trim() } : {}), ...(aboutEn !== item.aboutEn ? { aboutEn: aboutEn.trim() } : {}) });
                             setSaving(false);
                         }}
                         className={`self-start ${buttonPrimarySmall}`}

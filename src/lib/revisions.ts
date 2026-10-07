@@ -29,7 +29,7 @@ const snapshotSchema = z.object({
     cookMinutes: z.number().nullable().default(null),
     tags: z.array(z.string()).default([]),
     ingredients: z
-        .array(z.object({ raw: z.string().default(''), name: z.string(), section: z.string().nullable().default(null) }))
+        .array(z.object({ raw: z.string().default(''), name: z.string(), section: z.string().nullable().default(null), linkedRecipeId: z.number().nullable().default(null) }))
         .default([]),
 });
 
@@ -47,7 +47,7 @@ export interface SnapshotSource {
     prepMinutes: number | null;
     cookMinutes: number | null;
     tags: string[];
-    ingredients: { raw: string; name: string; section: string | null }[];
+    ingredients: { raw: string; name: string; section: string | null; linkedRecipeId?: number | null }[];
 }
 
 export function snapshotOf(recipe: SnapshotSource): RecipeSnapshot {
@@ -63,7 +63,7 @@ export function snapshotOf(recipe: SnapshotSource): RecipeSnapshot {
         prepMinutes: recipe.prepMinutes,
         cookMinutes: recipe.cookMinutes,
         tags: recipe.tags,
-        ingredients: recipe.ingredients.map((row) => ({ raw: row.raw, name: row.name, section: row.section })),
+        ingredients: recipe.ingredients.map((row) => ({ raw: row.raw, name: row.name, section: row.section, linkedRecipeId: row.linkedRecipeId ?? null })),
     };
 }
 

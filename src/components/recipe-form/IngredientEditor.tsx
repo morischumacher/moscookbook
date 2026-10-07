@@ -10,7 +10,7 @@ import { familyOf, measureOf, rebased, storedFactor } from '@/lib/ingredientUnit
 import IngredientHint, { MirrorHint, rowStatus, type FormCatalogItem, type RowAnswer } from './IngredientHint';
 import { fieldBase, fieldClass, labelClass } from './formStyles';
 import AmountInput from './AmountInput';
-import ItemInput, { type LinkableRecipe } from './ItemInput';
+import ItemInput, { type Described, type LinkableRecipe } from './ItemInput';
 import { moved, useDragReorder } from '@/components/ui/useDragReorder';
 import { formatAmount, sectionHeading, splitAmount } from '@/lib/ingredientParts';
 import { toUS } from '@/lib/units';
@@ -76,16 +76,19 @@ export default function IngredientEditor({
     const [aiAvailable, setAiAvailable] = useState(false);
     // The cookbook's recipes, each in this language: a row can be one of them ("Kimchi").
     const [recipes, setRecipes] = useState<LinkableRecipe[]>([]);
+    // The names with their few words, found by those too ("Gesalzene Garnelen" → Saeujeot).
+    const [described, setDescribed] = useState<Described[]>([]);
     useEffect(() => {
         let gone = false;
         fetch(`/api/ingredients/names?locale=${lang}`)
             .then((res) => (res.ok ? res.json() : { names: [] }))
-            .then((data: { names: string[]; items?: FormCatalogItem[]; aiAvailable?: boolean; recipes?: LinkableRecipe[] }) => {
+            .then((data: { names: string[]; items?: FormCatalogItem[]; aiAvailable?: boolean; recipes?: LinkableRecipe[]; described?: Described[] }) => {
                 if (gone) return;
                 setNames(data.names);
                 setCatalog(data.items ?? []);
                 setAiAvailable(Boolean(data.aiAvailable));
                 setRecipes(data.recipes ?? []);
+                setDescribed(data.described ?? []);
             })
             .catch(() => undefined);
         return () => {
@@ -100,7 +103,12 @@ export default function IngredientEditor({
     const setLink = (index: number, recipe: LinkableRecipe | null) => {
         onChange(
             ingredients.map((row, position) =>
-                position !== index ? row : recipe ? { ...row, item: joinParts({ ...partsOf(row.item), base: recipe.title }), linkedRecipeId: recipe.id } : { ...row, linkedRecipeId: null }
+                position !== index
+                    ? row
+                    : recipe
+                      ? // The title up to a bracket or comma: "Kimchi-Pfannkuchen (Kimchijeon)" is "Kimchi-Pfannkuchen" here.
+                        { ...row, item: joinParts({ ...partsOf(row.item), base: recipe.title.split(/[(,]/)[0].trim() || recipe.title }), linkedRecipeId: recipe.id }
+                      : { ...row, linkedRecipeId: null }
             )
         );
     };
@@ -292,6 +300,7 @@ export default function IngredientEditor({
                                 }}
                                 value={partsOf(row.item).base}
                                 names={names}
+                                described={described}
                                 recipes={mirrorOf ? [] : recipes.filter((recipe) => recipe.id !== recipeId)}
                                 onChange={(next) => {
                                     setParts(index, withBase(partsOf(row.item), next));
@@ -300,6 +309,8 @@ export default function IngredientEditor({
                                     if (field) requestAnimationFrame(() => field.current[index]?.focus());
                                 }}
                                 onRecipe={(recipe) => setLink(index, recipe)}
+                                // Tidied on leaving: no jump back into the row — and a recipe's title is its title.
+                                onTidy={(next) => !row.linkedRecipeId && setParts(index, withBase(partsOf(row.item), next))}
                                 onEnter={() => addRow(index)}
                                 placeholder={t('itemPlaceholder')}
                                 label={t('itemLabel', { number: index + 1 })}
@@ -380,9 +391,10 @@ export default function IngredientEditor({
                             {!drag && usAmount(row) && <p className="basis-full text-xs text-faint">{t('usAmount', { amount: usAmount(row)! })}</p>}
                             {/* Folded away while a row is dragged: every row its compact self, so the places add up. */}
                             {hints && !drag && mirrorOf && (() => {
-                                // The original's row beside this one, by place among the filled rows.
+                                // The original's row beside this one: the same place when the lists line up (lib/ingredientMatch
+                                // followedRows keeps them so), else by place among the filled rows.
                                 const place = ingredients.slice(0, index).filter((other) => other.item.trim()).length;
-                                const source = mirrorOf.filter((other) => other.item.trim())[place];
+                                const source = mirrorOf.length === ingredients.length ? mirrorOf[index] : mirrorOf.filter((other) => other.item.trim())[place];
                                 const status = source ? rowStatus(source.item, source.amount, catalog) : { tone: null, card: null };
                                 return <MirrorHint tone={status.tone} card={status.card} item={row.item} language={lang} onGiveName={giveName} />;
                             })()}

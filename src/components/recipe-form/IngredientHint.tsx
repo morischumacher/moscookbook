@@ -373,6 +373,13 @@ function InfoLine({ info, onSave }: { info: string; onSave: (info: string) => vo
                 value={text}
                 onChange={(event) => setText(event.target.value)}
                 maxLength={300}
+                // Enter saves the explanation — inside the recipe form it would otherwise save the recipe.
+                onKeyDown={(event) => {
+                    if (event.key !== 'Enter') return;
+                    event.preventDefault();
+                    onSave(text.trim());
+                    setEditing(false);
+                }}
                 placeholder={t('infoPlaceholder')}
                 aria-label={t('infoLabel')}
                 className="min-w-0 flex-1 rounded-lg border border-control bg-page px-2 py-1 text-base text-ink outline-none focus:border-ink sm:text-xs"

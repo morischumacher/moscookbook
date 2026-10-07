@@ -222,11 +222,28 @@ export function partsOf(name: string): IngredientShape {
     if (name.trimStart().startsWith('#')) return { base: name, form: '', note: '', optional: false };
     let optional = false;
     const notes: string[] = [];
-    const text = name.replace(/\s?\(([^)]*)\)/g, (_, inner: string) => {
-        if (OPTIONAL_PHRASE.test(inner.trim())) optional = true;
-        else notes.push(inner);
-        return '';
-    });
+    // Each bracket with what is inside, brackets in it too ("(in Dose (400 g))").
+    let text = '';
+    let depth = 0;
+    let inner = '';
+    for (const char of name) {
+        if (char === '(') {
+            if (depth > 0) inner += char;
+            else text = text.replace(/ $/, '');
+            depth += 1;
+        } else if (char === ')' && depth > 0) {
+            depth -= 1;
+            if (depth > 0) inner += char;
+            else {
+                // Only "(optional)" itself is the checkbox: a note being typed ("opt…", "wer mag") stays a note.
+                if (inner.trim().toLowerCase() === 'optional') optional = true;
+                else notes.push(inner);
+                inner = '';
+            }
+        } else if (depth > 0) inner += char;
+        else text += char;
+    }
+    if (depth > 0) notes.push(inner);
     const comma = text.indexOf(',');
     return {
         base: comma === -1 ? text : text.slice(0, comma),
@@ -241,7 +258,8 @@ export function joinParts(parts: IngredientShape): string {
     const bare = (text: string) => text.replace(/[()]/g, '');
     const base = bare(parts.base);
     const form = bare(parts.form);
-    const note = bare(parts.note);
+    // Brackets inside a note are kept when they pair up ("in Dose (400 g)").
+    const note = (parts.note.match(/\(/g) ?? []).length === (parts.note.match(/\)/g) ?? []).length ? parts.note : bare(parts.note);
     const head = base.trim() ? base.charAt(0).toLocaleUpperCase('de') + base.slice(1) : base;
     return `${head}${form ? `, ${form}` : ''}${note ? ` (${note})` : ''}${parts.optional ? ' (optional)' : ''}`;
 }

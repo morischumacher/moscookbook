@@ -7,7 +7,7 @@ import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
 import { deleteBlobs } from '@/lib/blobCleanup';
 import { requireAdmin } from '@/lib/auth';
-import { newRecipeData, withFreeSlug } from '@/lib/recipeRepo';
+import { liveLinks, newRecipeData, withFreeSlug } from '@/lib/recipeRepo';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { processCapture, readWithAiOnly } from '@/lib/captureProcess';
 import { canUseAi } from '@/lib/aiImport';
@@ -206,6 +206,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         // A retry or a model can leave a foreign picture in the draft, and
         // next/image only shows our own store. Ours stays as it is.
         const picture = draft.imageUrl ? await mirrorImageToBlob(draft.imageUrl, draft.title) : '';
+        const structured = await liveLinks(toStructuredIngredients(conventionalRows(draft.ingredients)));
         const recipe = await withFreeSlug(draft.title, (slug) =>
             prisma.recipe.create({
                 data: newRecipeData({
@@ -219,7 +220,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
                     servings: draft.servings,
                     prepMinutes: draft.prepMinutes,
                     cookMinutes: draft.cookMinutes,
-                    ingredients: toStructuredIngredients(conventionalRows(draft.ingredients)),
+                    ingredients: structured,
                     imageUrls: picture ? [picture] : [],
                 }),
                 select: { id: true, slug: true, title: true },

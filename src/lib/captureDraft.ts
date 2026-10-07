@@ -111,7 +111,8 @@ const storedDraftSchema = z.object({
     cookMinutes: count,
     ingredients: z.preprocess(
         (value) => (Array.isArray(value) ? value : []),
-        z.array(z.object({ amount: text, item: text })).transform((rows) => rows.filter((row) => row.item.trim() !== ''))
+        // With the recipe of ours a row is, set in the inbox's form ("Kimchi").
+        z.array(z.object({ amount: text, item: text, linkedRecipeId: z.number().int().positive().nullable().optional() })).transform((rows) => rows.filter((row) => row.item.trim() !== ''))
     ),
 });
 

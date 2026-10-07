@@ -1162,10 +1162,15 @@ model IngredientItem {
   moreUnits   String[]     @default([])
   /// Last seen in a recipe or on a shopping list (the daily tidy-up, lib/ingredientDecideDb).
   lastUsedAt  DateTime?
-  /// What it is, for a cook who may not know it ("Koreanisches Chilipulver …"),
-  /// shown beside it in every recipe. Null: never looked at; "": none needed.
+  /// What it is in a few words, for a cook who may not know it ("Gesalzene,
+  /// fermentierte Garnelen"), shown under it in every recipe and found when
+  /// typed in the form. Null: never looked at; "": none needed.
   infoDe      String?
   infoEn      String?
+  /// What it is at more length ("Saeujeot is a Korean condiment made from small
+  /// shrimp …"), opened from the short one in a recipe. Null: never looked at.
+  aboutDe     String?
+  aboutEn     String?
   /// Changed by the admin by hand: never tidied away.
   handEdited  Boolean      @default(false)
   createdAt   DateTime     @default(now())

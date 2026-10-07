@@ -93,7 +93,7 @@ export const recipeInclude = {
         orderBy: { position: 'asc' },
         // What the ingredient is ("Koreanisches Chilipulver"), and the recipe of ours a row is.
         include: {
-            item: { select: { infoDe: true, infoEn: true } },
+            item: { select: { infoDe: true, infoEn: true, aboutDe: true, aboutEn: true } },
             linkedRecipe: { select: { slug: true, title: true, language: true, isDraft: true, onlyMe: true, translations: { select: { locale: true, title: true } } } },
         },
     },
@@ -171,7 +171,8 @@ export default async function RecipeArticle({
     // In the reader's language when it has been translated into it.
     const recipe = inLanguage(written, locale);
     // Each row's explanation and recipe link, from the original's rows — a translation's are the same, row for row.
-    const extras = rowExtras(written.ingredients, recipe.ingredients.length, locale, mode === 'private', isAdmin);
+    // Not on a stale translation: its rows may no longer be the original's, row for row.
+    const extras = recipe.translated && recipe.stale ? undefined : rowExtras(written.ingredients, recipe.ingredients.length, locale, mode === 'private', isAdmin);
     const t = await getTranslations('Recipe');
     const tTags = await getTranslations('Tags');
     const tagLabel = (tag: string) => (KNOWN_TAGS.includes(tag) ? tTags(tag as 'vegan') : `#${tag}`);
@@ -490,7 +491,7 @@ export default async function RecipeArticle({
 }
 
 interface IngredientExtras {
-    item: { infoDe: string | null; infoEn: string | null } | null;
+    item: { infoDe: string | null; infoEn: string | null; aboutDe: string | null; aboutEn: string | null } | null;
     linkedRecipe: { slug: string; title: string; language: string | null; isDraft: boolean; onlyMe: boolean; translations: { locale: string; title: string }[] } | null;
 }
 
@@ -504,9 +505,10 @@ function rowExtras(rows: (Partial<IngredientExtras> & object)[], shown: number, 
     if (rows.length !== shown) return undefined;
     return rows.map((row) => {
         const info = (locale === 'en' ? row.item?.infoEn : row.item?.infoDe)?.trim() || undefined;
+        const about = (locale === 'en' ? row.item?.aboutEn : row.item?.aboutDe)?.trim() || undefined;
         const linked = row.linkedRecipe;
         const visible = inside && linked && !linked.isDraft && (!linked.onlyMe || isAdmin);
         const title = linked ? (linked.language !== locale && linked.translations.find((entry) => entry.locale === locale)?.title) || linked.title : '';
-        return { info, link: visible && linked ? { slug: linked.slug, title } : undefined };
+        return { info, about, link: visible && linked ? { slug: linked.slug, title } : undefined };
     });
 }

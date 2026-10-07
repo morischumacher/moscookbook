@@ -68,5 +68,11 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
             select: { id: true, title: true, language: true, translations: { where: { locale }, select: { title: true } } },
         })
     ).map((recipe) => ({ id: recipe.id, title: (recipe.language !== locale && recipe.translations[0]?.title) || recipe.title }));
-    return NextResponse.json({ names, items: catalog, recipes, aiAvailable: canUseAi(await aiCapability()) }, { headers: { 'Cache-Control': 'private, max-age=60' } });
+    // Each name with its few words in this language: "Gesalzene Garnelen" typed finds Saeujeot.
+    const described = items.flatMap((item) => {
+        const info = (locale === 'de' ? item.infoDe : item.infoEn)?.trim();
+        const name = item[locale] || item[locale === 'de' ? 'en' : 'de'];
+        return info && name ? [{ name: capitalized(name), info }] : [];
+    });
+    return NextResponse.json({ names, items: catalog, recipes, described, aiAvailable: canUseAi(await aiCapability()) }, { headers: { 'Cache-Control': 'private, max-age=60' } });
 });
