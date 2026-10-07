@@ -61,8 +61,10 @@ export default function FilterChips({
     // has sent the new page — which is exactly the window that was silent.
     const [isPending, startTransition] = useTransition();
 
-    const [searchTerm, setSearchTerm] = useState(searchParams.get('search') ?? '');
-    const [haveTerm, setHaveTerm] = useState(searchParams.get('have') ?? '');
+    // One field for both questions: a word searches, a list with commas ("Zucchini, Feta") asks for the
+    // recipes with all of them (`have`). An old link with either parameter fills it.
+    const [searchTerm, setSearchTerm] = useState(searchParams.get('search') ?? searchParams.get('have') ?? '');
+    const listMode = searchTerm.includes(',');
 
     // By their keys, as the list filters: an old "?category=Appetizer" lights up "Vorspeise".
     const activeCategory = canonicalCategory(searchParams.get('category') ?? '');
@@ -85,33 +87,19 @@ export default function FilterChips({
     useEffect(() => {
         const timer = setTimeout(() => {
             const params = new URLSearchParams(searchParams.toString());
-            if (searchTerm === (params.get('search') ?? '')) return;
+            const key = listMode ? 'have' : 'search';
+            const other = listMode ? 'search' : 'have';
+            if (searchTerm === (params.get(key) ?? '') && !params.get(other)) return;
 
-            if (searchTerm) params.set('search', searchTerm);
-            else params.delete('search');
+            if (searchTerm) params.set(key, searchTerm);
+            else params.delete(key);
+            params.delete(other);
             params.delete('page');
             startTransition(() => router.replace(`${pathname}?${params.toString()}`));
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [searchTerm, pathname, router, searchParams]);
-
-    // The same debounce, for the other question. Kept as its own effect rather
-    // than one that syncs both, because two fields sharing one timer means
-    // typing in either resets the other's.
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const params = new URLSearchParams(searchParams.toString());
-            if (haveTerm === (params.get('have') ?? '')) return;
-
-            if (haveTerm) params.set('have', haveTerm);
-            else params.delete('have');
-            params.delete('page');
-            startTransition(() => router.replace(`${pathname}?${params.toString()}`));
-        }, 300);
-
-        return () => clearTimeout(timer);
-    }, [haveTerm, pathname, router, searchParams]);
+    }, [searchTerm, listMode, pathname, router, searchParams]);
 
     const setParam = (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -125,7 +113,6 @@ export default function FilterChips({
 
     const clearAll = () => {
         setSearchTerm('');
-        setHaveTerm('');
         startTransition(() => router.replace(pathname));
     };
 
@@ -198,37 +185,8 @@ export default function FilterChips({
                 />
             </label>
 
-            {/*
-                A second field, not a mode of the first. They ask different
-                questions and give different answers: the search box ranks, so
-                two words can both be half-matched, while this one requires
-                every ingredient named — because "you have half of it" is not an
-                answer to "can I cook this tonight". Sharing one box would mean
-                guessing which of the two somebody meant.
-            */}
-            <label className="flex items-center gap-3 border-b border-line pb-2">
-                <svg
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                    className="h-4 w-4 shrink-0 text-faint"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                >
-                    <path d="M4 20V10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10z" />
-                    <path d="M3 20h18" />
-                </svg>
-                <input
-                    type="search"
-                    value={haveTerm}
-                    onChange={(event) => setHaveTerm(event.target.value)}
-                    placeholder={t('havePlaceholder')}
-                    aria-label={t('haveLabel')}
-                    className="w-full bg-transparent py-1 text-base outline-none placeholder:text-faint"
-                />
-            </label>
+            {/* What the one field is doing: a list with commas asks for the recipes with all of it. */}
+            {listMode && <p className="-mt-1 text-xs text-muted">{t('haveMode')}</p>}
 
             {/* Horizontal scroll rather than wrapping, so a long list stays one line on a phone. */}
             {(categories.length > 0 || isLoggedIn) && (
