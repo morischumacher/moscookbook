@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { route } from '@/lib/route';
 import { linkAllUnlinked } from '@/lib/ingredientCatalog';
-import { germanName } from '@/lib/ingredientNames';
-import { isGermanName } from '@/lib/ingredientMatch';
+import { capitalized } from '@/lib/ingredientParts';
 import { unitOverview } from '@/lib/ingredientUnitsDb';
 import { aiCapability } from '@/lib/aiConfig';
 import { canUseAi } from '@/lib/aiProviders';
@@ -26,7 +25,7 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
     const locale = new URL(req.url).searchParams.get('locale') === 'en' ? 'en' : 'de';
     await linkAllUnlinked(100).catch(() => undefined);
     const items = await prisma.ingredientItem.findMany({
-        select: { id: true, de: true, en: true, aliases: true, keys: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true, _count: { select: { ingredients: true } } },
+        select: { id: true, de: true, en: true, aliases: true, enAliases: true, keys: true, buyMeasure: true, factors: true, unit: true, moreUnits: true, createdAt: true, _count: { select: { ingredients: true } } },
     });
     // Each with its standard unit ("Minze" → Bund): offered to a row with none
     // yet, and the reason for "Pasta is usually in g" when a row says otherwise.
@@ -38,13 +37,13 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
         const key = name.trim().toLowerCase();
         if (!key || seen.has(key)) return;
         seen.add(key);
-        // On the German page as a German list writes it: "Rote Zwiebeln", "Lauchzwiebel".
-        names.push(locale === 'de' ? germanName(name) : name.trim());
+        // As the cookbook writes every name: "Rote Zwiebeln", "Spring onions".
+        names.push(capitalized(name));
     };
     // Only in the language asked for — the German part of a recipe is offered German names, the English part
     // English ones; a card with no name in it yet is offered by the hint instead ("the German version of …").
     for (const item of items) if (item[locale]) add(item[locale]);
-    for (const item of items) for (const alias of item.aliases) if (isGermanName(alias) === (locale === 'de')) add(alias);
+    for (const item of items) for (const alias of locale === 'de' ? item.aliases : item.enAliases) add(alias);
     const catalog = items.map((item) => {
         const entry = overview.get(item.id);
         return {
@@ -52,6 +51,7 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
             de: item.de,
             en: item.en,
             aliases: item.aliases,
+            enAliases: item.enAliases,
             keys: item.keys,
             unit: entry?.state.unit ?? null,
             moreUnits: item.moreUnits,

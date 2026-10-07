@@ -3,7 +3,7 @@ import { suite, equal, check } from './harness';
 import { conventional, conventionalRows, needsReading, shapeOf } from '../src/lib/ingredientShape';
 import { linesFor } from '../src/lib/shopping';
 import { coreName } from '../src/lib/ingredientCatalog';
-import { germanName } from '../src/lib/ingredientNames';
+import { capitalized } from '../src/lib/ingredientParts';
 
 export default function ingredientShapeTests() {
     suite('ingredient convention: read');
@@ -14,9 +14,9 @@ export default function ingredientShapeTests() {
     const cases: [string, string][] = [
         ['frischer Ingwer', 'Ingwer, frisch'],
         ['fein gehackte Zwiebeln', 'Zwiebeln, fein gehackt'],
-        ['thinly sliced red onion', 'red onion, thinly sliced'],
+        ['thinly sliced red onion', 'Red onion, thinly sliced'],
         ['Butter (weich)', 'Butter, weich'],
-        ['large eggs', 'eggs (large)'],
+        ['large eggs', 'Eggs (large)'],
         ['optional: Chiliflocken', 'Chiliflocken (optional)'],
         ['Koriander (optional, zum Garnieren)', 'Koriander (zum Garnieren) (optional)'],
         ['Petersilie, gehackt, optional', 'Petersilie, gehackt (optional)'],
@@ -25,7 +25,7 @@ export default function ingredientShapeTests() {
     for (const [from, to] of cases) equal(`"${from}"`, conventional(from), to);
     for (const [from, to] of cases) equal(`"${to}" stays as it is`, conventional(conventional(from)), to);
     // Other things to buy, not forms of the same one.
-    for (const same of ['rote Zwiebel', 'gemahlener Kreuzkümmel', 'frisch gemahlener Pfeffer', 'Frühlingszwiebeln', 'chicken breast or firm tofu']) equal(`"${same}" is left alone`, conventional(same), same);
+    for (const same of ['rote Zwiebel', 'gemahlener Kreuzkümmel', 'frisch gemahlener Pfeffer', 'Frühlingszwiebeln', 'chicken breast or firm tofu']) equal(`"${same}" is left alone but for its capital`, conventional(same), capitalized(same));
     equal('a heading is left alone', conventionalRows([{ amount: '', item: '## Für den Teig' }, { amount: '1', item: 'frischer Ingwer' }]), [{ amount: '', item: '## Für den Teig' }, { amount: '1', item: 'Ingwer, frisch' }]);
 
     // A comma between adjectives is not the one after the ingredient (work #49).
@@ -48,8 +48,10 @@ export default function ingredientShapeTests() {
     equal('and is not added to the one the dish needs', chili.key === needed.key, false);
 
     suite('ingredient names: German ones as a German list writes them');
-    equal('a capital first letter', germanName('lauchzwiebel'), 'Lauchzwiebel');
-    equal('an adjective first too', germanName('rote Zwiebeln'), 'Rote Zwiebeln');
-    equal('an umlaut', germanName('öl'), 'Öl');
-    equal('nothing stays nothing', germanName('  '), '');
+    equal('a capital first letter', capitalized('lauchzwiebel'), 'Lauchzwiebel');
+    equal('an adjective first too', capitalized('rote Zwiebeln'), 'Rote Zwiebeln');
+    equal('an umlaut', capitalized('öl'), 'Öl');
+    equal('nothing stays nothing', capitalized('  '), '');
+    equal('English names too', conventional('gochugaru'), 'Gochugaru');
+    equal('only the first letter', conventional('garlic, minced'), 'Garlic, minced');
 }

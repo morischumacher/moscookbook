@@ -6,7 +6,7 @@ import { itemKeys, linkAllUnlinked } from '@/lib/ingredientCatalog';
 import { aiCapability } from '@/lib/aiConfig';
 import { canUseAi, completeWithKey, extractJson } from '@/lib/aiImport';
 import { usageRecorder } from '@/lib/tokenUsageDb';
-import { germanName } from '@/lib/ingredientNames';
+import { capitalized } from '@/lib/ingredientParts';
 import { aisleOf, CHOOSABLE_AISLES, isAisle, shoppingKey } from '@/lib/shopping';
 import { formatShape, shapeOf } from '@/lib/ingredientShape';
 import { rewriteRows } from '@/lib/recipeRowsDb';
@@ -36,7 +36,7 @@ import { conversionText, familyOf, isEuropean, measureOf, perUnit, unitForFamily
  * the questions to decide (lib/ingredientDecideDb).
  *
  * GET: every card with how many recipe rows use it, the open questions, and whether an AI can help.
- * PATCH {id, de, en, aliases, aisle?}: names (and aisle) corrected; what it is found by follows.
+ * PATCH {id, de, en, aliases, enAliases, aisle?}: names (and aisle) corrected; what it is found by follows.
  * DELETE ?id=: an ingredient no recipe uses any more.
  * POST {action}:
  *   merge {into, from} / notDouble {a, b} / sameAgain {a, b}: "the same ingredient?" answered (or asked again);
@@ -58,7 +58,7 @@ import { conversionText, familyOf, isEuropean, measureOf, perUnit, unitForFamily
 async function catalogue() {
     const items = await prisma.ingredientItem.findMany({
         orderBy: [{ de: 'asc' }, { en: 'asc' }],
-        select: { ...itemSelect, aliases: true, aisle: true, _count: { select: { ingredients: true, shopping: true } } },
+        select: { ...itemSelect, aliases: true, enAliases: true, aisle: true, _count: { select: { ingredients: true, shopping: true } } },
     });
     const overview = await unitOverview(items);
     return items.map((item) => {
@@ -71,6 +71,7 @@ async function catalogue() {
             de: item.de,
             en: item.en,
             aliases: item.aliases,
+            enAliases: item.enAliases,
             uses: item._count.ingredients,
             onLists: item._count.shopping,
             stock: isStock(item),
@@ -134,7 +135,8 @@ const patchBody = z.object({
     id: z.number().int().positive(),
     de: name,
     en: name,
-    aliases: z.array(name).max(30).transform((list) => [...new Set(list.filter(Boolean))]),
+    aliases: z.array(name).max(30).transform((list) => [...new Set(list.filter(Boolean).map(capitalized))]),
+    enAliases: z.array(name).max(30).transform((list) => [...new Set(list.filter(Boolean).map(capitalized))]),
     // The shop aisle by hand; null puts it back to the rules. Left out: unchanged.
     aisle: z.string().refine((value) => (CHOOSABLE_AISLES as string[]).includes(value)).nullable().optional(),
 });
@@ -144,9 +146,10 @@ export const PATCH = route({ access: 'admin', body: patchBody, label: 'Correctin
     const updated = await prisma.ingredientItem.updateMany({
         where: { id: body.id },
         data: {
-            de: germanName(body.de),
-            en: body.en,
+            de: capitalized(body.de),
+            en: capitalized(body.en),
             aliases: body.aliases,
+            enAliases: body.enAliases,
             keys: itemKeys(body),
             handEdited: true,
             ...(body.aisle === undefined ? {} : { aisle: body.aisle }),
@@ -240,12 +243,13 @@ export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the
             return NextResponse.json({ outcome: await giveName(body.id, body.language, body.name, user.name) });
         case 'create': {
             // A card made by hand (admin → Zutaten "+ Neue Zutat"): kept even before a recipe uses it.
-            const de = germanName(body.de);
-            if (!de && !body.en) refuse(400, 'An ingredient needs a name.');
-            const keys = itemKeys({ de, en: body.en, aliases: [] });
+            const de = capitalized(body.de);
+            const en = capitalized(body.en);
+            if (!de && !en) refuse(400, 'An ingredient needs a name.');
+            const keys = itemKeys({ de, en, aliases: [], enAliases: [] });
             const clash = await prisma.ingredientItem.findFirst({ where: { keys: { hasSome: keys } }, select: { id: true } });
             if (clash) refuse(409, 'That ingredient is already in the list.');
-            const created = await prisma.ingredientItem.create({ data: { de, en: body.en, keys, handEdited: true }, select: { id: true } });
+            const created = await prisma.ingredientItem.create({ data: { de, en, keys, handEdited: true }, select: { id: true } });
             return NextResponse.json(created);
         }
         case 'linkAll':
@@ -263,14 +267,17 @@ export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the
  * that language, as when two are merged.
  */
 async function renameItem(itemId: number, wanted: string, locale: 'de' | 'en', editedBy: string) {
-    const item = await prisma.ingredientItem.findUnique({ where: { id: itemId }, select: { de: true, en: true, aliases: true } });
+    const item = await prisma.ingredientItem.findUnique({ where: { id: itemId }, select: { de: true, en: true, aliases: true, enAliases: true } });
     if (!item) refuse(404, 'That ingredient is gone.');
-    const next = locale === 'de' ? germanName(wanted) : wanted;
+    const next = capitalized(wanted);
     const old = item[locale];
-    const renamed = { ...item, [locale]: next, aliases: [...new Set([...item.aliases, ...(old && old !== next ? [old] : [])])].filter((alias) => alias !== next).slice(0, 60) };
-    const clash = await prisma.ingredientItem.findFirst({ where: { id: { not: itemId }, keys: { hasSome: itemKeys({ de: next, en: '', aliases: [] }) } }, select: { id: true } });
+    // The old name stays a further name in its own language.
+    const field = locale === 'de' ? 'aliases' : 'enAliases';
+    const further = [...new Set([...item[field], ...(old && old !== next ? [old] : [])])].filter((alias) => alias !== next).slice(0, 60);
+    const renamed = { ...item, [locale]: next, [field]: further };
+    const clash = await prisma.ingredientItem.findFirst({ where: { id: { not: itemId }, keys: { hasSome: itemKeys({ de: next, en: '', aliases: [], enAliases: [] }) } }, select: { id: true } });
     if (clash) refuse(409, 'Another ingredient already has that name. Merge the two instead.');
-    await prisma.ingredientItem.update({ where: { id: itemId }, data: { [locale]: next, aliases: renamed.aliases, keys: itemKeys(renamed), handEdited: true } });
+    await prisma.ingredientItem.update({ where: { id: itemId }, data: { [locale]: next, [field]: further, keys: itemKeys(renamed), handEdited: true } });
     const recipes = await rewriteRows(
         [itemId],
         (row, language) => {
@@ -288,7 +295,7 @@ async function renameItem(itemId: number, wanted: string, locale: 'de' | 'en', e
 async function aiNames(action: 'aiCheck' | 'aiTranslate') {
     const ai = await aiCapability();
     if (!canUseAi(ai)) refuse(501, 'The AI is switched off or has no key.');
-    const items = await prisma.ingredientItem.findMany({ select: { id: true, de: true, en: true, aliases: true } });
+    const items = await prisma.ingredientItem.findMany({ select: { id: true, de: true, en: true, aliases: true, enAliases: true } });
     const usage = usageRecorder('ingredients');
     const ask = async (system: string, text: string): Promise<unknown> => {
         for (const key of ai.keys) {

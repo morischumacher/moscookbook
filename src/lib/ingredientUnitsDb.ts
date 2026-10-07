@@ -261,7 +261,7 @@ export async function alignTranslationNames(editedBy: string | null): Promise<nu
  * and stops looking like every other "Fermentierte …".
  */
 async function repairBrokenNames(): Promise<number> {
-    const items = await prisma.ingredientItem.findMany({ select: { id: true, de: true, en: true, aliases: true } });
+    const items = await prisma.ingredientItem.findMany({ select: { id: true, de: true, en: true, aliases: true, enAliases: true } });
     let fixed = 0;
     for (const item of items.filter(brokenGermanName)) {
         const next = { ...item, de: '' };

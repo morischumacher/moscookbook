@@ -1,7 +1,7 @@
 import prisma from './prisma';
 import type { Prisma } from '@prisma/client';
 import { CONVENTION_RULE, conventional, needsReading } from './ingredientShape';
-import { sectionHeading, withHeadingRows } from './ingredientParts';
+import { capitalized, sectionHeading, withHeadingRows } from './ingredientParts';
 import { aiCapability } from './aiConfig';
 import { canUseAi, smallModelFor } from './aiProviders';
 import { completeWithKey, extractJson } from './aiImport';
@@ -14,7 +14,7 @@ import { keepRevisionOf } from './revisionsDb';
 
 /**
  * The recipes written before the convention (lib/ingredientShape), brought
- * into it: "frischer Ingwer" → "Ingwer, frisch", in the recipe and in its
+ * into it: "frischer Ingwer" → "Ingwer, frisch", "garlic" → "Garlic", in the recipe and in its
  * translation alike. Done once by itself after a deploy (`ensureConvention`);
  * every recipe it changes keeps its version from before in its history.
  *
@@ -27,7 +27,7 @@ import { keepRevisionOf } from './revisionsDb';
  * When the rules in lib/ingredientShape change, raise VERSION: the recipes
  * are brought into the new rules the same way.
  */
-const VERSION = '2';
+const VERSION = '3';
 const AI_ANSWERS = 'ingredients.convention.ai';
 const FLAG = 'ingredients.convention';
 let settled = false;
@@ -74,7 +74,8 @@ export async function ensureConvention(): Promise<void> {
 async function readAnswers(): Promise<Map<string, string>> {
     const row = await prisma.appSetting.findUnique({ where: { key: AI_ANSWERS }, select: { value: true } }).catch(() => null);
     try {
-        return new Map(Object.entries(JSON.parse(row?.value ?? '{}') as Record<string, string>));
+        // Kept from before every name started with a capital: read as it is written now, so none is asked again.
+        return new Map(Object.entries(JSON.parse(row?.value ?? '{}') as Record<string, string>).map(([name, answer]) => [capitalized(name), capitalized(answer)]));
     } catch {
         return new Map();
     }
@@ -172,14 +173,17 @@ function load() {
 }
 
 /** What the source key of a recipe is, built as the edit form and the page build it. */
-function keyOf(recipe: Row, names: string[]) {
-    return sourceKey({
-        title: recipe.title,
-        description: recipe.description ?? '',
-        instructions: recipe.instructions,
-        tips: recipe.tips,
-        ingredients: withHeadingRows(recipe.ingredients.map((row, index) => ({ amount: row.raw, item: names[index], section: row.section }))),
-    });
+function keyOf(recipe: Row, names: string[], keepCase = false) {
+    return sourceKey(
+        {
+            title: recipe.title,
+            description: recipe.description ?? '',
+            instructions: recipe.instructions,
+            tips: recipe.tips,
+            ingredients: withHeadingRows(recipe.ingredients.map((row, index) => ({ amount: row.raw, item: names[index], section: row.section }))),
+        },
+        keepCase
+    );
 }
 
 /** All of them changed. A translation that was up to date stays up to date. Returns how many recipes changed. */
@@ -197,6 +201,8 @@ export async function applyConvention(editedBy: string | null, rewrite: (name: s
         if (!rowsMoved && !translations.some((entry) => entry.moved)) continue;
 
         const before = keyOf(recipe, recipe.ingredients.map((row) => row.name));
+        // Stamped before every name started with a capital: up to date all the same.
+        const beforeAsTyped = keyOf(recipe, recipe.ingredients.map((row) => row.name), true);
         const after = keyOf(recipe, names);
         if (rowsMoved) await keepRevisionOf(recipe.id, snapshotOf(recipe), editedBy);
 
@@ -204,8 +210,8 @@ export async function applyConvention(editedBy: string | null, rewrite: (name: s
             ...recipe.ingredients.flatMap((row, index) => (names[index] !== row.name ? [prisma.ingredient.update({ where: { id: row.id }, data: { name: names[index] } })] : [])),
             ...translations.flatMap(({ translation, next, moved }) => {
                 // Up to date before: up to date after — the same change was made on both sides.
-                const fresh = Boolean(translation.source) && translation.source === before;
-                if (!moved && !(fresh && before !== after)) return [];
+                const fresh = Boolean(translation.source) && (translation.source === before || translation.source === beforeAsTyped);
+                if (!moved && !(fresh && translation.source !== after)) return [];
                 return [
                     prisma.recipeTranslation.update({
                         where: { id: translation.id },
