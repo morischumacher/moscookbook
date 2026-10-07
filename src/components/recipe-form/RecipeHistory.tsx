@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { formatDateTime } from '@/lib/formatDate';
 import { useLocale, useTranslations } from 'next-intl';
 import { useConfirm } from '@/components/ui/useConfirm';
 import { BusyLabel } from '@/components/ui/Busy';
@@ -30,7 +31,7 @@ export default function RecipeHistory({ recipeId, entries }: { recipeId: number;
     if (entries.length === 0) return null;
 
     const restore = async (entry: HistoryEntry) => {
-        const when = new Date(entry.createdAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
+        const when = formatDateTime(entry.createdAt, locale);
         if (!(await ask({ title: t('restoreQuestion', { when }), confirmLabel: t('restore') }))) return;
         setBusy(entry.id);
         setFailed('');
@@ -73,7 +74,7 @@ export default function RecipeHistory({ recipeId, entries }: { recipeId: number;
                             <summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-x-4 gap-y-1 [&::-webkit-details-marker]:hidden">
                                 <span>
                                     <span className="font-medium">
-                                        {new Date(entry.createdAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}
+                                        {formatDateTime(entry.createdAt, locale)}
                                     </span>
                                     {entry.editedBy && <span className="text-muted"> · {t('editedBy', { name: entry.editedBy })}</span>}
                                 </span>

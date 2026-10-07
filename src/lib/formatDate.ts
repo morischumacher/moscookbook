@@ -82,5 +82,7 @@ export function formatDateTime(
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        // As formatDate: the server (UTC) and the browser write the same hour, or the page fails to hydrate.
+        timeZone: 'Europe/Berlin',
     }).format(date);
 }
