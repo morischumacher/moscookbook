@@ -13,6 +13,7 @@ import { rewriteRows } from '@/lib/recipeRowsDb';
 import { itemSelect, unitOverview } from '@/lib/ingredientUnitsDb';
 import {
     addAiDoubles,
+    giveName,
     aiResolve,
     aiRow,
     deleteUnused,
@@ -301,10 +302,10 @@ async function aiNames(action: 'aiCheck' | 'aiTranslate') {
         for (const row of rows) {
             const item = items.find((candidate) => candidate.id === row.id);
             if (!item || (item.de && item.en)) continue;
-            const next = { ...item, de: item.de || germanName((row.de ?? '').slice(0, 120)), en: item.en || (row.en ?? '').trim().slice(0, 120) };
-            if (next.de === item.de && next.en === item.en) continue;
-            await prisma.ingredientItem.update({ where: { id: item.id }, data: { de: next.de, en: next.en, keys: itemKeys(next) } });
-            filled += 1;
+            // As a recipe's translation does: a name another card has makes the two one, or a question (giveName).
+            const language = item.de ? 'en' : 'de';
+            const outcome = await giveName(item.id, language, (language === 'de' ? row.de : row.en) ?? '', null);
+            if (outcome !== 'kept') filled += 1;
         }
         return filled;
     };

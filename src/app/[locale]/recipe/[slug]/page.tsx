@@ -3,7 +3,7 @@ import { after } from 'next/server';
 import { ensureConvention } from '@/lib/ingredientConventionDb';
 import { ensureVoice } from '@/lib/recipeVoiceDb';
 import { ensureUnitsInLine } from '@/lib/ingredientUnitsDb';
-import { ensureCatalogTidy } from '@/lib/ingredientDecideDb';
+import { ensureCatalogTidy, ensureTranslationPairs } from '@/lib/ingredientDecideDb';
 import { ensureDescriptionsTidy } from '@/lib/descriptionTidyDb';
 import { failed } from '@/lib/reportServerError';
 import { cache } from 'react';
@@ -120,6 +120,9 @@ export default async function RecipePage({
             // And imported descriptions that were a whole social caption, tidied (lib/descriptionTidyDb).
             .then(() => ensureDescriptionsTidy())
             .catch((error) => failed('description tidy-up', error))
+            // And the cards of a recipe's two languages made one (lib/ingredientDecideDb).
+            .then(() => ensureTranslationPairs())
+            .catch((error) => failed('translation pairs', error))
     );
     const { slug, locale } = await params;
 

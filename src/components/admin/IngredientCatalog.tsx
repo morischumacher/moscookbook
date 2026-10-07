@@ -387,6 +387,37 @@ export default function IngredientCatalog() {
                                         </button>
                                     </div>
                                 );
+                                // One card with only its German name, one with only its English: the two halves of one card.
+                                const halves = Boolean((a.de && !a.en && b.en && !b.de) || (a.en && !a.de && b.de && !b.en));
+                                if (halves) {
+                                    const [into, from] = a.uses >= b.uses ? [a, b] : [b, a];
+                                    const de = a.de || b.de;
+                                    const en = a.en || b.en;
+                                    return (
+                                        <li key={`d-${pair.a}-${pair.b}`} className="rounded-xl border border-line p-4">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('qTranslation')}</p>
+                                            <p className="mt-1 text-sm">{t('qTranslationExplain', { de, en })}</p>
+                                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                                <MiniCard item={a} locale={locale} />
+                                                <MiniCard item={b} locale={locale} />
+                                            </div>
+                                            <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                                                <button type="button" disabled={busy !== null} onClick={() => void merge(into.id, [from.id])} className={buttonSecondary}>
+                                                    {t('qTranslationYes')}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={busy !== null}
+                                                    onClick={() => void act(`nd-${pair.a}`, { action: 'notDouble', a: pair.a, b: pair.b })}
+                                                    className={buttonSecondary}
+                                                >
+                                                    {t('qTranslationNo')}
+                                                </button>
+                                                <AiButton busy={busy} id={`ai-d-${pair.a}-${pair.b}`} available={aiAvailable} onClick={(key) => void aiResolve({ double: [pair.a, pair.b] }, key)} />
+                                            </div>
+                                        </li>
+                                    );
+                                }
                                 return (
                                     <li key={`d-${pair.a}-${pair.b}`} className="rounded-xl border border-line p-4">
                                         <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('qSame')}</p>

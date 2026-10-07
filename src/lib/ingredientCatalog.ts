@@ -1,6 +1,7 @@
 import prisma from './prisma';
 import { germanName } from './ingredientNames';
 import { coreName, itemKeys, keysFor, namesIn } from './ingredientMatch';
+import { giveName } from './ingredientDecideDb';
 import { guessLanguage, storedRows, type RecipeLanguage } from './recipeTranslation';
 import { sectionHeading } from './ingredientParts';
 
@@ -106,14 +107,10 @@ export async function linkRecipe(recipeId: number): Promise<number> {
             await prisma.ingredient.update({ where: { id: row.id }, data: { itemId } });
             linked += 1;
         }
-        const otherName = aligned ? (other === 'de' ? germanName : (name: string) => name)(coreName(aligned[index]).slice(0, 120)) : '';
-        if (otherName) {
-            const item = await prisma.ingredientItem.findUnique({ where: { id: itemId }, select: { de: true, en: true, aliases: true } });
-            if (item && item[other] === '') {
-                const next = { ...item, [other]: otherName };
-                await prisma.ingredientItem.update({ where: { id: itemId }, data: { [other]: otherName, keys: itemKeys(next) } });
-            }
-        }
+        // The translation's row names the same product in the other language: given to the card — or, when another
+        // card has that name, the two halves made one (lib/ingredientDecideDb giveName).
+        const otherName = aligned ? coreName(aligned[index]) : '';
+        if (otherName) await giveName(itemId, other, otherName, null).catch(() => 'kept');
     }
     return linked;
 }

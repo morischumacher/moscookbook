@@ -2,7 +2,7 @@ import prisma from './prisma';
 import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { commonIngredient, germanName } from './ingredientNames';
-import { itemKeys } from './ingredientMatch';
+import { coreName, itemKeys, keysFor } from './ingredientMatch';
 import { findDoubles, pairKey, type DoubleCandidate } from './ingredientDoubles';
 import { formatShape, shapeOf } from './ingredientShape';
 import { shoppingKey } from './shopping';
@@ -108,6 +108,85 @@ export async function openQuestions(): Promise<{ doubles: DoubleCandidate[]; uni
         .filter(([a, b]) => ids.has(a) && ids.has(b) && !skip.has(pairKey(a, b)) && !seen.has(pairKey(a, b)))
         .map(([a, b]) => ({ a, b, reason: 'ai' }));
     return { doubles: [...byRules, ...byAi], units };
+}
+
+/** Two halves of one card: one has only its German name, the other only its English one. */
+export const complementary = (a: { de: string; en: string }, b: { de: string; en: string }) =>
+    Boolean((a.de && !a.en && b.en && !b.de) || (a.en && !a.de && b.de && !b.en));
+
+/**
+ * A card given its name in the other language — from a recipe's translation,
+ * row for row, or from the AI. A translation is the same product, so when
+ * another card already has that name: a card with only the other language
+ * is the other half of this one, and the two become one card with both
+ * names; a complete one is asked about ("a translation?"). Returns what
+ * happened.
+ */
+export async function giveName(itemId: number, language: 'de' | 'en', wanted: string, editedBy: string | null): Promise<'named' | 'merged' | 'asked' | 'kept'> {
+    const name = language === 'de' ? germanName(wanted.trim().slice(0, 120)) : wanted.trim().slice(0, 120);
+    if (!name) return 'kept';
+    const item = await prisma.ingredientItem.findUnique({ where: { id: itemId }, select: { id: true, de: true, en: true, aliases: true } });
+    if (!item || item[language]) return 'kept';
+    const other = await prisma.ingredientItem.findFirst({ where: { id: { not: itemId }, keys: { hasSome: keysFor(name) } }, orderBy: { id: 'asc' }, select: { id: true, de: true, en: true } });
+    if (other) {
+        if (complementary(item, other)) {
+            // The one more recipes use stays; it ends with both names.
+            const [into, from] = (await prisma.ingredient.count({ where: { itemId } })) >= (await prisma.ingredient.count({ where: { itemId: other.id } })) ? [itemId, other.id] : [other.id, itemId];
+            await merge(into, [from], editedBy);
+            return 'merged';
+        }
+        await addAiDoubles([[itemId, other.id]]);
+        return 'asked';
+    }
+    const next = { ...item, [language]: name };
+    await prisma.ingredientItem.update({ where: { id: itemId }, data: { [language]: name, keys: itemKeys(next) } });
+    return 'named';
+}
+
+const PAIRS = 'ingredients.translationPairs';
+let paired = false;
+
+/**
+ * Once after a deploy: every recipe's translation, row for row, gives its
+ * card the other name (giveName) — the cards made from the German and the
+ * English version of the same recipe become one.
+ */
+export async function ensureTranslationPairs(): Promise<void> {
+    if (paired) return;
+    const row = await prisma.appSetting.findUnique({ where: { key: PAIRS }, select: { value: true } }).catch(() => null);
+    if (row?.value === '1') {
+        paired = true;
+        return;
+    }
+    const claimed = row
+        ? (await prisma.appSetting.updateMany({ where: { key: PAIRS, value: row.value }, data: { value: 'running' } })).count === 1
+        : await prisma.appSetting
+              .create({ data: { key: PAIRS, value: 'running' } })
+              .then(() => true)
+              .catch(() => false);
+    if (!claimed) return;
+    const recipes = await prisma.recipe.findMany({
+        where: { translations: { some: {} } },
+        select: { ingredients: { orderBy: { position: 'asc' }, select: { itemId: true } }, translations: { select: { locale: true, ingredients: true } } },
+    });
+    for (const recipe of recipes) {
+        for (const translation of recipe.translations) {
+            if (translation.locale !== 'de' && translation.locale !== 'en') continue;
+            const rows = (Array.isArray(translation.ingredients) ? (translation.ingredients as { item?: unknown }[]) : [])
+                .map((entry) => (typeof entry?.item === 'string' ? entry.item : ''))
+                .filter((item) => item.trim() && !item.trim().startsWith('#'));
+            if (rows.length !== recipe.ingredients.length) continue;
+            for (const [index, own] of recipe.ingredients.entries()) {
+                if (own.itemId === null) continue;
+                // Gone by a merge just now: the row points at the card kept.
+                const current = await prisma.ingredient.findFirst({ where: { itemId: own.itemId }, select: { itemId: true } });
+                if (!current) continue;
+                await giveName(own.itemId, translation.locale, coreName(rows[index]), null).catch(() => 'kept');
+            }
+        }
+    }
+    await prisma.appSetting.update({ where: { key: PAIRS }, data: { value: '1' } });
+    paired = true;
 }
 
 /** How many questions wait: the count beside "Zutaten" in the admin menu. */
