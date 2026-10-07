@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
@@ -11,6 +11,7 @@ import { failed } from '@/lib/reportServerError';
 import { syncWorkItem } from '@/lib/workItemsDb';
 import { releaseCaptureScreenshots } from '@/lib/captureCleanup';
 import { positiveIntId } from '@/lib/routeParams';
+import { fillMissingNames } from '@/lib/ingredientDecideDb';
 
 /** Thrown inside the transaction to undo the recipe when its capture was already published. */
 class AlreadyPublished extends Error {}
@@ -101,6 +102,8 @@ export async function POST(req: NextRequest) {
         forgetCollectionFacets();
         // Its ingredients, each pointed at the catalogue's (lib/ingredientCatalog).
         await linkRecipe(recipe.id).catch(() => 0);
+        // And the names its ingredients still lack in the other language, by the AI after the answer is sent (lib/ingredientDecideDb).
+        after(() => fillMissingNames(recipe.id).catch(() => 0));
 
         return NextResponse.json(recipe, { status: 201 });
     } catch (error) {

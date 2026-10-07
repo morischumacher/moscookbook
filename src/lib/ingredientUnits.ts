@@ -267,3 +267,18 @@ export function amountIn(amount: string, language: 'de' | 'en'): string {
     const many = (parts.quantityMax ?? parts.quantity) > 1;
     return formatAmount({ quantity: parts.quantity, quantityMax: parts.quantityMax, unit: key === '' ? null : unitLabel(key, language, many) }, 1, language);
 }
+
+/**
+ * A translation's amount for a row: the original's numbers and unit, in the
+ * translation's language ("480 ml", "2 EL" → "2 tbsp") — the amounts are the
+ * same in both languages, so one is never edited, translated or converted
+ * away from the other. A unit of its own ("Dose") keeps the translation's
+ * own wording; a row with no amount, too.
+ */
+export function mirroredAmount(original: string, translated: string, language: 'de' | 'en'): string {
+    const parts = splitAmount(original);
+    if (!original.trim() || parts.quantity === null) return translated;
+    const key = unitKey(parts.unit);
+    if (key !== '' && choiceFor(key) === 'custom' && isEuropean(key)) return translated;
+    return amountIn(original, language);
+}

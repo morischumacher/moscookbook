@@ -21,7 +21,7 @@ import LabelPicker from './LabelPicker';
 import DietPicker from './DietPicker';
 import { CATEGORY_PRESETS, CUISINE_PRESETS } from '@/lib/recipeLabels';
 import { KNOWN_TAGS } from '@/lib/tags';
-import { syncedRows } from '@/lib/ingredientMatch';
+import { mirroredRows, syncedRows } from '@/lib/ingredientMatch';
 
 export interface RecipeFormValues {
     id?: number;
@@ -576,7 +576,11 @@ export default function RecipeForm({
 
                 <IngredientEditor
                     ingredients={ingredients}
-                    onChange={setIngredients}
+                    onChange={(next) => {
+                        setIngredients(next);
+                        // The amounts are the same in both languages: the translation's follow at once.
+                        setTranslation((current) => (current ? { ...current, ingredients: mirroredRows(current.ingredients, next, current.locale) } : current));
+                    }}
                     language={language}
                     // A row matched to the list: its translation's row takes the list's name in that language.
                     onKnown={(index, names) => setTranslation((current) => (current ? { ...current, ingredients: syncedRows(current.ingredients, ingredients, index, names[current.locale]) } : current))}
@@ -659,6 +663,8 @@ export default function RecipeForm({
                     onTranslation={(next) => {
                         if (next) setChosenLanguage(language);
                         setTranslation(next);
+                        // An amount changed in the translation is changed in the original too.
+                        if (next) setIngredients((current) => mirroredRows(current, next.ingredients, language));
                     }}
                     available={aiEnabled}
                     onKnown={(index, names, rows) => setIngredients((current) => syncedRows(current, rows, index, names[language]))}

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { isPrismaError } from '@/lib/prismaErrors';
 import prisma from '@/lib/prisma';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
@@ -13,6 +13,7 @@ import { keepRevisionOf } from '@/lib/revisionsDb';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
 import { versionOf } from '@/lib/recipeVersion';
+import { fillMissingNames } from '@/lib/ingredientDecideDb';
 
 function parseRecipeId(raw: string): number | null {
     return positiveIntId(raw);
@@ -195,6 +196,8 @@ export async function PUT(
         // Its rows were written afresh: each pointed at the catalogue's
         // ingredient again (lib/ingredientCatalog). Never in the way of the save.
         await linkRecipe(recipeId).catch(() => 0);
+        // And the names its ingredients still lack in the other language, by the AI after the answer is sent (lib/ingredientDecideDb).
+        after(() => fillMissingNames(recipeId).catch(() => 0));
 
         return NextResponse.json(updatedRecipe, { status: 200 });
     } catch (error) {

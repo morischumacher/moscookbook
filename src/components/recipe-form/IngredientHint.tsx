@@ -51,6 +51,7 @@ export default function IngredientHint({
     onOverwriteName,
     onOverwriteUnit,
     onAi,
+    onGiveName,
 }: {
     item: string;
     amount: string;
@@ -72,6 +73,8 @@ export default function IngredientHint({
     /** This row's unit made the card's main unit. */
     onOverwriteUnit: (id: number, unit: string) => void;
     onAi: (question: object) => Promise<RowAnswer | null>;
+    /** This row's name given to a card that has none in this language yet: "the German version of …". */
+    onGiveName: (id: number, name: string) => void;
 }) {
     const t = useTranslations('RecipeForm');
     const [asking, setAsking] = useState(false);
@@ -107,12 +110,35 @@ export default function IngredientHint({
         </button>
     );
 
+    // Cards with no name in this language yet: a new name here may be one of them, in this language.
+    const otherLanguage = language === 'de' ? 'en' : 'de';
+    const halfCards = catalog.filter((entry) => !entry[language] && entry[otherLanguage]).sort((a, b) => a[otherLanguage].localeCompare(b[otherLanguage]));
+    const versionOf =
+        halfCards.length > 0 ? (
+            <label className="mt-2 flex flex-wrap items-center gap-2 text-muted">
+                {t(language === 'de' ? 'hintGermanOf' : 'hintEnglishOf')}
+                <select
+                    value=""
+                    onChange={(event) => event.target.value && onGiveName(Number(event.target.value), shapeOf(name).base)}
+                    className="min-h-9 max-w-full rounded-lg border border-control bg-page px-2 text-xs text-ink"
+                >
+                    <option value="">{t('hintChoose')}</option>
+                    {halfCards.map((entry) => (
+                        <option key={entry.id} value={entry.id}>
+                            {entry[otherLanguage]}
+                        </option>
+                    ))}
+                </select>
+            </label>
+        ) : null;
+
     if (!known) {
         const alike = keptNew ? [] : similarIn(name, catalog);
         if (alike.length === 0) {
             return (
                 <div className="basis-full text-xs" role="note">
                     {status('info', t('hintNew'))} <span className="text-muted">{t('hintNewExplain')}</span>
+                    {versionOf}
                 </div>
             );
         }
@@ -141,6 +167,7 @@ export default function IngredientHint({
                         </li>
                     ))}
                 </ul>
+                {versionOf}
                 <div className="mt-2 flex flex-wrap gap-2 border-t border-line pt-2">
                     <button type="button" onClick={onKeepNew} className={chip}>
                         {t('hintKeepNew')}

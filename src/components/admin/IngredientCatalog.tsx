@@ -12,6 +12,7 @@ import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 import { CHOOSABLE_AISLES } from '@/lib/shopping';
 import { unitLabel, type UnitUse } from '@/lib/ingredientUnits';
 import { UNIT_CHOICES } from '@/lib/unitChoice';
+import { isGermanName } from '@/lib/ingredientMatch';
 import type { AiDecision } from '@/lib/ingredientDecideDb';
 
 /** A further unit on a card, with its conversion to the main one ("7 Stück = 1 Bund"). */
@@ -59,8 +60,6 @@ interface UnitQuestion {
 
 type View = 'decide' | 'newest' | 'used' | 'missing' | 'unused' | 'all';
 
-/** Further names are one list; a German one has a capitalised word ("gelbe Zwiebel") or an umlaut, an English one neither. */
-const isGermanName = (name: string) => /(^|[\s-])[A-ZÄÖÜ]/.test(name) || /[äöüß]/i.test(name);
 
 /**
  * The cookbook's ingredients, one card each:
@@ -387,6 +386,37 @@ export default function IngredientCatalog() {
                                         </button>
                                     </div>
                                 );
+                                // One card with only its German name, one with only its English: the two halves of one card.
+                                const halves = Boolean((a.de && !a.en && b.en && !b.de) || (a.en && !a.de && b.de && !b.en));
+                                if (halves) {
+                                    const [into, from] = a.uses >= b.uses ? [a, b] : [b, a];
+                                    const de = a.de || b.de;
+                                    const en = a.en || b.en;
+                                    return (
+                                        <li key={`d-${pair.a}-${pair.b}`} className="rounded-xl border border-line p-4">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('qTranslation')}</p>
+                                            <p className="mt-1 text-sm">{t('qTranslationExplain', { de, en })}</p>
+                                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                                <MiniCard item={a} locale={locale} />
+                                                <MiniCard item={b} locale={locale} />
+                                            </div>
+                                            <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                                                <button type="button" disabled={busy !== null} onClick={() => void merge(into.id, [from.id])} className={buttonSecondary}>
+                                                    {t('qTranslationYes')}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={busy !== null}
+                                                    onClick={() => void act(`nd-${pair.a}`, { action: 'notDouble', a: pair.a, b: pair.b })}
+                                                    className={buttonSecondary}
+                                                >
+                                                    {t('qTranslationNo')}
+                                                </button>
+                                                <AiButton busy={busy} id={`ai-d-${pair.a}-${pair.b}`} available={aiAvailable} onClick={(key) => void aiResolve({ double: [pair.a, pair.b] }, key)} />
+                                            </div>
+                                        </li>
+                                    );
+                                }
                                 return (
                                     <li key={`d-${pair.a}-${pair.b}`} className="rounded-xl border border-line p-4">
                                         <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('qSame')}</p>

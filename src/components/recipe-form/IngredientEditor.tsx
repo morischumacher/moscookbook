@@ -160,6 +160,18 @@ export default function IngredientEditor({
         void send({ action: 'resolveUnit', id, unit, a, b, choice: 'keep' });
     };
 
+    /** A row's name given to a card that had none in this language: the row is that card from now on. */
+    const giveName = (id: number, name: string) => {
+        setCatalog((current) =>
+            current.map((entry) => {
+                if (entry.id !== id) return entry;
+                const next = { ...entry, [lang]: name };
+                return { ...next, keys: itemKeys(next) };
+            })
+        );
+        void send({ action: 'giveName', id, language: lang, name });
+    };
+
     /** One amber row left to the AI (applied by the hint, as a tap would). */
     const askAi = async (question: object): Promise<RowAnswer | null> => {
         const res = await fetch('/api/ingredients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'aiRow', question }) }).catch(() => null);
@@ -294,6 +306,7 @@ export default function IngredientEditor({
                                     aiAvailable={aiAvailable}
                                     onAi={askAi}
                                     onKeepUnit={keepUnit}
+                                    onGiveName={giveName}
                                     keptNew={keptNew.has(row.item.trim().toLowerCase())}
                                     onItem={(next) => update(index, 'item', next)}
                                     onAmount={(next) => update(index, 'amount', next)}
