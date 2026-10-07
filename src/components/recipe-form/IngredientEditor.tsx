@@ -291,7 +291,14 @@ export default function IngredientEditor({
                     ) : (
                         // On a phone two lines: the ingredient across the width,
                         // then its amount, unit and the row's buttons.
-                        <div key={index} data-drag-row style={rowStyle(index)} className={`flex flex-wrap items-center gap-2 border-b border-line bg-page pb-2 sm:border-0 sm:pb-0`}>
+                        <div
+                            key={index}
+                            // The translation's hint jumps here: "to the row in the original".
+                            id={mirrorOf ? undefined : `ingredient-row-${lang}-${index}`}
+                            data-drag-row
+                            style={rowStyle(index)}
+                            className={`flex flex-wrap items-center gap-2 border-b border-line bg-page pb-2 sm:border-0 sm:pb-0`}
+                        >
                             {/* With the ingredient's usual unit chosen while the amount is empty ("Minze" → Bund); one chosen by hand is never replaced. */}
                             <AmountInput amount={row.amount} number={index + 1} language={lang} usual={matchIn(row.item, catalog)?.unit} onChange={(next) => update(index, 'amount', next)} />
                             <ItemInput
@@ -391,12 +398,26 @@ export default function IngredientEditor({
                             {!drag && usAmount(row) && <p className="basis-full text-xs text-faint">{t('usAmount', { amount: usAmount(row)! })}</p>}
                             {/* Folded away while a row is dragged: every row its compact self, so the places add up. */}
                             {hints && !drag && mirrorOf && (() => {
-                                // The original's row beside this one: the same place when the lists line up (lib/ingredientMatch
-                                // followedRows keeps them so), else by place among the filled rows.
-                                const place = ingredients.slice(0, index).filter((other) => other.item.trim()).length;
-                                const source = mirrorOf.length === ingredients.length ? mirrorOf[index] : mirrorOf.filter((other) => other.item.trim())[place];
+                                const at = sourceIndex(mirrorOf, ingredients, index);
+                                const source = at === null ? null : mirrorOf[at];
                                 const status = source ? rowStatus(source.item, source.amount, catalog) : { tone: null, card: null };
-                                return <MirrorHint tone={status.tone} card={status.card} item={row.item} language={lang} onGiveName={giveName} />;
+                                const original = lang === 'de' ? 'en' : 'de';
+                                return (
+                                    <MirrorHint
+                                        tone={status.tone}
+                                        card={status.card}
+                                        item={row.item}
+                                        source={source ? partsOf(source.item).base : ''}
+                                        language={lang}
+                                        onGiveName={giveName}
+                                        onItem={(next) => update(index, 'item', next)}
+                                        onJump={() => {
+                                            const target = document.getElementById(`ingredient-row-${original}-${at}`);
+                                            target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            target?.querySelector<HTMLInputElement>('input[role="combobox"]')?.focus({ preventScroll: true });
+                                        }}
+                                    />
+                                );
                             })()}
                             {hints && !drag && !mirrorOf && !row.linkedRecipeId && (
                                 <IngredientHint
@@ -453,4 +474,22 @@ export default function IngredientEditor({
             <p className="mt-2 text-xs text-muted">{t('enterHint')}</p>
         </div>
     );
+}
+
+/**
+ * The original's row a translation's row is paired with, by index. The same
+ * place when the two lists are built alike — the same length, headings at
+ * the same places (lib/ingredientMatch followedRows keeps them so); otherwise
+ * by place among the ingredients, headings and empty rows left out on both
+ * sides, as a translation is made from them. Null for a heading, an empty
+ * row, or one with no partner.
+ */
+function sourceIndex(original: Ingredient[], rows: Ingredient[], index: number): number | null {
+    const heading = (row: Ingredient | undefined) => Boolean(row) && isHeadingRow(row!);
+    const ingredient = (row: Ingredient) => row.item.trim() !== '' && !isHeadingRow(row);
+    if (!ingredient(rows[index])) return null;
+    if (original.length === rows.length && original.every((row, at) => heading(row) === heading(rows[at]))) return ingredient(original[index]) ? index : null;
+    const place = rows.slice(0, index).filter(ingredient).length;
+    const found = original.map((row, at) => ({ row, at })).filter(({ row }) => ingredient(row))[place];
+    return found ? found.at : null;
 }

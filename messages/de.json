@@ -275,6 +275,11 @@
     "ingredients": "Zutaten"
   },
   "RecipeForm": {
+    "mirrorUseName": "„{name}“ übernehmen",
+    "mirrorOtherName": "Im Original „{source}“ – im Verzeichnis heißt das hier „{name}“",
+    "mirrorNewAt": "„{source}“ ist im Original eine neue Zutat – beim Speichern wird sie mit beiden Namen angelegt",
+    "mirrorJump": "Zur Zeile im Original",
+    "mirrorOpenAt": "„{source}“ ist im Original noch offen – dort klären, dann wird es hier grün",
     "infoSave": "Speichern",
     "infoLabel": "Kurzbeschreibung der Zutat (für alle Rezepte)",
     "infoPlaceholder": "In wenigen Worten, z. B. Gesalzene, fermentierte Garnelen",
