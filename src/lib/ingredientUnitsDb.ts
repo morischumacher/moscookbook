@@ -9,6 +9,7 @@ import { toMetric } from './units';
 import { rewriteRows, type RowEditor } from './recipeRowsDb';
 import { formatShape, shapeOf } from './ingredientShape';
 import { shoppingKey } from './shopping';
+import { brokenGermanName, itemKeys } from './ingredientMatch';
 import { aiCapability } from './aiConfig';
 import { canUseAi, completeWithKey, extractJson } from './aiImport';
 import { usageRecorder } from './tokenUsageDb';
@@ -250,8 +251,24 @@ export async function alignTranslationNames(editedBy: string | null): Promise<nu
     );
 }
 
+/**
+ * German names that are only a leading adjective ("Fermentierte") emptied:
+ * the card shows under "Ohne Übersetzung", to be filled by hand or the AI,
+ * and stops looking like every other "Fermentierte …".
+ */
+async function repairBrokenNames(): Promise<number> {
+    const items = await prisma.ingredientItem.findMany({ select: { id: true, de: true, en: true, aliases: true } });
+    let fixed = 0;
+    for (const item of items.filter(brokenGermanName)) {
+        const next = { ...item, de: '' };
+        await prisma.ingredientItem.update({ where: { id: item.id }, data: { de: '', keys: itemKeys(next) } });
+        fixed += 1;
+    }
+    return fixed;
+}
+
 const ALIGNED = 'ingredients.unitsInLine';
-const ALIGNED_VERSION = '4';
+const ALIGNED_VERSION = '5';
 let aligned = false;
 
 /** Once after a deploy: every existing recipe in its ingredients' main units, and its translation in the list's names. Cheap after the first time. */
@@ -272,6 +289,7 @@ export async function ensureUnitsInLine(): Promise<void> {
               .then(() => true)
               .catch(() => false);
     if (!claimed) return;
+    await repairBrokenNames();
     await alignRecipes(null, null);
     await alignTranslationNames(null);
     await prisma.appSetting.update({ where: { key: ALIGNED }, data: { value: ALIGNED_VERSION } });

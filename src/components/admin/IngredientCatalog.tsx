@@ -378,25 +378,31 @@ export default function IngredientCatalog() {
                                 const a = byId.get(pair.a);
                                 const b = byId.get(pair.b);
                                 if (!a || !b) return null;
-                                const [keep, gone] = a.uses >= b.uses ? [a, b] : [b, a];
+                                // Each card with its own "keep this one": the other is taken into it, its names become further names.
+                                const side = (item: Item, other: Item) => (
+                                    <div className="flex flex-col gap-2">
+                                        <MiniCard item={item} locale={locale} />
+                                        <button type="button" disabled={busy !== null} onClick={() => void merge(item.id, [other.id])} className={buttonSecondary}>
+                                            {t('qKeepThis')}
+                                        </button>
+                                    </div>
+                                );
                                 return (
                                     <li key={`d-${pair.a}-${pair.b}`} className="rounded-xl border border-line p-4">
                                         <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('qSame')}</p>
-                                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                                            <MiniCard item={a} locale={locale} />
-                                            <MiniCard item={b} locale={locale} />
+                                        <p className="mt-1 text-sm text-muted">{t('qSameExplain')}</p>
+                                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                            {side(a, b)}
+                                            {side(b, a)}
                                         </div>
-                                        <div className="mt-3 flex flex-wrap gap-2">
-                                            <button type="button" disabled={busy !== null} onClick={() => void merge(keep.id, [gone.id])} className={buttonSecondary}>
-                                                {t('qMerge', { name: label(keep) })}
-                                            </button>
+                                        <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
                                             <button
                                                 type="button"
                                                 disabled={busy !== null}
                                                 onClick={() => void act(`nd-${pair.a}`, { action: 'notDouble', a: pair.a, b: pair.b })}
                                                 className={buttonSecondary}
                                             >
-                                                {t('qDifferent')}
+                                                {t('qBoth')}
                                             </button>
                                             <AiButton busy={busy} id={`ai-d-${pair.a}-${pair.b}`} available={aiAvailable} onClick={(key) => void aiResolve({ double: [pair.a, pair.b] }, key)} />
                                         </div>
@@ -546,16 +552,19 @@ function MiniCard({ item, locale }: { item: Item; locale: 'de' | 'en' }) {
     const t = useTranslations('Ingredients');
     const de = item.aliases.filter(isGermanName);
     const en = item.aliases.filter((alias) => !isGermanName(alias));
+    const line = (code: string, name: string, also: string[]) => (
+        <p className="flex gap-2">
+            <span className="w-7 shrink-0 text-xs font-semibold uppercase text-faint">{code}</span>
+            <span className="min-w-0">
+                {name ? <span className="font-medium">{name}</span> : <span className="text-danger">{t('missing')}</span>}
+                {also.length > 0 && <span className="block text-xs text-muted">{t('also', { names: also.join(', ') })}</span>}
+            </span>
+        </p>
+    );
     return (
-        <div className="rounded-lg bg-surface p-3 text-sm">
-            <p>
-                <span className="font-medium">{item.de || '—'}</span>
-                {de.length > 0 && <span className="text-muted"> · {t('also', { names: de.join(', ') })}</span>}
-            </p>
-            <p>
-                <span className="font-medium">{item.en || '—'}</span>
-                {en.length > 0 && <span className="text-muted"> · {t('also', { names: en.join(', ') })}</span>}
-            </p>
+        <div className="flex flex-1 flex-col gap-1 rounded-lg bg-surface p-3 text-sm">
+            {line('DE', item.de, de)}
+            {line('EN', item.en, en)}
             <p className="mt-1 text-xs text-faint">
                 {item.main !== null ? `${t('mainUnit')}: ${unitLabel(item.main, locale)} · ` : ''}
                 {t('uses', { count: item.uses })}

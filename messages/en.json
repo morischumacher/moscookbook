@@ -1658,6 +1658,9 @@
     "failed": "That did not work. Please try again."
   },
   "Ingredients": {
+    "qBoth": "Keep both – they are different",
+    "qKeepThis": "Keep this one",
+    "qSameExplain": "Are these the same ingredient? Then keep one: the other is merged into it, its names become further names, and every recipe points to the one kept. Otherwise keep both.",
     "newName": "New ingredient",
     "createNamed": "Add “{name}” as a new ingredient",
     "newIngredient": "+ New ingredient",
