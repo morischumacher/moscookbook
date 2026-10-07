@@ -20,7 +20,8 @@
     "closeMenu": "Menü schließen"
   },
   "Home": {
-    "searchPlaceholder": "Rezepte und Zutaten durchsuchen…",
+    "haveMode": "Rezepte mit allen diesen Zutaten",
+    "searchPlaceholder": "Rezepte suchen – oder Zutaten mit Komma: Zucchini, Feta",
     "sortBy": "Sortieren",
     "sortRecent": "Zuletzt hinzugefügt",
     "sortViews": "Meistgelesen",

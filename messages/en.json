@@ -20,7 +20,8 @@
     "closeMenu": "Close menu"
   },
   "Home": {
-    "searchPlaceholder": "Search recipes and ingredients…",
+    "haveMode": "Recipes with all of these ingredients",
+    "searchPlaceholder": "Search recipes – or ingredients with commas: zucchini, feta",
     "sortBy": "Sort by",
     "sortRecent": "Recently added",
     "sortViews": "Most viewed",
