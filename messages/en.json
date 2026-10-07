@@ -275,6 +275,11 @@
     "ingredients": "Ingredients"
   },
   "RecipeForm": {
+    "mirrorUseName": "Use “{name}”",
+    "mirrorOtherName": "“{source}” in the original – in the list it is called “{name}” here",
+    "mirrorNewAt": "“{source}” is a new ingredient in the original – saving adds it with both names",
+    "mirrorJump": "To the row in the original",
+    "mirrorOpenAt": "“{source}” is still open in the original – settle it there and it turns green here",
     "infoSave": "Save",
     "infoLabel": "Short description of the ingredient (for every recipe)",
     "infoPlaceholder": "In a few words, e.g. Salted fermented shrimp",

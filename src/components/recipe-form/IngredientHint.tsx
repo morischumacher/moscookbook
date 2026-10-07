@@ -8,6 +8,7 @@ import { matchIn, similarIn, type MatchableItem } from '@/lib/ingredientMatch';
 import { convertQuantity, familyOf, isEuropean, measureOf, perUnit, conversionText, rebased, storedFactor, unitFits, unitKey, unitLabel } from '@/lib/ingredientUnits';
 import type { Units } from '@/lib/shoppingParts';
 import { toMetric } from '@/lib/units';
+import { shoppingKey } from '@/lib/shopping';
 
 export interface FormCatalogItem extends MatchableItem {
     /** Its main unit ('g', 'bunch', '' for pieces), or null with none yet. */
@@ -317,9 +318,31 @@ export function rowStatus(item: string, amount: string, catalog: FormCatalogItem
  * card in this language (or offers this row's name to a card that has none
  * in it yet); amber and blue point to the original.
  */
-export function MirrorHint({ tone, card, item, language, onGiveName }: { tone: RowTone | null; card: FormCatalogItem | null; item: string; language: 'de' | 'en'; onGiveName: (id: number, name: string) => void }) {
+export function MirrorHint({
+    tone,
+    card,
+    item,
+    source,
+    language,
+    onGiveName,
+    onItem,
+    onJump,
+}: {
+    tone: RowTone | null;
+    card: FormCatalogItem | null;
+    item: string;
+    /** The original's row this one is paired with ("Salt"): named, so a wrong pair shows. */
+    source: string;
+    language: 'de' | 'en';
+    onGiveName: (id: number, name: string) => void;
+    /** This row's name changed (to the card's name in this language). */
+    onItem: (next: string) => void;
+    /** To the original's row, where an open question is answered. */
+    onJump: () => void;
+}) {
     const t = useTranslations('RecipeForm');
     if (!tone) return null;
+    const chip = 'min-h-9 rounded-full border border-control bg-page px-3 text-xs text-ink hover:border-ink';
     const color = tone === 'success' ? 'text-success' : tone === 'warning' ? 'text-warning' : 'text-info';
     const line = (text: string) => (
         <span className={`inline-flex items-center gap-1.5 font-medium ${color}`}>
@@ -340,9 +363,35 @@ export function MirrorHint({ tone, card, item, language, onGiveName }: { tone: R
             </div>
         );
     }
+    // Green, but this row calls it something else: the card's name in this language is one tap away.
+    if (tone === 'success' && card && card[language] && shoppingKey(base) !== shoppingKey(card[language])) {
+        return (
+            <div className="basis-full text-xs" role="note">
+                {line(t('mirrorOtherName', { name: card[language], source }))}
+                <div className="mt-1">
+                    <button type="button" onClick={() => onItem(formatShape({ ...shapeOf(item), base: card[language] }))} className={chip}>
+                        {t('mirrorUseName', { name: card[language] })}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+    if (tone === 'warning') {
+        // Decided once, in the original: said which row, and the way there.
+        return (
+            <div className="basis-full text-xs" role="note">
+                {line(t('mirrorOpenAt', { source }))}
+                <div className="mt-1">
+                    <button type="button" onClick={onJump} className={chip}>
+                        {t('mirrorJump')}
+                    </button>
+                </div>
+            </div>
+        );
+    }
     return (
         <div className="basis-full text-xs" role="note">
-            {line(tone === 'success' && card ? t('mirrorKnown', { name: card[language] }) : tone === 'warning' ? t('mirrorOpen') : t('mirrorNew'))}
+            {line(tone === 'success' && card ? t('mirrorKnown', { name: card[language] }) : t('mirrorNewAt', { source }))}
         </div>
     );
 }
