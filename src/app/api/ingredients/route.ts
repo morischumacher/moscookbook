@@ -23,6 +23,7 @@ import {
     merge,
     openQuestions,
     removeUnit,
+    restoreCard,
     resolveUnit,
     saveUnits,
     setMainUnit,
@@ -206,6 +207,11 @@ const postBody = z.discriminatedUnion('action', [
     z.object({ action: z.literal('giveName'), id, language: z.enum(['de', 'en']), name: z.string().trim().min(1).max(120) }),
     z.object({ action: z.literal('setInfo'), id, language: z.enum(['de', 'en']), info: z.string().trim().max(300) }),
     z.object({ action: z.literal('aiInfo') }),
+    z.object({
+        action: z.literal('restoreCard'),
+        id,
+        card: z.object({ unit: unit.nullable(), buyMeasure: z.string().max(60).nullable(), factors: z.record(z.string().max(60), z.number().positive()), moreUnits: z.array(z.string().max(60)).max(12) }),
+    }),
     z.object({ action: z.literal('linkAll') }),
     z.object({ action: z.literal('deleteUnused') }),
     z.object({ action: z.literal('aiCheck') }),
@@ -259,6 +265,10 @@ export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the
             if (updated.count !== 1) refuse(404, 'That ingredient is gone.');
             return NextResponse.json({ ok: true });
         }
+        case 'restoreCard':
+            // The undo of an AI's unit decision: the card's units as they were.
+            await restoreCard(body.id, body.card);
+            return NextResponse.json({ ok: true });
         case 'aiInfo': {
             const filled = await fillInfos(null);
             if (filled === null) refuse(501, 'The AI is switched off or has no key.');

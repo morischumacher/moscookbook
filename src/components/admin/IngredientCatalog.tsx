@@ -12,7 +12,7 @@ import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 import { CHOOSABLE_AISLES } from '@/lib/shopping';
 import { unitLabel, type UnitUse } from '@/lib/ingredientUnits';
 import { UNIT_CHOICES } from '@/lib/unitChoice';
-import type { AiDecision } from '@/lib/ingredientDecideDb';
+import type { AiDecision, CardUnits } from '@/lib/ingredientDecideDb';
 
 /** A further unit on a card, with its conversion to the main one ("7 Stück = 1 Bund"). */
 interface CardUnit {
@@ -166,9 +166,15 @@ export default function IngredientCatalog() {
     };
 
     const undo = async (decision: AiDecision, index: number) => {
-        if (decision.kind === 'kept') await post(`undo-${index}`, { action: 'removeUnit', id: decision.itemId, family: decision.family });
-        else if (decision.kind === 'different') await post(`undo-${index}`, { action: 'sameAgain', a: decision.a, b: decision.b });
-        else if (decision.kind === 'converted') for (const row of decision.undo) await post(`undo-${index}`, { action: 'setRowAmount', rowId: row.rowId, amount: row.amount });
+        // A unit decision: the card's units back as they were (main unit, conversions), and the rows it converted.
+        const restore = (card: CardUnits | null, itemId: number) => (card ? post(`undo-${index}`, { action: 'restoreCard', id: itemId, card }) : null);
+        if (decision.kind === 'kept') {
+            if (!(await restore(decision.card, decision.itemId))) await post(`undo-${index}`, { action: 'removeUnit', id: decision.itemId, family: decision.family });
+        } else if (decision.kind === 'different') await post(`undo-${index}`, { action: 'sameAgain', a: decision.a, b: decision.b });
+        else if (decision.kind === 'converted') {
+            for (const row of decision.undo) await post(`undo-${index}`, { action: 'setRowAmount', rowId: row.rowId, amount: row.amount });
+            await restore(decision.card, decision.itemId);
+        }
         setDecisions((current) => (current ?? []).filter((_, at) => at !== index));
         await refresh();
     };
