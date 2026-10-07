@@ -1682,6 +1682,8 @@
     "failed": "That did not work. Please try again."
   },
   "Ingredients": {
+    "saveClashMerge": "Merge with “{name}”",
+    "saveClash": "Not saved: “{name}” already has one of these names. It is probably the same ingredient.",
     "fieldAbout": "Explanation",
     "fieldInfo": "Short description",
     "fieldAlso": "Further names",
