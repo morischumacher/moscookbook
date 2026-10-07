@@ -1,7 +1,7 @@
 /** An ingredient's standard unit, conflicts, conversions without AI, and how the form finds a name */
 import { suite, check, equal } from './harness';
 import { amountIn, conversionText, convertQuantity, factorBetween, isEuropean, rebased, storedFactor, unitFits, measureOf, missingConversions, unitKey, unitLabel, unitState } from '../src/lib/ingredientUnits';
-import { matchIn, similarIn, itemKeys, syncedRows } from '../src/lib/ingredientMatch';
+import { brokenGermanName, coreName, matchIn, similarIn, itemKeys, syncedRows } from '../src/lib/ingredientMatch';
 import { converted, unitsOf } from '../src/lib/shoppingParts';
 import { withGlossary } from '../src/lib/recipeTranslation';
 
@@ -75,6 +75,13 @@ export default function ingredientUnitsTests() {
     const german = [{ amount: '', item: '## Soße' }, { amount: '2', item: 'Lauchzwiebeln, gehackt' }, { amount: '1 TL', item: 'Salz' }, { amount: '', item: '' }];
     equal("the row beside gets the list's name, its own preparation kept", syncedRows(english, german, 1, 'spring onions')[1].item, 'spring onions, chopped');
     equal('a heading is never renamed', syncedRows(english, german, 0, 'x')[0].item, '## Sauce');
+
+    suite('ingredient match: names cut at a comma');
+    equal('a capitalised first participle is not the name', coreName('Fermentierte, gesalzene Garnelen mit der salzigen Lauge'), 'Fermentierte, gesalzene Garnelen mit der salzigen Lauge');
+    equal('"Tomate, gehackt" is still Tomate', coreName('Tomate, gehackt'), 'Tomate');
+    check('"Fermentierte" for "fermented salted shrimp" is broken', brokenGermanName({ de: 'Fermentierte', en: 'fermented salted shrimp' }));
+    check('"Tomate" is not', !brokenGermanName({ de: 'Tomate', en: 'tomatoes' }));
+    check('"Gehackte Tomaten" is not', !brokenGermanName({ de: 'Gehackte Tomaten', en: 'chopped tomatoes' }));
 
     suite('ingredient match: the form finds names');
     const catalog = [item(1, 'Pasta', 'pasta', ['Nudeln']), item(2, 'Frühlingszwiebeln', 'spring onions'), item(3, 'Tomaten', 'tomatoes')];

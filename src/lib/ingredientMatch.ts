@@ -1,6 +1,6 @@
 import { shoppingKey } from './shopping';
 import { NOISE } from './ingredientNames';
-import { formatShape, shapeOf } from './ingredientShape';
+import { formatShape, LEADING_PARTICIPLE, shapeOf } from './ingredientShape';
 import { distance } from './ingredientDoubles';
 
 /**
@@ -120,4 +120,14 @@ export function syncedRows<T extends { item: string }>(rows: T[], sourceRows: { 
     const next = [...rows];
     next[target.at] = { ...target.row, item: formatShape({ ...shape, base: name }) };
     return next;
+}
+
+/**
+ * A German name that is only the adjective of a longer one — "Fermentierte"
+ * for "fermented salted shrimp", cut at a comma by the rules before
+ * ingredientShape knew better. Not a name: it is emptied and filled again.
+ */
+export function brokenGermanName(item: { de: string; en: string }): boolean {
+    const de = item.de.trim();
+    return !de.includes(' ') && LEADING_PARTICIPLE.test(de) && item.en.trim().split(/\s+/).length >= 2;
 }

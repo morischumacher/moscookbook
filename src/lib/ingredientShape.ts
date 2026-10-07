@@ -86,10 +86,14 @@ const joined = (parts: string[]) => [...new Set(parts.map(clean).filter(Boolean)
 function onlyAdjectives(head: string, rest: string): boolean {
     const words = head.split(' ').filter(Boolean);
     if (words.length === 0 || words.length > 3) return false;
-    const german = /[A-ZÄÖÜ]/.test(rest) && words.every((word) => /^[a-zäöüß-]+$/.test(word));
+    // The first word may be capitalised as a line starts ("Fermentierte, gesalzene Garnelen"), if it reads as a participle.
+    const german = /[A-ZÄÖÜ]/.test(rest) && words.every((word, index) => /^[a-zäöüß-]+$/.test(word) || (index === 0 && LEADING_PARTICIPLE.test(word)));
     const english = words.every((word) => /^[a-z-]+ed$/.test(word) || FORM_WORDS.has(word));
     return german || english;
 }
+
+/** "Fermentierte", "Gesalzene", "Marinierter": a participle, even capitalised at the start of a line. */
+export const LEADING_PARTICIPLE = /^(?:Ge[a-zäöüß]+(?:t|en)|[A-ZÄÖÜ][a-zäöüß]+iert)(?:e|er|es|en|em)$/;
 
 /** A name read into its parts. Headings ("## Für den Teig") and empty names come back as they are, in `base`. */
 export function shapeOf(name: string): IngredientShape {

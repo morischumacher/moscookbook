@@ -1658,6 +1658,9 @@
     "failed": "Das hat nicht geklappt. Versuch es bitte noch einmal."
   },
   "Ingredients": {
+    "qBoth": "Beide behalten – sind verschieden",
+    "qKeepThis": "Diese behalten",
+    "qSameExplain": "Sind das dieselbe Zutat? Dann behalte eine: Die andere wird in sie übernommen, ihre Namen werden weitere Namen, und alle Rezepte zeigen auf die behaltene. Sonst behalte beide.",
     "newName": "Neue Zutat",
     "createNamed": "„{name}“ als neue Zutat anlegen",
     "newIngredient": "+ Neue Zutat",
