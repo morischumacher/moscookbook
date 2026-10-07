@@ -110,6 +110,11 @@ for (const file of walk('src')) {
         if (/(?:max-h|h|min-h)-\[\d+vh\]/.test(line)) {
             problems.push(`${where}  a height in vh\n    Use dvh ([85dvh]): on a phone vh reaches under the browser's toolbar.`);
         }
+        // A date or time written by the browser's own clock: the server writes it in UTC, the browser in
+        // German time, and the page fails to hydrate (React #418, work #56). lib/formatDate writes both alike.
+        if (/\.toLocale(?:String|DateString|TimeString)\(/.test(line) && !/^\s*(?:\/\/|\*)/.test(line) && !/timeZone:/.test(line) && !file.endsWith(join('lib', 'formatDate.ts'))) {
+            problems.push(`${where}  a date written with toLocale…String()\n    Use formatDate or formatDateTime from src/lib/formatDate.ts: one time zone on the server and in the browser.`);
+        }
         if (/fixed inset-0\b[^"'`]*\b(?:items-end|bottom-0)/.test(line)) {
             problems.push(`${where}  a dialog anchored to the bottom of fixed inset-0\n    Use fixed inset-x-0 top-0 h-[100dvh]: on an iPhone the bottom of inset-0 is under Safari's toolbar.`);
         }
