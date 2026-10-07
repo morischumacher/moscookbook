@@ -1682,6 +1682,10 @@
     "failed": "That did not work. Please try again."
   },
   "Ingredients": {
+    "fieldAbout": "Explanation",
+    "fieldInfo": "Short description",
+    "fieldAlso": "Further names",
+    "fieldName": "Name",
     "aboutEnPlaceholder": "What is it, where is it from, how does it taste?",
     "aboutDePlaceholder": "Was ist das, woher kommt es, wie schmeckt es?",
     "aboutEn": "Explanation (English)",

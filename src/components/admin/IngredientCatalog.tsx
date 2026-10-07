@@ -93,6 +93,9 @@ export default function IngredientCatalog() {
     const [unlinked, setUnlinked] = useState(0);
     const [query, setQuery] = useState('');
     const [view, setView] = useState<View | null>(null);
+    // Cards answered under "Zu entscheiden" stay there, open, until another view is chosen: a decision does not take the card away mid-edit.
+    const [touched, setTouched] = useState<Set<number>>(new Set());
+    const touch = (id: number) => setTouched((now) => (now.has(id) ? now : new Set(now).add(id)));
     const [shown, setShown] = useState(60);
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [mergeSheet, setMergeSheet] = useState<number[] | null>(null);
@@ -224,7 +227,7 @@ export default function IngredientCatalog() {
         { id: 'all', count: all.length },
     ];
     // First what needs a decision; with nothing to decide, the newest.
-    const current: View = view ?? (questionCount > 0 ? 'decide' : 'newest');
+    const current: View = view ?? (questionCount > 0 || touched.size > 0 ? 'decide' : 'newest');
     const viewHint = current === 'missing' ? t('hint_missing') : current === 'unused' ? t('hint_unused') : current === 'newest' ? t('hint_newest') : '';
 
     const q = query.trim().toLowerCase();
@@ -251,18 +254,25 @@ export default function IngredientCatalog() {
 
     // Each card's open unit questions, and the cards that have any.
     const pendingFor = (id: number) => unitQuestions.filter((question) => question.itemId === id);
-    const pendingItems = [...new Set(unitQuestions.map((question) => question.itemId))].map((id) => byId.get(id)).filter((item): item is Item => Boolean(item));
+    const pendingItems = [...new Set([...unitQuestions.map((question) => question.itemId), ...touched])].map((id) => byId.get(id)).filter((item): item is Item => Boolean(item));
     const handlers: PendingHandlers = {
         busy,
         aiAvailable,
-        onResolve: (question, choice, a, b) => void act(`uq-${question.itemId}`, { action: 'resolveUnit', id: question.itemId, unit: question.unit, a, b, choice }),
+        onResolve: (question, choice, a, b) => {
+            touch(question.itemId);
+            void act(`uq-${question.itemId}`, { action: 'resolveUnit', id: question.itemId, unit: question.unit, a, b, choice });
+        },
         onRow: (rowId, amount) => void act(`row-${rowId}`, { action: 'setRowAmount', rowId, amount }, t('rowReplaced')),
-        onAi: (question, key) => void aiResolve({ unit: { itemId: question.itemId, family: question.family } }, key),
+        onAi: (question, key) => {
+            touch(question.itemId);
+            void aiResolve({ unit: { itemId: question.itemId, family: question.family } }, key);
+        },
     };
     // One card, the same everywhere: in the lists closed, under "Zu entscheiden" open.
     const rowFor = (item: Item, open: boolean) => (
         <ItemRow
-            key={`${item.id}-${item.de}-${item.en}-${item.aliases.join('|')}-${item.enAliases.join('|')}-${item.infoDe}-${item.infoEn}-${item.aboutDe.length}-${item.aboutEn.length}-${item.main}-${JSON.stringify(item.units)}-${pendingFor(item.id).length}`}
+            // The same card across a refresh: open stays open, and what is typed and not saved stays (ItemRow follows saved changes itself).
+            key={item.id}
             item={item}
             locale={locale}
             detail={current === 'newest' && !q ? 'date' : 'uses'}
@@ -326,6 +336,7 @@ export default function IngredientCatalog() {
                                 aria-selected={current === entry.id}
                                 onClick={() => {
                                     setView(entry.id);
+                                    setTouched(new Set());
                                     setShown(60);
                                 }}
                                 className={`flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm ${
@@ -786,6 +797,21 @@ function ItemRow({
     const [aboutDe, setAboutDe] = useState(item.aboutDe);
     const [aboutEn, setAboutEn] = useState(item.aboutEn);
     const [saving, setSaving] = useState(false);
+    // The saved names and explanations changed (a save, a merge, the AI): taken over where nothing is typed and not saved.
+    const saved = { de: item.de, en: item.en, deAlso: item.aliases.join(', '), enAlso: item.enAliases.join(', '), infoDe: item.infoDe, infoEn: item.infoEn, aboutDe: item.aboutDe, aboutEn: item.aboutEn };
+    const [seen, setSeen] = useState(saved);
+    if (JSON.stringify(saved) !== JSON.stringify(seen)) {
+        const follow = <T,>(now: T, before: T, after: T, set: (value: T) => void) => now === before && set(after);
+        follow(de, seen.de, saved.de, setDe);
+        follow(en, seen.en, saved.en, setEn);
+        follow(deAlso, seen.deAlso, saved.deAlso, setDeAlso);
+        follow(enAlso, seen.enAlso, saved.enAlso, setEnAlso);
+        follow(infoDe, seen.infoDe, saved.infoDe, setInfoDe);
+        follow(infoEn, seen.infoEn, saved.infoEn, setInfoEn);
+        follow(aboutDe, seen.aboutDe, saved.aboutDe, setAboutDe);
+        follow(aboutEn, seen.aboutEn, saved.aboutEn, setAboutEn);
+        setSeen(saved);
+    }
     const list = (text: string) =>
         text
             .split(',')
@@ -838,42 +864,35 @@ function ItemRow({
         <li className={`pb-4 ${selected ? 'bg-surface' : ''}`}>
             {head}
             <div className="flex flex-col gap-3 pl-11">
-                {/* The two names, each with its further ones. */}
-                <div className="grid gap-2 sm:grid-cols-2">
-                    <label className="text-xs text-muted">
-                        {t('german')}
-                        <input value={de} onChange={(event) => setDe(event.target.value)} className={`${field} mt-1 text-base text-ink`} placeholder={t('missing')} />
-                    </label>
-                    <label className="text-xs text-muted">
-                        {t('germanAlso')}
-                        <input value={deAlso} onChange={(event) => setDeAlso(event.target.value)} className={`${field} mt-1 text-base text-ink`} placeholder={t('germanAlsoPlaceholder')} />
-                    </label>
-                    <label className="text-xs text-muted">
-                        {t('english')}
-                        <input value={en} onChange={(event) => setEn(event.target.value)} className={`${field} mt-1 text-base text-ink`} placeholder={t('missing')} />
-                    </label>
-                    <label className="text-xs text-muted">
-                        {t('englishAlso')}
-                        <input value={enAlso} onChange={(event) => setEnAlso(event.target.value)} className={`${field} mt-1 text-base text-ink`} placeholder={t('englishAlsoPlaceholder')} />
-                    </label>
-                    {/* What it is, for a cook who may not know it: shown beside it in every recipe. */}
-                    <label className="text-xs text-muted">
-                        {t('infoDe')}
-                        <input value={infoDe} onChange={(event) => setInfoDe(event.target.value)} maxLength={300} className={`${field} mt-1 text-base text-ink`} placeholder={t('infoDePlaceholder')} />
-                    </label>
-                    <label className="text-xs text-muted">
-                        {t('infoEn')}
-                        <input value={infoEn} onChange={(event) => setInfoEn(event.target.value)} maxLength={300} className={`${field} mt-1 text-base text-ink`} placeholder={t('infoEnPlaceholder')} />
-                    </label>
-                    {/* And at more length: opened from the short one in a recipe. */}
-                    <label className="text-xs text-muted">
-                        {t('aboutDe')}
-                        <textarea value={aboutDe} onChange={(event) => setAboutDe(event.target.value)} maxLength={1000} rows={3} className={`${field} mt-1 text-base text-ink`} placeholder={t('aboutDePlaceholder')} />
-                    </label>
-                    <label className="text-xs text-muted">
-                        {t('aboutEn')}
-                        <textarea value={aboutEn} onChange={(event) => setAboutEn(event.target.value)} maxLength={1000} rows={3} className={`${field} mt-1 text-base text-ink`} placeholder={t('aboutEnPlaceholder')} />
-                    </label>
+                {/* One column per language — each with its name, further names, few words and explanation —
+                    so it is always the column that says which language a field is in. */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                    {([
+                        { code: 'de', heading: t('german'), name: [de, setDe], also: [deAlso, setDeAlso, t('germanAlsoPlaceholder')], info: [infoDe, setInfoDe, t('infoDePlaceholder')], about: [aboutDe, setAboutDe, t('aboutDePlaceholder')] },
+                        { code: 'en', heading: t('english'), name: [en, setEn], also: [enAlso, setEnAlso, t('englishAlsoPlaceholder')], info: [infoEn, setInfoEn, t('infoEnPlaceholder')], about: [aboutEn, setAboutEn, t('aboutEnPlaceholder')] },
+                    ] as const).map((side) => (
+                        <fieldset key={side.code} className="flex min-w-0 flex-col gap-2">
+                            <legend className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted">{side.heading}</legend>
+                            <label className="text-xs text-muted">
+                                {t('fieldName')}
+                                <input value={side.name[0]} onChange={(event) => side.name[1](event.target.value)} className={`${field} mt-1 text-base text-ink`} placeholder={t('missing')} />
+                            </label>
+                            <label className="text-xs text-muted">
+                                {t('fieldAlso')}
+                                <input value={side.also[0]} onChange={(event) => side.also[1](event.target.value)} className={`${field} mt-1 text-base text-ink`} placeholder={side.also[2]} />
+                            </label>
+                            {/* What it is in a few words: under it in every recipe, and found when typed in the form. */}
+                            <label className="text-xs text-muted">
+                                {t('fieldInfo')}
+                                <input value={side.info[0]} onChange={(event) => side.info[1](event.target.value)} maxLength={300} className={`${field} mt-1 text-base text-ink`} placeholder={side.info[2]} />
+                            </label>
+                            {/* And at more length: opened with "mehr" in a recipe. */}
+                            <label className="text-xs text-muted">
+                                {t('fieldAbout')}
+                                <textarea value={side.about[0]} onChange={(event) => side.about[1](event.target.value)} maxLength={1000} rows={4} className={`${field} mt-1 text-base text-ink`} placeholder={side.about[2]} />
+                            </label>
+                        </fieldset>
+                    ))}
                 </div>
                 {dirty && (
                     <button
@@ -891,7 +910,8 @@ function ItemRow({
                     </button>
                 )}
 
-                <CardUnits item={item} locale={locale} busy={busy} onMain={onMain} onUnits={onUnits} pending={pending} handlers={handlers} />
+                {/* Its units started afresh when they change: the conversions as saved. */}
+                <CardUnits key={`${item.main}-${JSON.stringify(item.units)}-${pending.length}`} item={item} locale={locale} busy={busy} onMain={onMain} onUnits={onUnits} pending={pending} handlers={handlers} />
 
                 {/* Where it goes on the shopping list; beats every rule. */}
                 <label className="flex flex-wrap items-center gap-2 text-xs text-muted">
