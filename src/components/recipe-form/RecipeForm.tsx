@@ -7,6 +7,7 @@ import { useRouter } from '@/i18n/routing';
 import ReactMarkdown from 'react-markdown';
 import { StorePicture } from '@/components/ui/InlinePicture';
 import { slugify, type Ingredient } from '@/lib/recipe';
+import { partsOf } from '@/lib/ingredientShape';
 import PolishPanel from './PolishPanel';
 import TranslationPanel from './TranslationPanel';
 import { guessLanguage, type RecipeLanguage, type RecipeTranslationInput } from '@/lib/recipeTranslation';
@@ -54,6 +55,10 @@ export interface RecipeFormValues {
 const listOf = (list: string[] | undefined, single: string | undefined) =>
     list && list.length > 0 ? list : single ? [single] : [];
 
+
+
+/** A row with an ingredient in it — a heading counts; preparation, notes or "optional" alone do not. */
+const named = (row: Ingredient) => partsOf(row.item).base.trim() !== '';
 
 export default function RecipeForm({
     mode,
@@ -182,7 +187,7 @@ export default function RecipeForm({
     useEffect(() => {
         const now = JSON.stringify(values);
         if (opened.current === null) opened.current = now;
-        const isEmpty = !title && !instructions && ingredients.every((row) => !row.item);
+        const isEmpty = !title && !instructions && !ingredients.some(named);
         // Not while an interrupted draft is waiting to be restored or thrown
         // away: saving now would overwrite it with the page as it loaded.
         if (isEmpty || draftFound || now === opened.current) return;
@@ -288,7 +293,8 @@ export default function RecipeForm({
         event.preventDefault();
         setError('');
 
-        const cleanedIngredients = ingredients.filter((row) => row.item.trim() !== '');
+        // A row with no ingredient is no row, whatever its other fields hold ("(optional)" ticked on the empty last row).
+        const cleanedIngredients = ingredients.filter(named);
 
         if (!title.trim() || !instructions.trim()) {
             failWith(t('requiredFields'));
@@ -387,7 +393,7 @@ export default function RecipeForm({
                         servings: toOptionalNumber(servings),
                         prepMinutes: toOptionalNumber(prepMinutes),
                         cookMinutes: toOptionalNumber(cookMinutes),
-                        ingredients: ingredients.filter((row) => row.item.trim() !== '').map((row) => ({ amount: row.amount, item: row.item })),
+                        ingredients: ingredients.filter(named).map((row) => ({ amount: row.amount, item: row.item, linkedRecipeId: row.linkedRecipeId ?? null })),
                     },
                 }),
             });

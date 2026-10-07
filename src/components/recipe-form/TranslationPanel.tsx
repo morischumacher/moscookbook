@@ -9,7 +9,7 @@ import IngredientEditor from './IngredientEditor';
 import { fieldClass, labelClass } from './formStyles';
 import {
     otherLanguage,
-    sourceKey,
+    stampedFrom,
     type RecipeLanguage,
     type RecipeTranslationInput,
     type TranslatableRecipe,
@@ -52,7 +52,7 @@ export default function TranslationPanel({
     const target = otherLanguage(language);
     // A translation into the language the recipe is written in is not one.
     const current = translation && translation.locale === target ? translation : null;
-    const stale = current !== null && current.source !== '' && current.source !== sourceKey(original);
+    const stale = current !== null && current.source !== '' && !stampedFrom(current.source, original);
     const empty = original.title.trim() === '' || original.ingredients.every((row) => row.item.trim() === '');
 
     const run = async () => {

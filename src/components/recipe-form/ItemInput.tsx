@@ -10,7 +10,20 @@ export interface LinkableRecipe {
     title: string;
 }
 
-type Suggestion = { kind: 'name'; name: string } | { kind: 'recipe'; recipe: LinkableRecipe };
+/** A name with what it is in a few words ("Saeujeot" · "Gesalzene, fermentierte Garnelen"): found by either. */
+export interface Described {
+    name: string;
+    info: string;
+}
+
+type Suggestion = { kind: 'name'; name: string; info?: string } | { kind: 'recipe'; recipe: LinkableRecipe };
+
+/** Whether the words typed are in a description: each of them, or one long one ("gesalzene"). */
+function inInfo(typed: string, info: string): boolean {
+    const text = info.toLowerCase();
+    const words = typed.split(/[\s,]+/).filter((word) => word.length >= 3);
+    return words.length > 0 && (words.every((word) => text.includes(word)) || words.some((word) => word.length >= 6 && text.includes(word)));
+}
 
 /**
  * The ingredient field, suggesting the names the cookbook already uses
@@ -24,9 +37,11 @@ type Suggestion = { kind: 'name'; name: string } | { kind: 'recipe'; recipe: Lin
 export default function ItemInput({
     value,
     names,
+    described = [],
     recipes = [],
     onChange,
     onRecipe,
+    onTidy,
     onEnter,
     inputRef,
     placeholder,
@@ -35,10 +50,14 @@ export default function ItemInput({
 }: {
     value: string;
     names: string[];
+    /** Names found by their few words too. */
+    described?: Described[];
     recipes?: LinkableRecipe[];
     onChange: (next: string) => void;
     /** A recipe of the cookbook chosen: the row becomes it. */
     onRecipe?: (recipe: LinkableRecipe) => void;
+    /** The name tidied on leaving the field ("frischer Ingwer" → "Ingwer, frisch"); without it, onChange. */
+    onTidy?: (next: string) => void;
     /** Enter with no suggestion chosen: the editor adds a row. */
     onEnter: () => void;
     inputRef?: Ref<HTMLInputElement>;
@@ -67,7 +86,14 @@ export default function ItemInput({
                       .filter((name) => name.toLowerCase() !== q)
                       .slice(0, 6)
                       .map((name): Suggestion => ({ kind: 'name', name })),
-              ].slice(0, 7)
+                  // Then what it is: "Gesalzene Garnelen" → "Saeujeot · Gesalzene, fermentierte Garnelen".
+                  ...described
+                      .filter((entry) => inInfo(q, entry.info) && !entry.name.toLowerCase().includes(q))
+                      .slice(0, 2)
+                      .map((entry): Suggestion => ({ kind: 'name', name: entry.name, info: entry.info })),
+              ]
+                  .filter((choice, index, all) => choice.kind === 'recipe' || all.findIndex((other) => other.kind === 'name' && other.name === choice.name) === index)
+                  .slice(0, 7)
             : [];
 
     const choose = (choice: Suggestion) => {
@@ -109,7 +135,7 @@ export default function ItemInput({
                 onBlur={() => {
                     // Written the cookbook's way on leaving the field: "frischer Ingwer" → "Ingwer, frisch" (lib/ingredientShape).
                     const tidy = conventional(value);
-                    if (tidy !== value.trim() && tidy) onChange(tidy);
+                    if (tidy !== value.trim() && tidy) (onTidy ?? onChange)(tidy);
                     setTimeout(() => setOpen(false), 150);
                 }}
                 onKeyDown={onKeyDown}
@@ -142,7 +168,10 @@ export default function ItemInput({
                                     {choice.recipe.title} <span className="text-xs text-info">· {recipeLabel}</span>
                                 </>
                             ) : (
-                                choice.name
+                                <>
+                                    {choice.name}
+                                    {choice.info && <span className="text-xs text-muted"> · {choice.info}</span>}
+                                </>
                             )}
                         </li>
                     ))}

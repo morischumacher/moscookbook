@@ -33,7 +33,7 @@ export default function RecipeBody({
     recipeId: number;
     ingredients: StructuredIngredient[];
     /** Per row: what the ingredient is ("Koreanisches Chilipulver") and the recipe of ours it is ("Kimchi"). */
-    extras?: { info?: string; link?: { slug: string; title: string } }[];
+    extras?: { info?: string; about?: string; link?: { slug: string; title: string } }[];
     /**
      * The method, one rendered step each.
      *
@@ -75,6 +75,8 @@ export default function RecipeBody({
 }) {
     const [servings, setServings] = useState(baseServings ?? 0);
     const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
+    // The ingredients whose longer explanation is open.
+    const [openAbout, setOpenAbout] = useState<Set<number>>(new Set());
     const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
     /**
      * Whether the stored progress has been looked for yet.
@@ -522,7 +524,26 @@ export default function RecipeBody({
                                             ) : (
                                                 ingredient.item
                                             )}
-                                            {extras?.[index]?.info && <span className="block font-sans text-sm text-muted">{extras[index].info}</span>}
+                                            {(extras?.[index]?.info || extras?.[index]?.about) && (
+                                                <span className="block font-sans text-sm text-muted">
+                                                    {extras[index].info}
+                                                    {/* The longer explanation, opened from the short one. */}
+                                                    {extras[index].about && (
+                                                        <>
+                                                            {' '}
+                                                            <button
+                                                                type="button"
+                                                                aria-expanded={openAbout.has(index)}
+                                                                onClick={() => setOpenAbout((set) => toggle(set, index))}
+                                                                className="underline underline-offset-2 hover:text-ink print:hidden"
+                                                            >
+                                                                {openAbout.has(index) ? t('infoLess') : t('infoMore')}
+                                                            </button>
+                                                            {openAbout.has(index) && <span className="mt-1 block">{extras[index].about}</span>}
+                                                        </>
+                                                    )}
+                                                </span>
+                                            )}
                                         </span>
                                     </div>
                                 </li>

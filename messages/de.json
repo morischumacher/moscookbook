@@ -85,6 +85,8 @@
     "American": "Amerikanisch"
   },
   "Recipe": {
+    "infoLess": "weniger",
+    "infoMore": "mehr",
     "loadingRecipe": "Rezept wird geladen…",
     "ingredients": "Zutaten",
     "instructions": "Zubereitung",
@@ -274,10 +276,10 @@
   },
   "RecipeForm": {
     "infoSave": "Speichern",
-    "infoLabel": "Erklärung zur Zutat (für alle Rezepte)",
-    "infoPlaceholder": "Was ist das? z. B. Koreanisches Chilipulver",
+    "infoLabel": "Kurzbeschreibung der Zutat (für alle Rezepte)",
+    "infoPlaceholder": "In wenigen Worten, z. B. Gesalzene, fermentierte Garnelen",
     "infoEdit": "ändern",
-    "infoAdd": "+ Erklärung",
+    "infoAdd": "+ Kurzbeschreibung",
     "recipeSuggestion": "Rezept",
     "unlinkRecipe": "Verknüpfung lösen",
     "linkedRecipe": "Rezept aus dem Kochbuch: {title} – im Rezept verlinkt.",
@@ -1680,12 +1682,16 @@
     "failed": "Das hat nicht geklappt. Versuch es bitte noch einmal."
   },
   "Ingredients": {
+    "aboutEnPlaceholder": "What is it, where is it from, how does it taste?",
+    "aboutDePlaceholder": "Was ist das, woher kommt es, wie schmeckt es?",
+    "aboutEn": "Erklärung (Englisch)",
+    "aboutDe": "Erklärung (Deutsch)",
     "infoDone": "Erklärungen ergänzt – nur bei Zutaten, die nicht jeder kennt.",
     "aiInfo": "Erklärungen von der KI ergänzen",
-    "infoEnPlaceholder": "What is it? e.g. Korean chili powder",
-    "infoDePlaceholder": "Was ist das? z. B. Koreanisches Chilipulver",
-    "infoEn": "Erklärung (Englisch)",
-    "infoDe": "Erklärung (Deutsch)",
+    "infoEnPlaceholder": "In a few words, e.g. Salted fermented shrimp",
+    "infoDePlaceholder": "In wenigen Worten, z. B. Gesalzene, fermentierte Garnelen",
+    "infoEn": "Kurzbeschreibung (Englisch)",
+    "infoDe": "Kurzbeschreibung (Deutsch)",
     "qTranslationNo": "Nein – verschiedene Zutaten",
     "qTranslationYes": "Ja – eine Karte mit beiden Namen",
     "qTranslationExplain": "Ist „{de}“ (Deutsch) dieselbe Zutat wie „{en}“ (Englisch)? Dann wird eine Karte mit beiden Namen daraus.",

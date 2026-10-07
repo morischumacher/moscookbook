@@ -81,6 +81,15 @@ function filled(rows: Ingredient[]): Ingredient[] {
  * `keepCase`: the key as it was built before every name started with a
  * capital — what the translations made back then were stamped with.
  */
+/**
+ * Whether a translation stamped `source` was made from this recipe as it is:
+ * its key as built now, or as built before names were tidied (`keepCase`) —
+ * the same text, not a change.
+ */
+export function stampedFrom(source: string, recipe: TranslatableRecipe): boolean {
+    return source === sourceKey(recipe) || source === sourceKey(recipe, true);
+}
+
 export function sourceKey(recipe: TranslatableRecipe, keepCase = false): string {
     const text = JSON.stringify([
         recipe.title.trim(),
@@ -413,16 +422,13 @@ export function inLanguage<
      */
     const stale =
         Boolean(translation.source) &&
-        translation.source !==
-            sourceKey({
-                title: recipe.title,
-                description: recipe.description ?? '',
-                instructions: recipe.instructions,
-                tips: recipe.tips,
-                ingredients: withHeadingRows(
-                    recipe.ingredients.map((row) => ({ amount: row.raw, item: row.name, section: row.section }))
-                ),
-            });
+        !stampedFrom(translation.source ?? '', {
+            title: recipe.title,
+            description: recipe.description ?? '',
+            instructions: recipe.instructions,
+            tips: recipe.tips,
+            ingredients: withHeadingRows(recipe.ingredients.map((row) => ({ amount: row.raw, item: row.name, section: row.section }))),
+        });
 
     const ingredients = toStructuredIngredients(storedRows(translation.ingredients));
 

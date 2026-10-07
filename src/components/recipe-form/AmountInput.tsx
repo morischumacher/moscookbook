@@ -40,8 +40,10 @@ export default function AmountInput({
     }
 
     // The ingredient's usual unit, shown while nothing is typed: the number typed next is in it.
+    // Until a unit is chosen by hand — "–" too.
+    const [picked, setPicked] = useState(false);
     const usualChoice = usual ? choiceFor(usual) : '';
-    const choice = !fields.quantity.trim() && fields.choice === '' && usualChoice !== 'custom' ? usualChoice : fields.choice;
+    const choice = !picked && !fields.quantity.trim() && fields.choice === '' && usualChoice !== 'custom' ? usualChoice : fields.choice;
 
     const change = (next: Partial<AmountFields>) => {
         const merged = { ...fields, choice, ...next };
@@ -64,7 +66,10 @@ export default function AmountInput({
             />
             <select
                 value={choice}
-                onChange={(event) => change({ choice: event.target.value as UnitChoice })}
+                onChange={(event) => {
+                    setPicked(true);
+                    change({ choice: event.target.value as UnitChoice });
+                }}
                 aria-label={t('unitLabel', { number })}
                 className={fieldBase + ' w-24 shrink-0 px-1'}
             >

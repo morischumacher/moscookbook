@@ -85,6 +85,8 @@
     "American": "American"
   },
   "Recipe": {
+    "infoLess": "less",
+    "infoMore": "more",
     "loadingRecipe": "Fetching the recipe…",
     "ingredients": "Ingredients",
     "instructions": "Method",
@@ -274,10 +276,10 @@
   },
   "RecipeForm": {
     "infoSave": "Save",
-    "infoLabel": "Explanation of the ingredient (for every recipe)",
-    "infoPlaceholder": "What is it? e.g. Korean chili powder",
+    "infoLabel": "Short description of the ingredient (for every recipe)",
+    "infoPlaceholder": "In a few words, e.g. Salted fermented shrimp",
     "infoEdit": "edit",
-    "infoAdd": "+ Explanation",
+    "infoAdd": "+ Short description",
     "recipeSuggestion": "Recipe",
     "unlinkRecipe": "Unlink",
     "linkedRecipe": "A recipe from the cookbook: {title} – linked on the recipe page.",
@@ -1680,12 +1682,16 @@
     "failed": "That did not work. Please try again."
   },
   "Ingredients": {
+    "aboutEnPlaceholder": "What is it, where is it from, how does it taste?",
+    "aboutDePlaceholder": "Was ist das, woher kommt es, wie schmeckt es?",
+    "aboutEn": "Explanation (English)",
+    "aboutDe": "Explanation (German)",
     "infoDone": "Explanations added – only for ingredients not everybody knows.",
     "aiInfo": "Let the AI add explanations",
-    "infoEnPlaceholder": "What is it? e.g. Korean chili powder",
-    "infoDePlaceholder": "Was ist das? e.g. Koreanisches Chilipulver",
-    "infoEn": "Explanation (English)",
-    "infoDe": "Explanation (German)",
+    "infoEnPlaceholder": "In a few words, e.g. Salted fermented shrimp",
+    "infoDePlaceholder": "In a few words, e.g. Gesalzene, fermentierte Garnelen",
+    "infoEn": "Short description (English)",
+    "infoDe": "Short description (German)",
     "qTranslationNo": "No – different ingredients",
     "qTranslationYes": "Yes – one card with both names",
     "qTranslationExplain": "Is “{de}” (German) the same ingredient as “{en}” (English)? Then they become one card with both names.",

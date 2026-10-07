@@ -69,21 +69,26 @@ export async function ensureDescriptionsTidy(): Promise<void> {
         const own = description !== (recipe.description ?? '');
         if (!own && translations.every((entry) => entry.description === entry.translation.description)) continue;
 
-        const keyWith = (text: string) =>
-            sourceKey({
+        const keyWith = (text: string, keepCase = false) =>
+            sourceKey(
+                {
                 title: recipe.title,
                 description: text,
                 instructions: recipe.instructions,
                 tips: recipe.tips,
                 ingredients: withHeadingRows(recipe.ingredients.map((row) => ({ amount: row.raw, item: row.name, section: row.section }))),
-            });
+                },
+                keepCase
+            );
         const before = keyWith(recipe.description ?? '');
+        // Stamped as keys were built before names were tidied: up to date all the same.
+        const beforeAsTyped = keyWith(recipe.description ?? '', true);
         const after = keyWith(description);
         if (own) await keepRevisionOf(recipe.id, snapshotOf({ ...recipe, tips: recipe.tips ?? '' }), null);
         await prisma.$transaction(
             translations.flatMap(({ translation, description: next }) => {
-                const fresh = Boolean(translation.source) && translation.source === before;
-                if (next === translation.description && !(fresh && before !== after)) return [];
+                const fresh = Boolean(translation.source) && (translation.source === before || translation.source === beforeAsTyped);
+                if (next === translation.description && !(fresh && translation.source !== after)) return [];
                 return [prisma.recipeTranslation.update({ where: { id: translation.id }, data: { description: next, ...(fresh ? { source: after } : {}) } })];
             }),
         );

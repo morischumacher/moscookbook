@@ -94,15 +94,20 @@ export async function rewriteRows(itemIds: number[], edit: RowEditor, editedBy: 
         });
         if (!moved && !translations.some((entry) => entry.moved)) continue;
 
-        const keyOf = (list: { raw: string; name: string; section: string | null }[]) =>
-            sourceKey({
+        const keyOf = (list: { raw: string; name: string; section: string | null }[], keepCase = false) =>
+            sourceKey(
+                {
                 title: recipe.title,
                 description: recipe.description ?? '',
                 instructions: recipe.instructions,
                 tips: recipe.tips,
                 ingredients: withHeadingRows(list.map((row) => ({ amount: row.raw, item: row.name, section: row.section }))),
-            });
+                },
+                keepCase
+            );
         const before = keyOf(recipe.ingredients);
+        // Stamped as keys were built before names were tidied: up to date all the same.
+        const beforeAsTyped = keyOf(recipe.ingredients, true);
         const after = keyOf(rows);
         if (moved && only === undefined) await keepRevisionOf(recipe.id, snapshotOf({ ...recipe, tips: recipe.tips ?? '' }), editedBy);
 
@@ -114,8 +119,8 @@ export async function rewriteRows(itemIds: number[], edit: RowEditor, editedBy: 
                 return [prisma.ingredient.update({ where: { id: row.id }, data: { name: row.name, raw: row.raw, quantity: parts.quantity, quantityMax: parts.quantityMax, unit: parts.unit } })];
             }),
             ...translations.flatMap(({ translation, next, moved: rowsMoved, followed }) => {
-                const fresh = followed && Boolean(translation.source) && translation.source === before;
-                if (!rowsMoved && !(fresh && before !== after)) return [];
+                const fresh = followed && Boolean(translation.source) && (translation.source === before || translation.source === beforeAsTyped);
+                if (!rowsMoved && !(fresh && translation.source !== after)) return [];
                 return [
                     prisma.recipeTranslation.update({
                         where: { id: translation.id },

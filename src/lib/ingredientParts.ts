@@ -44,7 +44,8 @@ export function capitalized(name: string): string {
 export function sectionHeading(row: { amount: string; item: string }): string | null {
     if (row.amount.trim() !== '') return null;
     const item = row.item.trim();
-    const marked = /^#{1,3}\s*(.+)$/.exec(item);
+    // "## " with no name yet is no heading (not one called "#").
+    const marked = /^#{1,3}(?!#)\s*(.+)$/.exec(item);
     if (marked) return marked[1].trim().replace(/:$/, '') || null;
     const colon = /^(.{2,60}):$/.exec(item);
     return colon ? colon[1].trim() : null;
