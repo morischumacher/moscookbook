@@ -5,6 +5,7 @@ import { ensureVoice } from '@/lib/recipeVoiceDb';
 import { ensureUnitsInLine } from '@/lib/ingredientUnitsDb';
 import { ensureCatalogTidy, ensureTranslationPairs } from '@/lib/ingredientDecideDb';
 import { ensureDescriptionsTidy } from '@/lib/descriptionTidyDb';
+import { ensureLoneUnitsCleared } from '@/lib/loneUnitsDb';
 import { failed } from '@/lib/reportServerError';
 import { cache } from 'react';
 import { notFound, redirect } from 'next/navigation';
@@ -123,6 +124,9 @@ export default async function RecipePage({
             // And the cards of a recipe's two languages made one (lib/ingredientDecideDb).
             .then(() => ensureTranslationPairs())
             .catch((error) => failed('translation pairs', error))
+            // And a translation's lone units ("tbsp") beside an amount migration 0067 emptied (lib/loneUnitsDb).
+            .then(() => ensureLoneUnitsCleared())
+            .catch((error) => failed('lone units', error))
     );
     const { slug, locale } = await params;
 
