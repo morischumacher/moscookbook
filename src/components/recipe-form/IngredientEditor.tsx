@@ -8,7 +8,7 @@ import { conventionalRows } from '@/lib/ingredientShape';
 import { choiceFor, joinFromEditor, splitForEditor } from '@/lib/unitChoice';
 import { itemKeys, matchIn } from '@/lib/ingredientMatch';
 import { familyOf, measureOf, rebased, storedFactor, unitLabel } from '@/lib/ingredientUnits';
-import IngredientHint, { type FormCatalogItem, type RowAnswer } from './IngredientHint';
+import IngredientHint, { MirrorHint, rowStatus, type FormCatalogItem, type RowAnswer } from './IngredientHint';
 import { fieldBase, fieldClass, labelClass } from './formStyles';
 import AmountInput from './AmountInput';
 import ItemInput from './ItemInput';
@@ -29,6 +29,7 @@ export default function IngredientEditor({
     hints = true,
     language,
     onKnown,
+    mirrorOf,
 }: {
     ingredients: Ingredient[];
     onChange: (next: Ingredient[]) => void;
@@ -36,6 +37,8 @@ export default function IngredientEditor({
     language?: 'de' | 'en';
     /** A row became an ingredient of the list: its names, for the row beside it in the other language. */
     onKnown?: (index: number, names: { de: string; en: string }) => void;
+    /** The original's rows, for a translation: each row then shows the colour of the original's row beside it (MirrorHint). */
+    mirrorOf?: Ingredient[];
     /** The green / amber / blue line under each row (IngredientHint); off for the translation's rows. */
     hints?: boolean;
 }) {
@@ -295,7 +298,14 @@ export default function IngredientEditor({
                             {/* The amount as an American reader sees it ("480 ml" → "2 cups"): to round a number that came out crooked. */}
                             {!drag && usAmount(row) && <p className="basis-full text-xs text-faint">{t('usAmount', { amount: usAmount(row)! })}</p>}
                             {/* Folded away while a row is dragged: every row its compact self, so the places add up. */}
-                            {hints && !drag && (
+                            {hints && !drag && mirrorOf && (() => {
+                                // The original's row beside this one, by place among the filled rows.
+                                const place = ingredients.slice(0, index).filter((other) => other.item.trim()).length;
+                                const source = mirrorOf.filter((other) => other.item.trim())[place];
+                                const status = source ? rowStatus(source.item, source.amount, catalog) : { tone: null, card: null };
+                                return <MirrorHint tone={status.tone} card={status.card} item={row.item} language={lang} onGiveName={giveName} />;
+                            })()}
+                            {hints && !drag && !mirrorOf && (
                                 <IngredientHint
                                     // A fresh hint for each name and amount: its conversion fields start from them.
                                     key={`${row.item}|${row.amount}`}

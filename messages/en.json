@@ -272,6 +272,11 @@
     "ingredients": "Ingredients"
   },
   "RecipeForm": {
+    "mirrorTakeName": "Use “{name}” as its name",
+    "mirrorNameMissing": "As in the original: {name} – the card has no name in this language yet",
+    "mirrorNew": "As in the original: a new ingredient, added with the original",
+    "mirrorOpen": "As in the original: still to settle above",
+    "mirrorKnown": "As in the original: {name}",
     "hintChoose": "Choose …",
     "hintEnglishOf": "Or the English version of a German ingredient:",
     "hintGermanOf": "Or the German version of an English ingredient:",
