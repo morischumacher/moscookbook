@@ -176,6 +176,8 @@ export default function TranslationPanel({
                         onChange={(rows) => edit({ ingredients: rows })}
                         // The same green / amber / blue as above, in the translation's language.
                         language={current.locale}
+                        // Each row in the colour of the original's row beside it: decided once, above.
+                        mirrorOf={original.ingredients}
                         onKnown={(index, names) => onKnown?.(index, names, current.ingredients)}
                     />
 

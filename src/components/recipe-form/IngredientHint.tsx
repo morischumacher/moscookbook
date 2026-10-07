@@ -284,3 +284,58 @@ export default function IngredientHint({
         </div>
     );
 }
+
+export type RowTone = 'success' | 'warning' | 'info';
+
+/**
+ * A row's colour, as the hint draws it: green (a card, in a unit it lists),
+ * amber (a similar card, or another unit), blue (new) — for the
+ * translation to mirror (MirrorHint). Null for a heading or a row too short to say.
+ */
+export function rowStatus(item: string, amount: string, catalog: FormCatalogItem[]): { tone: RowTone | null; card: FormCatalogItem | null } {
+    const name = item.trim();
+    if (catalog.length === 0 || name.length < 3 || name.startsWith('#')) return { tone: null, card: null };
+    const known = matchIn(name, catalog);
+    if (!known) return { tone: similarIn(name, catalog).length > 0 ? 'warning' : 'info', card: null };
+    const parts = splitAmount(amount);
+    const written = parts.unit ?? '';
+    if (parts.quantity !== null && written && !isEuropean(unitKey(written))) return { tone: 'warning', card: known };
+    if (known.unit === null || (parts.quantity === null && !parts.unit) || unitFits(known, written)) return { tone: 'success', card: known };
+    return { tone: 'warning', card: known };
+}
+
+/**
+ * A translation's row, in the colour of the original's row beside it: the
+ * same ingredient, decided once — above, in the original. Green names the
+ * card in this language (or offers this row's name to a card that has none
+ * in it yet); amber and blue point to the original.
+ */
+export function MirrorHint({ tone, card, item, language, onGiveName }: { tone: RowTone | null; card: FormCatalogItem | null; item: string; language: 'de' | 'en'; onGiveName: (id: number, name: string) => void }) {
+    const t = useTranslations('RecipeForm');
+    if (!tone) return null;
+    const color = tone === 'success' ? 'text-success' : tone === 'warning' ? 'text-warning' : 'text-info';
+    const line = (text: string) => (
+        <span className={`inline-flex items-center gap-1.5 font-medium ${color}`}>
+            <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-current" />
+            {text}
+        </span>
+    );
+    const base = shapeOf(item).base;
+    if (tone === 'success' && card && !card[language] && base) {
+        return (
+            <div className="basis-full text-xs" role="note">
+                {line(t('mirrorNameMissing', { name: card[language === 'de' ? 'en' : 'de'] }))}
+                <div className="mt-1">
+                    <button type="button" onClick={() => onGiveName(card.id, base)} className="min-h-9 rounded-full border border-control bg-page px-3 text-xs text-ink hover:border-ink">
+                        {t('mirrorTakeName', { name: base })}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+    return (
+        <div className="basis-full text-xs" role="note">
+            {line(tone === 'success' && card ? t('mirrorKnown', { name: card[language] }) : tone === 'warning' ? t('mirrorOpen') : t('mirrorNew'))}
+        </div>
+    );
+}

@@ -272,6 +272,11 @@
     "ingredients": "Zutaten"
   },
   "RecipeForm": {
+    "mirrorTakeName": "„{name}“ als Namen übernehmen",
+    "mirrorNameMissing": "Wie im Original: {name} – in dieser Sprache fehlt der Karte noch der Name",
+    "mirrorNew": "Wie im Original: neue Zutat, wird mit dem Original angelegt",
+    "mirrorOpen": "Wie im Original: oben noch zu klären",
+    "mirrorKnown": "Wie im Original: {name}",
     "hintChoose": "Auswählen …",
     "hintEnglishOf": "Oder die englische Version einer deutschen Zutat:",
     "hintGermanOf": "Oder die deutsche Version einer englischen Zutat:",
