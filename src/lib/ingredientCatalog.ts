@@ -1,7 +1,6 @@
 import prisma from './prisma';
 import { germanName } from './ingredientNames';
-import { coreName, itemKeys, keysFor, namesIn } from './ingredientMatch';
-import { giveName } from './ingredientDecideDb';
+import { coreName, keysFor, namesIn } from './ingredientMatch';
 import { guessLanguage, storedRows, type RecipeLanguage } from './recipeTranslation';
 import { sectionHeading } from './ingredientParts';
 
@@ -110,7 +109,11 @@ export async function linkRecipe(recipeId: number): Promise<number> {
         // The translation's row names the same product in the other language: given to the card — or, when another
         // card has that name, the two halves made one (lib/ingredientDecideDb giveName).
         const otherName = aligned ? coreName(aligned[index]) : '';
-        if (otherName) await giveName(itemId, other, otherName, null).catch(() => 'kept');
+        if (otherName) {
+            // Loaded when needed: this module is read by pure code and tests, which must not pull in the database chain.
+            const { giveName } = await import('./ingredientDecideDb');
+            await giveName(itemId, other, otherName, null).catch(() => 'kept');
+        }
     }
     return linked;
 }

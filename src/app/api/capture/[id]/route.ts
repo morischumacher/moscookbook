@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { conventionalRows } from '@/lib/ingredientShape';
 import { linkRecipe, glossaryFor } from '@/lib/ingredientCatalog';
 import { applyStandardUnits } from '@/lib/ingredientUnitsDb';
@@ -21,6 +21,7 @@ import { syncWorkItem } from '@/lib/workItemsDb';
 import { usageRecorder } from '@/lib/tokenUsageDb';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { releaseCaptureScreenshots } from '@/lib/captureCleanup';
+import { fillMissingNames } from '@/lib/ingredientDecideDb';
 
 /**
  * `askAi` is the button on a draft the scoring called good.
@@ -227,6 +228,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         await releaseCaptureScreenshots(captureId, picture ? [picture] : []).catch(() => undefined);
         // Its ingredients into the catalogue now, as a recipe saved by hand is (lib/ingredientCatalog).
         await linkRecipe(recipe.id).catch(() => 0);
+        // And the names its ingredients still lack in the other language, by the AI after the answer is sent (lib/ingredientDecideDb).
+        after(() => fillMissingNames(recipe.id).catch(() => 0));
         // And in the cookbook's standard units where that is sure (lib/ingredientUnitsDb).
         await applyStandardUnits(recipe.id).catch(() => false);
 

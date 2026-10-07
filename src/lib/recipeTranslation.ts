@@ -4,6 +4,7 @@ import { GERMAN_VOICE } from './writingVoice';
 import type { AiKey } from './aiImport';
 import { scrub } from './secretBox';
 import { coreName } from './ingredientMatch';
+import { mirroredAmount } from './ingredientUnits';
 import { sectionHeading, toStructuredIngredients, withHeadingRows, type StructuredIngredient } from './ingredientParts';
 import type { Ingredient } from './recipe';
 
@@ -284,17 +285,17 @@ export function readTranslation(
  * with the model's preparation and notes after it ("Frühlingszwiebeln, fein
  * geschnitten" → "spring onions, finely sliced") — never a word of its own.
  */
-export function withGlossary<T extends { ingredients: Ingredient[] }>(translation: T, original: { ingredients: Ingredient[] }, glossary: Record<string, string>): T {
-    if (Object.keys(glossary).length === 0) return translation;
+export function withGlossary<T extends { ingredients: Ingredient[]; locale?: string }>(translation: T, original: { ingredients: Ingredient[] }, glossary: Record<string, string>): T {
     const rows = filled(original.ingredients);
     return {
         ...translation,
         ingredients: translation.ingredients.map((row, index) => {
             const source = rows[index];
             if (!source || sectionHeading(source) !== null) return row;
+            // The original's amount, in this language: the numbers are the same in both (lib/ingredientUnits).
+            const amount = mirroredAmount(source.amount, row.amount, translation.locale === 'en' ? 'en' : 'de');
             const name = glossary[coreName(source.item)];
-            if (!name) return row;
-            return { ...row, item: formatShape({ ...shapeOf(row.item), base: name }) };
+            return { ...row, amount, ...(name ? { item: formatShape({ ...shapeOf(row.item), base: name }) } : {}) };
         }),
     };
 }

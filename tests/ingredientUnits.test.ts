@@ -1,7 +1,7 @@
 /** An ingredient's standard unit, conflicts, conversions without AI, and how the form finds a name */
 import { suite, check, equal } from './harness';
 import { amountIn, conversionText, convertQuantity, factorBetween, isEuropean, rebased, storedFactor, unitFits, measureOf, missingConversions, unitKey, unitLabel, unitState } from '../src/lib/ingredientUnits';
-import { brokenGermanName, coreName, matchIn, similarIn, itemKeys, syncedRows } from '../src/lib/ingredientMatch';
+import { brokenGermanName, coreName, matchIn, mirroredRows, similarIn, itemKeys, syncedRows } from '../src/lib/ingredientMatch';
 import { converted, unitsOf } from '../src/lib/shoppingParts';
 import { withGlossary } from '../src/lib/recipeTranslation';
 
@@ -75,6 +75,11 @@ export default function ingredientUnitsTests() {
     const german = [{ amount: '', item: '## Soße' }, { amount: '2', item: 'Lauchzwiebeln, gehackt' }, { amount: '1 TL', item: 'Salz' }, { amount: '', item: '' }];
     equal("the row beside gets the list's name, its own preparation kept", syncedRows(english, german, 1, 'spring onions')[1].item, 'spring onions, chopped');
     equal('a heading is never renamed', syncedRows(english, german, 0, 'x')[0].item, '## Sauce');
+
+    suite('translation: the same amounts in both languages');
+    const original = [{ amount: '480 ml', item: 'water' }, { amount: '2 tbsp', item: 'sugar' }, { amount: '1 can', item: 'tomatoes' }];
+    const deRows = [{ amount: '505 ml', item: 'Wasser' }, { amount: '2 EL', item: 'Zucker' }, { amount: '1 Dose', item: 'Tomaten' }];
+    equal("the original's numbers, the German unit words", mirroredRows(deRows, original, 'de').map((row) => row.amount), ['480 ml', '2 EL', '1 Dose']);
 
     suite('ingredient match: names cut at a comma');
     equal('a capitalised first participle is not the name', coreName('Fermentierte, gesalzene Garnelen mit der salzigen Lauge'), 'Fermentierte, gesalzene Garnelen mit der salzigen Lauge');

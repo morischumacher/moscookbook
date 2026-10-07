@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { route } from '@/lib/route';
 import { linkAllUnlinked } from '@/lib/ingredientCatalog';
 import { germanName } from '@/lib/ingredientNames';
+import { isGermanName } from '@/lib/ingredientMatch';
 import { unitOverview } from '@/lib/ingredientUnitsDb';
 import { aiCapability } from '@/lib/aiConfig';
 import { canUseAi } from '@/lib/aiProviders';
@@ -40,9 +41,10 @@ export const GET = route({ access: 'admin', label: 'Ingredient names for the for
         // On the German page as a German list writes it: "Rote Zwiebeln", "Lauchzwiebel".
         names.push(locale === 'de' ? germanName(name) : name.trim());
     };
-    // Each in the page's language first, else the other; then every other name it goes by.
-    for (const item of items) add(locale === 'de' ? item.de || item.en : item.en || item.de);
-    for (const item of items) for (const alias of item.aliases) add(alias);
+    // Only in the language asked for — the German part of a recipe is offered German names, the English part
+    // English ones; a card with no name in it yet is offered by the hint instead ("the German version of …").
+    for (const item of items) if (item[locale]) add(item[locale]);
+    for (const item of items) for (const alias of item.aliases) if (isGermanName(alias) === (locale === 'de')) add(alias);
     const catalog = items.map((item) => {
         const entry = overview.get(item.id);
         return {

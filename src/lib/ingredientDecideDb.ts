@@ -554,6 +554,47 @@ const ROW_PROMPT = `${DECIDE_PROMPT.split('Return JSON only')[0].trim()}
 
 Return JSON only: {"1": {"choice": 12}} or {"1": {"factor": 100, "keep": false}}. No explanation, no code fences.`;
 
+const NAMES_PROMPT = `You complete the ingredient list of a German/English personal cookbook.
+
+You receive lines "id: German name | English name" with one name missing ("—").
+
+Return JSON only: {"<id>": {"de": "…", "en": "…"}, …} — both names for every line, the missing one
+as a cook in that language writes it on a shopping list (plural where one buys several: "Zwiebeln",
+"onions"). Keep the given name as it is. No explanation, no code fences.`;
+
+/**
+ * The cards of a recipe that lack a name in one language, given it by the
+ * AI (the small model, one call) right after the recipe is saved — a name
+ * another card already has makes the two one (giveName). Nothing without an
+ * AI. Returns how many cards it named.
+ */
+export async function fillMissingNames(recipeId: number): Promise<number> {
+    const ai = await aiCapability();
+    if (!canUseAi(ai)) return 0;
+    const rows = await prisma.ingredient.findMany({ where: { recipeId, itemId: { not: null } }, select: { itemId: true } });
+    const ids = [...new Set(rows.map((row) => row.itemId!))];
+    const missing = (await prisma.ingredientItem.findMany({ where: { id: { in: ids } }, select: { id: true, de: true, en: true } })).filter((item) => !item.de !== !item.en);
+    if (missing.length === 0) return 0;
+    const key = ai.keys[0];
+    const small = { ...key, model: key.small ?? smallModelFor(key) ?? key.model };
+    const usage = usageRecorder('ingredients');
+    let named = 0;
+    try {
+        const answer = extractJson(
+            await completeWithKey(small, { kind: 'raw', system: NAMES_PROMPT, text: missing.map((item) => `${item.id}: ${item.de || '—'} | ${item.en || '—'}`).join('\n') }, usage.report).catch(() => '')
+        ) as Record<string, { de?: unknown; en?: unknown }> | null;
+        for (const item of missing) {
+            const given = answer?.[String(item.id)];
+            const language = item.de ? 'en' : 'de';
+            const name = given && typeof given[language] === 'string' ? (given[language] as string) : '';
+            if (name && (await giveName(item.id, language, name, null)) !== 'kept') named += 1;
+        }
+    } finally {
+        await usage.flush();
+    }
+    return named;
+}
+
 const TIDY = 'ingredients.tidy';
 const UNUSED_FOR = 30 * 24 * 3600_000;
 

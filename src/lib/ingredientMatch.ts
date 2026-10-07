@@ -2,6 +2,7 @@ import { shoppingKey } from './shopping';
 import { NOISE } from './ingredientNames';
 import { formatShape, LEADING_PARTICIPLE, shapeOf } from './ingredientShape';
 import { distance } from './ingredientDoubles';
+import { mirroredAmount } from './ingredientUnits';
 
 /**
  * How a recipe's ingredient name finds its ingredient in the catalogue
@@ -131,3 +132,24 @@ export function brokenGermanName(item: { de: string; en: string }): boolean {
     const de = item.de.trim();
     return !de.includes(' ') && LEADING_PARTICIPLE.test(de) && item.en.trim().split(/\s+/).length >= 2;
 }
+
+/**
+ * The other language's rows with this one's amounts: the same numbers and
+ * units, the unit word in that language (lib/ingredientUnits mirroredAmount).
+ * Paired by place among the filled rows, as syncedRows.
+ */
+export function mirroredRows<T extends { item: string; amount: string }>(rows: T[], sourceRows: { item: string; amount: string }[], language: 'de' | 'en'): T[] {
+    const sources = sourceRows.filter((row) => row.item.trim());
+    let place = 0;
+    return rows.map((row) => {
+        if (!row.item.trim()) return row;
+        const source = sources[place];
+        place += 1;
+        if (!source || row.item.trim().startsWith('#') || source.item.trim().startsWith('#')) return row;
+        const amount = mirroredAmount(source.amount, row.amount, language);
+        return amount === row.amount ? row : { ...row, amount };
+    });
+}
+
+/** A further name's language: a German one has a capitalised word ("gelbe Zwiebel") or an umlaut, an English one neither. */
+export const isGermanName = (name: string) => /(^|[\s-])[A-ZÄÖÜ]/.test(name) || /[äöüß]/i.test(name);

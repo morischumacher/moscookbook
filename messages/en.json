@@ -272,6 +272,9 @@
     "ingredients": "Ingredients"
   },
   "RecipeForm": {
+    "hintChoose": "Choose …",
+    "hintEnglishOf": "Or the English version of a German ingredient:",
+    "hintGermanOf": "Or the German version of an English ingredient:",
     "usAmount": "In cups/oz: {amount}",
     "hintConvertMetric": "Convert to {amount}",
     "hintNotEuropean": "{unit} is not a European unit.",

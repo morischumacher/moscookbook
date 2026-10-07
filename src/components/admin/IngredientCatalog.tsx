@@ -12,6 +12,7 @@ import { buttonPrimarySmall, buttonSecondary } from '@/lib/ui';
 import { CHOOSABLE_AISLES } from '@/lib/shopping';
 import { unitLabel, type UnitUse } from '@/lib/ingredientUnits';
 import { UNIT_CHOICES } from '@/lib/unitChoice';
+import { isGermanName } from '@/lib/ingredientMatch';
 import type { AiDecision } from '@/lib/ingredientDecideDb';
 
 /** A further unit on a card, with its conversion to the main one ("7 Stück = 1 Bund"). */
@@ -59,8 +60,6 @@ interface UnitQuestion {
 
 type View = 'decide' | 'newest' | 'used' | 'missing' | 'unused' | 'all';
 
-/** Further names are one list; a German one has a capitalised word ("gelbe Zwiebel") or an umlaut, an English one neither. */
-const isGermanName = (name: string) => /(^|[\s-])[A-ZÄÖÜ]/.test(name) || /[äöüß]/i.test(name);
 
 /**
  * The cookbook's ingredients, one card each:

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { conventionalRows } from '@/lib/ingredientShape';
 import { linkRecipe } from '@/lib/ingredientCatalog';
 import { applyStandardUnits } from '@/lib/ingredientUnitsDb';
@@ -9,6 +9,7 @@ import { newRecipeData, withFreeSlug } from '@/lib/recipeRepo';
 import { toStructuredIngredients } from '@/lib/ingredientParts';
 import { normaliseTags } from '@/lib/tags';
 import { forgetCollectionFacets } from '@/lib/collectionFacets';
+import { fillMissingNames } from '@/lib/ingredientDecideDb';
 
 /**
  * Recipes read from another app's export (lib/foreignImport, in the
@@ -102,6 +103,8 @@ export const POST = route({ access: 'admin', body, label: 'Importing recipes' },
             })
         );
         await linkRecipe(made.id).catch(() => 0);
+        // And the names its ingredients still lack in the other language, by the AI after the answer is sent (lib/ingredientDecideDb).
+        after(() => fillMissingNames(made.id).catch(() => 0));
         // And in the cookbook's standard units where that is sure (lib/ingredientUnitsDb).
         await applyStandardUnits(made.id).catch(() => false);
         created += 1;

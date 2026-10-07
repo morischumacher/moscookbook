@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { commonIngredient } from './ingredientNames';
 import { isMeasure, unitsOf, type Units } from './shoppingParts';
-import { convertQuantity, familyOf, isEuropean, measureOf, unitKey, unitLabel, unitState, type UnitState, type UnitUse } from './ingredientUnits';
+import { convertQuantity, familyOf, isEuropean, measureOf, mirroredAmount, unitKey, unitLabel, unitState, type UnitState, type UnitUse } from './ingredientUnits';
 import { formatAmount, splitAmount } from './ingredientParts';
 import { toMetric } from './units';
 import { rewriteRows, type RowEditor } from './recipeRowsDb';
@@ -238,14 +238,18 @@ export async function alignRecipes(itemIds: number[] | null, editedBy: string | 
  */
 export async function alignTranslationNames(editedBy: string | null): Promise<number> {
     const items = new Map((await prisma.ingredientItem.findMany({ select: { id: true, de: true, en: true } })).map((item) => [item.id, item]));
+    // The original's amounts, for the translation's rows beside them: the numbers are the same in both languages.
+    const raws = new Map((await prisma.ingredient.findMany({ where: { itemId: { not: null } }, select: { id: true, raw: true } })).map((row) => [row.id, row.raw]));
     return rewriteRows(
         [...items.keys()],
         (row, language, side) => {
             if (side !== 'translation' || row.itemId === null) return null;
+            const amount = mirroredAmount(raws.get(row.rowId) ?? '', row.amount, language);
             const name = items.get(row.itemId)?.[language];
             const shape = shapeOf(row.name);
-            if (!name || !shape.base || shape.base.startsWith('#') || shoppingKey(shape.base) === shoppingKey(name)) return null;
-            return { name: formatShape({ ...shape, base: name }) };
+            const renamed = name && shape.base && !shape.base.startsWith('#') && shoppingKey(shape.base) !== shoppingKey(name) ? formatShape({ ...shape, base: name }) : null;
+            if (!renamed && amount === row.amount) return null;
+            return { ...(renamed ? { name: renamed } : {}), ...(amount !== row.amount ? { amount } : {}) };
         },
         editedBy
     );
@@ -268,7 +272,7 @@ async function repairBrokenNames(): Promise<number> {
 }
 
 const ALIGNED = 'ingredients.unitsInLine';
-const ALIGNED_VERSION = '5';
+const ALIGNED_VERSION = '6';
 let aligned = false;
 
 /** Once after a deploy: every existing recipe in its ingredients' main units, and its translation in the list's names. Cheap after the first time. */

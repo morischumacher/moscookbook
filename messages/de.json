@@ -272,6 +272,9 @@
     "ingredients": "Zutaten"
   },
   "RecipeForm": {
+    "hintChoose": "Auswählen …",
+    "hintEnglishOf": "Oder die englische Version einer deutschen Zutat:",
+    "hintGermanOf": "Oder die deutsche Version einer englischen Zutat:",
     "usAmount": "In Cups/oz: {amount}",
     "hintConvertMetric": "Auf {amount} umrechnen",
     "hintNotEuropean": "{unit} ist keine europäische Einheit.",

@@ -50,6 +50,7 @@ import { conversionText, familyOf, isEuropean, measureOf, perUnit, unitForFamily
  *   aiCheck: the AI looks for doubles the rules miss (they become questions) and fills missing names;
  *   aiTranslate: the missing other-language names filled by an AI, at once;
  *   create {de, en}: a new card by hand;
+ *   giveName {id, language, name}: a card's missing name in one language ("the German version of …");
  *   linkAll: every recipe row not yet pointed at an ingredient, pointed;
  *   deleteUnused: every unused ingredient that is not the starting stock.
  */
@@ -186,6 +187,7 @@ const postBody = z.discriminatedUnion('action', [
         ]),
     }),
     z.object({ action: z.literal('create'), de: name, en: name }),
+    z.object({ action: z.literal('giveName'), id, language: z.enum(['de', 'en']), name: z.string().trim().min(1).max(120) }),
     z.object({ action: z.literal('linkAll') }),
     z.object({ action: z.literal('deleteUnused') }),
     z.object({ action: z.literal('aiCheck') }),
@@ -233,6 +235,9 @@ export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the
             if (!answer) refuse(501, 'The AI is switched off or has no key.');
             return NextResponse.json(answer);
         }
+        case 'giveName':
+            // "The German version of an English card": its missing name, or the two halves made one (giveName).
+            return NextResponse.json({ outcome: await giveName(body.id, body.language, body.name, user.name) });
         case 'create': {
             // A card made by hand (admin → Zutaten "+ Neue Zutat"): kept even before a recipe uses it.
             const de = germanName(body.de);
