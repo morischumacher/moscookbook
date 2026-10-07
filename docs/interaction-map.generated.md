@@ -21,7 +21,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`* /api/upload`<br>`GET /api/ingredients/names`<br>`PATCH /api/capture/[id]`<br>`POST /api/ai/picture`<br>`POST /api/ai/polish`<br>`POST /api/ai/translate`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/ingredients`<br>`POST /api/recipes/[id]/revisions/[id]` | `/[locale]/admin`<br>`/[locale]/admin/inbox` |
 | `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`DELETE /api/work-items/[id]`<br>`GET /api/capture`<br>`GET /api/capture/[id]/tokens`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge`<br>`POST /api/capture/share`<br>`POST /api/work-items` | `/[locale]/admin/create`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
-| `/[locale]/admin/ingredients` | admin | requires admin | `DELETE /api/ingredients`<br>`GET /api/ingredients` | `/[locale]/recipe/[id]` |
+| `/[locale]/admin/ingredients` | admin | requires admin | `DELETE /api/ingredients`<br>`GET /api/ingredients`<br>`PATCH /api/ingredients` | `/[locale]/recipe/[id]` |
 | `/[locale]/admin/invites` | admin | requires admin | — | `/[locale]/admin/users` |
 | `/[locale]/admin/menus/[id]` | admin | requires admin | `* /api/menus`<br>`* /api/menus/[id]`<br>`DELETE /api/menus/[id]` | `/[locale]/menus`<br>`/[locale]/menus/[id]` |
 | `/[locale]/admin/menus/new` | admin | requires admin | `* /api/menus`<br>`* /api/menus/[id]`<br>`DELETE /api/menus/[id]` | `/[locale]/menus`<br>`/[locale]/menus/[id]` |
@@ -189,6 +189,7 @@ Calls the map could not match to an endpoint (a URL built elsewhere, or a path t
 - `GET /api/work-items/[id]  (from admin/WorkPanel)`
 - `GET /api/work-items/prompt  (from admin/ConnectAi)`
 - `GET /api/work-items/token  (from admin/ConnectAi)`
+- `PATCH /api/ingredients  (from admin/IngredientCatalog)`
 - `PATCH /api/recipes/[id]/cooked  (from recipe/Cooked)`
 - `PATCH /api/shopping/[id]  (from shopping/ShoppingListView)`
 - `PATCH /api/shopping/lists  (from shopping/ListSettings)`

@@ -139,6 +139,22 @@ export default function IngredientCatalog() {
         return res.json();
     };
     const post = (key: string, body: object) => request(key, { method: 'POST', body: JSON.stringify(body) });
+    /**
+     * A card's names saved. A name another card has is answered at the card, with that card: the two are
+     * probably one, and merging them is the way (the note at the top of the page is out of sight there).
+     */
+    const save = async (id: number, next: object): Promise<SaveProblem | null> => {
+        setBusy(`save-${id}`);
+        const res = await fetch('/api/ingredients', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...next }) }).catch(() => null);
+        setBusy(null);
+        if (res?.ok) {
+            await refresh();
+            return null;
+        }
+        const body = (await res?.json().catch(() => ({}))) as { message?: string; clash?: { id: number; de: string; en: string } } | undefined;
+        if (res?.status === 409 && body?.clash) return { clash: body.clash };
+        return { message: sayable(body?.message, t('failed')) };
+    };
     // After every change: the list again, and the admin menu's count of questions (counted by the server).
     const refresh = async () => {
         await load();
@@ -279,7 +295,8 @@ export default function IngredientCatalog() {
             selected={selected.has(item.id)}
             busy={busy !== null}
             onSelect={() => toggle(item.id)}
-            onSave={(next) => request(`save-${item.id}`, { method: 'PATCH', body: JSON.stringify({ id: item.id, ...next }) }).then((ok) => ok && refresh())}
+            onSave={(next) => save(item.id, next)}
+            onMergeInto={(into) => void merge(into, [item.id])}
             onMain={(unit) => void act(`main-${item.id}`, { action: 'setMain', id: item.id, unit })}
             onUnits={(main, rows) => void act(`units-${item.id}`, { action: 'saveUnits', id: item.id, main, rows }, t('unitsSaved'))}
             onDelete={() => void remove(item)}
@@ -762,6 +779,7 @@ function ItemRow({
     busy,
     onSelect,
     onSave,
+    onMergeInto,
     onMain,
     onUnits,
     onDelete,
@@ -775,7 +793,9 @@ function ItemRow({
     selected: boolean;
     busy: boolean;
     onSelect: () => void;
-    onSave: (next: { de: string; en: string; aliases: string[]; enAliases: string[]; infoDe?: string; infoEn?: string; aboutDe?: string; aboutEn?: string; aisle?: string | null }) => Promise<unknown>;
+    onSave: (next: { de: string; en: string; aliases: string[]; enAliases: string[]; infoDe?: string; infoEn?: string; aboutDe?: string; aboutEn?: string; aisle?: string | null }) => Promise<SaveProblem | null>;
+    /** This card merged into another one (the one that already has a name typed here). */
+    onMergeInto: (into: number) => void;
     onMain: (unit: string | null) => void;
     onUnits: (main: string, rows: { unit: string; a: number; b: number }[]) => void;
     onDelete: () => void;
@@ -797,6 +817,7 @@ function ItemRow({
     const [aboutDe, setAboutDe] = useState(item.aboutDe);
     const [aboutEn, setAboutEn] = useState(item.aboutEn);
     const [saving, setSaving] = useState(false);
+    const [problem, setProblem] = useState<SaveProblem | null>(null);
     // The saved names and explanations changed (a save, a merge, the AI): taken over where nothing is typed and not saved.
     const saved = { de: item.de, en: item.en, deAlso: item.aliases.join(', '), enAlso: item.enAliases.join(', '), infoDe: item.infoDe, infoEn: item.infoEn, aboutDe: item.aboutDe, aboutEn: item.aboutEn };
     const [seen, setSeen] = useState(saved);
@@ -900,14 +921,31 @@ function ItemRow({
                         disabled={saving || (!de.trim() && !en.trim())}
                         onClick={async () => {
                             setSaving(true);
+                            setProblem(null);
                             // The explanations only when changed: an untouched empty one stays "never looked at", for the AI.
-                            await onSave({ de: de.trim(), en: en.trim(), aliases, enAliases, ...(infoDe !== item.infoDe ? { infoDe: infoDe.trim() } : {}), ...(infoEn !== item.infoEn ? { infoEn: infoEn.trim() } : {}), ...(aboutDe !== item.aboutDe ? { aboutDe: aboutDe.trim() } : {}), ...(aboutEn !== item.aboutEn ? { aboutEn: aboutEn.trim() } : {}) });
+                            const answer = await onSave({ de: de.trim(), en: en.trim(), aliases, enAliases, ...(infoDe !== item.infoDe ? { infoDe: infoDe.trim() } : {}), ...(infoEn !== item.infoEn ? { infoEn: infoEn.trim() } : {}), ...(aboutDe !== item.aboutDe ? { aboutDe: aboutDe.trim() } : {}), ...(aboutEn !== item.aboutEn ? { aboutEn: aboutEn.trim() } : {}) });
+                            setProblem(answer);
                             setSaving(false);
                         }}
                         className={`self-start ${buttonPrimarySmall}`}
                     >
                         <BusyLabel busy={saving}>{t('save')}</BusyLabel>
                     </button>
+                )}
+                {/* Why it did not save, at the button: another card has the name — merge into it — or what went wrong. */}
+                {problem && (
+                    <div role="alert" className="rounded-xl border border-line bg-surface p-3 text-sm">
+                        {'clash' in problem ? (
+                            <>
+                                <p className="text-warning">{t('saveClash', { name: (locale === 'de' ? problem.clash.de || problem.clash.en : problem.clash.en || problem.clash.de) })}</p>
+                                <button type="button" disabled={busy} onClick={() => onMergeInto(problem.clash.id)} className={`mt-2 ${buttonSecondary}`}>
+                                    {t('saveClashMerge', { name: (locale === 'de' ? problem.clash.de || problem.clash.en : problem.clash.en || problem.clash.de) })}
+                                </button>
+                            </>
+                        ) : (
+                            <p className="text-danger">{problem.message}</p>
+                        )}
+                    </div>
                 )}
 
                 {/* Its units started afresh when they change: the conversions as saved. */}
@@ -1084,3 +1122,6 @@ function CardUnits({
         </div>
     );
 }
+
+/** Why a card's names were not saved: another card has one of them, or something else went wrong. */
+type SaveProblem = { clash: { id: number; de: string; en: string } } | { message: string };

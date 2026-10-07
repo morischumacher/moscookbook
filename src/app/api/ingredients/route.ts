@@ -157,8 +157,9 @@ export const PATCH = route({ access: 'admin', body: patchBody, label: 'Correctin
     // Only the names new to it: an aisle changed on a card is not refused for an old overlap.
     const own = new Set((await prisma.ingredientItem.findUnique({ where: { id: body.id }, select: { keys: true } }))?.keys ?? []);
     const added = itemKeys(body).filter((key) => !own.has(key));
-    const clash = added.length ? await prisma.ingredientItem.findFirst({ where: { id: { not: body.id }, keys: { hasSome: added } }, select: { id: true } }) : null;
-    if (clash) refuse(409, 'Another ingredient already has one of these names. Merge the two instead.');
+    const clash = added.length ? await prisma.ingredientItem.findFirst({ where: { id: { not: body.id }, keys: { hasSome: added } }, select: { id: true, de: true, en: true } }) : null;
+    // Which one, so the card can offer to merge the two right there.
+    if (clash) return NextResponse.json({ message: 'Another ingredient already has one of these names. Merge the two instead.', clash: { id: clash.id, de: clash.de, en: clash.en } }, { status: 409 });
     const updated = await prisma.ingredientItem.updateMany({
         where: { id: body.id },
         data: {
