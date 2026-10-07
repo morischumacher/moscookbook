@@ -91,6 +91,7 @@ Rules:
   Leave it as an empty string when the source gives no quantity.
 - Amounts are in European units: g, kg, ml, l, EL, TL, Prise, Zehe, Bund, pieces.
   Cups, ounces, pounds and fluid ounces are converted to g (dry things) or ml (liquids).
+  Lengths in inches are converted to cm ("2 inches daikon" → amount "5 cm", item "Daikon"); a unit never stays in "item".
 - "item" is the ingredient alone, without the quantity.
 ${CONVENTION_RULE}
 - "instructions" is markdown: one numbered list item per step, separated by blank lines.

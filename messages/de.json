@@ -1687,6 +1687,9 @@
     "failed": "Das hat nicht geklappt. Versuch es bitte noch einmal."
   },
   "Ingredients": {
+    "editRecipe": "bearbeiten",
+    "draft": "Entwurf",
+    "rowName": "Zutat in {recipe}",
     "saveClashMerge": "Mit „{name}“ zusammenlegen",
     "saveClash": "Nicht gespeichert: „{name}“ hat einen dieser Namen schon. Wahrscheinlich ist es dieselbe Zutat.",
     "fieldAbout": "Erklärung",

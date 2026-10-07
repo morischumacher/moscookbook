@@ -23,7 +23,7 @@ export default async function MenuCard({ menu, locale }: { menu: MenuCardData; l
     const t = await getTranslations({ locale, namespace: 'Menus' });
     const font = menu.style === 'chic' ? cormorant.className : menu.style === 'festive' ? playfair.className : '';
     const date = menu.date
-        ? new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(menu.date)
+        ? new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Berlin' }).format(menu.date)
         : null;
 
     return (

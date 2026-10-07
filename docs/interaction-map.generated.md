@@ -3,7 +3,7 @@
 Read from the source by `scripts/interaction-map.ts`. Do not edit; run `npm run map`.
 The analysis lives in [interaction-map.md](./interaction-map.md).
 
-48 screens · 96 endpoints · 95 link edges · 99 call edges
+48 screens · 96 endpoints · 96 link edges · 99 call edges
 
 ## Screens
 
@@ -21,7 +21,7 @@ The analysis lives in [interaction-map.md](./interaction-map.md).
 | `/[locale]/admin/edit/[id]` | admin | requires admin | `* /api/recipes`<br>`* /api/recipes/[id]`<br>`* /api/upload`<br>`GET /api/ingredients/names`<br>`PATCH /api/capture/[id]`<br>`POST /api/ai/picture`<br>`POST /api/ai/polish`<br>`POST /api/ai/translate`<br>`POST /api/import/ai`<br>`POST /api/import/url`<br>`POST /api/ingredients`<br>`POST /api/recipes/[id]/revisions/[id]` | `/[locale]/admin`<br>`/[locale]/admin/inbox` |
 | `/[locale]/admin/errors` | admin | requires admin | — | `/[locale]/admin/reports` |
 | `/[locale]/admin/inbox` | admin | requires admin | `DELETE /api/capture/[id]`<br>`DELETE /api/work-items/[id]`<br>`GET /api/capture`<br>`GET /api/capture/[id]/tokens`<br>`POST /api/capture/[id]`<br>`POST /api/capture/[id]/merge`<br>`POST /api/capture/share`<br>`POST /api/work-items` | `/[locale]/admin/create`<br>`/[locale]/recipe/[id]`<br>`/[locale]/tickets` |
-| `/[locale]/admin/ingredients` | admin | requires admin | `DELETE /api/ingredients`<br>`GET /api/ingredients`<br>`PATCH /api/ingredients` | `/[locale]/recipe/[id]` |
+| `/[locale]/admin/ingredients` | admin | requires admin | `DELETE /api/ingredients`<br>`GET /api/ingredients`<br>`PATCH /api/ingredients` | `/[locale]/admin/edit/[id]`<br>`/[locale]/recipe/[id]` |
 | `/[locale]/admin/invites` | admin | requires admin | — | `/[locale]/admin/users` |
 | `/[locale]/admin/menus/[id]` | admin | requires admin | `* /api/menus`<br>`* /api/menus/[id]`<br>`DELETE /api/menus/[id]` | `/[locale]/menus`<br>`/[locale]/menus/[id]` |
 | `/[locale]/admin/menus/new` | admin | requires admin | `* /api/menus`<br>`* /api/menus/[id]`<br>`DELETE /api/menus/[id]` | `/[locale]/menus`<br>`/[locale]/menus/[id]` |
@@ -306,6 +306,7 @@ flowchart LR
   n__locale__admin_inbox --> n__locale__admin_create
   n__locale__admin_inbox --> n__locale__recipe__slug_
   n__locale__admin_inbox --> n__locale__tickets
+  n__locale__admin_ingredients --> n__locale__admin_edit__id_
   n__locale__admin_ingredients --> n__locale__recipe__slug_
   n__locale__admin_invites --> n__locale__admin_users
   n__locale__admin_menus__id_ --> n__locale__menus

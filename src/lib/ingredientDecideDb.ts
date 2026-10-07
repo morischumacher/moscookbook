@@ -309,10 +309,19 @@ export async function convertFamily(id: number, family: string, editedBy: string
 }
 
 /** One recipe row's amount replaced by hand ("Loads of" → "1 Bund"), and its translation's beside it. */
-export async function setRowAmount(rowId: number, amount: string, editedBy: string | null): Promise<number> {
+export async function setRowAmount(rowId: number, amount: string, editedBy: string | null, name?: string): Promise<number> {
     const row = await prisma.ingredient.findUnique({ where: { id: rowId }, select: { itemId: true, recipeId: true } });
     if (!row || row.itemId === null) return 0;
-    return rewriteRows([row.itemId], (candidate, language) => (candidate.rowId === rowId ? { amount: amountIn(amount, language) } : null), editedBy, undefined, row.recipeId);
+    // A name typed is in the recipe's own language ("2 Inches daikon radish" → "5 cm" · "Daikon radish, grated"):
+    // the recipe's row takes it; the translation's keeps its own name and takes the amount.
+    const named = name?.trim() ? capitalized(name) : null;
+    return rewriteRows(
+        [row.itemId],
+        (candidate, language, side) => (candidate.rowId === rowId ? { amount: amountIn(amount, language), ...(named && side === 'recipe' ? { name: named } : {}) } : null),
+        editedBy,
+        undefined,
+        row.recipeId
+    );
 }
 
 export type UnitChoice = 'convert' | 'keep';
