@@ -131,7 +131,24 @@ async function questions(items: Awaited<ReturnType<typeof catalogue>>) {
     };
 }
 
-export const GET = route({ access: 'admin', label: 'The ingredient catalogue' }, async () => {
+export const GET = route({ access: 'admin', label: 'The ingredient catalogue' }, async ({ req }) => {
+    // ?usesOf=<id>: the recipes a card is in, each with its rows — the card's list, opened when wanted.
+    const usesOf = Number(new URL(req.url).searchParams.get('usesOf'));
+    if (Number.isInteger(usesOf) && usesOf > 0) {
+        const rows = await prisma.ingredient.findMany({
+            where: { itemId: usesOf },
+            orderBy: [{ recipe: { title: 'asc' } }, { position: 'asc' }],
+            select: { raw: true, name: true, recipe: { select: { id: true, slug: true, title: true, isDraft: true } } },
+            take: 300,
+        });
+        const recipes = new Map<number, { id: number; slug: string; title: string; draft: boolean; rows: string[] }>();
+        for (const row of rows) {
+            const entry = recipes.get(row.recipe.id) ?? { id: row.recipe.id, slug: row.recipe.slug, title: row.recipe.title, draft: row.recipe.isDraft, rows: [] };
+            entry.rows.push(`${row.raw} ${row.name}`.trim());
+            recipes.set(row.recipe.id, entry);
+        }
+        return NextResponse.json({ recipes: [...recipes.values()] });
+    }
     const [items, ai, unlinked] = await Promise.all([catalogue(), aiCapability(), prisma.ingredient.count({ where: { itemId: null } })]);
     return NextResponse.json({ items, questions: await questions(items), aiAvailable: canUseAi(ai), unlinked });
 });
@@ -200,7 +217,7 @@ const postBody = z.discriminatedUnion('action', [
     z.object({ action: z.literal('removeUnit'), id, family: z.string().max(40) }),
     z.object({ action: z.literal('saveUnits'), id, main: unit, rows: z.array(z.object({ unit, a: amount, b: amount })).max(12) }),
     z.object({ action: z.literal('setMain'), id, unit: unit.nullable() }),
-    z.object({ action: z.literal('setRowAmount'), rowId: id, amount: z.string().trim().min(1).max(60) }),
+    z.object({ action: z.literal('setRowAmount'), rowId: id, amount: z.string().trim().min(1).max(60), name: z.string().trim().max(200).optional() }),
     z.object({ action: z.literal('renameItem'), id, name: z.string().trim().min(1).max(120), locale: z.enum(['de', 'en']) }),
     z.object({ action: z.literal('aiResolve'), double: z.tuple([id, id]).optional(), unit: z.object({ itemId: id, family: z.string().max(40) }).optional() }),
     z.object({
@@ -253,7 +270,7 @@ export const POST = route({ access: 'admin', body: postBody, label: 'Tidying the
             return NextResponse.json({ recipes: await setMainUnit(body.id, main, user.name) });
         }
         case 'setRowAmount':
-            return NextResponse.json({ replaced: await setRowAmount(body.rowId, body.amount, user.name) });
+            return NextResponse.json({ replaced: await setRowAmount(body.rowId, body.amount, user.name, body.name) });
         case 'renameItem':
             return NextResponse.json(await renameItem(body.id, body.name, body.locale, user.name));
         case 'aiResolve': {

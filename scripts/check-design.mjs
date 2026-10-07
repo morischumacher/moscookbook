@@ -115,6 +115,10 @@ for (const file of walk('src')) {
         if (/\.toLocale(?:String|DateString|TimeString)\(/.test(line) && !/^\s*(?:\/\/|\*)/.test(line) && !/timeZone:/.test(line) && !file.endsWith(join('lib', 'formatDate.ts'))) {
             problems.push(`${where}  a date written with toLocale…String()\n    Use formatDate or formatDateTime from src/lib/formatDate.ts: one time zone on the server and in the browser.`);
         }
+        // The same for a formatter of its own: its options name the time zone (within the next few lines).
+        if (/new Intl\.DateTimeFormat\(/.test(line) && !lines.slice(index, index + 8).some((next) => /timeZone:/.test(next))) {
+            problems.push(`${where}  an Intl.DateTimeFormat with no timeZone\n    Add timeZone: 'Europe/Berlin', or use src/lib/formatDate.ts: the server writes UTC, the browser German time.`);
+        }
         if (/fixed inset-0\b[^"'`]*\b(?:items-end|bottom-0)/.test(line)) {
             problems.push(`${where}  a dialog anchored to the bottom of fixed inset-0\n    Use fixed inset-x-0 top-0 h-[100dvh]: on an iPhone the bottom of inset-0 is under Safari's toolbar.`);
         }

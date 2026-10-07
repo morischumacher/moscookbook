@@ -278,7 +278,7 @@ export default function IngredientCatalog() {
             touch(question.itemId);
             void act(`uq-${question.itemId}`, { action: 'resolveUnit', id: question.itemId, unit: question.unit, a, b, choice });
         },
-        onRow: (rowId, amount) => void act(`row-${rowId}`, { action: 'setRowAmount', rowId, amount }, t('rowReplaced')),
+        onRow: (rowId, amount, name) => void act(`row-${rowId}`, { action: 'setRowAmount', rowId, amount, ...(name ? { name } : {}) }, t('rowReplaced')),
         onAi: (question, key) => {
             touch(question.itemId);
             void aiResolve({ unit: { itemId: question.itemId, family: question.family } }, key);
@@ -651,7 +651,8 @@ interface PendingHandlers {
     busy: string | null;
     aiAvailable: boolean;
     onResolve: (question: UnitQuestion, choice: 'convert' | 'keep', a: number, b: number) => void;
-    onRow: (rowId: number, amount: string) => void;
+    /** A recipe's row written anew: its amount, and its name when that changed. */
+    onRow: (rowId: number, amount: string, name?: string) => void;
     onAi: (question: UnitQuestion, key: string) => void;
 }
 
@@ -670,6 +671,8 @@ function PendingUnit({ question, locale, handlers }: { question: UnitQuestion; l
     const [all, setAll] = useState(false);
     const [editing, setEditing] = useState<number | null>(null);
     const [draft, setDraft] = useState('');
+    // The row's name, editable too: an import that read "2 Inches daikon radish" put the unit into it.
+    const [draftName, setDraftName] = useState('');
     const number = (text: string) => Number(text.replace(',', '.'));
     const ready = number(a) > 0 && number(b) > 0;
     const unit = unitLabel(question.unit, locale);
@@ -694,7 +697,7 @@ function PendingUnit({ question, locale, handlers }: { question: UnitQuestion; l
                                 onSubmit={(event) => {
                                     event.preventDefault();
                                     if (!draft.trim()) return;
-                                    handlers.onRow(row.rowId, draft.trim());
+                                    handlers.onRow(row.rowId, draft.trim(), draftName.trim() && draftName.trim() !== row.name ? draftName.trim() : undefined);
                                     setEditing(null);
                                 }}
                             >
@@ -706,7 +709,12 @@ function PendingUnit({ question, locale, handlers }: { question: UnitQuestion; l
                                     autoFocus
                                     className={`${field} w-32`}
                                 />
-                                <span className="text-muted">{row.name}</span>
+                                <input
+                                    value={draftName}
+                                    onChange={(event) => setDraftName(event.target.value)}
+                                    aria-label={t('rowName', { recipe: row.title })}
+                                    className={`${field} min-w-0 flex-1 basis-48`}
+                                />
                                 <button type="submit" disabled={busy !== null || !draft.trim()} className={buttonPrimarySmall}>
                                     {t('save')}
                                 </button>
@@ -730,6 +738,7 @@ function PendingUnit({ question, locale, handlers }: { question: UnitQuestion; l
                                     onClick={() => {
                                         setEditing(row.rowId);
                                         setDraft(row.amount);
+                                        setDraftName(row.name);
                                     }}
                                     className={`${inline} px-1 text-muted underline underline-offset-4 hover:text-ink`}
                                 >
@@ -871,7 +880,7 @@ function ItemRow({
                     </span>
                 </span>
                 <span className="shrink-0 text-xs text-faint">
-                    {detail === 'date' ? new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(item.createdAt)) : t('usesShort', { count: item.uses })}
+                    {detail === 'date' ? new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'Europe/Berlin' }).format(new Date(item.createdAt)) : t('usesShort', { count: item.uses })}
                 </span>
                 <span aria-hidden className={`shrink-0 text-faint transition-transform ${open ? 'rotate-90' : ''}`}>
                     ›
@@ -969,10 +978,13 @@ function ItemRow({
                 </label>
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <span className="text-xs text-faint">
-                        {t('uses', { count: item.uses })}
-                        {item.stock && ` · ${t('stockExplain')}`}
-                    </span>
+                    {item.uses > 0 ? (
+                        // Where it is used, opened when wanted: each recipe a link, with its rows.
+                        <UsedIn id={item.id} label={t('uses', { count: item.uses })} />
+                    ) : (
+                        <span className="text-xs text-faint">{t('uses', { count: item.uses })}</span>
+                    )}
+                    {item.stock && <span className="text-xs text-faint">{t('stockExplain')}</span>}
                     {item.uses === 0 && (
                         <button type="button" onClick={onDelete} className="ml-auto min-h-11 px-2 text-sm text-muted underline underline-offset-4 hover:text-danger">
                             {t('delete')}
@@ -1125,3 +1137,44 @@ function CardUnits({
 
 /** Why a card's names were not saved: another card has one of them, or something else went wrong. */
 type SaveProblem = { clash: { id: number; de: string; en: string } } | { message: string };
+
+/** The recipes a card is in, loaded when the list is opened: each a link to the recipe and to its edit page, with its rows. */
+function UsedIn({ id, label }: { id: number; label: string }) {
+    const t = useTranslations('Ingredients');
+    const [recipes, setRecipes] = useState<{ id: number; slug: string; title: string; draft: boolean; rows: string[] }[] | null>(null);
+    const [failed, setFailed] = useState(false);
+    const load = () => {
+        if (recipes !== null) return;
+        fetch(`/api/ingredients?usesOf=${id}`)
+            .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+            .then((data: { recipes: { id: number; slug: string; title: string; draft: boolean; rows: string[] }[] }) => setRecipes(data.recipes))
+            .catch(() => setFailed(true));
+    };
+    return (
+        <details className="w-full text-sm" onToggle={(event) => (event.currentTarget.open ? load() : undefined)}>
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-xs text-muted underline underline-offset-4 hover:text-ink [&::-webkit-details-marker]:hidden">{label}</summary>
+            {failed ? (
+                <p className="text-xs text-danger">{t('failed')}</p>
+            ) : recipes === null ? (
+                <p className="text-xs text-faint">…</p>
+            ) : (
+                <ul className="flex flex-col gap-2 pb-2">
+                    {recipes.map((recipe) => (
+                        <li key={recipe.id}>
+                            <span className="flex flex-wrap items-baseline gap-x-3">
+                                <Link href={`/recipe/${recipe.slug}`} className="font-medium underline underline-offset-4 hover:text-ink">
+                                    {recipe.title}
+                                </Link>
+                                {recipe.draft && <span className="text-xs text-faint">{t('draft')}</span>}
+                                <Link href={`/admin/edit/${recipe.id}`} className="text-xs text-muted underline underline-offset-4 hover:text-ink">
+                                    {t('editRecipe')}
+                                </Link>
+                            </span>
+                            <span className="block text-xs text-muted">{recipe.rows.join(' · ')}</span>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </details>
+    );
+}

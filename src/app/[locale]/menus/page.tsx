@@ -29,7 +29,7 @@ export default async function MenusPage({ params }: { params: Promise<{ locale: 
             },
         }),
     ]);
-    const formatDate = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+    const formatDate = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Berlin' });
 
     // The next evening first: undated ones (still being planned), then the
     // coming evenings soonest first, then the ones that have been, latest
