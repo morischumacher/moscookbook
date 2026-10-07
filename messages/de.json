@@ -1682,6 +1682,10 @@
     "failed": "Das hat nicht geklappt. Versuch es bitte noch einmal."
   },
   "Ingredients": {
+    "fieldAbout": "Erklärung",
+    "fieldInfo": "Kurzbeschreibung",
+    "fieldAlso": "Weitere Namen",
+    "fieldName": "Name",
     "aboutEnPlaceholder": "What is it, where is it from, how does it taste?",
     "aboutDePlaceholder": "Was ist das, woher kommt es, wie schmeckt es?",
     "aboutEn": "Erklärung (Englisch)",

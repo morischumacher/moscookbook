@@ -659,8 +659,11 @@ Mirin, Doenjang, Sumach, Asafoetida …). Only then write, in each language:
 - "de" / "en": what it is in a few words, at most 6, as one would say it instead of the name
   ("Gesalzene, fermentierte Garnelen" / "Salted fermented shrimp");
 - "aboutDe" / "aboutEn": one or two sentences — what it is, where it comes from, how it tastes and
-  what it does in a dish ("Saeujeot is a Korean condiment made from small shrimp that are heavily
-  salted and fermented. It adds a salty, savoury umami flavour and is a traditional ingredient in kimchi.").
+  what it does in a dish — "aboutDe" in German, "aboutEn" in English, never the same text twice
+  ("Saeujeot ist eine koreanische Würze aus kleinen, stark gesalzenen und fermentierten Garnelen.
+  Sie gibt salzig-würziges Umami und gehört traditionell ins Kimchi." / "Saeujeot is a Korean condiment
+  made from small shrimp that are heavily salted and fermented. It adds a salty, savoury umami flavour
+  and is a traditional ingredient in kimchi.").
 No recipe advice, no brand names. For everyday ingredients (Zwiebeln, Mehl, Butter, Sojasauce,
 Ingwer …) all four are "".
 
