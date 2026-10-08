@@ -68,7 +68,7 @@ export default function ingredientUnitsTests() {
         { Frühlingszwiebeln: 'spring onions' }
     );
     equal("the list's name, the model's preparation", translated.ingredients[0].item, 'Spring onions, finely sliced');
-    equal('what the list does not know stays the model\'s', translated.ingredients[1].item, 'salt');
+    equal('what the list does not know stays the model\'s, written the cookbook\'s way', translated.ingredients[1].item, 'Salt');
 
     suite('ingredient match: the other language follows');
     const english = [{ amount: '', item: '## Sauce' }, { amount: '2', item: 'scallions, chopped' }, { amount: '1 tsp', item: 'salt' }];

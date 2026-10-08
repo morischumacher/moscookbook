@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server';
-import { conventionalRows } from '@/lib/ingredientShape';
+import { formReadyRows } from '@/lib/formRows';
+import { guessLanguage } from '@/lib/recipeTranslation';
 import { linkRecipe, glossaryFor } from '@/lib/ingredientCatalog';
 import { applyStandardUnits } from '@/lib/ingredientUnitsDb';
 import { z } from 'zod';
@@ -206,7 +207,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         // A retry or a model can leave a foreign picture in the draft, and
         // next/image only shows our own store. Ours stays as it is.
         const picture = draft.imageUrl ? await mirrorImageToBlob(draft.imageUrl, draft.title) : '';
-        const structured = await liveLinks(toStructuredIngredients(conventionalRows(draft.ingredients)));
+        const structured = await liveLinks(toStructuredIngredients(formReadyRows(draft.ingredients, guessLanguage([draft.title, ...draft.ingredients.map((row) => row.item)].join(' ')))));
         const recipe = await withFreeSlug(draft.title, (slug) =>
             prisma.recipe.create({
                 data: newRecipeData({

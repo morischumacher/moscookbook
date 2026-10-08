@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import { StorePicture } from '@/components/ui/InlinePicture';
 import { slugify, type Ingredient } from '@/lib/recipe';
 import { partsOf } from '@/lib/ingredientShape';
+import { formReadyRows } from '@/lib/formRows';
 import PolishPanel from './PolishPanel';
 import TranslationPanel from './TranslationPanel';
 import { guessLanguage, type RecipeLanguage, type RecipeTranslationInput } from '@/lib/recipeTranslation';
@@ -258,7 +259,8 @@ export default function RecipeForm({
         if (imported) {
             setImageUrls((current) => (current.includes(imported) ? current : [...current, imported]));
         }
-        if (draft.ingredients.length > 0) setIngredients(draft.ingredients);
+        // The cookbook's way at once, as every way in (lib/formRows): the rules put right what the reader got wrong.
+        if (draft.ingredients.length > 0) setIngredients(formReadyRows(draft.ingredients, guessLanguage([draft.title, ...draft.ingredients.map((row) => row.item)].join(' '))));
         if (draft.servings != null) setServings(String(draft.servings));
         if (draft.prepMinutes != null) setPrepMinutes(String(draft.prepMinutes));
         if (draft.cookMinutes != null) setCookMinutes(String(draft.cookMinutes));
