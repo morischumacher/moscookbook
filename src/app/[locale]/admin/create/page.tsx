@@ -5,6 +5,8 @@ import prisma from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth';
 import { slugify } from '@/lib/recipe';
 import { draftFromJson } from '@/lib/captureDraft';
+import { formReadyRows } from '@/lib/formRows';
+import { guessLanguage } from '@/lib/recipeTranslation';
 import { collectionFacets } from '@/lib/collectionFacets';
 import { mirrorImageToBlob } from '@/lib/mirrorImage';
 import { positiveIntId } from '@/lib/routeParams';
@@ -54,7 +56,8 @@ export default async function CreateRecipePage({
                 // Mirrored first, in case a retry left a foreign address.
                 imageUrls: draft.imageUrl ? [await mirrorImageToBlob(draft.imageUrl)].filter(Boolean) : [],
                 instructions: draft.instructions,
-                ingredients: draft.ingredients,
+                // Shown the cookbook's way from the start: "minced garlic" → "Garlic, minced", "4 oz" → "115 g" (lib/formRows).
+                ingredients: formReadyRows(draft.ingredients, guessLanguage([draft.title, ...draft.ingredients.map((row) => row.item)].join(' '))),
                 servings: draft.servings,
                 prepMinutes: draft.prepMinutes,
                 cookMinutes: draft.cookMinutes,

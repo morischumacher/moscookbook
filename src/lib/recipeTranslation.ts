@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CONVENTION_RULE, formatShape, shapeOf } from './ingredientShape';
+import { CONVENTION_RULE, conventional, formatShape, shapeOf } from './ingredientShape';
 import { GERMAN_VOICE } from './writingVoice';
 import type { AiKey } from './aiImport';
 import { scrub } from './secretBox';
@@ -307,7 +307,8 @@ export function withGlossary<T extends { ingredients: Ingredient[]; locale?: str
             // The original's amount, in this language: the numbers are the same in both (lib/ingredientUnits).
             const amount = mirroredAmount(source.amount, row.amount, translation.locale === 'en' ? 'en' : 'de');
             const name = glossary[coreName(source.item)];
-            return { ...row, amount, ...(name ? { item: formatShape({ ...shapeOf(row.item), base: name }) } : {}) };
+            // The list's name where it has one; and whatever the model wrote, the cookbook's way ("minced garlic" → "Garlic, minced").
+            return { ...row, amount, item: name ? formatShape({ ...shapeOf(row.item), base: name }) : conventional(row.item) };
         }),
     };
 }

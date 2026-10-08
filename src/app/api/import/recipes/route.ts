@@ -1,5 +1,6 @@
 import { NextResponse, after } from 'next/server';
-import { conventionalRows } from '@/lib/ingredientShape';
+import { formReadyRows } from '@/lib/formRows';
+import { guessLanguage } from '@/lib/recipeTranslation';
 import { linkRecipe } from '@/lib/ingredientCatalog';
 import { applyStandardUnits } from '@/lib/ingredientUnitsDb';
 import { z } from 'zod';
@@ -95,7 +96,7 @@ export const POST = route({ access: 'admin', body, label: 'Importing recipes' },
                     servings: recipe.servings,
                     prepMinutes: recipe.prepMinutes,
                     cookMinutes: recipe.cookMinutes,
-                    ingredients: toStructuredIngredients(conventionalRows(recipe.ingredients)),
+                    ingredients: toStructuredIngredients(formReadyRows(recipe.ingredients, guessLanguage([recipe.title, ...recipe.ingredients.map((row) => row.item)].join(' ')))),
                     tags: normaliseTags(recipe.tags),
                     imageUrls: recipe.imageUrl ? [recipe.imageUrl] : [],
                 }),

@@ -4,6 +4,7 @@ import { conventional, conventionalRows, needsReading, shapeOf } from '../src/li
 import { linesFor } from '../src/lib/shopping';
 import { coreName } from '../src/lib/ingredientCatalog';
 import { capitalized } from '../src/lib/ingredientParts';
+import { formReadyRows } from '../src/lib/formRows';
 
 export default function ingredientShapeTests() {
     suite('ingredient convention: read');
@@ -54,4 +55,12 @@ export default function ingredientShapeTests() {
     equal('nothing stays nothing', capitalized('  '), '');
     equal('English names too', conventional('gochugaru'), 'Gochugaru');
     equal('only the first letter', conventional('garlic, minced'), 'Garlic, minced');
+
+    suite('form rows: the cookbook\'s way wherever they come from (work #57)');
+    const ready = formReadyRows([{ amount: '2 tsp', item: 'minced garlic' }, { amount: '4 oz', item: 'parmesan' }, { amount: '', item: '## Sauce' }, { amount: '2 Dosen', item: 'Tomaten' }], 'en');
+    equal('the preparation out of the name', ready[0].item, 'Garlic, minced');
+    equal('ounces in grams', ready[1].amount, '115 g');
+    equal('a heading as it is', ready[2].item, '## Sauce');
+    equal('a unit of its own as it is', ready[3].amount, '2 Dosen');
+    equal('twice is once', formReadyRows(ready, 'en'), ready);
 }
