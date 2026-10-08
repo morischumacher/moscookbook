@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import prisma from '@/lib/prisma';
 import TranslationFresh from './TranslationFresh';
 import { Link } from '@/i18n/routing';
 import RatingDisplay from '@/components/RatingDisplay';
@@ -73,7 +74,7 @@ export interface RecipeRow {
      * recipeInclude, because Prisma cannot aggregate inside an include.
      */
     rating: RatingSummary;
-    ingredients: (StructuredIngredient & { item?: IngredientExtras['item']; linkedRecipe?: IngredientExtras['linkedRecipe'] })[];
+    ingredients: (StructuredIngredient & { item?: IngredientExtras['item']; linkedRecipe?: IngredientExtras['linkedRecipe']; altItemIds?: number[] })[];
     /**
      * The share this recipe was made from, for its link and nothing else.
      * Optional: a recipe typed in by hand has no capture behind it, and the
@@ -93,7 +94,7 @@ export const recipeInclude = {
         orderBy: { position: 'asc' },
         // What the ingredient is ("Koreanisches Chilipulver"), and the recipe of ours a row is.
         include: {
-            item: { select: { infoDe: true, infoEn: true, aboutDe: true, aboutEn: true } },
+            item: { select: { de: true, en: true, infoDe: true, infoEn: true, aboutDe: true, aboutEn: true } },
             linkedRecipe: { select: { slug: true, title: true, language: true, isDraft: true, onlyMe: true, translations: { select: { locale: true, title: true } } } },
         },
     },
@@ -172,7 +173,12 @@ export default async function RecipeArticle({
     const recipe = inLanguage(written, locale);
     // Each row's explanation and recipe link, from the original's rows — a translation's are the same, row for row.
     // Not on a stale translation: its rows may no longer be the original's, row for row.
-    const extras = recipe.translated && recipe.stale ? undefined : rowExtras(written.ingredients, recipe.ingredients.length, locale, mode === 'private', isAdmin);
+    // The alternatives' cards ("oder Hüfte"), for their few words and explanation beside the row's.
+    const altIds = [...new Set(written.ingredients.flatMap((row) => row.altItemIds ?? []))];
+    const altCards = new Map(
+        (altIds.length ? await prisma.ingredientItem.findMany({ where: { id: { in: altIds } }, select: { id: true, de: true, en: true, infoDe: true, infoEn: true, aboutDe: true, aboutEn: true } }) : []).map((card) => [card.id, card])
+    );
+    const extras = recipe.translated && recipe.stale ? undefined : rowExtras(written.ingredients, recipe.ingredients.length, locale, mode === 'private', isAdmin, altCards);
     const t = await getTranslations('Recipe');
     const tTags = await getTranslations('Tags');
     const tagLabel = (tag: string) => (KNOWN_TAGS.includes(tag) ? tTags(tag as 'vegan') : `#${tag}`);
@@ -491,7 +497,7 @@ export default async function RecipeArticle({
 }
 
 interface IngredientExtras {
-    item: { infoDe: string | null; infoEn: string | null; aboutDe: string | null; aboutEn: string | null } | null;
+    item: { de: string; en: string; infoDe: string | null; infoEn: string | null; aboutDe: string | null; aboutEn: string | null } | null;
     linkedRecipe: { slug: string; title: string; language: string | null; isDraft: boolean; onlyMe: boolean; translations: { locale: string; title: string }[] } | null;
 }
 
@@ -501,14 +507,26 @@ interface IngredientExtras {
  * only to a recipe the reader may see. Nothing when the rows shown are not
  * the original's one for one.
  */
-function rowExtras(rows: (Partial<IngredientExtras> & object)[], shown: number, locale: string, inside: boolean, isAdmin: boolean) {
+type AltCard = { id: number; de: string; en: string; infoDe: string | null; infoEn: string | null; aboutDe: string | null; aboutEn: string | null };
+
+function rowExtras(rows: (Partial<IngredientExtras> & { altItemIds?: number[] })[], shown: number, locale: string, inside: boolean, isAdmin: boolean, altCards: Map<number, AltCard>) {
     if (rows.length !== shown) return undefined;
+    const en = locale === 'en';
     return rows.map((row) => {
+        // Each alternative with what is known about it, named in the reader's language.
+        const alternatives = (row.altItemIds ?? []).flatMap((id) => {
+            const card = altCards.get(id);
+            const info = (en ? card?.infoEn : card?.infoDe)?.trim() || undefined;
+            const about = (en ? card?.aboutEn : card?.aboutDe)?.trim() || undefined;
+            return card && (info || about) ? [{ name: (en ? card.en || card.de : card.de || card.en) || '', info, about }] : [];
+        });
         const info = (locale === 'en' ? row.item?.infoEn : row.item?.infoDe)?.trim() || undefined;
         const about = (locale === 'en' ? row.item?.aboutEn : row.item?.aboutDe)?.trim() || undefined;
         const linked = row.linkedRecipe;
         const visible = inside && linked && !linked.isDraft && (!linked.onlyMe || isAdmin);
         const title = linked ? (linked.language !== locale && linked.translations.find((entry) => entry.locale === locale)?.title) || linked.title : '';
-        return { info, about, link: visible && linked ? { slug: linked.slug, title } : undefined };
+        // With alternatives beside it, the row's own explanation says whose it is too ("Rinderfilet: …").
+        const name = alternatives.length && row.item ? (en ? row.item.en || row.item.de : row.item.de || row.item.en) : undefined;
+        return { info, about, link: visible && linked ? { slug: linked.slug, title } : undefined, ...(alternatives.length ? { alternatives, name } : {}) };
     });
 }

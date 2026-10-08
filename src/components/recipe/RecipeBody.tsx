@@ -33,7 +33,7 @@ export default function RecipeBody({
     recipeId: number;
     ingredients: StructuredIngredient[];
     /** Per row: what the ingredient is ("Koreanisches Chilipulver") and the recipe of ours it is ("Kimchi"). */
-    extras?: { info?: string; about?: string; link?: { slug: string; title: string } }[];
+    extras?: { info?: string; about?: string; name?: string; link?: { slug: string; title: string }; alternatives?: { name: string; info?: string; about?: string }[] }[];
     /**
      * The method, one rendered step each.
      *
@@ -76,7 +76,31 @@ export default function RecipeBody({
     const [servings, setServings] = useState(baseServings ?? 0);
     const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
     // The ingredients whose longer explanation is open.
-    const [openAbout, setOpenAbout] = useState<Set<number>>(new Set());
+    const [openAbout, setOpenAbout] = useState<Set<string>>(new Set());
+    const toggleAbout = (key: string) =>
+        setOpenAbout((set) => {
+            const next = new Set(set);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
+    /** What an ingredient is: its few words, and "mehr" for the longer explanation — the row's, or an alternative's ("Hüfte: …"). */
+    const explained = (key: string, info: string | undefined, about: string | undefined, name?: string) =>
+        info || about ? (
+            <span key={key} className="block font-sans text-sm text-muted">
+                {name && <span className="text-ink">{name}: </span>}
+                {info}
+                {about && (
+                    <>
+                        {' '}
+                        <button type="button" aria-expanded={openAbout.has(key)} onClick={() => toggleAbout(key)} className="underline underline-offset-2 hover:text-ink print:hidden">
+                            {openAbout.has(key) ? t('infoLess') : t('infoMore')}
+                        </button>
+                        {openAbout.has(key) && <span className="mt-1 block">{about}</span>}
+                    </>
+                )}
+            </span>
+        ) : null;
     const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
     /**
      * Whether the stored progress has been looked for yet.
@@ -524,26 +548,8 @@ export default function RecipeBody({
                                             ) : (
                                                 ingredient.item
                                             )}
-                                            {(extras?.[index]?.info || extras?.[index]?.about) && (
-                                                <span className="block font-sans text-sm text-muted">
-                                                    {extras[index].info}
-                                                    {/* The longer explanation, opened from the short one. */}
-                                                    {extras[index].about && (
-                                                        <>
-                                                            {' '}
-                                                            <button
-                                                                type="button"
-                                                                aria-expanded={openAbout.has(index)}
-                                                                onClick={() => setOpenAbout((set) => toggle(set, index))}
-                                                                className="underline underline-offset-2 hover:text-ink print:hidden"
-                                                            >
-                                                                {openAbout.has(index) ? t('infoLess') : t('infoMore')}
-                                                            </button>
-                                                            {openAbout.has(index) && <span className="mt-1 block">{extras[index].about}</span>}
-                                                        </>
-                                                    )}
-                                                </span>
-                                            )}
+                                            {explained(String(index), extras?.[index]?.info, extras?.[index]?.about, extras?.[index]?.name)}
+                                            {extras?.[index]?.alternatives?.map((alternative, at) => explained(`${index}-${at}`, alternative.info, alternative.about, alternative.name))}
                                         </span>
                                     </div>
                                 </li>
