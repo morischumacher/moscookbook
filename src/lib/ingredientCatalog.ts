@@ -2,6 +2,7 @@ import prisma from './prisma';
 import { coreName, keysFor, namesIn } from './ingredientMatch';
 import { guessLanguage, storedRows, type RecipeLanguage } from './recipeTranslation';
 import { capitalized, sectionHeading } from './ingredientParts';
+import { alternativesOf } from './ingredientShape';
 
 /**
  * The cookbook's ingredients, once each, in both languages.
@@ -82,7 +83,7 @@ export async function linkRecipe(recipeId: number): Promise<number> {
         select: {
             language: true,
             title: true,
-            ingredients: { orderBy: { position: 'asc' }, select: { id: true, name: true, itemId: true } },
+            ingredients: { orderBy: { position: 'asc' }, select: { id: true, name: true, itemId: true, altItemIds: true } },
             translations: { select: { locale: true, ingredients: true } },
         },
     });
@@ -100,15 +101,25 @@ export async function linkRecipe(recipeId: number): Promise<number> {
     let linked = 0;
     for (const [index, row] of recipe.ingredients.entries()) {
         let itemId = row.itemId;
-        if (itemId === null) {
-            itemId = await itemFor(row.name, language);
+        // "Rinderfilet oder Hüfte": the row is Rinderfilet's, and Hüfte a card of its own beside it (lib/ingredientShape).
+        const { main, alternatives } = alternativesOf(row.name);
+        const named = alternatives.filter((alternative) => alternative.base.trim());
+        // A row with alternatives not linked to theirs yet — or linked, before alternatives, to a card for the whole "… oder …".
+        const relink = named.length > 0 && row.altItemIds.length === 0;
+        if (itemId === null || relink) {
+            itemId = await itemFor(main, language);
             if (itemId === null) continue;
-            await prisma.ingredient.update({ where: { id: row.id }, data: { itemId } });
+            const altItemIds: number[] = [];
+            for (const alternative of named) {
+                const id = await itemFor(alternative.base, language);
+                if (id !== null && id !== itemId && !altItemIds.includes(id)) altItemIds.push(id);
+            }
+            await prisma.ingredient.update({ where: { id: row.id }, data: { itemId, altItemIds } });
             linked += 1;
         }
         // The translation's row names the same product in the other language: given to the card — or, when another
         // card has that name, the two halves made one (lib/ingredientDecideDb giveName).
-        const otherName = aligned ? coreName(aligned[index]) : '';
+        const otherName = aligned ? coreName(alternativesOf(aligned[index]).main) : '';
         if (otherName) {
             // Loaded when needed: this module is read by pure code and tests, which must not pull in the database chain.
             const { giveName } = await import('./ingredientDecideDb');
@@ -146,8 +157,12 @@ export async function linkAllUnlinked(limit = 500): Promise<{ recipes: number; r
  */
 export async function glossaryFor(rows: { item: string }[], to: RecipeLanguage): Promise<Record<string, string>> {
     const glossary: Record<string, string> = {};
-    for (const row of rows) {
-        const name = coreName(row.item);
+    // Each ingredient of a row, its alternatives too ("Rinderfilet oder Hüfte": both).
+    const names = rows.flatMap((row) => {
+        const { main, alternatives } = alternativesOf(row.item);
+        return [coreName(main), ...alternatives.map((alternative) => coreName(alternative.base))];
+    });
+    for (const name of names) {
         if (!name || name.startsWith('#') || glossary[name]) continue;
         const id = await matchItem(name).catch(() => null);
         const item = id ? await prisma.ingredientItem.findUnique({ where: { id }, select: { de: true, en: true } }) : null;

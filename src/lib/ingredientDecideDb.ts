@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { commonIngredient } from './ingredientNames';
 import { coreName, itemKeys, keysFor } from './ingredientMatch';
 import { findDoubles, pairKey, type DoubleCandidate } from './ingredientDoubles';
-import { formatShape, shapeOf } from './ingredientShape';
+import { mainShape, renamedMain } from './ingredientShape';
 import { shoppingKey } from './shopping';
 import { capitalized, formatAmount, splitAmount } from './ingredientParts';
 import { amountIn, convertQuantity, factorBetween, familyOf, isEuropean, measureOf, rebased, storedFactor, unitLabel } from './ingredientUnits';
@@ -219,9 +219,9 @@ export async function merge(into: number, from: number[], editedBy: string | nul
         (row, language) => {
             if (row.itemId === null || !from.includes(row.itemId)) return null;
             const name = language === 'de' ? de : en;
-            const shape = shapeOf(row.name);
+            const shape = mainShape(row.name);
             if (!name || !shape.base || shape.base.startsWith('#') || shoppingKey(shape.base) === shoppingKey(name)) return null;
-            return { name: formatShape({ ...shape, base: name }) };
+            return { name: renamedMain(row.name, name) };
         },
         editedBy
     );
@@ -245,6 +245,8 @@ export async function merge(into: number, from: number[], editedBy: string | nul
         };
         const unit = kept.unit ?? gone.find((item) => item.unit !== null)?.unit ?? null;
         await tx.ingredient.updateMany({ where: { itemId: { in: from } }, data: { itemId: into } });
+        // And where they were an alternative ("oder Hüfte"): the kept card is, once.
+        for (const gone of from) await tx.$executeRaw`UPDATE "Ingredient" SET "altItemIds" = array_remove(array_replace("altItemIds", ${gone}, ${into}), "itemId") WHERE ${gone} = ANY("altItemIds")`;
         await tx.shoppingItem.updateMany({ where: { itemId: { in: from } }, data: { itemId: into } });
         await tx.ingredientItem.deleteMany({ where: { id: { in: from } } });
         await tx.ingredientItem.update({
@@ -749,10 +751,11 @@ export async function ensureCatalogTidy(): Promise<number> {
     const items = await prisma.ingredientItem.findMany({
         select: { id: true, de: true, en: true, handEdited: true, lastUsedAt: true, createdAt: true, _count: { select: { ingredients: true, shopping: true } } },
     });
-    const used = items.filter((item) => item._count.ingredients + item._count.shopping > 0).map((item) => item.id);
+    const alternatives = await altUses();
+    const used = items.filter((item) => item._count.ingredients + item._count.shopping + (alternatives.get(item.id) ?? 0) > 0).map((item) => item.id);
     if (used.length) await prisma.ingredientItem.updateMany({ where: { id: { in: used } }, data: { lastUsedAt: new Date() } });
     const stale = items
-        .filter((item) => item._count.ingredients + item._count.shopping === 0 && !item.handEdited && !isStock(item))
+        .filter((item) => item._count.ingredients + item._count.shopping + (alternatives.get(item.id) ?? 0) === 0 && !item.handEdited && !isStock(item))
         .filter((item) => Date.now() - (item.lastUsedAt ?? item.createdAt).getTime() > UNUSED_FOR)
         .map((item) => item.id);
     if (stale.length) await prisma.ingredientItem.deleteMany({ where: { id: { in: stale } } });
@@ -760,9 +763,16 @@ export async function ensureCatalogTidy(): Promise<number> {
 }
 
 /** "Delete all" under "Nicht genutzt": every unused ingredient that is not the starting stock. */
+/** How many rows name each card as an alternative ("oder Hüfte"): used there too, never tidied away for it. */
+export async function altUses(): Promise<Map<number, number>> {
+    const rows = await prisma.$queryRaw<{ id: number; uses: bigint }[]>`SELECT unnest("altItemIds") AS id, count(*) AS uses FROM "Ingredient" GROUP BY 1`;
+    return new Map(rows.map((row) => [Number(row.id), Number(row.uses)]));
+}
+
 export async function deleteUnused(): Promise<number> {
     const items = await prisma.ingredientItem.findMany({ select: { id: true, de: true, en: true, _count: { select: { ingredients: true, shopping: true } } } });
-    const gone = items.filter((item) => item._count.ingredients + item._count.shopping === 0 && !isStock(item)).map((item) => item.id);
+    const alternatives = await altUses();
+    const gone = items.filter((item) => item._count.ingredients + item._count.shopping + (alternatives.get(item.id) ?? 0) === 0 && !isStock(item)).map((item) => item.id);
     if (gone.length) await prisma.ingredientItem.deleteMany({ where: { id: { in: gone } } });
     return gone.length;
 }

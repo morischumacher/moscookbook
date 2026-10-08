@@ -1,6 +1,6 @@
 /** One way to write an ingredient: "Zutat, Form (Zusatz) (optional)" */
 import { suite, equal, check } from './harness';
-import { conventional, conventionalRows, needsReading, shapeOf } from '../src/lib/ingredientShape';
+import { alternativesOf, conventional, conventionalRows, needsReading, renamedMain, shapeOf, withAlternatives, withoutEmptyAlternatives } from '../src/lib/ingredientShape';
 import { linesFor } from '../src/lib/shopping';
 import { coreName } from '../src/lib/ingredientCatalog';
 import { capitalized } from '../src/lib/ingredientParts';
@@ -63,4 +63,20 @@ export default function ingredientShapeTests() {
     equal('a heading as it is', ready[2].item, '## Sauce');
     equal('a unit of its own as it is', ready[3].amount, '2 Dosen');
     equal('twice is once', formReadyRows(ready, 'en'), ready);
+
+    suite('ingredient alternatives: "Rinderfilet oder Hüfte"');
+    const shared = alternativesOf('Rinderfilet oder Hüfte, fein gehackt');
+    equal('the row\'s own ingredient takes the shared preparation', shared.main, 'Rinderfilet, fein gehackt');
+    equal('the alternative is just its ingredient', shared.alternatives, [{ amount: '', base: 'Hüfte', form: '', note: '' }]);
+    equal('written again the same way', withAlternatives(shared.main, shared.alternatives, 'de'), 'Rinderfilet oder Hüfte, fein gehackt');
+    const own = alternativesOf('Rinderfilet, fein gehackt oder 400 g Hüfte, in Würfeln (gut gekühlt) (optional)');
+    equal('one with its own amount and preparation', own.alternatives[0], { amount: '400 g', base: 'Hüfte', form: 'in Würfeln', note: 'gut gekühlt' });
+    equal('optional is the whole row\'s', own.main, 'Rinderfilet, fein gehackt (optional)');
+    equal('and written last', withAlternatives(own.main, own.alternatives, 'de'), 'Rinderfilet, fein gehackt oder 400 g Hüfte, in Würfeln (gut gekühlt) (optional)');
+    equal('an "oder" in brackets is a note', alternativesOf('Salz (oder Meersalz)').alternatives, []);
+    equal('English rows say "or"', withAlternatives('Beef tenderloin', [{ amount: '', base: 'rump', form: '', note: '' }], 'en'), 'Beef tenderloin or Rump');
+    equal('an empty "oder" is not saved', withoutEmptyAlternatives('Rinderfilet oder , fein gehackt', 'de'), 'Rinderfilet, fein gehackt');
+    equal('a rename keeps the alternatives', renamedMain('Rindfleisch oder Hüfte, fein gehackt', 'Rinderfilet'), 'Rinderfilet oder Hüfte, fein gehackt');
+    const line = linesFor([{ name: 'Rinderfilet oder Hüfte, fein gehackt', quantity: 300, quantityMax: null, unit: 'g' }], 1, null)[0];
+    equal('the shopping list buys the row\'s ingredient, the alternative beside it', line.name, 'Rinderfilet (oder Hüfte)');
 }

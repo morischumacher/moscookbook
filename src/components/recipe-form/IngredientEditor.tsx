@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { Ingredient } from '@/lib/recipe';
 import { parseIngredientLine } from '@/lib/recipeParser';
-import { conventionalRows, joinParts, partsOf, withBase, type IngredientShape } from '@/lib/ingredientShape';
+import { alternativesOf, conventionalRows, joinParts, partsOf, withAlternatives, withBase, type Alternative, type IngredientShape } from '@/lib/ingredientShape';
 import { itemKeys, matchIn } from '@/lib/ingredientMatch';
 import { familyOf, measureOf, rebased, storedFactor } from '@/lib/ingredientUnits';
-import IngredientHint, { MirrorHint, rowStatus, type FormCatalogItem, type RowAnswer } from './IngredientHint';
+import IngredientHint, { AltHint, MirrorHint, rowStatus, type FormCatalogItem, type RowAnswer } from './IngredientHint';
 import { fieldBase, fieldClass, labelClass } from './formStyles';
 import AmountInput from './AmountInput';
 import ItemInput, { type Described, type LinkableRecipe } from './ItemInput';
@@ -96,8 +96,21 @@ export default function IngredientEditor({
         };
     }, [lang]);
 
-    /** A row's ingredient, preparation, notes or "optional" changed: written back as one name, the one way (lib/ingredientShape). */
-    const setParts = (index: number, parts: IngredientShape) => update(index, 'item', joinParts(parts));
+    /** A row's own ingredient: the row without its alternatives ("Rinderfilet oder Hüfte" → "Rinderfilet"). */
+    const mainOf = (item: string) => alternativesOf(item).main;
+
+    /** A row's ingredient, preparation, notes or "optional" changed: written back as one name, the one way (lib/ingredientShape), its alternatives kept. */
+    const setParts = (index: number, parts: IngredientShape) => update(index, 'item', withAlternatives(joinParts(parts), alternativesOf(ingredients[index].item).alternatives, lang));
+
+    /** The row's own ingredient written anew (a hint's "take this one"), its alternatives kept. */
+    const setMain = (index: number, main: string) => update(index, 'item', withAlternatives(main, alternativesOf(ingredients[index].item).alternatives, lang));
+
+    /** A row's alternatives changed: added, typed into, given their own amount or preparation, removed. */
+    const setAlternatives = (index: number, alternatives: Alternative[]) => update(index, 'item', withAlternatives(mainOf(ingredients[index].item), alternatives, lang));
+
+    // The alternatives whose own amount, preparation and notes are open ("anders …"), and their fields to focus.
+    const [ownOpen, setOwnOpen] = useState<Set<string>>(new Set());
+    const altRefs = useRef<Map<string, HTMLInputElement | null>>(new Map());
 
     /** A row made one of the cookbook's recipes, or no longer one. */
     const setLink = (index: number, recipe: LinkableRecipe | null) => {
@@ -107,7 +120,7 @@ export default function IngredientEditor({
                     ? row
                     : recipe
                       ? // The title up to a bracket or comma: "Kimchi-Pfannkuchen (Kimchijeon)" is "Kimchi-Pfannkuchen" here.
-                        { ...row, item: joinParts({ ...partsOf(row.item), base: recipe.title.split(/[(,]/)[0].trim() || recipe.title }), linkedRecipeId: recipe.id }
+                        { ...row, item: withAlternatives(joinParts({ ...partsOf(mainOf(row.item)), base: recipe.title.split(/[(,]/)[0].trim() || recipe.title }), alternativesOf(row.item).alternatives, lang), linkedRecipeId: recipe.id }
                       : { ...row, linkedRecipeId: null }
             )
         );
@@ -121,7 +134,7 @@ export default function IngredientEditor({
         onChange(next);
         // The other language follows at once: the list's name there (lib/ingredientMatch syncedRows).
         if (field === 'item') {
-            const known = matchIn(value, catalog);
+            const known = matchIn(mainOf(value), catalog);
             if (known) onKnown?.(index, { de: known.de, en: known.en });
         }
     };
@@ -300,24 +313,24 @@ export default function IngredientEditor({
                             className={`flex flex-wrap items-center gap-2 border-b border-line bg-page pb-2 sm:border-0 sm:pb-0`}
                         >
                             {/* With the ingredient's usual unit chosen while the amount is empty ("Minze" → Bund); one chosen by hand is never replaced. */}
-                            <AmountInput amount={row.amount} number={index + 1} language={lang} usual={matchIn(row.item, catalog)?.unit} onChange={(next) => update(index, 'amount', next)} />
+                            <AmountInput amount={row.amount} number={index + 1} language={lang} usual={matchIn(mainOf(row.item), catalog)?.unit} onChange={(next) => update(index, 'amount', next)} />
                             <ItemInput
                                 inputRef={(element) => {
                                     itemRefs.current[index] = element;
                                 }}
-                                value={partsOf(row.item).base}
+                                value={partsOf(mainOf(row.item)).base}
                                 names={names}
                                 described={described}
                                 recipes={mirrorOf ? [] : recipes.filter((recipe) => recipe.id !== recipeId)}
                                 onChange={(next) => {
-                                    setParts(index, withBase(partsOf(row.item), next));
+                                    setParts(index, withBase(partsOf(mainOf(row.item)), next));
                                     // "Knoblauch," goes on in the preparation, "Knoblauch (" in the notes.
                                     const field = next.includes('(') ? noteRefs : next.includes(',') ? formRefs : null;
                                     if (field) requestAnimationFrame(() => field.current[index]?.focus());
                                 }}
                                 onRecipe={(recipe) => setLink(index, recipe)}
                                 // Tidied on leaving: no jump back into the row — and a recipe's title is its title.
-                                onTidy={(next) => !row.linkedRecipeId && setParts(index, withBase(partsOf(row.item), next))}
+                                onTidy={(next) => !row.linkedRecipeId && setParts(index, withBase(partsOf(mainOf(row.item)), next))}
                                 onEnter={() => addRow(index)}
                                 placeholder={t('itemPlaceholder')}
                                 label={t('itemLabel', { number: index + 1 })}
@@ -336,7 +349,7 @@ export default function IngredientEditor({
                             </div>
                             {/* The rest of the one way of writing it, each in its own field: "Knoblauch" · "gehackt" · "große Zehen" · optional. */}
                             {(() => {
-                                const parts = partsOf(row.item);
+                                const parts = partsOf(mainOf(row.item));
                                 return (
                                     <div className="flex basis-full items-center gap-2">
                                         <input
@@ -388,7 +401,7 @@ export default function IngredientEditor({
                             {/* One of the cookbook's own recipes: it links there on the recipe page. */}
                             {!mirrorOf && row.linkedRecipeId && (
                                 <p className="basis-full text-xs text-info">
-                                    {t('linkedRecipe', { title: recipes.find((recipe) => recipe.id === row.linkedRecipeId)?.title ?? partsOf(row.item).base })}{' '}
+                                    {t('linkedRecipe', { title: recipes.find((recipe) => recipe.id === row.linkedRecipeId)?.title ?? partsOf(mainOf(row.item)).base })}{' '}
                                     <button type="button" onClick={() => setLink(index, null)} className="ml-1 underline underline-offset-2">
                                         {t('unlinkRecipe')}
                                     </button>
@@ -400,17 +413,17 @@ export default function IngredientEditor({
                             {hints && !drag && mirrorOf && (() => {
                                 const at = sourceIndex(mirrorOf, ingredients, index);
                                 const source = at === null ? null : mirrorOf[at];
-                                const status = source ? rowStatus(source.item, source.amount, catalog) : { tone: null, card: null };
+                                const status = source ? rowStatus(mainOf(source.item), source.amount, catalog) : { tone: null, card: null };
                                 const original = lang === 'de' ? 'en' : 'de';
                                 return (
                                     <MirrorHint
                                         tone={status.tone}
                                         card={status.card}
-                                        item={row.item}
-                                        source={source ? partsOf(source.item).base : ''}
+                                        item={mainOf(row.item)}
+                                        source={source ? partsOf(mainOf(source.item)).base : ''}
                                         language={lang}
                                         onGiveName={giveName}
-                                        onItem={(next) => update(index, 'item', next)}
+                                        onItem={(next) => setMain(index, next)}
                                         onJump={() => {
                                             const target = document.getElementById(`ingredient-row-${original}-${at}`);
                                             target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -422,8 +435,8 @@ export default function IngredientEditor({
                             {hints && !drag && !mirrorOf && !row.linkedRecipeId && (
                                 <IngredientHint
                                     // A fresh hint for each name and amount: its conversion fields start from them.
-                                    key={`${row.item}|${row.amount}`}
-                                    item={row.item}
+                                    key={`${mainOf(row.item)}|${row.amount}`}
+                                    item={mainOf(row.item)}
                                     amount={row.amount}
                                     catalog={catalog}
                                     language={lang}
@@ -433,7 +446,7 @@ export default function IngredientEditor({
                                     onGiveName={giveName}
                                     onInfo={setInfo}
                                     keptNew={keptNew.has(row.item.trim().toLowerCase())}
-                                    onItem={(next) => update(index, 'item', next)}
+                                    onItem={(next) => setMain(index, next)}
                                     onAmount={(next) => update(index, 'amount', next)}
                                     onKeepNew={() => setKeptNew((current) => new Set(current).add(row.item.trim().toLowerCase()))}
                                     onOverwriteName={overwriteName}
@@ -445,6 +458,105 @@ export default function IngredientEditor({
                                     }}
                                 />
                             )}
+                            {/* "oder …": each alternative an ingredient of its own, with only what differs from the row (lib/ingredientShape). */}
+                            {!row.linkedRecipeId && (() => {
+                                const { alternatives } = alternativesOf(row.item);
+                                const change = (at: number, patch: Partial<Alternative>) => setAlternatives(index, alternatives.map((other, position) => (position === at ? { ...other, ...patch } : other)));
+                                return (
+                                    <div className="flex basis-full flex-col gap-2">
+                                        {alternatives.map((alternative, at) => {
+                                            const key = `${index}-${at}`;
+                                            const own = ownOpen.has(key) || Boolean(alternative.amount || alternative.form || alternative.note);
+                                            return (
+                                                <div key={at} className="flex flex-col gap-1.5 border-l-2 border-line pl-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="shrink-0 text-sm text-muted">{t('altWord')}</span>
+                                                        <div className="flex min-w-0 flex-1">
+                                                            <ItemInput
+                                                                inputRef={(element) => {
+                                                                    altRefs.current.set(key, element);
+                                                                }}
+                                                                value={alternative.base}
+                                                                names={names}
+                                                                described={described}
+                                                                onChange={(next) => {
+                                                                    // A comma or a bracket goes on in its own preparation or notes, as in the row's field.
+                                                                    if (/[,(]/.test(next)) {
+                                                                        const read = withBase({ base: alternative.base, form: alternative.form, note: alternative.note, optional: false }, next);
+                                                                        change(at, { base: read.base, form: read.form, note: read.note });
+                                                                        setOwnOpen((current) => new Set(current).add(key));
+                                                                    } else change(at, { base: next });
+                                                                }}
+                                                                onTidy={(next) => {
+                                                                    const read = partsOf(next);
+                                                                    change(at, { base: read.base, form: read.form || alternative.form, note: read.note || alternative.note });
+                                                                }}
+                                                                onEnter={() => addRow(index)}
+                                                                placeholder={t('altPlaceholder')}
+                                                                label={t('altLabel', { number: index + 1 })}
+                                                                className={fieldBase}
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setAlternatives(index, alternatives.filter((_, position) => position !== at))}
+                                                            aria-label={t('altRemove', { number: index + 1 })}
+                                                            className="flex h-10 w-7 shrink-0 items-center justify-center text-faint hover:text-danger sm:w-8"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </div>
+                                                    {own ? (
+                                                        // Only what differs: empty is the row's amount, preparation and notes.
+                                                        <div className="flex items-center gap-2">
+                                                            <input
+                                                                type="text"
+                                                                value={alternative.amount}
+                                                                onChange={(event) => change(at, { amount: event.target.value })}
+                                                                placeholder={t('altAmount')}
+                                                                aria-label={t('altAmountLabel', { number: index + 1 })}
+                                                                className={fieldBase + ' w-24 shrink-0 py-1.5 text-sm'}
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={alternative.form}
+                                                                onChange={(event) => change(at, { form: event.target.value.replace(/^\s+/, '') })}
+                                                                placeholder={t('formPlaceholder')}
+                                                                aria-label={t('altFormLabel', { number: index + 1 })}
+                                                                className={fieldBase + ' w-0 flex-1 py-1.5 text-sm'}
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={alternative.note}
+                                                                onChange={(event) => change(at, { note: event.target.value.replace(/^\s+/, '') })}
+                                                                placeholder={t('notePlaceholder')}
+                                                                aria-label={t('altNoteLabel', { number: index + 1 })}
+                                                                className={fieldBase + ' w-0 flex-1 py-1.5 text-sm'}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <button type="button" onClick={() => setOwnOpen((current) => new Set(current).add(key))} className="self-start text-xs text-muted underline underline-offset-2 hover:text-ink">
+                                                            {t('altOwn')}
+                                                        </button>
+                                                    )}
+                                                    {hints && !drag && <AltHint name={alternative.base} catalog={catalog} language={lang} onTake={(name) => change(at, { base: name })} />}
+                                                </div>
+                                            );
+                                        })}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setAlternatives(index, [...alternatives, { amount: '', base: '', form: '', note: '' }]);
+                                                const key = `${index}-${alternatives.length}`;
+                                                requestAnimationFrame(() => altRefs.current.get(key)?.focus());
+                                            }}
+                                            className="self-start text-xs text-muted underline underline-offset-2 hover:text-ink"
+                                        >
+                                            {t('altAdd')}
+                                        </button>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     ),
                 )}

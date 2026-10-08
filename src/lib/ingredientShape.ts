@@ -187,6 +187,8 @@ export const CONVENTION_RULE = `- "item" follows the cookbook's convention: "Ing
   Examples: "Knoblauch, gehackt (große Zehen)", "Ingwer, frisch gerieben", "Chiliflocken (optional)",
   "Red onion, thinly sliced", "Eggs (large)", "Butter, softened".
   Every part but the first may be missing.
+  Where another ingredient will do, it follows with "oder"/"or": "Rinderfilet oder Hüfte, fein gehackt" — the
+  preparation after the last applies to all; one with its own amount writes it before it ("oder 400 g Hüfte").
   What an ingredient is ("Gochugaru (Korean chili flakes)", "Mirin, japanischer Reiswein") is not part of it:
   leave such an explanation out — the cookbook explains its ingredients itself, beside them.`;
 
@@ -278,4 +280,102 @@ export function withBase(parts: IngredientShape, typed: string): IngredientShape
         note: [read.note, parts.note].filter((part) => part.trim()).join(', '),
         optional: parts.optional || read.optional,
     };
+}
+
+/** One "oder …" of a row: its own ingredient, and only what differs from the row's — empty is "as above". */
+export interface Alternative {
+    /** Its own amount ("400 g"), or '' for the row's. */
+    amount: string;
+    base: string;
+    form: string;
+    note: string;
+}
+
+/** A row read as its ingredient and the ones that may stand in for it. */
+export interface RowAlternatives {
+    /** The row without its alternatives: "Rinderfilet, fein gehackt (optional)". */
+    main: string;
+    alternatives: Alternative[];
+}
+
+/** "oder"/"or" between two ingredients, outside brackets; also one at the very end, while the next is still being typed. */
+const OR_WORD = /\s+(?:oder|or)(?=\s+|$)\s*/gi;
+const OPTIONAL_END = /\s*\(optional\)\s*$/i;
+
+/** An alternative's own amount at its start: "400 g Hüfte", "2 Hüftsteaks". */
+function altAmount(part: string): { amount: string; rest: string } {
+    const match = /^((?:ca\.\s*)?\d+(?:[.,/]\d+)?(?:\s*[-–]\s*\d+(?:[.,/]\d+)?)?)\s+(\S+)(?:\s+(.*))?$/.exec(part.trim());
+    if (!match) return { amount: '', rest: part };
+    const [, number, word, rest] = match;
+    // "400 g Hüfte": a unit word after the number; "2 Hüftsteaks": none, the number alone.
+    if (rest && /^(?:g|kg|mg|ml|l|cl|dl|el|tl|tbsp|tsp|prise|pinch|zehe|zehen|clove|cloves|bund|bunch|stück|stk\.?|scheibe|scheiben|slice|slices|dose|dosen|can|cans|cup|cups|tasse|tassen|oz|lb|cm)$/i.test(word)) {
+        return { amount: `${number} ${word}`, rest };
+    }
+    return { amount: number, rest: rest ? `${word} ${rest}` : word };
+}
+
+/**
+ * A row's ingredient and its alternatives: "Rinderfilet oder Hüfte, fein
+ * gehackt" is Rinderfilet, or Hüfte as the same; "Rinderfilet, fein gehackt
+ * oder 400 g Hüfte, in Würfeln" gives Hüfte its own amount and preparation.
+ * "(optional)" at the end is the whole row's. A heading has none.
+ */
+export function alternativesOf(item: string): RowAlternatives {
+    if (item.trimStart().startsWith('#')) return { main: item, alternatives: [] };
+    const optional = OPTIONAL_END.test(item);
+    const text = optional ? item.replace(OPTIONAL_END, '') : item;
+    const cuts: { at: number; end: number }[] = [];
+    for (const match of text.matchAll(OR_WORD)) {
+        const before = text.slice(0, match.index);
+        // Only outside brackets: "(Hüfte oder Filet)" is a note.
+        if ((before.match(/\(/g) ?? []).length === (before.match(/\)/g) ?? []).length) cuts.push({ at: match.index!, end: match.index! + match[0].length });
+    }
+    if (cuts.length === 0) return { main: item, alternatives: [] };
+    const parts = cuts.map((cut, index) => text.slice(cut.end, cuts[index + 1]?.at ?? text.length));
+    let main = text.slice(0, cuts[0].at);
+    const alternatives = parts.map((part) => {
+        const { amount, rest } = altAmount(part);
+        const shape = partsOf(rest);
+        return { amount, base: shape.base, form: shape.form, note: shape.note };
+    });
+    // "Rinderfilet oder Hüfte, fein gehackt": a preparation after the last one, with none before it, is the whole row's.
+    const own = partsOf(main);
+    const last = alternatives[alternatives.length - 1];
+    if (!own.form && !own.note && (last.form || last.note) && alternatives.slice(0, -1).every((alternative) => !alternative.form && !alternative.note && !alternative.amount)) {
+        main = joinParts({ ...own, form: last.form, note: last.note });
+        alternatives[alternatives.length - 1] = { ...last, form: '', note: '' };
+    }
+    return { main: optional ? `${main} (optional)` : main, alternatives };
+}
+
+/** The row written again from its ingredient and alternatives, in the row's language ("oder"/"or"); "(optional)" last. */
+export function withAlternatives(main: string, alternatives: Alternative[], language: 'de' | 'en'): string {
+    if (alternatives.length === 0) return main;
+    const shape = partsOf(main);
+    const word = language === 'en' ? 'or' : 'oder';
+    const rest = alternatives.map((alternative) => [alternative.amount.trim(), joinParts({ base: alternative.base, form: alternative.form, note: alternative.note, optional: false })].filter(Boolean).join(' '));
+    // None of them with its own: the row's preparation and notes after the last, for all of them ("Rinderfilet oder Hüfte, fein gehackt").
+    const shared = alternatives.every((alternative) => !alternative.form && !alternative.note && !alternative.amount);
+    const head = joinParts({ ...shape, ...(shared ? { form: '', note: '' } : {}), optional: false });
+    const tail = shared ? joinParts({ base: '', form: shape.form, note: shape.note, optional: false }) : '';
+    return `${[head, ...rest].join(` ${word} `)}${tail}${shape.optional ? ' (optional)' : ''}`;
+}
+
+/** The row with only the alternatives that name something: what is saved. */
+export function withoutEmptyAlternatives(item: string, language: 'de' | 'en'): string {
+    const read = alternativesOf(item);
+    if (read.alternatives.length === 0) return item;
+    return withAlternatives(read.main, read.alternatives.filter((alternative) => alternative.base.trim()), language);
+}
+
+/** The shape of a row's own ingredient, its alternatives left out: what a rename or a match looks at. */
+export function mainShape(item: string): IngredientShape {
+    return shapeOf(alternativesOf(item).main);
+}
+
+/** The row with its ingredient renamed ("Nudeln" → "Pasta"), its preparation, notes and alternatives kept — in the row's own "oder"/"or". */
+export function renamedMain(item: string, base: string): string {
+    const read = alternativesOf(item);
+    const language = /\s+or(?:\s|$)/i.test(item) && !/\s+oder(?:\s|$)/i.test(item) ? 'en' : 'de';
+    return withAlternatives(formatShape({ ...shapeOf(read.main), base }), read.alternatives, language);
 }

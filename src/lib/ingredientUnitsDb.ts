@@ -7,7 +7,7 @@ import { convertQuantity, familyOf, isEuropean, measureOf, mirroredAmount, unitK
 import { formatAmount, splitAmount } from './ingredientParts';
 import { toMetric } from './units';
 import { rewriteRows, type RowEditor } from './recipeRowsDb';
-import { formatShape, shapeOf } from './ingredientShape';
+import { mainShape, renamedMain } from './ingredientShape';
 import { shoppingKey } from './shopping';
 import { brokenGermanName, itemKeys } from './ingredientMatch';
 import { aiCapability } from './aiConfig';
@@ -246,8 +246,8 @@ export async function alignTranslationNames(editedBy: string | null): Promise<nu
             if (side !== 'translation' || row.itemId === null) return null;
             const amount = mirroredAmount(raws.get(row.rowId) ?? '', row.amount, language);
             const name = items.get(row.itemId)?.[language];
-            const shape = shapeOf(row.name);
-            const renamed = name && shape.base && !shape.base.startsWith('#') && shoppingKey(shape.base) !== shoppingKey(name) ? formatShape({ ...shape, base: name }) : null;
+            const shape = mainShape(row.name);
+            const renamed = name && shape.base && !shape.base.startsWith('#') && shoppingKey(shape.base) !== shoppingKey(name) ? renamedMain(row.name, name) : null;
             if (!renamed && amount === row.amount) return null;
             return { ...(renamed ? { name: renamed } : {}), ...(amount !== row.amount ? { amount } : {}) };
         },

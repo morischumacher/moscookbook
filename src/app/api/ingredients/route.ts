@@ -8,7 +8,7 @@ import { canUseAi, completeWithKey, extractJson } from '@/lib/aiImport';
 import { usageRecorder } from '@/lib/tokenUsageDb';
 import { capitalized } from '@/lib/ingredientParts';
 import { aisleOf, CHOOSABLE_AISLES, isAisle, shoppingKey } from '@/lib/shopping';
-import { formatShape, shapeOf } from '@/lib/ingredientShape';
+import { mainShape, renamedMain } from '@/lib/ingredientShape';
 import { rewriteRows } from '@/lib/recipeRowsDb';
 import { itemSelect, unitOverview } from '@/lib/ingredientUnitsDb';
 import {
@@ -16,6 +16,7 @@ import {
     giveName,
     aiResolve,
     aiRow,
+    altUses,
     deleteUnused,
     fillInfos,
     isStock,
@@ -62,7 +63,7 @@ async function catalogue() {
         orderBy: [{ de: 'asc' }, { en: 'asc' }],
         select: { ...itemSelect, aliases: true, enAliases: true, infoDe: true, infoEn: true, aboutDe: true, aboutEn: true, aisle: true, _count: { select: { ingredients: true, shopping: true } } },
     });
-    const overview = await unitOverview(items);
+    const [overview, alternatives] = await Promise.all([unitOverview(items), altUses()]);
     return items.map((item) => {
         const entry = overview.get(item.id);
         const main = entry?.state.unit ?? null;
@@ -78,7 +79,8 @@ async function catalogue() {
             infoEn: item.infoEn ?? '',
             aboutDe: item.aboutDe ?? '',
             aboutEn: item.aboutEn ?? '',
-            uses: item._count.ingredients,
+            // As the ingredient of a row, or as its alternative ("oder Hüfte").
+            uses: item._count.ingredients + (alternatives.get(item.id) ?? 0),
             onLists: item._count.shopping,
             stock: isStock(item),
             createdAt: item.createdAt.toISOString(),
@@ -136,7 +138,7 @@ export const GET = route({ access: 'admin', label: 'The ingredient catalogue' },
     const usesOf = Number(new URL(req.url).searchParams.get('usesOf'));
     if (Number.isInteger(usesOf) && usesOf > 0) {
         const rows = await prisma.ingredient.findMany({
-            where: { itemId: usesOf },
+            where: { OR: [{ itemId: usesOf }, { altItemIds: { has: usesOf } }] },
             orderBy: [{ recipe: { title: 'asc' } }, { position: 'asc' }],
             select: { raw: true, name: true, recipe: { select: { id: true, slug: true, title: true, isDraft: true } } },
             take: 300,
@@ -342,9 +344,9 @@ async function renameItem(itemId: number, wanted: string, locale: 'de' | 'en', e
         [itemId],
         (row, language) => {
             if (row.itemId !== itemId || language !== locale) return null;
-            const shape = shapeOf(row.name);
+            const shape = mainShape(row.name);
             if (!shape.base || shape.base.startsWith('#') || shoppingKey(shape.base) === shoppingKey(next)) return null;
-            return { name: formatShape({ ...shape, base: next }) };
+            return { name: renamedMain(row.name, next) };
         },
         editedBy
     );
