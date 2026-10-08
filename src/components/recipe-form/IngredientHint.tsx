@@ -446,3 +446,39 @@ function InfoLine({ info, onSave }: { info: string; onSave: (info: string) => vo
         </div>
     );
 }
+
+/**
+ * An alternative's line ("oder Hüfte"): is it a card of the list — green —,
+ * like one (a tap takes that one), or new — saving adds it. Its name only:
+ * the row's unit and conversions are its ingredient's, never asked here.
+ */
+export function AltHint({ name, catalog, language, onTake }: { name: string; catalog: FormCatalogItem[]; language: 'de' | 'en'; onTake: (name: string) => void }) {
+    const t = useTranslations('RecipeForm');
+    const base = shapeOf(name).base.trim();
+    if (catalog.length === 0 || base.length < 3) return null;
+    const nameOf = (entry: MatchableItem) => (language === 'de' ? entry.de || entry.en : entry.en || entry.de);
+    const line = (tone: 'success' | 'warning' | 'info', text: string) => (
+        <span className={`inline-flex items-center gap-1.5 font-medium ${tone === 'success' ? 'text-success' : tone === 'warning' ? 'text-warning' : 'text-info'}`}>
+            <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-current" />
+            {text}
+        </span>
+    );
+    const known = matchIn(base, catalog);
+    if (known) return <p className="text-xs">{line('success', t('hintKnown', { name: nameOf(known) }))}</p>;
+    const alike = similarIn(base, catalog, 2);
+    if (alike.length > 0) {
+        return (
+            <div className="text-xs">
+                {line('warning', t('altAlike'))}
+                <span className="mt-1 flex flex-wrap gap-2">
+                    {alike.map((entry) => (
+                        <button key={entry.id} type="button" onClick={() => onTake(nameOf(entry))} className="min-h-9 rounded-full border border-control bg-page px-3 text-xs text-ink hover:border-ink">
+                            {t('altTake', { name: nameOf(entry) })}
+                        </button>
+                    ))}
+                </span>
+            </div>
+        );
+    }
+    return <p className="text-xs">{line('info', t('altNew'))}</p>;
+}

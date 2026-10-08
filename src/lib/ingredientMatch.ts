@@ -1,6 +1,6 @@
 import { shoppingKey } from './shopping';
 import { NOISE } from './ingredientNames';
-import { formatShape, LEADING_PARTICIPLE, shapeOf } from './ingredientShape';
+import { LEADING_PARTICIPLE, mainShape, renamedMain, shapeOf } from './ingredientShape';
 import { distance } from './ingredientDoubles';
 import { mirroredAmount } from './ingredientUnits';
 
@@ -120,10 +120,10 @@ export function syncedRows<T extends { item: string }>(rows: T[], sourceRows: { 
     if (!name.trim() || !sourceRows[index]?.item.trim() || sourceRows[index].item.trim().startsWith('#')) return rows;
     const target = rows[index];
     if (!target?.item.trim() || target.item.trim().startsWith('#')) return rows;
-    const shape = shapeOf(target.item);
+    const shape = mainShape(target.item);
     if (shoppingKey(shape.base) === shoppingKey(name)) return rows;
     const next = [...rows];
-    next[index] = { ...target, item: formatShape({ ...shape, base: name }) };
+    next[index] = { ...target, item: renamedMain(target.item, name) };
     return next;
 }
 

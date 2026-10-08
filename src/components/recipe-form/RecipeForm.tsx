@@ -7,7 +7,7 @@ import { useRouter } from '@/i18n/routing';
 import ReactMarkdown from 'react-markdown';
 import { StorePicture } from '@/components/ui/InlinePicture';
 import { slugify, type Ingredient } from '@/lib/recipe';
-import { partsOf } from '@/lib/ingredientShape';
+import { partsOf, withoutEmptyAlternatives } from '@/lib/ingredientShape';
 import { formReadyRows } from '@/lib/formRows';
 import PolishPanel from './PolishPanel';
 import TranslationPanel from './TranslationPanel';
@@ -296,7 +296,8 @@ export default function RecipeForm({
         setError('');
 
         // A row with no ingredient is no row, whatever its other fields hold ("(optional)" ticked on the empty last row).
-        const cleanedIngredients = ingredients.filter(named);
+        // An "oder" left empty is no alternative: gone before saving (lib/ingredientShape).
+        const cleanedIngredients = ingredients.filter(named).map((row) => ({ ...row, item: withoutEmptyAlternatives(row.item, language) }));
 
         if (!title.trim() || !instructions.trim()) {
             failWith(t('requiredFields'));
@@ -337,7 +338,10 @@ export default function RecipeForm({
                     cookMinutes: toOptionalNumber(cookMinutes),
                     isDraft,
                     language: language ?? undefined,
-                    translation: translation && translation.locale !== language ? translation : null,
+                    translation:
+                        translation && translation.locale !== language
+                            ? { ...translation, ingredients: translation.ingredients.map((row) => ({ ...row, item: withoutEmptyAlternatives(row.item, translation.locale) })) }
+                            : null,
                     ...(mode === 'create' && captureId ? { captureId } : {}),
                     ...(mode === 'edit' && version ? { baseVersion: version } : {}),
                 }),

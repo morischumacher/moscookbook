@@ -493,6 +493,8 @@ model Ingredient {
   /// Which ingredient of the cookbook's catalogue this is (lib/ingredientCatalog).
   itemId      Int?
   item        IngredientItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  /// The cards of its alternatives ("Rinderfilet oder Hüfte": Hüfte's), each an ingredient of its own.
+  altItemIds  Int[]   @default([])
   /// Another recipe of the cookbook this row is: "Kimchi" in a Kimchi-Pfannkuchen.
   linkedRecipeId Int?
   linkedRecipe   Recipe? @relation("LinkedRecipe", fields: [linkedRecipeId], references: [id], onDelete: SetNull)
@@ -510,6 +512,7 @@ model Ingredient {
   @@index([name])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Ingredient_name_trgm_idx")
   @@index([linkedRecipeId])
+  @@index([altItemIds], type: Gin)
 }
 
 model Image {

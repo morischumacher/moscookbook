@@ -2,7 +2,7 @@ import { splitAmount, formatAmount, type AmountParts } from './ingredientParts';
 import { displayName, ingredientKey, itemName } from './ingredientNames';
 import { singular, expandUmlauts } from './searchText';
 import { fromBase, isCountUnit, toBase, unitOf, unitSpelling, type Measured } from './units';
-import { shapeOf } from './ingredientShape';
+import { alternativesOf, shapeOf } from './ingredientShape';
 import { lessPart, partsOf, settled as settledAmount, withPart, type Part } from './shoppingParts';
 
 /**
@@ -154,24 +154,29 @@ export interface PlannedLine {
 export function linesFor(ingredients: IngredientForList[], factor: number, source: string | null): PlannedLine[] {
     return ingredients.flatMap((ingredient) => {
         // "Ingwer, frisch gerieben (optional)": the ingredient is what is bought.
-        const shape = shapeOf(ingredient.name);
+        // "Rinderfilet oder Hüfte": Rinderfilet, with Hüfte beside it as what may be bought instead.
+        const { main, alternatives } = alternativesOf(ingredient.name);
+        const shape = shapeOf(main);
         // Its base as it is: a comma left in it is one between adjectives ("fermentierte, gesalzene Garnelen").
-        const name = shape.base.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
-        if (!name || NEVER_BOUGHT.test(name)) return [];
-        const aisle: Aisle = shape.optional ? 'optional' : aisleOf(name);
+        const own = shape.base.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+        if (!own || NEVER_BOUGHT.test(own)) return [];
+        const instead = alternatives.map((alternative) => alternative.base.trim()).filter(Boolean);
+        const word = /\s+or(?:\s|$)/i.test(ingredient.name) && !/\s+oder(?:\s|$)/i.test(ingredient.name) ? 'or' : 'oder';
+        const name = instead.length ? `${own} (${word} ${instead.join(', ')})` : own;
+        const aisle: Aisle = shape.optional ? 'optional' : aisleOf(own);
 
         const scaled: AmountParts = {
             quantity: ingredient.quantity === null ? null : ingredient.quantity * factor,
             quantityMax: ingredient.quantityMax === null ? null : ingredient.quantityMax * factor,
             unit: ingredient.unit,
         };
-        const measured = toBase(scaled, name);
+        const measured = toBase(scaled, own);
 
         return [
             {
                 name,
                 // "Frühlingszwiebeln" and "green onions" are one line (lib/ingredientNames).
-                key: keyFor(ingredientKey(name), aisle),
+                key: keyFor(ingredientKey(own), aisle),
                 measure: measured?.key ?? null,
                 amount: measured?.amount ?? null,
                 aisle,

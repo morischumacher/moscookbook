@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CONVENTION_RULE, conventional, formatShape, shapeOf } from './ingredientShape';
+import { alternativesOf, CONVENTION_RULE, conventional, formatShape, shapeOf, withAlternatives } from './ingredientShape';
 import { GERMAN_VOICE } from './writingVoice';
 import type { AiKey } from './aiImport';
 import { scrub } from './secretBox';
@@ -306,9 +306,18 @@ export function withGlossary<T extends { ingredients: Ingredient[]; locale?: str
             if (!source || sectionHeading(source) !== null) return row;
             // The original's amount, in this language: the numbers are the same in both (lib/ingredientUnits).
             const amount = mirroredAmount(source.amount, row.amount, translation.locale === 'en' ? 'en' : 'de');
-            const name = glossary[coreName(source.item)];
+            const language = translation.locale === 'en' ? 'en' : 'de';
+            const original = alternativesOf(source.item);
+            const mine = alternativesOf(row.item);
+            const name = glossary[coreName(original.main)];
             // The list's name where it has one; and whatever the model wrote, the cookbook's way ("minced garlic" → "Garlic, minced").
-            return { ...row, amount, item: name ? formatShape({ ...shapeOf(row.item), base: name }) : conventional(row.item) };
+            const main = name ? formatShape({ ...shapeOf(mine.main), base: name }) : conventional(mine.main);
+            // Its alternatives the same, one for one with the original's: "Rinderfilet oder Hüfte" → "Beef tenderloin or rump".
+            const alternatives = mine.alternatives.map((alternative, at) => {
+                const listed = original.alternatives[at] && mine.alternatives.length === original.alternatives.length ? glossary[coreName(original.alternatives[at].base)] : undefined;
+                return listed ? { ...alternative, base: listed } : alternative;
+            });
+            return { ...row, amount, item: withAlternatives(main, alternatives, language) };
         }),
     };
 }
