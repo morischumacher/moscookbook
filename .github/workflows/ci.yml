@@ -13,7 +13,12 @@ concurrency:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest: "latest" moved to Ubuntu 26 on
+    # 19 October 2026, and `playwright install --with-deps` (the phone check)
+    # installs system packages for the Ubuntu versions it knows. A new image is
+    # a change to make on purpose, together with Playwright, not one that
+    # turns every pull request red overnight.
+    runs-on: ubuntu-24.04
 
     # A throwaway Postgres, so the migrations and the German search are checked
     # against the real thing rather than against an assumption about it.
