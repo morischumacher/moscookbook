@@ -7,6 +7,15 @@ counts, plus an admin area for writing and editing recipes. Built with Next.js
 (App Router), Prisma on Vercel Postgres, Vercel Blob for images, iron-session
 for authentication and next-intl for English/German.
 
+## At a glance
+
+| | |
+|---|---|
+| **What** | A personal recipe platform, live at [moscookbook.com](https://www.moscookbook.com). |
+| **My role** | Solo project: idea, product design, development and operations. Built with Claude Code as an AI pair programmer. |
+| **Highlights** | Imports recipes from web pages, YouTube descriptions, Instagram and TikTok captions, screenshots, photos and e-mail.<br>Rules run first; AI (Anthropic, OpenAI or Gemini) is only asked where the rules fall short, so most imports cost nothing.<br>English and German, with German full-text search.<br>Invitation-only accounts; API keys encrypted at rest (AES-256-GCM).<br>CI on every push: lint, type check, tests, migrations against a real Postgres, build and a phone layout check. |
+| **Stack** | Next.js (App Router), TypeScript, Prisma, PostgreSQL, Vercel (hosting, Postgres, Blob), next-intl, Playwright |
+
 ## Getting started
 
 ```bash
