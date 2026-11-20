@@ -1623,6 +1623,16 @@
       "model": "A small model costs a fraction of a large one per token and is usually enough for recipes.",
       "learn": "Have sites you import from often learned once – after that, no AI needed."
     },
+    "techTitle": "The techniques behind it",
+    "tech": {
+      "rulesFirst": "Rules-first preprocessing: recipe markup, captions and learned sites are read by a parser without AI. No tokens as long as the rules are enough.",
+      "compression": "Prompt compression: a web page goes to the AI not as HTML but as readable text without menus, scripts and cookie banners – about a thirtieth of the size.",
+      "cascade": "LLM cascade (model cascading, cf. FrugalGPT): a small model reads recipes from text first; the large model only comes in when the answer is incomplete.",
+      "structured": "Structured output: the AI answers with nothing but a JSON object of a fixed shape – short, with no prose around it.",
+      "monitoring": "Token monitoring: every call is counted with the provider's own numbers; the tips above are computed from them.",
+      "caching": "Not used – prompt caching: the system prompt is just over 500 tokens, caching starts at about 1,000. It would save nothing here.",
+      "vision": "Next step – visual token reduction: scale screenshots down to a token budget before sending."
+    },
     "perDay": "Per day",
     "perDayLabel": "Tokens per day, last {days} days",
     "peak": "busiest day: {tokens}",

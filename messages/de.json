@@ -1623,6 +1623,16 @@
       "model": "Ein kleines Modell kostet pro Token einen Bruchteil eines großen und reicht für Rezepte meist.",
       "learn": "Webseiten, von denen du öfter importierst, einmal lernen lassen – danach ohne KI."
     },
+    "techTitle": "Die Techniken dahinter (Fachbegriffe)",
+    "tech": {
+      "rulesFirst": "Regelbasierte Vorverarbeitung (Rules-first): Rezept-Markup, Bildtexte und gelernte Seiten liest ein Parser ohne KI. Kein Token, solange die Regeln reichen.",
+      "compression": "Prompt-Kompression: Eine Webseite geht nicht als HTML an die KI, sondern als Lesetext ohne Menü, Skripte und Cookie-Banner – rund ein Dreißigstel der Größe.",
+      "cascade": "LLM-Kaskade (Model Cascading, vgl. FrugalGPT): Ein kleines Modell liest Rezepte aus Text zuerst; das große Modell kommt nur, wenn die Antwort unvollständig ist.",
+      "structured": "Strukturierte Ausgabe: Die KI antwortet nur mit einem JSON-Objekt in fester Form – kurz und ohne Erklärtext.",
+      "monitoring": "Token-Monitoring: Jeder Aufruf wird mit den Zahlen des Anbieters gezählt; die Spartipps oben rechnet die App daraus.",
+      "caching": "Nicht genutzt – Prompt Caching: Der Systemprompt hat gut 500 Tokens, Caching greift erst ab rund 1.000. Würde hier nichts sparen.",
+      "vision": "Nächster Schritt – Visual-Token-Reduktion: Screenshots vor dem Senden auf ein Token-Budget verkleinern."
+    },
     "perDay": "Pro Tag",
     "perDayLabel": "Tokens pro Tag, letzte {days} Tage",
     "peak": "höchster Tag: {tokens}",

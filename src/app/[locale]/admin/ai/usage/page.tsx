@@ -14,6 +14,9 @@ import { shortTokens } from '@/lib/tokenUsage';
 /** The last thirty days, and the thirty before them for "up or down". */
 const DAYS = 30;
 
+/** Each token-saving technique the cookbook uses (or deliberately does not), in the order of a request. */
+const TECHNIQUES = ['rulesFirst', 'compression', 'cascade', 'structured', 'monitoring', 'caching', 'vision'] as const;
+
 /**
  * Token analytics: what the AI calls cost, what for, and — first on the
  * page — what to do so they cost less. See lib/tokenAnalytics.ts.
@@ -128,6 +131,16 @@ export default async function TokenUsagePage() {
                         <li>{t('rules.mode')}</li>
                         <li>{t('rules.model')}</li>
                         <li>{t('rules.learn')}</li>
+                    </ul>
+                </details>
+
+                {/* The same rules under the names the literature gives them. */}
+                <details className="mt-2 rounded-xl border border-line p-4 text-sm">
+                    <summary className="cursor-pointer font-bold">{t('techTitle')}</summary>
+                    <ul className="mt-3 list-disc space-y-2 pl-5 leading-relaxed text-muted">
+                        {TECHNIQUES.map((id) => (
+                            <li key={id}>{t(`tech.${id}`)}</li>
+                        ))}
                     </ul>
                 </details>
             </section>
