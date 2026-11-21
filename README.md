@@ -11,14 +11,22 @@ for authentication and next-intl for English/German.
 
 [![mo'scookbook demo video](docs/demo/moscookbook-demo.jpg)](docs/demo/moscookbook-demo.mp4)
 
-## At a glance
+## What it does
 
-| | |
-|---|---|
-| **What** | A personal recipe platform, live at [moscookbook.com](https://www.moscookbook.com). |
-| **My role** | Solo project: idea, product design, development and operations. Built with Claude Code as an AI pair programmer. |
-| **Highlights** | Imports recipes from web pages, YouTube descriptions, Instagram and TikTok captions, screenshots, photos and e-mail.<br>Rules run first; AI (Anthropic, OpenAI or Gemini) is only asked where the rules fall short, so most imports cost nothing.<br>English and German, with German full-text search.<br>Invitation-only accounts; API keys encrypted at rest (AES-256-GCM).<br>CI on every push: lint, type check, tests, migrations against a real Postgres, build and a phone layout check. |
-| **Stack** | Next.js (App Router), TypeScript, Prisma, PostgreSQL, Vercel (hosting, Postgres, Blob), next-intl, Playwright |
+- Imports recipes from web pages, YouTube descriptions, Instagram and TikTok captions, screenshots, photos and e-mail.
+- Reads with rules first. AI (Anthropic, OpenAI or Gemini) is only asked where the rules fall short, so most imports cost nothing; a small model reads first and the large one only steps in when its answer is incomplete.
+- Counts the tokens of every AI call and shows what to change so imports cost less.
+- Every recipe in English and German, with full-text search, a servings calculator and a shopping list built from the recipe.
+- Invitation-only accounts; API keys encrypted at rest (AES-256-GCM).
+- CI on every push: lint, type check, tests, migrations against a real Postgres, build and a phone layout check.
+
+## My role
+
+Solo project: idea, product design, development and operations. Built with Claude Code as an AI pair programmer. Live at [moscookbook.com](https://www.moscookbook.com).
+
+## Tech stack
+
+Next.js (App Router), TypeScript, Prisma, PostgreSQL, Vercel (hosting, Postgres, Blob), next-intl, Playwright
 
 ## Getting started
 
@@ -178,7 +186,6 @@ outline. A small square in a frame reads as an icon standing in for a
 photograph; this reads as the photograph. The tint is only what shows through
 when a recipe has no picture yet.
 
-
 Twenty-four recipes per page, with older ones behind a next link that keeps the
 active filters. "Best rated" paginates too: Prisma cannot order by an average
 across a relation, so the page fetches the matching ids, ranks them against one
@@ -188,7 +195,6 @@ before.
 
 The admin dashboard is capped at the hundred most recent recipes; it is for
 editing, not browsing.
-
 
 A masthead, one search field, and the filters as chips rather than four select
 boxes. The chips are built from the data: every category and cuisine that
@@ -363,7 +369,6 @@ six so one paste cannot become forty joins.
 Sharing one box would have meant guessing which of the two questions somebody
 meant.
 
-
 **Entries are in the index too, as of migration 0010** — the same German
 configuration, the same weighting, the same two application-written columns and
 a tsvector Postgres derives from them. An entry *called* Zwetschgen outranks one
@@ -381,7 +386,6 @@ exemptions are keyed by table *and* file, because one file can write both: the
 archive restore does, and exempting it wholesale would have taken the recipe
 check with it. Removing the helper from a post writer fails it, which is the
 whole point.
-
 
 The search box looks at titles, descriptions, ingredient names and the method,
 through Postgres full text search with the `german` configuration. Titles are
@@ -481,7 +485,6 @@ The tabbed Zutaten/Zubereitung split from the design catalogue was deliberately
 one thing you do not want in a kitchen, and cook mode, serving scaling and the
 checkable steps all assume both are on the page at once.
 
-
 The recipe page is built for someone standing at the stove:
 
 - **Portionsrechner** — when a recipe has a serving count, the amounts scale with
@@ -562,8 +565,6 @@ A version 1 archive still reads, with both lists empty. A restore that refused
 last month's file because this month's format grew would be the exact failure a
 backup exists to prevent.
 
-
-
 The cookbook exists in one hosting account. Everything else on this list is an
 annoyance if it goes wrong; this is the only part that cannot be redone.
 
@@ -632,7 +633,6 @@ code, security and test pass is written up in
 | `npm test` | Run the logic check suites |
 | `npm run backup` | Write an offline copy, images included |
 | `npm run restore` | Put a backup folder back |
-
 
 ## On a phone
 
