@@ -7,6 +7,10 @@ counts, plus an admin area for writing and editing recipes. Built with Next.js
 (App Router), Prisma on Vercel Postgres, Vercel Blob for images, iron-session
 for authentication and next-intl for English/German.
 
+**Demo (2 min):** what the cookbook does for a reader, how recipes get in, and how the AI is kept cheap.
+
+[![mo'scookbook demo video](docs/demo/moscookbook-demo.jpg)](docs/demo/moscookbook-demo.mp4)
+
 ## At a glance
 
 | | |
