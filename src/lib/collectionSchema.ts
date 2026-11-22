@@ -13,6 +13,7 @@ const MAX_TITLE = 80;
 // Room for a few paragraphs: a collection is often introduced — the menu,
 // the occasion, what to make first — and one line was not enough for that.
 const MAX_DESCRIPTION = 5000;
+const MAX_SLUG = 80;
 
 /** Enough for a menu, few enough that the page stays a page. */
 export const MAX_RECIPES_PER_COLLECTION = 60;
@@ -26,6 +27,20 @@ export const collectionInputSchema = z.object({
         .nullable()
         .optional()
         .transform((value) => (value ? value : null)),
+    /**
+     * The address, when somebody typed one. Empty means "let the app choose":
+     * derived from the title for a new collection, and kept as it is for one
+     * that already has an address (see the routes).
+     */
+    slug: z
+        .string()
+        .trim()
+        .max(MAX_SLUG)
+        .nullable()
+        .optional()
+        .transform((value) => (value ? value : null))
+        .refine((value) => value === null || slugify(value).length > 0, 'The address needs letters or digits.')
+        .transform((value) => (value === null ? null : slugify(value))),
     /**
      * In the order they were arranged. Duplicates are removed rather than
      * refused: dragging a recipe onto a list it is already on is a mistake
@@ -50,11 +65,12 @@ export const collectionInputSchema = z.object({
 export type CollectionInput = z.infer<typeof collectionInputSchema>;
 
 /**
- * The address a collection lives at.
+ * The address a collection lives at, when nobody typed one.
  *
- * Derived rather than typed, unlike a recipe's: nobody links to a collection
- * from outside, so there is no old address to preserve and no reason to make
- * somebody think about one.
+ * Derived from the title once, when the collection is made, and then left
+ * alone: a public collection gets linked to from outside (a CV, a message),
+ * and renaming it must not break those links. Changing the address is a
+ * deliberate act in the form, never a side effect of a new name.
  */
 export function collectionSlug(title: string): string {
     return slugify(title) || 'sammlung';

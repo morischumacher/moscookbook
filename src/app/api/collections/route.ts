@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin, getCurrentUser } from '@/lib/auth';
 import { isPrismaError } from '@/lib/prismaErrors';
-import {
-    collectionInputSchema,
-    collectionSlug,
-    formatCollectionError,
-} from '@/lib/collectionSchema';
+import { collectionInputSchema, formatCollectionError } from '@/lib/collectionSchema';
+import { freeSlug, slugTaken } from '@/lib/collectionAddress';
 import { failed } from '@/lib/reportServerError';
 
 /**
@@ -55,7 +52,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: formatCollectionError(parsed.error) }, { status: 400 });
     }
 
-    const { title, description, imageUrl, recipeIds } = parsed.data;
+    const { title, slug: wanted, description, imageUrl, recipeIds } = parsed.data;
+
+    // A typed address is taken as it is or refused; only a derived one gets a
+    // number added. Somebody who typed "my-favorites" means exactly that link.
+    if (wanted && (await slugTaken(wanted))) {
+        return NextResponse.json({ message: 'Another collection already uses that address.' }, { status: 409 });
+    }
 
     // Two saves of the same title at once both find the same free slug; the
     // second then trips the unique index. Once more, and it finds the next.
@@ -65,7 +68,7 @@ export async function POST(req: NextRequest) {
                 title,
                 description,
                 imageUrl,
-                slug: await freeSlug(title),
+                slug: wanted ?? (await freeSlug(title)),
                 // Position is the order they arrived in, which is the order
                 // somebody arranged them in the form.
                 recipes: {
@@ -77,12 +80,15 @@ export async function POST(req: NextRequest) {
 
     try {
         const collection = await create().catch((error) => {
-            if (isPrismaError(error, 'P2002')) return create();
+            if (isPrismaError(error, 'P2002') && !wanted) return create();
             throw error;
         });
 
         return NextResponse.json(collection, { status: 201 });
     } catch (error) {
+        if (isPrismaError(error, 'P2002')) {
+            return NextResponse.json({ message: 'Another collection already uses that address.' }, { status: 409 });
+        }
         // A recipe that was deleted between the form loading and being saved.
         if (isPrismaError(error, 'P2003')) {
             return NextResponse.json(
@@ -94,28 +100,4 @@ export async function POST(req: NextRequest) {
         failed('Collection could not be created:', error);
         return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
     }
-}
-
-/**
- * A slug nothing else is using.
- *
- * Two collections called "Weihnachten" is not a mistake — one is last year's —
- * so the second one gets a number rather than an error. The loop is bounded
- * because an unbounded one is a way to hang a request.
- */
-export async function freeSlug(title: string): Promise<string> {
-    const base = collectionSlug(title);
-
-    for (let suffix = 0; suffix < 50; suffix += 1) {
-        const candidate = suffix === 0 ? base : `${base}-${suffix + 1}`;
-        const taken = await prisma.collection.findUnique({
-            where: { slug: candidate },
-            select: { id: true },
-        });
-
-        if (!taken) return candidate;
-    }
-
-    // Fifty collections with one name is not a case worth a nicer answer.
-    return `${base}-${Date.now()}`;
 }

@@ -19,6 +19,7 @@ export default async function EditCollectionPage({
     const collection: {
         id: number;
         title: string;
+        slug: string;
         description: string | null;
         imageUrl: string | null;
         recipes: { recipeId: number }[];
@@ -27,6 +28,7 @@ export default async function EditCollectionPage({
         select: {
             id: true,
             title: true,
+            slug: true,
             description: true,
             imageUrl: true,
             recipes: { orderBy: { position: 'asc' }, select: { recipeId: true } },
@@ -45,6 +47,7 @@ export default async function EditCollectionPage({
                 initial={{
                     id: collection.id,
                     title: collection.title,
+                    slug: collection.slug,
                     description: collection.description ?? '',
                     imageUrl: collection.imageUrl ?? '',
                     recipeIds: collection.recipes.map((row) => row.recipeId),

@@ -14,7 +14,7 @@ export default async function NewCollectionPage() {
             <PageHeader title={t('newTitle')} />
 
             <CollectionForm
-                initial={{ title: '', description: '', imageUrl: '', recipeIds: [] }}
+                initial={{ title: '', slug: '', description: '', imageUrl: '', recipeIds: [] }}
                 recipes={recipes}
             />
         </main>

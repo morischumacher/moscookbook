@@ -6,6 +6,7 @@ import { isPrismaError } from '@/lib/prismaErrors';
 import { collectionInputSchema, formatCollectionError } from '@/lib/collectionSchema';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
+import { freeSlug, slugTaken } from '@/lib/collectionAddress';
 
 /** Editing and removing one collection. Admin only, like making one. */
 
@@ -26,11 +27,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         return NextResponse.json({ message: formatCollectionError(parsed.error) }, { status: 400 });
     }
 
-    const { title, description, imageUrl, recipeIds } = parsed.data;
+    const { title, slug: wanted, description, imageUrl, recipeIds } = parsed.data;
 
     try {
         // The picture it is about to stop pointing at, read before the write.
-        const before = await prisma.collection.findUnique({ where: { id }, select: { imageUrl: true } });
+        const before = await prisma.collection.findUnique({ where: { id }, select: { imageUrl: true, slug: true } });
+        if (!before) return NextResponse.json({ message: 'That collection is gone.' }, { status: 404 });
+
+        // A new title never moves the address: people have the old one saved.
+        // A typed address replaces it; an emptied field asks for one derived
+        // from the title, as for a new collection.
+        if (wanted && wanted !== before.slug && (await slugTaken(wanted, id))) {
+            return NextResponse.json({ message: 'Another collection already uses that address.' }, { status: 409 });
+        }
+        const slug = wanted ?? (await freeSlug(title, id));
 
         // Replaced wholesale rather than diffed, like a recipe's ingredients:
         // the list is short, the order is what somebody arranged, and a rewrite
@@ -39,7 +49,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         const [collection] = await prisma.$transaction([
             prisma.collection.update({
                 where: { id },
-                data: { title, description, imageUrl },
+                data: { title, slug, description, imageUrl },
                 select: { id: true, slug: true, title: true },
             }),
             prisma.collectionRecipe.deleteMany({ where: { collectionId: id } }),
@@ -58,12 +68,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
         // After the write, never before: a file cannot be un-deleted if the
         // write fails. The same rule a recipe's gallery follows.
-        if (before?.imageUrl && before.imageUrl !== imageUrl) await deleteBlobs([before.imageUrl]);
+        if (before.imageUrl && before.imageUrl !== imageUrl) await deleteBlobs([before.imageUrl]);
 
         return NextResponse.json(collection);
     } catch (error) {
         if (isPrismaError(error, 'P2025')) {
             return NextResponse.json({ message: 'That collection is gone.' }, { status: 404 });
+        }
+        if (isPrismaError(error, 'P2002')) {
+            return NextResponse.json({ message: 'Another collection already uses that address.' }, { status: 409 });
         }
         if (isPrismaError(error, 'P2003')) {
             return NextResponse.json(
