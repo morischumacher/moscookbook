@@ -102,7 +102,7 @@ export default function RecipeCard({
 
     return (
         <div className="group relative">
-            <Link href={`/recipe/${slug}`} className="block">
+            <Link href={`/recipe/${slug}`} className="press block">
                 {imageUrl ? (
                     <span className="relative block aspect-square w-full overflow-hidden rounded-xl bg-surface">
                         <Image

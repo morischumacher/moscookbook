@@ -38,6 +38,7 @@ import ownership from './ownership.test';
 import ticketPath from './ticketPath.test';
 import oysterMark from './oysterMark.test';
 import cookProgress from './cookProgress.test';
+import motion from './motion.test';
 import safeFetch, { readCappedTests } from './safeFetch.test';
 import similarRecipes from './similarRecipes.test';
 import privateAddress, { privateIPv6FormsTests } from './privateAddress.test';
@@ -151,6 +152,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['ticketPath', ticketPath],
     ['oysterMark', oysterMark],
     ['cookProgress', cookProgress],
+    ['motion', motion],
     ['safeFetch', safeFetch],
     ['readCappedTests', readCappedTests],
     ['similarRecipes', similarRecipes],

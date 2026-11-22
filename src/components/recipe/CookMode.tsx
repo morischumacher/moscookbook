@@ -6,6 +6,7 @@ import { clock, ingredientsInStep, timersIn } from '@/lib/cookSteps';
 import type { RunningTimer } from './useCookTimers';
 import { buttonPrimaryLarge } from '@/lib/ui';
 import { useDialogFocus } from '@/components/ui/useDialogFocus';
+import { useSwipePager } from '@/components/ui/useSwipePager';
 
 /**
  * Cooking from the recipe, on a screen that stays on.
@@ -65,7 +66,6 @@ export default function CookMode({
     const firstOpen = steps.findIndex((_, index) => !checkedSteps.has(index));
     const [current, setCurrent] = useState(firstOpen === -1 ? 0 : firstOpen);
     const [view, setView] = useState<'list' | 'step'>('list');
-    const touch = useRef<number | null>(null);
     const dialog = useRef<HTMLDivElement>(null);
 
     const allDone = steps.length > 0 && steps.every((_, index) => checkedSteps.has(index));
@@ -86,6 +86,17 @@ export default function CookMode({
     };
 
     useDialogFocus(dialog, onClose);
+
+    // The step follows the finger sideways and the next one comes in behind
+    // it (components/ui/useSwipePager); at the first and the last it gives
+    // and comes back. Up and down stays the scrolling of a long step.
+    const { ref: stepPageRef, handlers: swipeHandlers } = useSwipePager({
+        enabled: view === 'step',
+        canPrev: current > 0,
+        canNext: current < steps.length - 1,
+        onPrev: () => go(current - 1),
+        onNext: () => go(current + 1),
+    });
 
     useEffect(() => {
         const onKey = (event: KeyboardEvent) => {
@@ -199,18 +210,10 @@ export default function CookMode({
             )}
 
             <main
-                className="flex-1 overflow-y-auto px-4 py-6"
-                onTouchStart={(event) => (touch.current = event.touches[0]?.clientX ?? null)}
-                onTouchEnd={(event) => {
-                    const start = touch.current;
-                    const end = event.changedTouches[0]?.clientX;
-                    touch.current = null;
-                    if (view !== 'step' || start === null || end === undefined) return;
-                    if (end - start < -70) go(current + 1);
-                    if (end - start > 70) go(current - 1);
-                }}
+                className={`flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 ${view === 'step' ? 'touch-pan-y' : ''}`}
+                {...(view === 'step' ? swipeHandlers : {})}
             >
-                <div className="mx-auto max-w-3xl">
+                <div ref={stepPageRef} className="mx-auto max-w-3xl">
                     {view === 'step' && steps.length > 0 && (
                         <>
                             <p className="text-sm font-bold uppercase tracking-widest text-muted">

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import { useSwipePager } from '@/components/ui/useSwipePager';
 
 /**
  * A photograph, whole.
@@ -49,8 +50,8 @@ export default function Lightbox({
     const index = openAt ?? 0;
     const closeButton = useRef<HTMLButtonElement>(null);
 
-    // Where a touch began, so a gesture can be told from a tap.
-    const touch = useRef<{ x: number; y: number } | null>(null);
+    const backdrop = useRef<HTMLDivElement>(null);
+    const controls = useRef<HTMLDivElement>(null);
 
     const isOpen = openAt !== null;
 
@@ -62,6 +63,22 @@ export default function Lightbox({
         },
         [images.length, onIndex]
     );
+
+    // The picture follows the finger: sideways to the next one, down to close
+    // (components/ui/useSwipePager). Pulled down, the dark behind it and the
+    // buttons fade, so it reads as putting the photo back.
+    const { ref: pictureRef, handlers: swipeHandlers } = useSwipePager({
+        enabled: isOpen,
+        canPrev: images.length > 1,
+        canNext: images.length > 1,
+        onPrev: () => show(index - 1),
+        onNext: () => show(index + 1),
+        onDismiss: onClose,
+        onDismissProgress: (progress) => {
+            if (backdrop.current) backdrop.current.style.opacity = String(1 - progress * 0.85);
+            if (controls.current) controls.current.style.opacity = String(1 - progress);
+        },
+    });
 
     // Once per opening, not per picture: this ran again on every "next",
     // which put the focus back on the close button each time and remembered
@@ -127,102 +144,90 @@ export default function Lightbox({
             // the opposite of what a lightbox is for: the surround goes dark
             // so the photograph is the only thing lit. The ink follows the
             // colour scheme; this must not. See globals.css.
-            className="fixed inset-x-0 top-0 z-[300] flex h-[100dvh] items-center justify-center bg-scrim"
+            className="fixed inset-x-0 top-0 z-[300] flex h-[100dvh] touch-pinch-zoom items-center justify-center"
             onClick={onClose}
-            onTouchStart={(event) => {
-                const point = event.touches[0];
-                touch.current = { x: point.clientX, y: point.clientY };
-            }}
-            onTouchEnd={(event) => {
-                const start = touch.current;
-                touch.current = null;
-                if (!start) return;
-
-                const point = event.changedTouches[0];
-                const dx = point.clientX - start.x;
-                const dy = point.clientY - start.y;
-
-                // Down closes, sideways moves, and whichever is larger wins —
-                // a diagonal drag should do one thing, not both.
-                if (Math.abs(dy) > Math.abs(dx) && dy > 80) {
-                    onClose();
-                    return;
-                }
-
-                if (many && Math.abs(dx) > 60) show(index + (dx < 0 ? 1 : -1));
-            }}
+            // One finger is the swipe; two still zoom, to look closer at a dish.
+            {...swipeHandlers}
         >
+            <div ref={backdrop} aria-hidden className="absolute inset-0 bg-scrim" />
             {/* object-contain, which is the whole point: the picture is
                 letterboxed rather than cropped, for the first time. */}
-            <Image
-                src={images[index]}
-                alt={
-                    many
-                        ? t('imageOf', { number: index + 1, total: images.length, title })
-                        : title
-                }
-                fill
-                sizes="100vw"
-                className="object-contain"
-                priority
-            />
+            <div ref={pictureRef} className="absolute inset-0 will-change-transform">
+                <Image
+                    src={images[index]}
+                    alt={
+                        many
+                            ? t('imageOf', { number: index + 1, total: images.length, title })
+                            : title
+                    }
+                    fill
+                    sizes="100vw"
+                    className="object-contain"
+                    priority
+                />
+            </div>
 
-            <button
-                ref={closeButton}
-                type="button"
-                onClick={onClose}
-                aria-label={t('closeImage')}
-                // Clear of the notch and of the home indicator.
-                className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-on-scrim/15 text-on-scrim backdrop-blur-sm"
-            >
-                <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
-                    <path
-                        d="M6 6l12 12M18 6L6 18"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        fill="none"
-                    />
-                </svg>
-            </button>
+            {/* The buttons and the count, as one layer so they fade together
+                while the photo is pulled down. Laid out as the dialog was (a
+                centring flex box), so each sits where it did. */}
+            <div ref={controls} className="pointer-events-none absolute inset-0 flex items-center justify-center [&>*]:pointer-events-auto">
+                <button
+                    ref={closeButton}
+                    type="button"
+                    onClick={onClose}
+                    aria-label={t('closeImage')}
+                    // Clear of the notch and of the home indicator.
+                    className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-on-scrim/15 text-on-scrim backdrop-blur-sm"
+                >
+                    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
+                        <path
+                            d="M6 6l12 12M18 6L6 18"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            fill="none"
+                        />
+                    </svg>
+                </button>
 
-            {many && (
-                <>
-                    {/* Stopping the click from reaching the backdrop, which
-                        would close the thing you are paging through. */}
-                    <button
-                        type="button"
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            show(index - 1);
-                        }}
-                        aria-label={t('previousImage')}
-                        className="absolute left-2 flex h-11 w-11 items-center justify-center rounded-full bg-on-scrim/15 text-on-scrim backdrop-blur-sm"
-                    >
-                        <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
-                            <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                        </svg>
-                    </button>
+                {many && (
+                    <>
+                        {/* Stopping the click from reaching the backdrop, which
+                            would close the thing you are paging through. */}
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                show(index - 1);
+                            }}
+                            aria-label={t('previousImage')}
+                            className="absolute left-2 flex h-11 w-11 items-center justify-center rounded-full bg-on-scrim/15 text-on-scrim backdrop-blur-sm"
+                        >
+                            <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
+                                <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                            </svg>
+                        </button>
 
-                    <button
-                        type="button"
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            show(index + 1);
-                        }}
-                        aria-label={t('nextImage')}
-                        className="absolute right-2 flex h-11 w-11 items-center justify-center rounded-full bg-on-scrim/15 text-on-scrim backdrop-blur-sm"
-                    >
-                        <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
-                            <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                        </svg>
-                    </button>
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                show(index + 1);
+                            }}
+                            aria-label={t('nextImage')}
+                            className="absolute right-2 flex h-11 w-11 items-center justify-center rounded-full bg-on-scrim/15 text-on-scrim backdrop-blur-sm"
+                        >
+                            <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true">
+                                <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                            </svg>
+                        </button>
 
-                    <p className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] text-sm tabular-nums text-on-scrim/80">
-                        {index + 1} / {images.length}
-                    </p>
-                </>
-            )}
+                        <p className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] text-sm tabular-nums text-on-scrim/80">
+                            {index + 1} / {images.length}
+                        </p>
+                    </>
+                )}
+            </div>
         </div>
     );
 }

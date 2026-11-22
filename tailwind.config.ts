@@ -84,6 +84,14 @@ const token = (name: string): string =>
   }) as unknown as string)
 
 export default {
+  // Hover styles only where there is a pointer that can hover. On a phone a
+  // `hover:` class stuck to whatever was tapped last — the button you just
+  // pressed stayed half-transparent until you touched something else. Nothing
+  // on the site reveals content on hover alone (checked: the group-hover rules
+  // underline titles and zoom photographs), so touch loses nothing.
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',

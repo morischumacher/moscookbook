@@ -720,6 +720,220 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* ------------------------------------------------------------------ motion */
+
+/*
+ * How things answer a finger. One curve, close to a spring that settles
+ * without overshooting (lib/motion.ts has the springs for what can be held),
+ * so a button, a menu and a sheet all move alike.
+ */
+:root {
+  --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* No double-tap-to-zoom wait before a tap counts. */
+a,
+button,
+summary,
+label,
+[role="button"],
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/*
+ * Pressed, the moment the finger lands — not when it lifts.
+ *
+ * There was no pressed state anywhere but the heart: a button on a phone
+ * looked exactly the same whether it had been hit or missed until the next
+ * page arrived. Hover does not help there; Tailwind now only applies hover
+ * where there is a pointer that can hover (tailwind.config.ts), because on a
+ * phone a hover style sticks to whatever was tapped last.
+ *
+ * - `.press`: the shapes in lib/ui.ts and the recipe tiles. Shrinks a little,
+ *   instantly, and eases back on release.
+ * - `.press-row`: a full-width row (a sheet's menu). Its background lands at
+ *   once and fades out.
+ * - Everything else tappable dims while held, on touch screens only: the same
+ *   answer iOS gives a plain text button. Zero specificity (`:where`), so any
+ *   class on the element wins.
+ */
+.press {
+  transition-property: transform, opacity, background-color, border-color, color;
+  transition-duration: 220ms;
+  transition-timing-function: var(--ease-fluid);
+}
+
+.press:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: 0ms;
+}
+
+.press-row {
+  transition-property: background-color, opacity;
+  transition-duration: 220ms;
+  transition-timing-function: var(--ease-fluid);
+}
+
+.press-row:active {
+  transition-duration: 0ms;
+}
+
+@media (hover: none) {
+  :where(
+      a[href]:not(.press, .press-row):active,
+      button:not(:disabled, .press, .press-row):active,
+      summary:active,
+      [role="button"]:not(.press, .press-row):active
+    ) {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press:active:not(:disabled) {
+    transform: none;
+    opacity: 0.7;
+  }
+}
+
+/*
+ * The bar along the top is a layer the page scrolls under: translucent, with
+ * the page blurred behind it. Its hairline only appears once something is
+ * underneath it; at the top of a page there is nothing to separate.
+ *
+ * The blur is on a pseudo-element, not on the <nav>: an element with a
+ * backdrop-filter becomes the containing block of everything `fixed` inside
+ * it, and the open menu's cover is exactly that.
+ */
+.bar-material {
+  background: transparent;
+}
+
+.bar-material::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+}
+
+@supports (animation-timeline: scroll()) {
+  .scroll-edge {
+    animation: scroll-edge linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 24px;
+  }
+
+  @keyframes scroll-edge {
+    from {
+      border-bottom-color: transparent;
+    }
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .bar-material::before {
+    background: var(--color-bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .bar-material::before {
+    background: var(--color-bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .scroll-edge {
+    animation: none;
+  }
+}
+
+/*
+ * Something that drops down from the bar (the phone menu) and its cover. They
+ * come in from where they are anchored and leave the same way; usePresence
+ * keeps them on the page until they have gone.
+ */
+.drop-panel {
+  transform-origin: top center;
+  transition:
+    transform 320ms var(--ease-fluid),
+    opacity 200ms ease;
+}
+
+.drop-panel[data-state='closed'] {
+  transform: translateY(-12px);
+  opacity: 0;
+}
+
+@starting-style {
+  .drop-panel[data-state='open'] {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+}
+
+.fade-layer {
+  transition: opacity 240ms ease;
+}
+
+.fade-layer[data-state='closed'] {
+  opacity: 0;
+}
+
+@starting-style {
+  .fade-layer[data-state='open'] {
+    opacity: 0;
+  }
+}
+
+/*
+ * A dialog that asks one thing (useConfirm, the share dialog): it grows from
+ * slightly smaller into place, the way an alert does. Entering only; it goes
+ * away with the answer.
+ */
+.dialog-enter {
+  animation: dialog-enter 280ms var(--ease-fluid) both;
+}
+
+@keyframes dialog-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-panel,
+  .drop-panel[data-state='closed'] {
+    transform: none;
+  }
+
+  @starting-style {
+    .drop-panel[data-state='open'] {
+      transform: none;
+    }
+  }
+
+  .dialog-enter {
+    animation-name: dialog-fade;
+    animation-duration: 160ms;
+  }
+
+  @keyframes dialog-fade {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
 /* ---------------------------------------------------------------- autofill */
 
 /*
