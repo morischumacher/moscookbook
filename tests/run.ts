@@ -7,6 +7,7 @@
  */
 import { summary, crashed } from './harness';
 import recipeSchema from './recipeSchema.test';
+import collectionSchema from './collectionSchema.test';
 import recipeParser from './recipeParser.test';
 import recipeFromHtml from './recipeFromHtml.test';
 import amount from './amount.test';
@@ -114,6 +115,7 @@ import ingredientDoubles from './ingredientDoubles.test';
  */
 const suites: [string, () => void | Promise<void>][] = [
     ['recipeSchema', recipeSchema],
+    ['collectionSchema', collectionSchema],
     ['recipeParser', recipeParser],
     ['recipeFromHtml', recipeFromHtml],
     ['amount', amount],

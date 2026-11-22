@@ -11,10 +11,13 @@ import { BusyLabel } from '@/components/ui/Busy';
 import MarkdownEditor from '@/components/ui/MarkdownEditor';
 import PictureField from '@/components/ui/PictureField';
 import PickList, { type PickOption } from '@/components/ui/PickList';
+import { collectionSlug } from '@/lib/collectionSchema';
 
 export interface CollectionDraft {
     id?: number;
     title: string;
+    /** The address it lives at; empty for a new collection. */
+    slug: string;
     description: string;
     imageUrl: string;
     recipeIds: number[];
@@ -43,6 +46,7 @@ export default function CollectionForm({
     const router = useRouter();
 
     const [title, setTitle] = useState(initial.title);
+    const [slug, setSlug] = useState(initial.slug);
     const [description, setDescription] = useState(initial.description);
     const [imageUrl, setImageUrl] = useState(initial.imageUrl);
     const [chosen, setChosen] = useState<number[]>(initial.recipeIds);
@@ -63,6 +67,7 @@ export default function CollectionForm({
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         title,
+                        slug: slug.trim() || null,
                         description: description.trim() || null,
                         imageUrl,
                         recipeIds: chosen,
@@ -139,6 +144,29 @@ export default function CollectionForm({
                     maxLength={80}
                     className={fieldClass}
                 />
+            </div>
+
+            {/* Optional. Left empty, a new collection takes its address from
+                the name; an existing one keeps the address it has, because a
+                rename must not break a link somebody saved. */}
+            <div>
+                <label htmlFor="collection-slug" className={labelClass}>{t('fieldSlug')}</label>
+                <div className="flex items-center gap-1">
+                    <span className="shrink-0 text-sm text-muted">/collections/</span>
+                    <input
+                        id="collection-slug"
+                        type="text"
+                        value={slug}
+                        onChange={(event) => setSlug(event.target.value)}
+                        placeholder={title.trim() ? collectionSlug(title) : ''}
+                        maxLength={80}
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        className={fieldClass}
+                    />
+                </div>
+                <p className="mt-2 text-sm text-muted">{t(initial.id ? 'slugHintEdit' : 'slugHintNew')}</p>
             </div>
 
             {/* As long as it needs to be, with formatting and pictures: a
