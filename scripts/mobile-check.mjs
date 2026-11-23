@@ -121,7 +121,20 @@ for (const [who, paths] of Object.entries(PAGES)) {
         const menu = page.getByRole('button', { name: 'Mehr zu dieser Liste' });
         if (await menu.count()) {
             await menu.first().tap();
-            await page.waitForTimeout(300);
+            // The sheet rises on a spring (about 0.6 s): measure where it comes
+            // to rest, not mid-flight — it has to have stood still for a while.
+            await page.waitForTimeout(800);
+            await page.waitForFunction(
+                () =>
+                    new Promise((resolve) => {
+                        const dialog = document.querySelector('[role=dialog][aria-modal="true"]');
+                        if (!dialog) return resolve(false);
+                        const before = dialog.getBoundingClientRect().top;
+                        setTimeout(() => resolve(Math.abs(dialog.getBoundingClientRect().top - before) < 0.5), 300);
+                    }),
+                null,
+                { timeout: 5000 }
+            );
             const fit = await page.evaluate(sheetFits);
             if (fit) problems.push(`admin /de/shopping menu: ${fit}`);
             await page.screenshot({ path: `${SHOTS}/admin_shopping_menu.png` });

@@ -9,6 +9,7 @@ import Logo from './brand/Logo';
 import LogoutButton from './LogoutButton';
 import ProfileMenu from './ProfileMenu';
 import { sectionFor, type Section } from '@/lib/navigation';
+import { usePresence } from './ui/usePresence';
 
 interface MobileNavbarProps {
     user: { id: number; email: string; name: string; admin: boolean } | null;
@@ -51,6 +52,8 @@ export default function MobileNavbar({ user, profile, otherLocale, invitations =
     const tMenus = useTranslations('Menus');
     const [isOpen, setIsOpen] = useState(false);
     const toggleRef = useRef<HTMLButtonElement>(null);
+    // Kept on the page while it slides back up under the bar.
+    const menu = usePresence(isOpen, 320);
 
     const current = sectionFor(usePathname());
 
@@ -112,7 +115,7 @@ export default function MobileNavbar({ user, profile, otherLocale, invitations =
         'py-2 text-base font-medium text-left hover:opacity-60 transition-opacity';
 
     return (
-        <nav className="sticky top-0 z-[100] border-b border-line bg-page py-4">
+        <nav className="bar-material scroll-edge sticky top-0 z-[100] border-b border-line py-4">
             <div className="container mx-auto flex items-center justify-between px-4 md:px-8">
                 <div className="flex min-w-0 items-center gap-3">
                     <Link
@@ -199,7 +202,7 @@ export default function MobileNavbar({ user, profile, otherLocale, invitations =
                 </button>
             </div>
 
-            {isOpen && (
+            {menu.mounted && (
                 <>
                     {/* The panel used to sit on the page with nothing behind it,
                         so the search field showed through at its edge. This
@@ -216,12 +219,18 @@ export default function MobileNavbar({ user, profile, otherLocale, invitations =
                         type="button"
                         aria-label={t('closeMenu')}
                         onClick={close}
-                        className="fixed inset-0 top-[77px] z-40 bg-page/80 backdrop-blur-sm md:hidden"
+                        data-state={menu.state}
+                        tabIndex={isOpen ? undefined : -1}
+                        className={`fade-layer fixed inset-0 top-[77px] z-40 bg-page/80 backdrop-blur-sm md:hidden ${isOpen ? '' : 'pointer-events-none'}`}
                     />
 
+                    {/* Drops from under the bar and goes back up into it. While
+                        it leaves it is inert: nothing in it can be hit. */}
                     <div
                         id="mobile-menu"
-                        className="absolute left-0 top-full z-50 flex w-full flex-col items-start border-b border-line bg-page px-4 py-4 shadow-lg md:hidden"
+                        data-state={menu.state}
+                        inert={!isOpen}
+                        className="drop-panel absolute left-0 top-full z-50 flex w-full flex-col items-start border-b border-line bg-page px-4 py-4 shadow-lg md:hidden"
                     >
                         {/* The greeting was a dead line of text at the top of
                             the menu. It is the obvious place to look for your

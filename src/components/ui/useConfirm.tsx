@@ -170,7 +170,7 @@ export function useConfirm(): [(request: ConfirmRequest) => Promise<boolean>, Re
                 aria-modal="true"
                 aria-labelledby="confirm-title"
                 aria-describedby={request.body ? 'confirm-body' : undefined}
-                className="w-full max-w-xs rounded-2xl border border-line bg-page p-5 shadow-xl"
+                className="dialog-enter w-full max-w-xs rounded-2xl border border-line bg-page p-5 shadow-xl"
             >
                 <h2 id="confirm-title" className="text-base font-bold leading-snug text-ink">
                     {request.title}

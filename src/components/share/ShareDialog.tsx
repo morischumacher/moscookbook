@@ -207,7 +207,7 @@ export default function ShareDialog({
                 role="dialog"
                 aria-modal="true"
                 aria-label={t('share')}
-                className="w-full max-w-md rounded-xl border border-line bg-page p-5 shadow-lg"
+                className="dialog-enter w-full max-w-md rounded-xl border border-line bg-page p-5 shadow-lg"
             >
                 <h2 className="text-xs font-bold uppercase tracking-widest text-muted">
                     {t('whoCanSee')}

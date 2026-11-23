@@ -12,6 +12,9 @@
  * from whichever file was open, and it is invisible to whoever is writing the
  * page and obvious to whoever is looking at two of them.
  *
+ * Every one of them carries `press` (globals.css): it shrinks a little the
+ * moment it is touched, so a hit is visible before the next page is.
+ *
  * Two sizes, because the site genuinely uses two: the large one for the single
  * thing a page is for — sign in, save the recipe, publish — and the compact one
  * for a button that sits in a row of other controls. Both are at least 44px
@@ -26,30 +29,30 @@
 
 /** The one thing this page is for. */
 export const buttonPrimary =
-    'inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-6 font-medium text-page transition-opacity hover:opacity-85 disabled:opacity-50';
+    'inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-6 font-medium text-page press hover:opacity-85 disabled:opacity-50';
 
 /** A primary button standing in a row with others. */
 export const buttonPrimarySmall =
-    'inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-4 text-sm font-medium text-page transition-opacity hover:opacity-85 disabled:opacity-50';
+    'inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-4 text-sm font-medium text-page press hover:opacity-85 disabled:opacity-50';
 
 /**
  * For a hand that is busy: cook mode's "done, next", reached without looking.
  * Taller than the others and the width of its row.
  */
 export const buttonPrimaryLarge =
-    'inline-flex min-h-14 items-center justify-center rounded-full bg-ink px-6 text-lg font-medium text-page transition-opacity hover:opacity-85 disabled:opacity-50';
+    'inline-flex min-h-14 items-center justify-center rounded-full bg-ink px-6 text-lg font-medium text-page press hover:opacity-85 disabled:opacity-50';
 
 /** Floating over the page, in a corner: a running kitchen timer. */
 export const buttonFloating =
-    'fixed bottom-4 right-4 z-50 inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-5 text-lg text-page shadow-lg transition-opacity hover:opacity-85';
+    'fixed bottom-4 right-4 z-50 inline-flex min-h-12 items-center gap-2 rounded-full bg-ink px-5 text-lg text-page shadow-lg press hover:opacity-85';
 
 /** The alternative to a primary button: outlined, same size. */
 export const buttonSecondary =
-    'inline-flex min-h-11 items-center justify-center rounded-full border border-line px-4 text-sm font-medium transition-colors hover:border-ink disabled:opacity-50';
+    'inline-flex min-h-11 items-center justify-center rounded-full border border-line px-4 text-sm font-medium press hover:border-ink disabled:opacity-50';
 
 /** A destructive primary button. Only where something is being removed. */
 export const buttonDanger =
-    'inline-flex min-h-11 items-center justify-center rounded-full bg-danger px-4 text-sm font-medium text-page transition-opacity hover:opacity-85 disabled:opacity-50';
+    'inline-flex min-h-11 items-center justify-center rounded-full bg-danger px-4 text-sm font-medium text-page press hover:opacity-85 disabled:opacity-50';
 
 /**
  * The page's own container. `md:px-8` was the majority and `sm:px-8` the rest,
@@ -118,7 +121,7 @@ export const photoControl =
  */
 export function chip(selected: boolean): string {
     return (
-        'inline-flex min-h-11 cursor-pointer items-center rounded-full border px-4 text-sm font-medium transition-colors ' +
+        'inline-flex min-h-11 cursor-pointer items-center rounded-full border px-4 text-sm font-medium press ' +
         (selected ? 'border-ink bg-ink text-page' : 'border-control hover:border-ink')
     );
 }
