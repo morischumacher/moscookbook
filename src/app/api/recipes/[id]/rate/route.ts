@@ -6,6 +6,10 @@ import { requireUser } from '@/lib/auth';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
 import { hiddenFrom } from '@/lib/recipeVisibilityDb';
+import { recordActivity } from '@/lib/activityPushDb';
+
+/** Room for the push's bundling wait in after() (lib/activityPush BUNDLE_WAIT_MS). */
+export const maxDuration = 60;
 
 const rateSchema = z.object({
     value: z.number().int().min(1).max(5),
@@ -43,11 +47,19 @@ export async function POST(
         const { value } = parsed.data;
         const userId = auth.user.id;
 
+        const before = await prisma.rating.findUnique({
+            where: { userId_recipeId: { userId, recipeId } },
+            select: { value: true },
+        });
+
         const rating = await prisma.rating.upsert({
             where: { userId_recipeId: { userId, recipeId } },
             update: { value },
             create: { userId, recipeId, value },
         });
+
+        // Changing nothing is not news.
+        if (before?.value !== value) await recordActivity(auth.user, { kind: 'rating', recipeId, amount: value });
 
         const aggregate = await prisma.rating.aggregate({
             where: { recipeId },

@@ -11,6 +11,10 @@ import { deleteBlobs } from '@/lib/blobCleanup';
 import { ownerScope } from '@/lib/ownership';
 import { positiveIntId } from '@/lib/routeParams';
 import { failed } from '@/lib/reportServerError';
+import { recordActivity } from '@/lib/activityPushDb';
+
+/** Room for the push's bundling wait in after() (lib/activityPush BUNDLE_WAIT_MS). */
+export const maxDuration = 60;
 
 /**
  * The pictures on a cooking entry.
@@ -190,6 +194,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
                 select: { id: true },
             });
             entryId = created.id;
+            await recordActivity(user, { kind: 'cooked', recipeId });
         }
 
         const photo: { id: number; url: string; position: number; createdAt: Date } =
@@ -197,6 +202,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
                 data: { url: blob.url, position, entryId },
                 select: { id: true, url: true, position: true, createdAt: true },
             });
+
+        await recordActivity(user, { kind: 'photo', recipeId, amount: 1 });
 
         return NextResponse.json({ ...photo, entryId }, { status: 201 });
     } catch (error) {
