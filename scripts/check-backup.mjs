@@ -82,6 +82,7 @@ const NOT_BACKED_UP = new Map([
     ['AiUsage', 'statistics about calls to AI providers; nothing a restore would miss'],
     ['MenuItem', "carried inside each menu's entry, in order, rather than as its own list"],
     ['CookEntryPhoto', "carried inside each cooking's entry, in order, rather than as its own list"],
+    ['ActivityEvent', 'a short queue of push notifications for this deployment; sent within a minute and worthless after'],
 ]);
 
 const schema = readFileSync(SCHEMA, 'utf8');

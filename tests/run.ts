@@ -36,6 +36,7 @@ import imageCompression from './imageCompression.test';
 import navigation from './navigation.test';
 import ownership from './ownership.test';
 import ticketPath from './ticketPath.test';
+import activityPush from './activityPush.test';
 import oysterMark from './oysterMark.test';
 import cookProgress from './cookProgress.test';
 import motion from './motion.test';
@@ -150,6 +151,7 @@ const suites: [string, () => void | Promise<void>][] = [
     ['navigation', navigation],
     ['ownership', ownership],
     ['ticketPath', ticketPath],
+    ['activityPush', activityPush],
     ['oysterMark', oysterMark],
     ['cookProgress', cookProgress],
     ['motion', motion],

@@ -6,6 +6,10 @@ import { deleteBlobs } from '@/lib/blobCleanup';
 import { ownerScope } from '@/lib/ownership';
 import { idFrom, refuse, route } from '@/lib/route';
 import { hiddenFrom } from '@/lib/recipeVisibilityDb';
+import { recordActivity } from '@/lib/activityPushDb';
+
+/** Room for the push's bundling wait in after() (lib/activityPush BUNDLE_WAIT_MS). */
+export const maxDuration = 60;
 
 /**
  * "I cooked this" — the entry itself. Its photographs are in ./photos.
@@ -59,6 +63,8 @@ export const POST = route<'user', typeof noteBody, Params>(
                     select: { id: true, cookedAt: true, note: true },
                 });
 
+            await recordActivity(user, { kind: 'cooked', recipeId, text: entry.note });
+
             return NextResponse.json({ ...entry, photos: [] }, { status: 201 });
         } catch (error) {
             // The recipe was deleted between the page rendering and the tap.
@@ -83,6 +89,8 @@ export const PATCH = route<'user', typeof noteBody, Params>(
 
         // Missing or somebody else's: the same answer, which does not say which.
         if (updated.count !== 1) refuse(404, 'That entry is gone.');
+
+        if (body.note) await recordActivity(user, { kind: 'note', recipeId, text: body.note });
 
         return NextResponse.json({ success: true, note: body.note });
     }

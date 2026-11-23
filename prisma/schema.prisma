@@ -1184,3 +1184,32 @@ model IngredientItem {
   @@index([keys], type: Gin)
 }
 
+
+/// Something somebody else did in the cookbook, waiting to be pushed to the
+/// owner's phone (lib/activityPushDb.ts): a rating, a cooking, a note added to
+/// one, photographs, a ticket.
+///
+/// A table rather than a direct send, so that several things in quick
+/// succession arrive as one message: every event waits a short while, and
+/// whichever wakes first claims every unsent row at once.
+///
+/// Snapshots of names and titles rather than foreign keys: a push is about
+/// what happened at the time, and a recipe renamed or an account deleted since
+/// should neither break it nor block the deletion.
+model ActivityEvent {
+  id          Int       @id @default(autoincrement())
+  /// rating | cooked | note | photo | ticket
+  kind        String
+  actorName   String
+  recipeTitle String?
+  recipeSlug  String?
+  /// Stars for a rating; the number of photographs for a photo event.
+  amount      Int?
+  /// A note's or a ticket's text, already cut short.
+  text        String?
+  createdAt   DateTime  @default(now())
+  /// Set when it went out (or was claimed to); null while it waits.
+  sentAt      DateTime?
+
+  @@index([sentAt, createdAt])
+}

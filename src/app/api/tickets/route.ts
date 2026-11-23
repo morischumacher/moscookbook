@@ -8,6 +8,13 @@ import { failed } from '@/lib/reportServerError';
 import { publishWorkItem, syncWorkItem, workStates } from '@/lib/workItemsDb';
 import { deleteBlobs, isReportPhoto } from '@/lib/blobCleanup';
 import { bulkIdsSchema, MAX_BULK, splitReports, withTheAi } from '@/lib/reportSections';
+import { recordActivity } from '@/lib/activityPushDb';
+
+/** Room for the push's bundling wait in after() (lib/activityPush BUNDLE_WAIT_MS). */
+export const maxDuration = 60;
+
+/** How a ticket's kind reads in a push. */
+const KIND_LABEL: Record<(typeof KINDS)[number], string> = { idea: 'Idee', problem: 'Problem', other: 'Sonstiges' };
 
 /**
  * What somebody thinks is wrong with the tool, or wants it to do.
@@ -85,6 +92,7 @@ export async function POST(req: NextRequest) {
          * list at once (work #45, the owner's call).
          */
         await syncWorkItem('ticket', entry.id);
+        await recordActivity(user, { kind: 'ticket', text: `${KIND_LABEL[fields.kind]}: ${fields.body}` });
 
         /*
          * And checked, rather than trusted: a hand-over that did not make it
